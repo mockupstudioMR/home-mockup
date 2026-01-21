@@ -14,6 +14,111 @@ export type Database = {
   }
   public: {
     Tables: {
+      business_profiles: {
+        Row: {
+          business_name: string
+          created_at: string
+          credits_balance: number
+          description: string | null
+          id: string
+          logo_url: string | null
+          phone: string | null
+          subscription_tier: string | null
+          updated_at: string
+          user_id: string
+          website_url: string | null
+        }
+        Insert: {
+          business_name: string
+          created_at?: string
+          credits_balance?: number
+          description?: string | null
+          id?: string
+          logo_url?: string | null
+          phone?: string | null
+          subscription_tier?: string | null
+          updated_at?: string
+          user_id: string
+          website_url?: string | null
+        }
+        Update: {
+          business_name?: string
+          created_at?: string
+          credits_balance?: number
+          description?: string | null
+          id?: string
+          logo_url?: string | null
+          phone?: string | null
+          subscription_tier?: string | null
+          updated_at?: string
+          user_id?: string
+          website_url?: string | null
+        }
+        Relationships: []
+      }
+      cms_content: {
+        Row: {
+          content_type: string
+          created_at: string
+          id: string
+          key: string
+          metadata: Json | null
+          updated_at: string
+          updated_by: string | null
+          value: string
+        }
+        Insert: {
+          content_type: string
+          created_at?: string
+          id?: string
+          key: string
+          metadata?: Json | null
+          updated_at?: string
+          updated_by?: string | null
+          value: string
+        }
+        Update: {
+          content_type?: string
+          created_at?: string
+          id?: string
+          key?: string
+          metadata?: Json | null
+          updated_at?: string
+          updated_by?: string | null
+          value?: string
+        }
+        Relationships: []
+      }
+      credit_transactions: {
+        Row: {
+          amount: number
+          created_at: string
+          description: string | null
+          id: string
+          stripe_payment_id: string | null
+          transaction_type: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          stripe_payment_id?: string | null
+          transaction_type: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          stripe_payment_id?: string | null
+          transaction_type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       generated_designs: {
         Row: {
           created_at: string
@@ -58,6 +163,141 @@ export type Database = {
           },
           {
             foreignKeyName: "generated_designs_quiz_response_id_fkey"
+            columns: ["quiz_response_id"]
+            isOneToOne: false
+            referencedRelation: "quiz_responses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notification_settings: {
+        Row: {
+          created_at: string
+          email: string | null
+          email_verified: boolean | null
+          id: string
+          phone: string | null
+          preference: Database["public"]["Enums"]["notification_preference"]
+          updated_at: string
+          user_id: string
+          whatsapp_verified: boolean | null
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          email_verified?: boolean | null
+          id?: string
+          phone?: string | null
+          preference?: Database["public"]["Enums"]["notification_preference"]
+          updated_at?: string
+          user_id: string
+          whatsapp_verified?: boolean | null
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          email_verified?: boolean | null
+          id?: string
+          phone?: string | null
+          preference?: Database["public"]["Enums"]["notification_preference"]
+          updated_at?: string
+          user_id?: string
+          whatsapp_verified?: boolean | null
+        }
+        Relationships: []
+      }
+      offers: {
+        Row: {
+          created_at: string
+          credits_used: number
+          currency: string | null
+          description: string | null
+          from_user_id: string
+          id: string
+          offer_type: string
+          price: number | null
+          product_ids: string[] | null
+          responded_at: string | null
+          sent_at: string | null
+          status: Database["public"]["Enums"]["offer_status"]
+          title: string
+          to_user_id: string
+          viewed_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          credits_used?: number
+          currency?: string | null
+          description?: string | null
+          from_user_id: string
+          id?: string
+          offer_type: string
+          price?: number | null
+          product_ids?: string[] | null
+          responded_at?: string | null
+          sent_at?: string | null
+          status?: Database["public"]["Enums"]["offer_status"]
+          title: string
+          to_user_id: string
+          viewed_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          credits_used?: number
+          currency?: string | null
+          description?: string | null
+          from_user_id?: string
+          id?: string
+          offer_type?: string
+          price?: number | null
+          product_ids?: string[] | null
+          responded_at?: string | null
+          sent_at?: string | null
+          status?: Database["public"]["Enums"]["offer_status"]
+          title?: string
+          to_user_id?: string
+          viewed_at?: string | null
+        }
+        Relationships: []
+      }
+      product_matches: {
+        Row: {
+          created_at: string
+          id: string
+          match_reasons: string[] | null
+          match_score: number
+          product_id: string
+          quiz_response_id: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          match_reasons?: string[] | null
+          match_score: number
+          product_id: string
+          quiz_response_id?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          match_reasons?: string[] | null
+          match_score?: number
+          product_id?: string
+          quiz_response_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_matches_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "shop_products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_matches_quiz_response_id_fkey"
             columns: ["quiz_response_id"]
             isOneToOne: false
             referencedRelation: "quiz_responses"
@@ -131,15 +371,141 @@ export type Database = {
         }
         Relationships: []
       }
+      role_invites: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          email: string | null
+          expires_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          status: Database["public"]["Enums"]["invite_status"]
+          token: string
+          used_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          email?: string | null
+          expires_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          status?: Database["public"]["Enums"]["invite_status"]
+          token?: string
+          used_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          email?: string | null
+          expires_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          status?: Database["public"]["Enums"]["invite_status"]
+          token?: string
+          used_by?: string | null
+        }
+        Relationships: []
+      }
+      shop_products: {
+        Row: {
+          category: string
+          created_at: string
+          currency: string | null
+          description: string | null
+          id: string
+          image_urls: string[] | null
+          is_active: boolean | null
+          metadata: Json | null
+          name: string
+          price: number | null
+          shop_id: string
+          source_url: string | null
+          style: string | null
+          updated_at: string
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          currency?: string | null
+          description?: string | null
+          id?: string
+          image_urls?: string[] | null
+          is_active?: boolean | null
+          metadata?: Json | null
+          name: string
+          price?: number | null
+          shop_id: string
+          source_url?: string | null
+          style?: string | null
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          currency?: string | null
+          description?: string | null
+          id?: string
+          image_urls?: string[] | null
+          is_active?: boolean | null
+          metadata?: Json | null
+          name?: string
+          price?: number | null
+          shop_id?: string
+          source_url?: string | null
+          style?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      accept_invite: { Args: { invite_token: string }; Returns: boolean }
+      deduct_credits: {
+        Args: { _amount: number; _user_id: string }
+        Returns: boolean
+      }
+      get_user_role: {
+        Args: { _user_id: string }
+        Returns: Database["public"]["Enums"]["app_role"]
+      }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "designer" | "furniture_shop" | "user"
+      invite_status: "pending" | "accepted" | "expired"
+      notification_preference: "email" | "whatsapp" | "both"
+      offer_status: "pending" | "sent" | "viewed" | "accepted" | "rejected"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -266,6 +632,11 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "designer", "furniture_shop", "user"],
+      invite_status: ["pending", "accepted", "expired"],
+      notification_preference: ["email", "whatsapp", "both"],
+      offer_status: ["pending", "sent", "viewed", "accepted", "rejected"],
+    },
   },
 } as const
