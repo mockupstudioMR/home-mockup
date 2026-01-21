@@ -4,7 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useQuiz } from "@/contexts/QuizContext";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Home, ArrowLeft, Upload, X, Loader2, Sparkles, Package, Check } from "lucide-react";
+import { Home, ArrowLeft, Upload, X, Loader2, Sparkles, Package, Check, ShoppingBag, ExternalLink } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -15,8 +15,18 @@ interface AnalyzedProduct {
   description: string;
 }
 
+interface MissingProduct {
+  productName: string;
+  category: string;
+  reason: string;
+  searchKeywords: string[];
+  priceRange: "budget" | "mid-range" | "premium";
+  priority: "essential" | "recommended" | "optional";
+}
+
 interface ProductAnalysisResult {
   products: AnalyzedProduct[];
+  missingProducts?: MissingProduct[];
   recommendedStyle: string;
   styleDescription: string;
   moodboardSuggestion: string;
@@ -319,6 +329,68 @@ const AnalyzeProducts = () => {
                   <h3 className="font-semibold mb-2">Design Suggestion</h3>
                   <p className="text-muted-foreground">{analysisResult.moodboardSuggestion}</p>
                 </div>
+
+                {/* Missing Products - Shoppable Suggestions */}
+                {analysisResult.missingProducts && analysisResult.missingProducts.length > 0 && (
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2">
+                      <ShoppingBag className="w-5 h-5 text-primary" />
+                      <h3 className="font-semibold">Complete Your Room</h3>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      Based on your products, here are items that would complete your space:
+                    </p>
+                    <div className="grid gap-3">
+                      {analysisResult.missingProducts.map((product, index) => (
+                        <div
+                          key={index}
+                          className="p-4 rounded-xl bg-secondary/50 border border-border hover:border-primary/30 transition-colors"
+                        >
+                          <div className="flex items-start justify-between gap-4">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-1 flex-wrap">
+                                <h4 className="font-medium">{product.productName}</h4>
+                                <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary">
+                                  {product.category}
+                                </span>
+                                <span className={`text-xs px-2 py-0.5 rounded-full ${
+                                  product.priority === "essential" 
+                                    ? "bg-destructive/10 text-destructive" 
+                                    : product.priority === "recommended"
+                                    ? "bg-accent/10 text-accent-foreground"
+                                    : "bg-muted text-muted-foreground"
+                                }`}>
+                                  {product.priority}
+                                </span>
+                              </div>
+                              <p className="text-sm text-muted-foreground mb-2">
+                                {product.reason}
+                              </p>
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="text-xs text-muted-foreground">Search:</span>
+                                {product.searchKeywords.slice(0, 3).map((keyword, ki) => (
+                                  <a
+                                    key={ki}
+                                    href={`https://www.google.com/search?tbm=shop&q=${encodeURIComponent(keyword)}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+                                  >
+                                    {keyword}
+                                    <ExternalLink className="w-3 h-3" />
+                                  </a>
+                                ))}
+                              </div>
+                            </div>
+                            <span className="text-xs text-muted-foreground whitespace-nowrap">
+                              {product.priceRange}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 <Button 
                   size="lg" 
