@@ -51,6 +51,8 @@ const Generate = () => {
   const generateDesign = async (modificationPrompt?: string) => {
     if (!quizData || !user) return;
 
+    const { productAnalysis, sourceImages, includeProducts } = location.state || {};
+
     setGenerating(true);
     try {
       const response = await supabase.functions.invoke("generate-design", {
@@ -58,6 +60,8 @@ const Generate = () => {
           ...quizData,
           modificationPrompt,
           sourceImageUrl: modificationPrompt ? generatedImage : quizData.sourceImageUrl,
+          selectedProducts: includeProducts ? productAnalysis?.products : undefined,
+          productImageUrls: includeProducts ? sourceImages : undefined,
         },
       });
 
