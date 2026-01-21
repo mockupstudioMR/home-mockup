@@ -62,6 +62,12 @@ Respond in this exact JSON format:
 
 Then recommend an overall interior style that would best incorporate all these products.
 
+IMPORTANT: Also identify what essential products are MISSING to complete a cohesive room design. Consider what complementary items would enhance the space based on the uploaded products. For each missing product, suggest:
+- Product type and name
+- Category
+- Why it's needed (function or aesthetic reason)
+- Search keywords the user could use to find similar products online
+
 Respond in this exact JSON format:
 {
   "products": [
@@ -70,6 +76,16 @@ Respond in this exact JSON format:
       "category": "string",
       "suggestedStyle": "string",
       "description": "string"
+    }
+  ],
+  "missingProducts": [
+    {
+      "productName": "string",
+      "category": "string",
+      "reason": "string",
+      "searchKeywords": ["string"],
+      "priceRange": "budget | mid-range | premium",
+      "priority": "essential | recommended | optional"
     }
   ],
   "recommendedStyle": "string",
