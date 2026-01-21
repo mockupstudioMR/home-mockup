@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { QuizProvider } from "@/contexts/QuizContext";
+import ProtectedRoute from "@/components/ProtectedRoute";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Start from "./pages/Start";
@@ -16,6 +17,9 @@ import Quiz from "./pages/Quiz";
 import Generate from "./pages/Generate";
 import Gallery from "./pages/Gallery";
 import NotFound from "./pages/NotFound";
+import AdminDashboard from "./pages/AdminDashboard";
+import DesignerDashboard from "./pages/DesignerDashboard";
+import ShopDashboard from "./pages/ShopDashboard";
 
 const queryClient = new QueryClient();
 
@@ -30,14 +34,70 @@ const App = () => (
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/auth" element={<Auth />} />
-              <Route path="/start" element={<Start />} />
-              <Route path="/style-tree" element={<StyleTree />} />
-              <Route path="/analyze-room" element={<AnalyzeRoom />} />
-              <Route path="/analyze-products" element={<AnalyzeProducts />} />
-              <Route path="/quiz-details" element={<QuizDetails />} />
-              <Route path="/quiz" element={<Quiz />} />
-              <Route path="/generate" element={<Generate />} />
-              <Route path="/gallery" element={<Gallery />} />
+              
+              {/* User routes */}
+              <Route path="/start" element={
+                <ProtectedRoute allowedRoles={["user"]}>
+                  <Start />
+                </ProtectedRoute>
+              } />
+              <Route path="/style-tree" element={
+                <ProtectedRoute allowedRoles={["user"]}>
+                  <StyleTree />
+                </ProtectedRoute>
+              } />
+              <Route path="/analyze-room" element={
+                <ProtectedRoute allowedRoles={["user"]}>
+                  <AnalyzeRoom />
+                </ProtectedRoute>
+              } />
+              <Route path="/analyze-products" element={
+                <ProtectedRoute allowedRoles={["user"]}>
+                  <AnalyzeProducts />
+                </ProtectedRoute>
+              } />
+              <Route path="/quiz-details" element={
+                <ProtectedRoute allowedRoles={["user"]}>
+                  <QuizDetails />
+                </ProtectedRoute>
+              } />
+              <Route path="/quiz" element={
+                <ProtectedRoute allowedRoles={["user"]}>
+                  <Quiz />
+                </ProtectedRoute>
+              } />
+              <Route path="/generate" element={
+                <ProtectedRoute allowedRoles={["user"]}>
+                  <Generate />
+                </ProtectedRoute>
+              } />
+              <Route path="/gallery" element={
+                <ProtectedRoute allowedRoles={["user"]}>
+                  <Gallery />
+                </ProtectedRoute>
+              } />
+
+              {/* Admin routes */}
+              <Route path="/admin" element={
+                <ProtectedRoute allowedRoles={["admin"]}>
+                  <AdminDashboard />
+                </ProtectedRoute>
+              } />
+
+              {/* Designer routes */}
+              <Route path="/designer" element={
+                <ProtectedRoute allowedRoles={["designer"]}>
+                  <DesignerDashboard />
+                </ProtectedRoute>
+              } />
+
+              {/* Shop routes */}
+              <Route path="/shop" element={
+                <ProtectedRoute allowedRoles={["furniture_shop"]}>
+                  <ShopDashboard />
+                </ProtectedRoute>
+              } />
+
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>
