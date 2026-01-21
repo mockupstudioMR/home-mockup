@@ -381,11 +381,12 @@ const CMSEditor = () => {
                   <Label htmlFor="title">Title</Label>
                   <Input
                     id="title"
-                    placeholder="Display title"
+                    placeholder={editingContent ? (editingContent.metadata?.title as string) || "Display title" : "Display title"}
                     value={formData.title}
                     onChange={(e) =>
                       setFormData({ ...formData, title: e.target.value })
                     }
+                    className={!formData.title && editingContent?.metadata?.title ? "placeholder:text-muted-foreground/70" : ""}
                   />
                   <p className="text-xs text-muted-foreground">
                     Human-readable name
