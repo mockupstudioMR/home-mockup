@@ -148,14 +148,14 @@ const CMSEditor = () => {
 
   // Update mutation
   const updateMutation = useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: ContentFormData }) => {
+    mutationFn: async ({ id, data, existingTitle }: { id: string; data: ContentFormData; existingTitle?: string }) => {
       const { error } = await supabase
         .from("cms_content")
         .update({
           key: data.key,
           value: data.value,
           content_type: data.content_type,
-          metadata: { title: data.title },
+          metadata: { title: data.title || existingTitle || "" },
         })
         .eq("id", id);
       if (error) throw error;
@@ -205,7 +205,7 @@ const CMSEditor = () => {
       key: content.key,
       value: content.value,
       content_type: content.content_type as ContentType,
-      title: (content.metadata?.title as string) || "",
+      title: "", // Leave empty so placeholder shows current value
     });
     setIsDialogOpen(true);
   };
@@ -227,7 +227,11 @@ const CMSEditor = () => {
     }
 
     if (editingContent) {
-      updateMutation.mutate({ id: editingContent.id, data: formData });
+      updateMutation.mutate({ 
+        id: editingContent.id, 
+        data: formData, 
+        existingTitle: (editingContent.metadata?.title as string) || "" 
+      });
     } else {
       createMutation.mutate(formData);
     }
