@@ -10,7 +10,7 @@ const Index = () => {
 
   const handleGetStarted = () => {
     if (user) {
-      navigate("/quiz");
+      navigate("/start");
     } else {
       navigate("/auth");
     }
