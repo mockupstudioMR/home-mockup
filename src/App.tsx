@@ -7,6 +7,11 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { QuizProvider } from "@/contexts/QuizContext";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
+import Start from "./pages/Start";
+import StyleTree from "./pages/StyleTree";
+import AnalyzeRoom from "./pages/AnalyzeRoom";
+import AnalyzeProducts from "./pages/AnalyzeProducts";
+import QuizDetails from "./pages/QuizDetails";
 import Quiz from "./pages/Quiz";
 import Generate from "./pages/Generate";
 import Gallery from "./pages/Gallery";
@@ -25,6 +30,11 @@ const App = () => (
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/auth" element={<Auth />} />
+              <Route path="/start" element={<Start />} />
+              <Route path="/style-tree" element={<StyleTree />} />
+              <Route path="/analyze-room" element={<AnalyzeRoom />} />
+              <Route path="/analyze-products" element={<AnalyzeProducts />} />
+              <Route path="/quiz-details" element={<QuizDetails />} />
               <Route path="/quiz" element={<Quiz />} />
               <Route path="/generate" element={<Generate />} />
               <Route path="/gallery" element={<Gallery />} />
