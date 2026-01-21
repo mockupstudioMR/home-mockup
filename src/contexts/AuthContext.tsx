@@ -2,13 +2,19 @@ import React, { createContext, useContext, useEffect, useState } from "react";
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 
+type AppRole = "admin" | "designer" | "furniture_shop" | "user";
+
 interface AuthContextType {
   user: User | null;
   session: Session | null;
   loading: boolean;
+  role: AppRole | null;
+  roleLoading: boolean;
   signUp: (email: string, password: string) => Promise<{ error: Error | null }>;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
+  acceptInvite: (token: string) => Promise<{ success: boolean; error?: string }>;
+  refreshRole: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -17,14 +23,51 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [role, setRole] = useState<AppRole | null>(null);
+  const [roleLoading, setRoleLoading] = useState(true);
+
+  const fetchUserRole = async (userId: string) => {
+    setRoleLoading(true);
+    try {
+      const { data, error } = await supabase.rpc("get_user_role", {
+        _user_id: userId,
+      });
+
+      if (error) {
+        console.error("Error fetching role:", error);
+        setRole("user");
+      } else {
+        setRole((data as AppRole) || "user");
+      }
+    } catch (err) {
+      console.error("Role fetch error:", err);
+      setRole("user");
+    } finally {
+      setRoleLoading(false);
+    }
+  };
+
+  const refreshRole = async () => {
+    if (user) {
+      await fetchUserRole(user.id);
+    }
+  };
 
   useEffect(() => {
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
+      async (_event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
+
+        if (session?.user) {
+          // Use setTimeout to avoid blocking the auth state change
+          setTimeout(() => fetchUserRole(session.user.id), 0);
+        } else {
+          setRole(null);
+          setRoleLoading(false);
+        }
       }
     );
 
@@ -33,6 +76,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
+
+      if (session?.user) {
+        fetchUserRole(session.user.id);
+      } else {
+        setRoleLoading(false);
+      }
     });
 
     return () => subscription.unsubscribe();
@@ -59,10 +108,45 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const signOut = async () => {
     await supabase.auth.signOut();
+    setRole(null);
+  };
+
+  const acceptInvite = async (token: string) => {
+    try {
+      const { data, error } = await supabase.rpc("accept_invite", {
+        invite_token: token,
+      });
+
+      if (error) {
+        return { success: false, error: error.message };
+      }
+
+      if (data) {
+        await refreshRole();
+        return { success: true };
+      }
+
+      return { success: false, error: "Invalid or expired invite token" };
+    } catch (err) {
+      return { success: false, error: "Failed to accept invite" };
+    }
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, loading, signUp, signIn, signOut }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        session,
+        loading,
+        role,
+        roleLoading,
+        signUp,
+        signIn,
+        signOut,
+        acceptInvite,
+        refreshRole,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

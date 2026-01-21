@@ -1,21 +1,65 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Home, Sparkles } from "lucide-react";
+import { Home, Sparkles, Ticket, Loader2 } from "lucide-react";
 
 const Auth = () => {
-  const [isLogin, setIsLogin] = useState(true);
+  const [searchParams] = useSearchParams();
+  const inviteToken = searchParams.get("invite");
+  
+  const [isLogin, setIsLogin] = useState(!inviteToken);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const { signIn, signUp } = useAuth();
+  const [acceptingInvite, setAcceptingInvite] = useState(false);
+  
+  const { user, role, signIn, signUp, acceptInvite } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
+
+  // Handle post-auth invite acceptance
+  useEffect(() => {
+    const handleInviteAcceptance = async () => {
+      if (user && inviteToken && !acceptingInvite) {
+        setAcceptingInvite(true);
+        const result = await acceptInvite(inviteToken);
+        
+        if (result.success) {
+          toast({
+            title: "Invite accepted!",
+            description: "Your account has been upgraded. Redirecting...",
+          });
+        } else {
+          toast({
+            title: "Invite Error",
+            description: result.error,
+            variant: "destructive",
+          });
+        }
+        setAcceptingInvite(false);
+      }
+    };
+
+    handleInviteAcceptance();
+  }, [user, inviteToken]);
+
+  // Redirect based on role after login
+  useEffect(() => {
+    if (user && role && !acceptingInvite) {
+      const roleRedirects: Record<string, string> = {
+        admin: "/admin",
+        designer: "/designer",
+        furniture_shop: "/shop",
+        user: "/start",
+      };
+      navigate(roleRedirects[role] || "/start");
+    }
+  }, [user, role, acceptingInvite, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,11 +79,10 @@ const Auth = () => {
       } else {
         toast({
           title: isLogin ? "Welcome back!" : "Account created!",
-          description: isLogin
-            ? "Let's design your dream space."
-            : "You can now start your design journey.",
+          description: inviteToken 
+            ? "Processing your invite..."
+            : "Let's design your dream space.",
         });
-        navigate("/quiz");
       }
     } catch (err) {
       toast({
@@ -52,6 +95,19 @@ const Auth = () => {
     }
   };
 
+  if (acceptingInvite) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-background via-secondary/20 to-primary/10 flex items-center justify-center p-4">
+        <Card className="w-full max-w-md border-border/50 bg-card/80 backdrop-blur-sm">
+          <CardContent className="pt-6 text-center">
+            <Loader2 className="w-12 h-12 animate-spin text-primary mx-auto mb-4" />
+            <p className="text-lg font-medium">Processing your invite...</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-secondary/20 to-primary/10 flex items-center justify-center p-4">
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
@@ -62,15 +118,25 @@ const Auth = () => {
       <Card className="w-full max-w-md relative z-10 border-border/50 bg-card/80 backdrop-blur-sm">
         <CardHeader className="text-center space-y-4">
           <div className="mx-auto w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center">
-            <Home className="w-8 h-8 text-primary-foreground" />
+            {inviteToken ? (
+              <Ticket className="w-8 h-8 text-primary-foreground" />
+            ) : (
+              <Home className="w-8 h-8 text-primary-foreground" />
+            )}
           </div>
           <div>
             <CardTitle className="text-2xl font-bold">
-              {isLogin ? "Welcome Back" : "Create Account"}
+              {inviteToken 
+                ? "Accept Invitation" 
+                : isLogin 
+                  ? "Welcome Back" 
+                  : "Create Account"}
             </CardTitle>
             <CardDescription className="mt-2 flex items-center justify-center gap-2">
               <Sparkles className="w-4 h-4" />
-              AI-Powered Interior Design
+              {inviteToken 
+                ? "Create an account to join as a partner"
+                : "AI-Powered Interior Design"}
             </CardDescription>
           </div>
         </CardHeader>
@@ -107,16 +173,31 @@ const Auth = () => {
             </Button>
           </form>
 
-          <div className="mt-6 text-center text-sm text-muted-foreground">
-            {isLogin ? "Don't have an account?" : "Already have an account?"}{" "}
-            <button
-              type="button"
-              onClick={() => setIsLogin(!isLogin)}
-              className="text-primary hover:underline font-medium"
-            >
-              {isLogin ? "Sign up" : "Sign in"}
-            </button>
-          </div>
+          {!inviteToken && (
+            <div className="mt-6 text-center text-sm text-muted-foreground">
+              {isLogin ? "Don't have an account?" : "Already have an account?"}{" "}
+              <button
+                type="button"
+                onClick={() => setIsLogin(!isLogin)}
+                className="text-primary hover:underline font-medium"
+              >
+                {isLogin ? "Sign up" : "Sign in"}
+              </button>
+            </div>
+          )}
+
+          {inviteToken && (
+            <div className="mt-6 text-center text-sm text-muted-foreground">
+              Already have an account?{" "}
+              <button
+                type="button"
+                onClick={() => setIsLogin(true)}
+                className="text-primary hover:underline font-medium"
+              >
+                Sign in instead
+              </button>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
