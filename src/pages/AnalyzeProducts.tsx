@@ -4,7 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useQuiz } from "@/contexts/QuizContext";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Home, ArrowLeft, Upload, X, Loader2, Sparkles, Package } from "lucide-react";
+import { Home, ArrowLeft, Upload, X, Loader2, Sparkles, Package, Check } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -31,6 +31,7 @@ const AnalyzeProducts = () => {
   const [uploadedImages, setUploadedImages] = useState<string[]>([]);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisResult, setAnalysisResult] = useState<ProductAnalysisResult | null>(null);
+  const [selectedProducts, setSelectedProducts] = useState<Set<number>>(new Set());
 
   const handleFileUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -74,6 +75,8 @@ const AnalyzeProducts = () => {
       if (error) throw error;
 
       setAnalysisResult(data);
+      // Select all products by default
+      setSelectedProducts(new Set(data.products.map((_: AnalyzedProduct, i: number) => i)));
       toast({
         title: "Analysis complete!",
         description: `Analyzed ${data.products.length} products`,
@@ -90,8 +93,23 @@ const AnalyzeProducts = () => {
     }
   };
 
+  const toggleProductSelection = (index: number) => {
+    setSelectedProducts(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(index)) {
+        newSet.delete(index);
+      } else {
+        newSet.add(index);
+      }
+      return newSet;
+    });
+  };
+
   const handleContinue = () => {
-    if (analysisResult) {
+    if (analysisResult && selectedProducts.size > 0) {
+      const selectedProductData = analysisResult.products.filter((_, i) => selectedProducts.has(i));
+      const selectedImageData = uploadedImages.filter((_, i) => selectedProducts.has(i));
+      
       updateQuizData({
         stylePreference: analysisResult.recommendedStyle.toLowerCase().replace(/\s+/g, "-"),
         colorPalette: "neutral",
@@ -103,8 +121,11 @@ const AnalyzeProducts = () => {
             title: analysisResult.recommendedStyle,
             description: analysisResult.styleDescription,
           },
-          productAnalysis: analysisResult,
-          uploadedImages,
+          productAnalysis: {
+            ...analysisResult,
+            products: selectedProductData,
+          },
+          uploadedImages: selectedImageData,
           includeProducts: true,
         } 
       });
@@ -240,30 +261,51 @@ const AnalyzeProducts = () => {
             <Card className="border-primary/30 bg-card/80 backdrop-blur-sm">
               <CardContent className="p-6 space-y-6">
                 <div>
-                  <h2 className="text-xl font-semibold mb-4">Identified Products</h2>
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-xl font-semibold">Select Products to Include</h2>
+                    <span className="text-sm text-muted-foreground">
+                      {selectedProducts.size} of {analysisResult.products.length} selected
+                    </span>
+                  </div>
                   <div className="grid gap-3">
-                    {analysisResult.products.map((product, index) => (
-                      <div key={index} className="flex items-start gap-4 p-4 rounded-xl bg-secondary/50">
-                        <div className="w-16 h-16 rounded-lg overflow-hidden shrink-0">
-                          <img
-                            src={uploadedImages[index]}
-                            alt={product.productName}
-                            className="w-full h-full object-cover"
-                          />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-1">
-                            <h3 className="font-medium">{product.productName}</h3>
-                            <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary">
-                              {product.category}
-                            </span>
+                    {analysisResult.products.map((product, index) => {
+                      const isSelected = selectedProducts.has(index);
+                      return (
+                        <button
+                          key={index}
+                          onClick={() => toggleProductSelection(index)}
+                          className={`flex items-start gap-4 p-4 rounded-xl text-left transition-all ${
+                            isSelected 
+                              ? "bg-primary/20 border-2 border-primary" 
+                              : "bg-secondary/50 border-2 border-transparent hover:border-primary/30"
+                          }`}
+                        >
+                          <div className="relative w-16 h-16 rounded-lg overflow-hidden shrink-0">
+                            <img
+                              src={uploadedImages[index]}
+                              alt={product.productName}
+                              className="w-full h-full object-cover"
+                            />
+                            {isSelected && (
+                              <div className="absolute inset-0 bg-primary/40 flex items-center justify-center">
+                                <Check className="w-6 h-6 text-primary-foreground" />
+                              </div>
+                            )}
                           </div>
-                          <p className="text-sm text-muted-foreground line-clamp-2">
-                            {product.description}
-                          </p>
-                        </div>
-                      </div>
-                    ))}
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1">
+                              <h3 className="font-medium">{product.productName}</h3>
+                              <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary">
+                                {product.category}
+                              </span>
+                            </div>
+                            <p className="text-sm text-muted-foreground line-clamp-2">
+                              {product.description}
+                            </p>
+                          </div>
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
 
@@ -278,9 +320,14 @@ const AnalyzeProducts = () => {
                   <p className="text-muted-foreground">{analysisResult.moodboardSuggestion}</p>
                 </div>
 
-                <Button size="lg" className="w-full" onClick={handleContinue}>
+                <Button 
+                  size="lg" 
+                  className="w-full" 
+                  onClick={handleContinue}
+                  disabled={selectedProducts.size === 0}
+                >
                   <Sparkles className="w-5 h-5 mr-2" />
-                  Design Room with These Products
+                  Design Room with {selectedProducts.size} Product{selectedProducts.size !== 1 ? "s" : ""}
                 </Button>
               </CardContent>
             </Card>
