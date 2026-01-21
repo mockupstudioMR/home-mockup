@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -31,7 +31,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Pencil, Trash2, FileText, Image, Type } from "lucide-react";
+import { Plus, Pencil, Trash2, FileText, Image, Type, Upload, Loader2 } from "lucide-react";
 
 type ContentType = "text" | "html" | "image_url";
 
@@ -49,6 +49,7 @@ interface ContentFormData {
   key: string;
   value: string;
   content_type: ContentType;
+  title: string;
 }
 
 const CMSEditor = () => {
@@ -56,10 +57,12 @@ const CMSEditor = () => {
   const queryClient = useQueryClient();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingContent, setEditingContent] = useState<CMSContent | null>(null);
+  const [uploading, setUploading] = useState(false);
   const [formData, setFormData] = useState<ContentFormData>({
     key: "",
     value: "",
     content_type: "text",
+    title: "",
   });
 
   // Fetch all CMS content
@@ -76,6 +79,48 @@ const CMSEditor = () => {
     },
   });
 
+  // Image upload handler
+  const handleImageUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      toast({
+        title: "Invalid file type",
+        description: "Please upload an image file",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setUploading(true);
+    try {
+      const fileExt = file.name.split(".").pop();
+      const fileName = `cms/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("cms-assets")
+        .upload(fileName, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from("cms-assets")
+        .getPublicUrl(fileName);
+
+      setFormData((prev) => ({ ...prev, value: publicUrl }));
+      toast({ title: "Image uploaded successfully" });
+    } catch (error: unknown) {
+      toast({
+        title: "Upload failed",
+        description: error instanceof Error ? error.message : "Unknown error",
+        variant: "destructive",
+      });
+    } finally {
+      setUploading(false);
+    }
+  }, [toast]);
+
   // Create mutation
   const createMutation = useMutation({
     mutationFn: async (data: ContentFormData) => {
@@ -83,6 +128,7 @@ const CMSEditor = () => {
         key: data.key,
         value: data.value,
         content_type: data.content_type,
+        metadata: { title: data.title },
       });
       if (error) throw error;
     },
@@ -109,6 +155,7 @@ const CMSEditor = () => {
           key: data.key,
           value: data.value,
           content_type: data.content_type,
+          metadata: { title: data.title },
         })
         .eq("id", id);
       if (error) throw error;
@@ -148,7 +195,7 @@ const CMSEditor = () => {
 
   const handleOpenCreate = () => {
     setEditingContent(null);
-    setFormData({ key: "", value: "", content_type: "text" });
+    setFormData({ key: "", value: "", content_type: "text", title: "" });
     setIsDialogOpen(true);
   };
 
@@ -158,6 +205,7 @@ const CMSEditor = () => {
       key: content.key,
       value: content.value,
       content_type: content.content_type as ContentType,
+      title: (content.metadata?.title as string) || "",
     });
     setIsDialogOpen(true);
   };
@@ -165,7 +213,7 @@ const CMSEditor = () => {
   const handleCloseDialog = () => {
     setIsDialogOpen(false);
     setEditingContent(null);
-    setFormData({ key: "", value: "", content_type: "text" });
+    setFormData({ key: "", value: "", content_type: "text", title: "" });
   };
 
   const handleSubmit = () => {
@@ -235,6 +283,7 @@ const CMSEditor = () => {
             <TableHeader>
               <TableRow>
                 <TableHead>Key</TableHead>
+                <TableHead>Title</TableHead>
                 <TableHead>Type</TableHead>
                 <TableHead>Value</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
@@ -244,6 +293,11 @@ const CMSEditor = () => {
               {contents?.map((content) => (
                 <TableRow key={content.id}>
                   <TableCell className="font-mono text-sm">{content.key}</TableCell>
+                  <TableCell className="text-sm">
+                    {(content.metadata?.title as string) || (
+                      <span className="text-muted-foreground italic">—</span>
+                    )}
+                  </TableCell>
                   <TableCell>
                     <Badge variant="outline" className={getContentTypeBadge(content.content_type)}>
                       <span className="flex items-center gap-1">
@@ -307,19 +361,36 @@ const CMSEditor = () => {
             </DialogHeader>
 
             <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label htmlFor="key">Key</Label>
-                <Input
-                  id="key"
-                  placeholder="e.g., hero_title, footer_text"
-                  value={formData.key}
-                  onChange={(e) =>
-                    setFormData({ ...formData, key: e.target.value })
-                  }
-                />
-                <p className="text-xs text-muted-foreground">
-                  Use snake_case for consistency (e.g., landing_hero_title)
-                </p>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="key">Key</Label>
+                  <Input
+                    id="key"
+                    placeholder="e.g., hero_title"
+                    value={formData.key}
+                    onChange={(e) =>
+                      setFormData({ ...formData, key: e.target.value })
+                    }
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Use snake_case (e.g., landing_hero)
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="title">Title</Label>
+                  <Input
+                    id="title"
+                    placeholder="Display title"
+                    value={formData.title}
+                    onChange={(e) =>
+                      setFormData({ ...formData, title: e.target.value })
+                    }
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Human-readable name
+                  </p>
+                </div>
               </div>
 
               <div className="space-y-2">
@@ -327,7 +398,7 @@ const CMSEditor = () => {
                 <Select
                   value={formData.content_type}
                   onValueChange={(v) =>
-                    setFormData({ ...formData, content_type: v as ContentType })
+                    setFormData({ ...formData, content_type: v as ContentType, value: "" })
                   }
                 >
                   <SelectTrigger>
@@ -353,14 +424,58 @@ const CMSEditor = () => {
                       setFormData({ ...formData, value: e.target.value })
                     }
                   />
+                ) : formData.content_type === "image_url" ? (
+                  <div className="space-y-3">
+                    <Input
+                      id="value"
+                      placeholder="https://example.com/image.png"
+                      value={formData.value}
+                      onChange={(e) =>
+                        setFormData({ ...formData, value: e.target.value })
+                      }
+                    />
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-muted-foreground">or</span>
+                      <label className="cursor-pointer">
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={handleImageUpload}
+                          disabled={uploading}
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          disabled={uploading}
+                          asChild
+                        >
+                          <span>
+                            {uploading ? (
+                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            ) : (
+                              <Upload className="w-4 h-4 mr-2" />
+                            )}
+                            {uploading ? "Uploading..." : "Upload Image"}
+                          </span>
+                        </Button>
+                      </label>
+                    </div>
+                    {formData.value && formData.value.startsWith("http") && (
+                      <div className="mt-2 rounded-md border overflow-hidden bg-muted/50">
+                        <img
+                          src={formData.value}
+                          alt="Preview"
+                          className="max-h-32 object-contain mx-auto"
+                        />
+                      </div>
+                    )}
+                  </div>
                 ) : (
                   <Input
                     id="value"
-                    placeholder={
-                      formData.content_type === "image_url"
-                        ? "https://example.com/image.png"
-                        : "Enter text content..."
-                    }
+                    placeholder="Enter text content..."
                     value={formData.value}
                     onChange={(e) =>
                       setFormData({ ...formData, value: e.target.value })
