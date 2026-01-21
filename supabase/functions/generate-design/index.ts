@@ -5,6 +5,13 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+interface ProductInfo {
+  name: string;
+  category: string;
+  style?: string;
+  description?: string;
+}
+
 interface GenerateRequest {
   stylePreference: string;
   colorPalette: string;
@@ -13,6 +20,8 @@ interface GenerateRequest {
   mustHaveElements: string[];
   sourceImageUrl?: string;
   modificationPrompt?: string;
+  selectedProducts?: ProductInfo[];
+  productImageUrls?: string[];
 }
 
 serve(async (req) => {
@@ -32,15 +41,24 @@ serve(async (req) => {
     let prompt = buildImagePrompt(requestData);
 
     // Prepare messages for image generation
+    const contentParts: any[] = [{ type: "text", text: prompt }];
+    
+    // Add source image if provided
+    if (requestData.sourceImageUrl) {
+      contentParts.push({ type: "image_url", image_url: { url: requestData.sourceImageUrl } });
+    }
+    
+    // Add product images if provided - these must be included exactly
+    if (requestData.productImageUrls && requestData.productImageUrls.length > 0) {
+      for (const imageUrl of requestData.productImageUrls) {
+        contentParts.push({ type: "image_url", image_url: { url: imageUrl } });
+      }
+    }
+
     const messages: any[] = [
       {
         role: "user",
-        content: requestData.sourceImageUrl 
-          ? [
-              { type: "text", text: prompt },
-              { type: "image_url", image_url: { url: requestData.sourceImageUrl } }
-            ]
-          : prompt
+        content: contentParts.length > 1 ? contentParts : prompt
       }
     ];
 
@@ -112,6 +130,12 @@ function buildImagePrompt(data: GenerateRequest): string {
     bohemian: "bohemian eclectic with global influences",
     traditional: "traditional elegant",
     industrial: "industrial with exposed materials",
+    "classic-historical": "classic historical with ornate details",
+    "modern-minimal": "modern minimalist with clean lines",
+    "rustic-nature": "rustic natural with organic materials",
+    "mediterranean": "Mediterranean coastal with warm tones",
+    "bohemian-eclectic": "bohemian eclectic with global textiles",
+    "glam-luxe": "glamorous luxe with metallic accents",
   };
 
   const colorMap: Record<string, string> = {
@@ -144,13 +168,28 @@ function buildImagePrompt(data: GenerateRequest): string {
     ? `Include these elements: ${data.mustHaveElements.join(", ")}.` 
     : "";
 
+  // Build product inclusion instructions
+  let productInstructions = "";
+  if (data.selectedProducts && data.selectedProducts.length > 0) {
+    const productList = data.selectedProducts
+      .map(p => `${p.name} (${p.category})${p.description ? `: ${p.description}` : ""}`)
+      .join("; ");
+    productInstructions = `CRITICAL: You MUST include ALL of these exact products in the design, keeping their original appearance, colors, and details exactly as shown in the reference images: ${productList}. These products must be prominently featured and clearly visible in the final room design.`;
+  }
+
   if (data.modificationPrompt) {
-    return `Modify this interior design image: ${data.modificationPrompt}. Maintain the ${style} style with ${colors}. Ultra high resolution, photorealistic interior design photography.`;
+    return `Modify this interior design image: ${data.modificationPrompt}. Maintain the ${style} style with ${colors}. ${productInstructions} Ultra high resolution, photorealistic interior design photography.`;
+  }
+
+  const hasProductImages = data.productImageUrls && data.productImageUrls.length > 0;
+  
+  if (hasProductImages) {
+    return `Create a stunning ${style} ${room} interior design that prominently features ALL the products shown in the reference images. ${productInstructions} Use ${colors}. Create a ${budget} aesthetic. ${elements} The products must appear EXACTLY as they look in the reference images - same colors, textures, and design details. Ultra high resolution, photorealistic interior design photography, professional lighting, magazine quality, 16:9 aspect ratio.`;
   }
 
   const basePrompt = data.sourceImageUrl
-    ? `Transform this room into a beautiful ${style} ${room} design. Use ${colors}. Create a ${budget} aesthetic. ${elements} Ultra high resolution, photorealistic interior design photography, professional lighting, magazine quality.`
-    : `Generate a stunning ${style} ${room} interior design. Use ${colors}. Create a ${budget} aesthetic. ${elements} Ultra high resolution, photorealistic interior design photography, professional lighting, magazine quality, 16:9 aspect ratio.`;
+    ? `Transform this room into a beautiful ${style} ${room} design. Use ${colors}. Create a ${budget} aesthetic. ${elements} ${productInstructions} Ultra high resolution, photorealistic interior design photography, professional lighting, magazine quality.`
+    : `Generate a stunning ${style} ${room} interior design. Use ${colors}. Create a ${budget} aesthetic. ${elements} ${productInstructions} Ultra high resolution, photorealistic interior design photography, professional lighting, magazine quality, 16:9 aspect ratio.`;
 
   return basePrompt;
 }
