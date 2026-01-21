@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import CMSEditor from "@/components/admin/CMSEditor";
 import { 
   Shield, 
   Users, 
@@ -17,7 +18,6 @@ import {
   LogOut,
   Store,
   Palette,
-  Settings,
   FileText,
   CreditCard
 } from "lucide-react";
@@ -324,19 +324,7 @@ const AdminDashboard = () => {
 
           {/* CMS Tab */}
           <TabsContent value="cms">
-            <Card>
-              <CardHeader>
-                <CardTitle>Content Management</CardTitle>
-                <CardDescription>
-                  Edit app text and visual content
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground">
-                  CMS editor coming soon. You'll be able to edit all app text and visuals here.
-                </p>
-              </CardContent>
-            </Card>
+            <CMSEditor />
           </TabsContent>
 
           {/* Billing Tab */}
