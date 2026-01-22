@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import CMSEditor from "@/components/admin/CMSEditor";
+import AddUserDialog from "@/components/admin/AddUserDialog";
 import { 
   Shield, 
   Users, 
@@ -287,7 +288,10 @@ const AdminDashboard = () => {
           </TabsContent>
 
           {/* Users Tab */}
-          <TabsContent value="users">
+          <TabsContent value="users" className="space-y-6">
+            <div className="flex justify-end">
+              <AddUserDialog />
+            </div>
             <Card>
               <CardHeader>
                 <CardTitle>User Roles</CardTitle>
