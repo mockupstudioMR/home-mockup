@@ -23,21 +23,25 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Create client with user's token to verify they're an admin
-    const supabaseAuth = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!, {
-      global: { headers: { Authorization: authHeader } },
+    // Extract token from Bearer header
+    const token = authHeader.replace("Bearer ", "");
+
+    // Create admin client with service role to verify user and check role
+    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
+      auth: { autoRefreshToken: false, persistSession: false },
     });
 
-    const { data: { user: callingUser } } = await supabaseAuth.auth.getUser();
-    if (!callingUser) {
+    // Get user from token
+    const { data: { user: callingUser }, error: userError } = await supabaseAdmin.auth.getUser(token);
+    if (userError || !callingUser) {
       return new Response(
         JSON.stringify({ error: "Unauthorized" }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // Check if calling user is admin
-    const { data: isAdmin } = await supabaseAuth.rpc("has_role", {
+    // Check if calling user is admin using service role client
+    const { data: isAdmin } = await supabaseAdmin.rpc("has_role", {
       _user_id: callingUser.id,
       _role: "admin",
     });
@@ -59,10 +63,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Create admin client with service role
-    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
-      auth: { autoRefreshToken: false, persistSession: false },
-    });
+    // Reuse supabaseAdmin client for user creation
 
     // Create the user
     const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
