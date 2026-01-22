@@ -4,20 +4,38 @@ import { supabase } from "@/integrations/supabase/client";
 import QuizOption from "../QuizOption";
 import { Skeleton } from "@/components/ui/skeleton";
 
+// Import local style images
+import modernMinimalImg from "@/assets/styles/modern-minimal.png";
+import bohemianEclecticImg from "@/assets/styles/bohemian-eclectic.png";
+import classicHistoricalImg from "@/assets/styles/classic-historical.png";
+import glamLuxeImg from "@/assets/styles/glam-luxe.png";
+import mediterraneanImg from "@/assets/styles/mediterranean.png";
+import rusticNatureImg from "@/assets/styles/rustic-nature.png";
+
+// Map local asset paths to imported images
+const localAssetMap: Record<string, string> = {
+  "/src/assets/styles/modern-minimal.png": modernMinimalImg,
+  "/src/assets/styles/bohemian-eclectic.png": bohemianEclecticImg,
+  "/src/assets/styles/classic-historical.png": classicHistoricalImg,
+  "/src/assets/styles/glam-luxe.png": glamLuxeImg,
+  "/src/assets/styles/mediterranean.png": mediterraneanImg,
+  "/src/assets/styles/rustic-nature.png": rusticNatureImg,
+};
+
 interface CMSStyle {
   key: string;
   value: string;
-  metadata: { title?: string; description?: string } | null;
+  metadata: { label?: string; title?: string; description?: string } | null;
 }
 
 // Fallback styles if CMS is empty
 const fallbackStyles = [
-  { value: "modern", label: "Modern Minimal", description: "Clean lines, neutral tones, and minimalist furniture" },
-  { value: "classic", label: "Classic Historical", description: "Timeless elegance with rich textures and refined details" },
-  { value: "rustic", label: "Rustic Nature", description: "Warm wood tones, natural materials, and cozy textures" },
-  { value: "mediterranean", label: "Mediterranean", description: "Sun-kissed colors, terracotta, and coastal vibes" },
-  { value: "bohemian", label: "Bohemian Eclectic", description: "Eclectic patterns, vibrant colors, and global influences" },
-  { value: "glam", label: "Glam Luxe", description: "Luxurious finishes, bold accents, and sophisticated glamour" },
+  { value: "modern_minimal", label: "Modern Minimal", description: "Clean lines, neutral tones, and minimalist furniture", imageUrl: modernMinimalImg },
+  { value: "classic_historical", label: "Classic Historical", description: "Timeless elegance with rich textures and refined details", imageUrl: classicHistoricalImg },
+  { value: "rustic_nature", label: "Rustic Nature", description: "Warm wood tones, natural materials, and cozy textures", imageUrl: rusticNatureImg },
+  { value: "mediterranean", label: "Mediterranean", description: "Sun-kissed colors, terracotta, and coastal vibes", imageUrl: mediterraneanImg },
+  { value: "bohemian_eclectic", label: "Bohemian Eclectic", description: "Eclectic patterns, vibrant colors, and global influences", imageUrl: bohemianEclecticImg },
+  { value: "glam_luxe", label: "Glam Luxe", description: "Luxurious finishes, bold accents, and sophisticated glamour", imageUrl: glamLuxeImg },
 ];
 
 const StyleStep = () => {
@@ -41,14 +59,16 @@ const StyleStep = () => {
   const styles = cmsStyles?.length
     ? cmsStyles.map((item) => {
         const styleKey = item.key.replace("quiz_style_", "");
+        // Check if it's a local asset path and map it, otherwise use the URL directly
+        const imageUrl = localAssetMap[item.value] || item.value;
         return {
           value: styleKey,
-          label: item.metadata?.title || styleKey.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()),
+          label: item.metadata?.label || item.metadata?.title || styleKey.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()),
           description: item.metadata?.description || "",
-          imageUrl: item.value,
+          imageUrl,
         };
       })
-    : fallbackStyles.map((s) => ({ ...s, imageUrl: undefined }));
+    : fallbackStyles;
 
   if (isLoading) {
     return (
