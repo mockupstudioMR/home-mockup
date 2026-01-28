@@ -21,7 +21,8 @@ import {
   Link,
   TrendingUp,
   Users,
-  Loader2
+  Loader2,
+  Sparkles
 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
@@ -31,6 +32,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { usePagination } from "@/hooks/usePagination";
+import ProductPagination from "@/components/ProductPagination";
 
 const ShopDashboard = () => {
   const navigate = useNavigate();
@@ -46,7 +49,7 @@ const ShopDashboard = () => {
     price: "",
     source_url: "",
   });
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [_isSubmitting, _setIsSubmitting] = useState(false);
   const [shopUrl, setShopUrl] = useState("");
   const [isScraping, setIsScraping] = useState(false);
   const [scrapeProgress, setScrapeProgress] = useState("");
@@ -221,6 +224,122 @@ const ShopDashboard = () => {
     "mediterranean", "classic-historical"
   ];
 
+  // Products Tab Content with Pagination
+  const ProductsTabContent = ({ 
+    productList, 
+    loading 
+  }: { 
+    productList: any[] | undefined; 
+    loading: boolean 
+  }) => {
+    const pagination = usePagination({
+      totalItems: productList?.length || 0,
+      itemsPerPage: 12,
+    });
+
+    const paginatedProducts = productList?.slice(pagination.startIndex, pagination.endIndex);
+
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Your Products</CardTitle>
+          <CardDescription>
+            Manage your furniture catalog ({productList?.length || 0} products)
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {loading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="w-8 h-8 animate-spin text-primary" />
+            </div>
+          ) : productList?.length === 0 ? (
+            <div className="py-12 text-center">
+              <Package className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+              <p className="text-muted-foreground">No products yet</p>
+              <p className="text-sm text-muted-foreground mt-2">
+                Add your first product to start matching with customers
+              </p>
+            </div>
+          ) : (
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {paginatedProducts?.map((product) => (
+                  <Card key={product.id} className="overflow-hidden">
+                    <div className="aspect-square bg-muted relative">
+                      {product.image_urls && product.image_urls.length > 0 ? (
+                        <img
+                          src={product.image_urls[0]}
+                          alt={product.name}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <Package className="w-12 h-12 text-muted-foreground/40" />
+                        </div>
+                      )}
+                    </div>
+                    <CardContent className="pt-4">
+                      <h3 className="font-semibold line-clamp-1 mb-2">{product.name}</h3>
+                      
+                      {product.source_url ? (
+                        <a
+                          href={product.source_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-sm text-primary hover:underline flex items-center gap-1 mb-3"
+                        >
+                          <Link className="w-3 h-3" />
+                          View product
+                        </a>
+                      ) : (
+                        <p className="text-sm text-muted-foreground mb-3">No link available</p>
+                      )}
+                      
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <Badge variant="secondary">{product.category}</Badge>
+                        {product.price && (
+                          <Badge variant="outline">
+                            €{product.price}
+                          </Badge>
+                        )}
+                      </div>
+
+                      {/* AI Generated Tags */}
+                      {(product as any).ai_style_tags?.length > 0 && (
+                        <div className="mt-3 pt-3 border-t border-border">
+                          <div className="flex items-center gap-1 mb-2">
+                            <Sparkles className="w-3 h-3 text-primary" />
+                            <span className="text-xs text-muted-foreground">AI Style Tags</span>
+                          </div>
+                          <div className="flex flex-wrap gap-1">
+                            {(product as any).ai_style_tags.slice(0, 3).map((tag: string, i: number) => (
+                              <Badge key={i} variant="outline" className="text-xs bg-primary/5">
+                                {tag}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+
+              <ProductPagination
+                currentPage={pagination.currentPage}
+                totalPages={pagination.totalPages}
+                pageNumbers={pagination.pageNumbers}
+                onPageChange={pagination.goToPage}
+                hasNextPage={pagination.hasNextPage}
+                hasPrevPage={pagination.hasPrevPage}
+              />
+            </>
+          )}
+        </CardContent>
+      </Card>
+    );
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-secondary/20 to-primary/10">
       {/* Header */}
@@ -324,79 +443,10 @@ const ShopDashboard = () => {
 
           {/* Products Tab */}
           <TabsContent value="products">
-            <Card>
-              <CardHeader>
-                <CardTitle>Your Products</CardTitle>
-                <CardDescription>
-                  Manage your furniture catalog
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {productsLoading ? (
-                  <div className="flex items-center justify-center py-12">
-                    <Loader2 className="w-8 h-8 animate-spin text-primary" />
-                  </div>
-                ) : products?.length === 0 ? (
-                  <div className="py-12 text-center">
-                    <Package className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                    <p className="text-muted-foreground">No products yet</p>
-                    <p className="text-sm text-muted-foreground mt-2">
-                      Add your first product to start matching with customers
-                    </p>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {products?.map((product) => (
-                      <Card key={product.id} className="overflow-hidden">
-                        {/* Product Image */}
-                        <div className="aspect-square bg-muted relative">
-                          {product.image_urls && product.image_urls.length > 0 ? (
-                            <img
-                              src={product.image_urls[0]}
-                              alt={product.name}
-                              className="w-full h-full object-cover"
-                            />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center">
-                              <Package className="w-12 h-12 text-muted-foreground/40" />
-                            </div>
-                          )}
-                        </div>
-                        <CardContent className="pt-4">
-                          {/* Product Name */}
-                          <h3 className="font-semibold line-clamp-1 mb-2">{product.name}</h3>
-                          
-                          {/* Product Link */}
-                          {product.source_url ? (
-                            <a
-                              href={product.source_url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-sm text-primary hover:underline flex items-center gap-1 mb-3"
-                            >
-                              <Link className="w-3 h-3" />
-                              View product
-                            </a>
-                          ) : (
-                            <p className="text-sm text-muted-foreground mb-3">No link available</p>
-                          )}
-                          
-                          {/* Badges */}
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <Badge variant="secondary">{product.category}</Badge>
-                            {product.price && (
-                              <Badge variant="outline">
-                                €{product.price}
-                              </Badge>
-                            )}
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+            <ProductsTabContent 
+              productList={products} 
+              loading={productsLoading} 
+            />
           </TabsContent>
 
           {/* Add Product Tab */}

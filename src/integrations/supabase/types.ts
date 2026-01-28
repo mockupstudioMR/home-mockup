@@ -409,6 +409,8 @@ export type Database = {
       }
       shop_products: {
         Row: {
+          ai_image_description: string | null
+          ai_style_tags: string[] | null
           category: string
           created_at: string
           currency: string | null
@@ -425,6 +427,8 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          ai_image_description?: string | null
+          ai_style_tags?: string[] | null
           category: string
           created_at?: string
           currency?: string | null
@@ -441,6 +445,8 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          ai_image_description?: string | null
+          ai_style_tags?: string[] | null
           category?: string
           created_at?: string
           currency?: string | null

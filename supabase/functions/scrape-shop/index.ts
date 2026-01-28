@@ -216,6 +216,8 @@ Deno.serve(async (req) => {
 - price: Number only (no currency symbol), or null if not found
 - source_url: The URL where this product was found
 - image_url: Product image URL if found, or null
+- ai_style_tags: Array of 3-5 style tags describing the aesthetic (e.g., ["minimalist", "scandinavian", "warm tones", "natural materials", "clean lines"])
+- ai_image_description: A detailed visual description of the product for accessibility and AI matching (max 150 chars)
 
 Return as JSON array:
 {
@@ -227,7 +229,9 @@ Return as JSON array:
       "style": "style or null",
       "price": 123.45 or null,
       "source_url": "https://...",
-      "image_url": "https://... or null"
+      "image_url": "https://... or null",
+      "ai_style_tags": ["tag1", "tag2", "tag3"],
+      "ai_image_description": "Visual description of the product"
     }
   ]
 }
@@ -278,6 +282,8 @@ ${productsToExtract}`,
           source_url: product.source_url || null,
           image_urls: product.image_url ? [product.image_url] : [],
           is_active: true,
+          ai_style_tags: product.ai_style_tags || [],
+          ai_image_description: product.ai_image_description || null,
         })
         .select()
         .single();
