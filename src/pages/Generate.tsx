@@ -34,6 +34,11 @@ interface Product {
   description: string;
   url: string;
   source: string;
+  price?: number;
+  currency?: string;
+  imageUrl?: string;
+  category?: string;
+  style?: string;
 }
 
 const designVariations = [
@@ -74,7 +79,6 @@ const Generate = () => {
 
     // Auto-generate on load
     generateAllDesigns();
-    searchProducts();
   }, [user, loading, navigate, quizData]);
 
   const generateAllDesigns = async () => {
@@ -141,6 +145,11 @@ const Generate = () => {
 
         // Update state progressively
         setDesigns([...newDesigns]);
+        
+        // Search for products using the first generated image
+        if (i === 0 && imageUrl) {
+          searchProducts(imageUrl);
+        }
       }
 
       toast({
@@ -160,23 +169,17 @@ const Generate = () => {
     }
   };
 
-  const searchProducts = async () => {
+  const searchProducts = async (imageUrl?: string) => {
     if (!quizData) return;
 
     setLoadingProducts(true);
     try {
-      // Build search query from quiz data
-      const searchTerms = [
-        quizData.stylePreference,
-        quizData.roomType,
-        ...(quizData.mustHaveElements || []),
-      ].filter(Boolean).join(" ");
-
       const response = await supabase.functions.invoke("search-products", {
         body: {
-          query: searchTerms,
+          imageUrl: imageUrl,
           style: quizData.stylePreference,
           room: quizData.roomType,
+          query: quizData.mustHaveElements?.join(" "),
         },
       });
 
@@ -420,7 +423,7 @@ const Generate = () => {
             <div>
               <h2 className="text-xl font-bold">Shop the Look</h2>
               <p className="text-sm text-muted-foreground">
-                Matching products from WestwingNow
+                AI-detected products from your design
               </p>
             </div>
           </div>

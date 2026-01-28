@@ -1,6 +1,5 @@
 import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { ExternalLink, ShoppingBag } from "lucide-react";
+import { ExternalLink, Package } from "lucide-react";
 
 interface Product {
   id: string;
@@ -8,6 +7,11 @@ interface Product {
   description: string;
   url: string;
   source: string;
+  price?: number;
+  currency?: string;
+  imageUrl?: string;
+  category?: string;
+  style?: string;
 }
 
 interface ProductCardProps {
@@ -16,29 +20,46 @@ interface ProductCardProps {
 
 const ProductCard = ({ product }: ProductCardProps) => {
   return (
-    <Card className="border-border/50 bg-card/80 backdrop-blur-sm hover:border-primary/30 transition-colors">
+    <Card className="group hover:shadow-lg transition-all duration-300 hover:border-primary/30 overflow-hidden">
       <CardContent className="p-4">
-        <div className="flex items-start gap-3">
-          <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-            <ShoppingBag className="w-5 h-5 text-primary" />
-          </div>
+        <div className="flex gap-3">
+          {product.imageUrl ? (
+            <div className="w-16 h-16 rounded-lg overflow-hidden flex-shrink-0 bg-secondary">
+              <img
+                src={product.imageUrl}
+                alt={product.title}
+                className="w-full h-full object-cover"
+              />
+            </div>
+          ) : (
+            <div className="w-16 h-16 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+              <Package className="w-6 h-6 text-primary/60" />
+            </div>
+          )}
           <div className="flex-1 min-w-0">
-            <h4 className="font-medium text-sm line-clamp-1">{product.title}</h4>
+            <h4 className="font-medium text-sm line-clamp-1 group-hover:text-primary transition-colors">
+              {product.title}
+            </h4>
             <p className="text-xs text-muted-foreground line-clamp-2 mt-1">
-              {product.description || "View on WestwingNow for details"}
+              {product.description}
             </p>
+            {product.price && (
+              <p className="text-sm font-semibold text-primary mt-1">
+                {product.currency === "EUR" ? "€" : product.currency} {product.price.toFixed(2)}
+              </p>
+            )}
             <div className="flex items-center justify-between mt-2">
               <span className="text-xs text-muted-foreground">{product.source}</span>
-              <Button
-                variant="link"
-                size="sm"
-                className="h-auto p-0 text-primary"
-                asChild
-              >
-                <a href={product.url} target="_blank" rel="noopener noreferrer">
-                  View <ExternalLink className="w-3 h-3 ml-1" />
+              {product.url && product.url !== "#" && (
+                <a
+                  href={product.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs text-primary hover:underline flex items-center gap-1"
+                >
+                  View <ExternalLink className="w-3 h-3" />
                 </a>
-              </Button>
+              )}
             </div>
           </div>
         </div>
