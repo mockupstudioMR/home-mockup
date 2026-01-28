@@ -47,6 +47,9 @@ const ShopDashboard = () => {
     source_url: "",
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [shopUrl, setShopUrl] = useState("");
+  const [isScraping, setIsScraping] = useState(false);
+  const [scrapeProgress, setScrapeProgress] = useState("");
 
   // Fetch business profile
   const { data: businessProfile } = useQuery({
@@ -159,6 +162,54 @@ const ShopDashboard = () => {
       return;
     }
     addProductMutation.mutate(newProduct);
+  };
+
+  const handleScrapeShop = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!shopUrl.trim() || !user?.id) {
+      toast({
+        title: "Missing URL",
+        description: "Please enter your shop URL.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsScraping(true);
+    setScrapeProgress("Mapping your website...");
+
+    try {
+      const response = await supabase.functions.invoke("scrape-shop", {
+        body: {
+          shopUrl: shopUrl.trim(),
+          userId: user.id,
+        },
+      });
+
+      if (response.error) {
+        throw new Error(response.error.message);
+      }
+
+      if (response.data?.success) {
+        toast({
+          title: "Import successful!",
+          description: response.data.message || `Imported ${response.data.products?.length || 0} products`,
+        });
+        queryClient.invalidateQueries({ queryKey: ["shop-products"] });
+        setShopUrl("");
+      } else {
+        throw new Error(response.data?.error || "Import failed");
+      }
+    } catch (error) {
+      toast({
+        title: "Import failed",
+        description: error instanceof Error ? error.message : "Please try again",
+        variant: "destructive",
+      });
+    } finally {
+      setIsScraping(false);
+      setScrapeProgress("");
+    }
   };
 
   const categories = [
@@ -449,22 +500,64 @@ const ShopDashboard = () => {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Link className="w-5 h-5" />
-                    Import from URL
+                    Import from Shop URL
                   </CardTitle>
                   <CardDescription>
-                    Paste a product URL and we'll extract the details
+                    Enter your shop website URL and we'll automatically import all your products
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="py-12 text-center">
-                    <Link className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                    <p className="text-muted-foreground">URL scraping coming soon</p>
-                    <p className="text-sm text-muted-foreground mt-2">
-                      Automatically import product details from your website
-                    </p>
-                    <Button className="mt-4" disabled variant="outline">
-                      Coming Soon
+                  <form onSubmit={handleScrapeShop} className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="shopUrl">Shop Website URL</Label>
+                      <Input
+                        id="shopUrl"
+                        type="url"
+                        placeholder="https://yourshop.com"
+                        value={shopUrl}
+                        onChange={(e) => setShopUrl(e.target.value)}
+                        disabled={isScraping}
+                        required
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        We'll scan your website for product pages and extract all the details automatically
+                      </p>
+                    </div>
+
+                    {isScraping && scrapeProgress && (
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        {scrapeProgress}
+                      </div>
+                    )}
+
+                    <Button
+                      type="submit"
+                      className="w-full"
+                      disabled={isScraping || !shopUrl.trim()}
+                    >
+                      {isScraping ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Importing Products...
+                        </>
+                      ) : (
+                        <>
+                          <Upload className="w-4 h-4 mr-2" />
+                          Import All Products
+                        </>
+                      )}
                     </Button>
+                  </form>
+
+                  <div className="mt-6 pt-6 border-t border-border">
+                    <h4 className="text-sm font-medium mb-2">How it works:</h4>
+                    <ol className="text-xs text-muted-foreground space-y-1 list-decimal list-inside">
+                      <li>We scan your website for all product pages</li>
+                      <li>AI extracts product details (name, price, category, images)</li>
+                      <li>Products are automatically added to your catalog</li>
+                      <li>Customers can discover your products through our matching system</li>
+                    </ol>
                   </div>
                 </CardContent>
               </Card>
