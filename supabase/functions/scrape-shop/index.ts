@@ -47,7 +47,20 @@ Deno.serve(async (req) => {
 
     console.log("Starting to scrape shop:", shopUrl);
 
-    // Step 1: Map the website to find all product pages
+    // Non-product path patterns to exclude
+    const excludePatterns = [
+      '/career', '/about', '/privacy', '/contact', '/b2b', '/affiliate',
+      '/terms', '/imprint', '/faq', '/help', '/service', '/support',
+      '/press', '/blog', '/magazine', '/looks', '/inspiration',
+      '/account', '/login', '/register', '/cart', '/checkout', '/wishlist',
+      '/search', '/filter', '/sort', '/category', '/collection',
+      '/policy', '/shipping', '/returns', '/legal', '/cookie',
+      '/sitemap', '/newsletter', '/subscribe', '/unsubscribe',
+      '/product-care', '/care-guide', '/delivery', '/payment',
+      '/gift', '/voucher', '/en/i/', '/en/p/product-care'
+    ];
+
+    // Step 1: Map the website to find all pages
     const mapResponse = await fetch("https://api.firecrawl.dev/v1/map", {
       method: "POST",
       headers: {
@@ -56,8 +69,7 @@ Deno.serve(async (req) => {
       },
       body: JSON.stringify({
         url: shopUrl,
-        search: "product",
-        limit: 50,
+        limit: 200,
         includeSubdomains: false,
       }),
     });
@@ -69,22 +81,47 @@ Deno.serve(async (req) => {
       throw new Error(mapData.error || "Failed to map website");
     }
 
-    const productUrls = mapData.links || [];
-    console.log(`Found ${productUrls.length} potential product URLs`);
+    const allUrls = mapData.links || [];
+    console.log(`Found ${allUrls.length} total URLs`);
+
+    // Filter out non-product pages
+    const productUrls = allUrls.filter((url: string) => {
+      const urlLower = url.toLowerCase();
+      
+      // Skip excluded patterns
+      if (excludePatterns.some(pattern => urlLower.includes(pattern))) {
+        return false;
+      }
+      
+      // Skip URLs ending with common non-product extensions
+      if (urlLower.endsWith('.pdf') || urlLower.endsWith('.xml') || urlLower.endsWith('.txt')) {
+        return false;
+      }
+      
+      // Skip very short paths (usually category pages)
+      const path = new URL(url).pathname;
+      if (path === '/' || path.split('/').filter(Boolean).length === 0) {
+        return false;
+      }
+      
+      return true;
+    });
+
+    console.log(`Filtered to ${productUrls.length} potential product URLs`);
 
     if (productUrls.length === 0) {
       return new Response(
         JSON.stringify({ 
           success: false, 
-          error: "No product pages found on this website",
+          error: "No product pages found on this website. Try providing a direct link to a product category page.",
           products: [] 
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // Step 2: Scrape a sample of product pages (limit to 10 for efficiency)
-    const urlsToScrape = productUrls.slice(0, 10);
+    // Step 2: Scrape a sample of product pages (limit to 15 for better coverage)
+    const urlsToScrape = productUrls.slice(0, 15);
     const scrapedProducts: any[] = [];
 
     for (const url of urlsToScrape) {
