@@ -57,7 +57,15 @@ Deno.serve(async (req) => {
       '/policy', '/shipping', '/returns', '/legal', '/cookie',
       '/sitemap', '/newsletter', '/subscribe', '/unsubscribe',
       '/product-care', '/care-guide', '/delivery', '/payment',
-      '/gift', '/voucher', '/en/i/', '/en/p/product-care'
+      '/gift', '/voucher', '/en/i/', '/en/p/product-care',
+      '/brands/', '/campaign', '/new-products', '/sale', '/designservice'
+    ];
+
+    // Category page patterns (single-word paths that are likely categories, not products)
+    const categoryPatterns = [
+      '/sofas', '/chairs', '/tables', '/beds', '/storage', '/lighting',
+      '/decor', '/rugs', '/outdoor', '/couchtische', '/sessel', '/stuhle',
+      '/lampen', '/teppiche', '/kommoden', '/schranke', '/regale'
     ];
 
     // Step 1: Map the website to find all pages
@@ -69,7 +77,7 @@ Deno.serve(async (req) => {
       },
       body: JSON.stringify({
         url: shopUrl,
-        limit: 200,
+        limit: 300,
         includeSubdomains: false,
       }),
     });
@@ -93,23 +101,39 @@ Deno.serve(async (req) => {
         return false;
       }
       
+      // Skip category pages (exact match at end of URL)
+      const pathname = new URL(url).pathname;
+      if (categoryPatterns.some(cat => pathname === cat || pathname === cat + '/')) {
+        return false;
+      }
+      
       // Skip URLs ending with common non-product extensions
       if (urlLower.endsWith('.pdf') || urlLower.endsWith('.xml') || urlLower.endsWith('.txt')) {
         return false;
       }
       
       // Skip very short paths (usually category pages)
-      const path = new URL(url).pathname;
-      if (path === '/' || path.split('/').filter(Boolean).length === 0) {
+      if (pathname === '/' || pathname.split('/').filter(Boolean).length === 0) {
         return false;
       }
       
+      // Prefer URLs with product IDs (numbers in the URL - common pattern)
+      // This helps prioritize actual product pages
       return true;
     });
 
-    console.log(`Filtered to ${productUrls.length} potential product URLs`);
+    // Sort to prioritize URLs with numbers (likely product IDs)
+    const sortedUrls = productUrls.sort((a: string, b: string) => {
+      const aHasNumber = /\d{4,}/.test(a);
+      const bHasNumber = /\d{4,}/.test(b);
+      if (aHasNumber && !bHasNumber) return -1;
+      if (!aHasNumber && bHasNumber) return 1;
+      return 0;
+    });
 
-    if (productUrls.length === 0) {
+    console.log(`Filtered to ${sortedUrls.length} potential product URLs`);
+
+    if (sortedUrls.length === 0) {
       return new Response(
         JSON.stringify({ 
           success: false, 
@@ -120,8 +144,8 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Step 2: Scrape a sample of product pages (limit to 15 for better coverage)
-    const urlsToScrape = productUrls.slice(0, 15);
+    // Step 2: Scrape product pages (limit to 40 for ~30 products)
+    const urlsToScrape = sortedUrls.slice(0, 40);
     const scrapedProducts: any[] = [];
 
     for (const url of urlsToScrape) {
