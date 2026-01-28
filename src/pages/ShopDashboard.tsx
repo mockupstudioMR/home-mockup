@@ -347,24 +347,46 @@ const ShopDashboard = () => {
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {products?.map((product) => (
-                      <Card key={product.id}>
-                        <CardContent className="pt-6">
-                          <div className="flex items-start justify-between mb-3">
-                            <div>
-                              <h3 className="font-semibold">{product.name}</h3>
-                              <p className="text-sm text-muted-foreground line-clamp-2">
-                                {product.description}
-                              </p>
+                      <Card key={product.id} className="overflow-hidden">
+                        {/* Product Image */}
+                        <div className="aspect-square bg-muted relative">
+                          {product.image_urls && product.image_urls.length > 0 ? (
+                            <img
+                              src={product.image_urls[0]}
+                              alt={product.name}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center">
+                              <Package className="w-12 h-12 text-muted-foreground/40" />
                             </div>
-                          </div>
+                          )}
+                        </div>
+                        <CardContent className="pt-4">
+                          {/* Product Name */}
+                          <h3 className="font-semibold line-clamp-1 mb-2">{product.name}</h3>
+                          
+                          {/* Product Link */}
+                          {product.source_url ? (
+                            <a
+                              href={product.source_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-sm text-primary hover:underline flex items-center gap-1 mb-3"
+                            >
+                              <Link className="w-3 h-3" />
+                              View product
+                            </a>
+                          ) : (
+                            <p className="text-sm text-muted-foreground mb-3">No link available</p>
+                          )}
+                          
+                          {/* Badges */}
                           <div className="flex items-center gap-2 flex-wrap">
                             <Badge variant="secondary">{product.category}</Badge>
-                            {product.style && (
-                              <Badge variant="outline">{product.style}</Badge>
-                            )}
                             {product.price && (
                               <Badge variant="outline">
-                                ${product.price}
+                                €{product.price}
                               </Badge>
                             )}
                           </div>
