@@ -588,13 +588,13 @@ const ShopDashboard = () => {
                     Import from Shop URL
                   </CardTitle>
                   <CardDescription>
-                    Enter your shop website URL and we'll automatically import all your products
+                    Enter your shop or product URL and we'll automatically import your products
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <form onSubmit={handleScrapeShop} className="space-y-4">
                     <div className="space-y-2">
-                      <Label htmlFor="shopUrl">Shop Website URL</Label>
+                      <Label htmlFor="shopUrl">Shop Website URL or Product URL</Label>
                       <Input
                         id="shopUrl"
                         type="url"
