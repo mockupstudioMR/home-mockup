@@ -19,6 +19,7 @@ import type { QuizData } from "@/contexts/QuizContext";
 import DesignImage from "@/components/generate/DesignImage";
 import ProductCard from "@/components/generate/ProductCard";
 import StyleExplanation from "@/components/generate/StyleExplanation";
+import DesignHighlights from "@/components/generate/DesignHighlights";
 
 interface GeneratedDesign {
   id: string;
@@ -41,15 +42,23 @@ interface Product {
   style?: string;
 }
 
-const designVariations = [
-  { title: "Main Design", description: "Your personalized room based on quiz preferences" },
-  { title: "Alternative Layout", description: "Different furniture arrangement for the same style" },
-  { title: "Color Variation", description: "Exploring different shades within your palette" },
-  { title: "Minimalist Take", description: "Simplified version with essential elements" },
-  { title: "Bold Statement", description: "More dramatic interpretation of your style" },
-  { title: "Cozy Corner", description: "Focus on comfort and intimate spaces" },
-  { title: "Daylight View", description: "Natural lighting emphasis for the space" },
-];
+interface DesignHighlightsData {
+  colorScheme: {
+    colors: string[];
+    description: string;
+    visual?: string;
+  };
+  accentFurniture: {
+    name: string;
+    description: string;
+    visual?: string;
+  };
+  moodboard: {
+    elements: string[];
+    description: string;
+    visual?: string;
+  };
+}
 
 const Generate = () => {
   const navigate = useNavigate();
@@ -60,11 +69,12 @@ const Generate = () => {
   const quizData = location.state?.quizData as QuizData | undefined;
 
   const [generating, setGenerating] = useState(false);
-  const [designs, setDesigns] = useState<GeneratedDesign[]>([]);
+  const [design, setDesign] = useState<GeneratedDesign | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
   const [loadingProducts, setLoadingProducts] = useState(false);
   const [modificationInput, setModificationInput] = useState("");
-  const [generationProgress, setGenerationProgress] = useState(0);
+  const [highlightsData, setHighlightsData] = useState<DesignHighlightsData | null>(null);
+  const [generatingHighlights, setGeneratingHighlights] = useState(false);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -78,83 +88,63 @@ const Generate = () => {
     }
 
     // Auto-generate on load
-    generateAllDesigns();
+    generateDesign();
   }, [user, loading, navigate, quizData]);
 
-  const generateAllDesigns = async () => {
+  const generateDesign = async () => {
     if (!quizData || !user) return;
 
     const { productAnalysis, sourceImages, includeProducts } = location.state || {};
 
     setGenerating(true);
-    setGenerationProgress(0);
-    const newDesigns: GeneratedDesign[] = [];
+    setDesign(null);
+    setHighlightsData(null);
 
     try {
-      // Generate 7 variations
-      for (let i = 0; i < 7; i++) {
-        setGenerationProgress(Math.round(((i + 1) / 7) * 100));
+      const response = await supabase.functions.invoke("generate-design", {
+        body: {
+          ...quizData,
+          sourceImageUrl: quizData.sourceImageUrl,
+          selectedProducts: includeProducts ? productAnalysis?.products : undefined,
+          productImageUrls: includeProducts ? sourceImages : undefined,
+        },
+      });
 
-        // Add variation prompts for different designs
-        const variationPrompts = [
-          "", // Main design
-          "alternative furniture arrangement",
-          "slightly different color tones",
-          "more minimalist approach",
-          "bolder accent pieces",
-          "cozy and intimate atmosphere",
-          "bright natural daylight emphasis",
-        ];
-
-        const response = await supabase.functions.invoke("generate-design", {
-          body: {
-            ...quizData,
-            modificationPrompt: variationPrompts[i],
-            sourceImageUrl: quizData.sourceImageUrl,
-            selectedProducts: includeProducts ? productAnalysis?.products : undefined,
-            productImageUrls: includeProducts ? sourceImages : undefined,
-          },
-        });
-
-        if (response.error) {
-          console.error(`Design ${i + 1} failed:`, response.error);
-          continue;
-        }
-
-        const { imageUrl, prompt: usedPrompt } = response.data;
-
-        // Save to database
-        const { data: design } = await supabase
-          .from("generated_designs")
-          .insert({
-            user_id: user.id,
-            image_url: imageUrl,
-            prompt: usedPrompt,
-            source_image_url: quizData.sourceImageUrl,
-          })
-          .select()
-          .single();
-
-        newDesigns.push({
-          id: design?.id || `design-${i}`,
-          imageUrl,
-          title: designVariations[i].title,
-          description: designVariations[i].description,
-          isFavorite: false,
-        });
-
-        // Update state progressively
-        setDesigns([...newDesigns]);
-        
-        // Search for products using the first generated image
-        if (i === 0 && imageUrl) {
-          searchProducts(imageUrl);
-        }
+      if (response.error) {
+        throw new Error(response.error.message);
       }
 
+      const { imageUrl, prompt: usedPrompt } = response.data;
+
+      // Save to database
+      const { data: savedDesign } = await supabase
+        .from("generated_designs")
+        .insert({
+          user_id: user.id,
+          image_url: imageUrl,
+          prompt: usedPrompt,
+          source_image_url: quizData.sourceImageUrl,
+        })
+        .select()
+        .single();
+
+      const newDesign: GeneratedDesign = {
+        id: savedDesign?.id || `design-${Date.now()}`,
+        imageUrl,
+        title: "Your Personalized Design",
+        description: "Custom room design based on your style preferences",
+        isFavorite: false,
+      };
+
+      setDesign(newDesign);
+
+      // Search for products and generate highlights
+      searchProducts(imageUrl);
+      generateHighlights(imageUrl);
+
       toast({
-        title: "Designs generated!",
-        description: `Created ${newDesigns.length} personalized room designs`,
+        title: "Design generated!",
+        description: "Your personalized room design is ready",
       });
     } catch (error) {
       console.error("Generation error:", error);
@@ -165,8 +155,107 @@ const Generate = () => {
       });
     } finally {
       setGenerating(false);
-      setGenerationProgress(100);
     }
+  };
+
+  const generateHighlights = async (imageUrl: string) => {
+    if (!quizData) return;
+
+    setGeneratingHighlights(true);
+    try {
+      // Use AI to analyze the generated design and extract highlights
+      const response = await supabase.functions.invoke("analyze-style", {
+        body: {
+          imageUrl,
+          extractHighlights: true,
+        },
+      });
+
+      if (response.data?.success) {
+        const analysis = response.data;
+        
+        // Map the analysis to highlights format
+        setHighlightsData({
+          colorScheme: {
+            colors: analysis.colorPalette?.map((c: { hex: string }) => c.hex) || 
+                   getDefaultColors(quizData.colorPalette),
+            description: analysis.colorDescription || 
+                        `A harmonious ${quizData.colorPalette || "neutral"} palette that creates the perfect atmosphere for your ${quizData.roomType || "space"}.`,
+          },
+          accentFurniture: {
+            name: analysis.accentPiece?.name || getDefaultAccentFurniture(quizData.stylePreference),
+            description: analysis.accentPiece?.description || 
+                        `A statement piece that embodies the ${quizData.stylePreference || "modern"} aesthetic and serves as the focal point of the room.`,
+          },
+          moodboard: {
+            elements: analysis.moodElements || 
+                     quizData.mustHaveElements || 
+                     ["Texture", "Lighting", "Plants", "Art"],
+            description: `Key design elements that bring together the ${quizData.stylePreference || "modern"} style with your personal preferences.`,
+          },
+        });
+      } else {
+        // Fallback to default highlights based on quiz data
+        setHighlightsData({
+          colorScheme: {
+            colors: getDefaultColors(quizData.colorPalette),
+            description: `A curated ${quizData.colorPalette || "neutral"} palette that creates warmth and sophistication in your ${quizData.roomType || "space"}.`,
+          },
+          accentFurniture: {
+            name: getDefaultAccentFurniture(quizData.stylePreference),
+            description: `The perfect accent piece to complement your ${quizData.stylePreference || "modern"} design vision.`,
+          },
+          moodboard: {
+            elements: quizData.mustHaveElements?.length 
+              ? quizData.mustHaveElements 
+              : ["Natural textures", "Ambient lighting", "Organic shapes", "Personal touches"],
+            description: `A collection of elements that define your unique style and create a cohesive, inviting space.`,
+          },
+        });
+      }
+    } catch (error) {
+      console.error("Highlights generation error:", error);
+      // Set default highlights on error
+      setHighlightsData({
+        colorScheme: {
+          colors: getDefaultColors(quizData.colorPalette),
+          description: `A balanced color scheme reflecting your ${quizData.colorPalette || "neutral"} preferences.`,
+        },
+        accentFurniture: {
+          name: getDefaultAccentFurniture(quizData.stylePreference),
+          description: "A signature piece that anchors your room's design.",
+        },
+        moodboard: {
+          elements: quizData.mustHaveElements || ["Style", "Comfort", "Function", "Beauty"],
+          description: "The essential elements that make your space uniquely yours.",
+        },
+      });
+    } finally {
+      setGeneratingHighlights(false);
+    }
+  };
+
+  const getDefaultColors = (palette?: string): string[] => {
+    const colorMaps: Record<string, string[]> = {
+      neutral: ["#F5F5DC", "#D4C4A8", "#8B7355", "#5D4E37", "#2F2F2F"],
+      cool: ["#E3F2FD", "#90CAF9", "#42A5F5", "#1976D2", "#0D47A1"],
+      warm: ["#FFF3E0", "#FFCC80", "#FF9800", "#E65100", "#BF360C"],
+      bold: ["#F3E5F5", "#BA68C8", "#7B1FA2", "#4A148C", "#1A237E"],
+      monochrome: ["#FAFAFA", "#BDBDBD", "#757575", "#424242", "#212121"],
+    };
+    return colorMaps[palette || "neutral"] || colorMaps.neutral;
+  };
+
+  const getDefaultAccentFurniture = (style?: string): string => {
+    const furnitureMap: Record<string, string> = {
+      "modern-minimal": "Sculptural Lounge Chair",
+      "classic-historical": "Antique Armoire",
+      "bohemian-eclectic": "Rattan Peacock Chair",
+      "rustic-nature": "Live Edge Wood Table",
+      "mediterranean": "Wrought Iron Daybed",
+      "glam-luxe": "Velvet Statement Sofa",
+    };
+    return furnitureMap[style || "modern-minimal"] || "Designer Accent Chair";
   };
 
   const searchProducts = async (imageUrl?: string) => {
@@ -199,7 +288,7 @@ const Generate = () => {
   };
 
   const handleModify = async () => {
-    if (!modificationInput.trim() || !quizData || designs.length === 0) return;
+    if (!modificationInput.trim() || !quizData || !design) return;
 
     setGenerating(true);
     try {
@@ -207,7 +296,7 @@ const Generate = () => {
         body: {
           ...quizData,
           modificationPrompt: modificationInput,
-          sourceImageUrl: designs[0].imageUrl,
+          sourceImageUrl: design.imageUrl,
         },
       });
 
@@ -215,17 +304,17 @@ const Generate = () => {
 
       const { imageUrl } = response.data;
 
-      // Add as new design at the beginning
-      const newDesign: GeneratedDesign = {
-        id: `modified-${Date.now()}`,
+      // Update design
+      setDesign({
+        ...design,
         imageUrl,
-        title: "Modified Design",
         description: modificationInput,
-        isFavorite: false,
-      };
+      });
 
-      setDesigns([newDesign, ...designs]);
       setModificationInput("");
+
+      // Regenerate highlights for the new design
+      generateHighlights(imageUrl);
 
       toast({
         title: "Design updated!",
@@ -242,25 +331,27 @@ const Generate = () => {
     }
   };
 
-  const handleFavorite = async (designId: string) => {
-    setDesigns(designs.map(d => 
-      d.id === designId ? { ...d, isFavorite: !d.isFavorite } : d
-    ));
+  const handleFavorite = async () => {
+    if (!design) return;
+
+    setDesign({ ...design, isFavorite: !design.isFavorite });
 
     // Update in database if it's a real ID
-    if (!designId.startsWith("design-") && !designId.startsWith("modified-")) {
+    if (!design.id.startsWith("design-")) {
       await supabase
         .from("generated_designs")
-        .update({ is_favorite: true })
-        .eq("id", designId);
+        .update({ is_favorite: !design.isFavorite })
+        .eq("id", design.id);
     }
   };
 
-  const handleDownload = async (imageUrl: string, index: number) => {
+  const handleDownload = async () => {
+    if (!design) return;
+    
     try {
       const link = document.createElement("a");
-      link.href = imageUrl;
-      link.download = `room-design-${index + 1}-${Date.now()}.png`;
+      link.href = design.imageUrl;
+      link.download = `room-design-${Date.now()}.png`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -269,7 +360,6 @@ const Generate = () => {
         title: "Downloaded!",
         description: "Image saved to your device",
       });
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (error) {
       toast({
         title: "Download failed",
@@ -277,6 +367,11 @@ const Generate = () => {
         variant: "destructive",
       });
     }
+  };
+
+  const handleHighlightComment = (highlightId: string, comment: string) => {
+    console.log(`Comment on ${highlightId}:`, comment);
+    // Could save to database here if needed
   };
 
   if (loading) {
@@ -294,7 +389,7 @@ const Generate = () => {
         <div className="absolute bottom-20 right-10 w-96 h-96 bg-accent/20 rounded-full blur-3xl" />
       </div>
 
-      <div className="max-w-7xl mx-auto relative z-10 p-4 md:p-6 space-y-8">
+      <div className="max-w-5xl mx-auto relative z-10 p-4 md:p-6 space-y-8">
         {/* Header */}
         <div className="flex items-center justify-between">
           <button
@@ -325,26 +420,22 @@ const Generate = () => {
         <div className="text-center space-y-2">
           <h1 className="text-3xl md:text-4xl font-bold">Your Design Results</h1>
           <p className="text-muted-foreground">
-            Explore {designs.length > 0 ? designs.length : 7} personalized room designs based on your preferences
+            Your personalized room design with key highlights
           </p>
         </div>
 
         {/* Generation Progress */}
-        {generating && designs.length < 7 && (
+        {generating && !design && (
           <Card className="border-primary/30 bg-primary/5">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-4">
-                <Loader2 className="w-6 h-6 animate-spin text-primary" />
-                <div className="flex-1">
-                  <p className="font-medium">Generating your designs...</p>
-                  <div className="h-2 rounded-full bg-secondary mt-2 overflow-hidden">
-                    <div
-                      className="h-full bg-primary transition-all duration-500"
-                      style={{ width: `${generationProgress}%` }}
-                    />
-                  </div>
+            <CardContent className="p-6">
+              <div className="flex flex-col items-center gap-4">
+                <Loader2 className="w-10 h-10 animate-spin text-primary" />
+                <div className="text-center">
+                  <p className="font-medium">Creating your personalized design...</p>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    This may take a moment
+                  </p>
                 </div>
-                <span className="text-sm font-medium">{designs.length}/7</span>
               </div>
             </CardContent>
           </Card>
@@ -360,12 +451,27 @@ const Generate = () => {
           />
         )}
 
+        {/* Main Design */}
+        {design && (
+          <div className="max-w-3xl mx-auto">
+            <DesignImage
+              imageUrl={design.imageUrl}
+              title={design.title}
+              description={design.description}
+              index={0}
+              isFavorite={design.isFavorite}
+              onFavorite={handleFavorite}
+              onDownload={handleDownload}
+            />
+          </div>
+        )}
+
         {/* Modification Input */}
-        {designs.length > 0 && !generating && (
-          <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
+        {design && !generating && (
+          <Card className="border-border/50 bg-card/80 backdrop-blur-sm max-w-3xl mx-auto">
             <CardContent className="p-4">
               <div className="space-y-3">
-                <p className="text-sm font-medium">Refine your designs</p>
+                <p className="text-sm font-medium">Refine your design</p>
                 <div className="flex gap-2">
                   <Input
                     placeholder="Add plants, change wall color to blue, add more lighting..."
@@ -376,7 +482,7 @@ const Generate = () => {
                   <Button onClick={handleModify} disabled={!modificationInput.trim() || generating}>
                     <Send className="w-4 h-4" />
                   </Button>
-                  <Button variant="outline" onClick={generateAllDesigns} disabled={generating}>
+                  <Button variant="outline" onClick={generateDesign} disabled={generating}>
                     <RefreshCw className="w-4 h-4" />
                   </Button>
                 </div>
@@ -385,34 +491,34 @@ const Generate = () => {
           </Card>
         )}
 
-        {/* Design Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {designs.map((design, index) => (
-            <DesignImage
-              key={design.id}
-              imageUrl={design.imageUrl}
-              title={design.title}
-              description={design.description}
-              index={index}
-              isFavorite={design.isFavorite}
-              onFavorite={() => handleFavorite(design.id)}
-              onDownload={() => handleDownload(design.imageUrl, index)}
-            />
-          ))}
+        {/* Design Highlights */}
+        {highlightsData && (
+          <DesignHighlights
+            colorScheme={highlightsData.colorScheme}
+            accentFurniture={highlightsData.accentFurniture}
+            moodboard={highlightsData.moodboard}
+            onCommentChange={handleHighlightComment}
+          />
+        )}
 
-          {/* Loading skeletons */}
-          {generating && designs.length < 7 && (
-            [...Array(7 - designs.length)].map((_, i) => (
-              <Card key={`skeleton-${i}`} className="overflow-hidden">
-                <Skeleton className="aspect-[4/3]" />
-                <CardContent className="p-4 space-y-2">
-                  <Skeleton className="h-5 w-2/3" />
+        {/* Loading Highlights */}
+        {generatingHighlights && !highlightsData && (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {[1, 2, 3].map((i) => (
+              <Card key={i} className="overflow-hidden">
+                <CardContent className="p-4 space-y-4">
+                  <div className="flex items-center gap-3">
+                    <Skeleton className="w-10 h-10 rounded-xl" />
+                    <Skeleton className="h-5 w-24" />
+                  </div>
+                  <Skeleton className="aspect-square rounded-xl" />
                   <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-20 w-full" />
                 </CardContent>
               </Card>
-            ))
-          )}
-        </div>
+            ))}
+          </div>
+        )}
 
         {/* Products Section */}
         <div className="space-y-4">
@@ -454,7 +560,7 @@ const Generate = () => {
               <CardContent className="p-8 text-center">
                 <ShoppingBag className="w-10 h-10 mx-auto text-muted-foreground mb-3" />
                 <p className="text-muted-foreground">
-                  No matching products found. Try generating designs first.
+                  No matching products found. Try generating a design first.
                 </p>
               </CardContent>
             </Card>
