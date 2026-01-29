@@ -75,6 +75,7 @@ const Generate = () => {
   const [modificationInput, setModificationInput] = useState("");
   const [highlightsData, setHighlightsData] = useState<DesignHighlightsData | null>(null);
   const [generatingHighlights, setGeneratingHighlights] = useState(false);
+  const [applyingHighlight, setApplyingHighlight] = useState<string | null>(null);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -368,9 +369,57 @@ const Generate = () => {
     }
   };
 
-  const handleHighlightComment = (highlightId: string, comment: string) => {
-    console.log(`Comment on ${highlightId}:`, comment);
-    // Could save to database here if needed
+  const handleApplyHighlightNote = async (highlightId: string, note: string) => {
+    if (!design || !quizData) return;
+
+    setApplyingHighlight(highlightId);
+    
+    // Build context-specific prompt based on the highlight type
+    const highlightPrompts: Record<string, string> = {
+      colorScheme: `Adjust the color scheme of this room design: ${note}. Keep the overall style but update the colors as requested.`,
+      accentFurniture: `Modify the furniture in this room design: ${note}. Maintain the room's style but update the accent furniture as specified.`,
+      moodboard: `Update the design elements and mood of this room: ${note}. Keep the core aesthetic but adjust the elements as requested.`,
+    };
+
+    const modificationPrompt = highlightPrompts[highlightId] || note;
+
+    try {
+      const response = await supabase.functions.invoke("generate-design", {
+        body: {
+          ...quizData,
+          modificationPrompt,
+          sourceImageUrl: design.imageUrl,
+        },
+      });
+
+      if (response.error) throw new Error(response.error.message);
+
+      const { imageUrl } = response.data;
+
+      // Update design with the new image
+      setDesign({
+        ...design,
+        imageUrl,
+        description: `Updated ${highlightId}: ${note}`,
+      });
+
+      // Regenerate highlights for the updated design
+      generateHighlights(imageUrl);
+
+      toast({
+        title: "Design updated!",
+        description: `${highlightId === "colorScheme" ? "Color scheme" : highlightId === "accentFurniture" ? "Furniture" : "Moodboard elements"} adjusted based on your note`,
+      });
+    } catch (error) {
+      console.error("Highlight modification error:", error);
+      toast({
+        title: "Update failed",
+        description: error instanceof Error ? error.message : "Please try again",
+        variant: "destructive",
+      });
+    } finally {
+      setApplyingHighlight(null);
+    }
   };
 
   if (loading) {
@@ -496,7 +545,8 @@ const Generate = () => {
             colorScheme={highlightsData.colorScheme}
             accentFurniture={highlightsData.accentFurniture}
             moodboard={highlightsData.moodboard}
-            onCommentChange={handleHighlightComment}
+            onApplyNote={handleApplyHighlightNote}
+            isApplying={applyingHighlight}
           />
         )}
 
