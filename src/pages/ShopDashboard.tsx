@@ -304,20 +304,33 @@ const ShopDashboard = () => {
                         )}
                       </div>
 
-                      {/* AI Generated Tags */}
-                      {(product as any).ai_style_tags?.length > 0 && (
-                        <div className="mt-3 pt-3 border-t border-border">
-                          <div className="flex items-center gap-1 mb-2">
-                            <Sparkles className="w-3 h-3 text-primary" />
-                            <span className="text-xs text-muted-foreground">AI Style Tags</span>
-                          </div>
-                          <div className="flex flex-wrap gap-1">
-                            {(product as any).ai_style_tags.slice(0, 3).map((tag: string, i: number) => (
-                              <Badge key={i} variant="outline" className="text-xs bg-primary/5">
-                                {tag}
-                              </Badge>
-                            ))}
-                          </div>
+                      {/* AI Generated Tags & Description */}
+                      {((product as any).ai_style_tags?.length > 0 || (product as any).ai_image_description) && (
+                        <div className="mt-3 pt-3 border-t border-border space-y-2">
+                          {(product as any).ai_style_tags?.length > 0 && (
+                            <>
+                              <div className="flex items-center gap-1">
+                                <Sparkles className="w-3 h-3 text-primary" />
+                                <span className="text-xs text-muted-foreground">AI Style Tags</span>
+                              </div>
+                              <div className="flex flex-wrap gap-1">
+                                {(product as any).ai_style_tags.slice(0, 3).map((tag: string, i: number) => (
+                                  <Badge key={i} variant="outline" className="text-xs bg-primary/5">
+                                    {tag}
+                                  </Badge>
+                                ))}
+                              </div>
+                            </>
+                          )}
+                          
+                          {(product as any).ai_image_description && (
+                            <div className="mt-2">
+                              <span className="text-xs text-muted-foreground">AI Description</span>
+                              <p className="text-xs text-foreground/80 line-clamp-2 mt-0.5">
+                                {(product as any).ai_image_description}
+                              </p>
+                            </div>
+                          )}
                         </div>
                       )}
                     </CardContent>
