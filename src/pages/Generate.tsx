@@ -166,29 +166,28 @@ const Generate = () => {
       // Use AI to analyze the generated design and extract highlights
       const response = await supabase.functions.invoke("analyze-style", {
         body: {
-          imageUrl,
-          extractHighlights: true,
+          images: [imageUrl],
+          mode: "room",
         },
       });
 
-      if (response.data?.success) {
+      if (response.data && !response.data.error) {
         const analysis = response.data;
         
         // Map the analysis to highlights format
         setHighlightsData({
           colorScheme: {
-            colors: analysis.colorPalette?.map((c: { hex: string }) => c.hex) || 
-                   getDefaultColors(quizData.colorPalette),
-            description: analysis.colorDescription || 
+            colors: analysis.dominantColors || getDefaultColors(quizData.colorPalette),
+            description: analysis.moodboardDescription || 
                         `A harmonious ${quizData.colorPalette || "neutral"} palette that creates the perfect atmosphere for your ${quizData.roomType || "space"}.`,
           },
           accentFurniture: {
-            name: analysis.accentPiece?.name || getDefaultAccentFurniture(quizData.stylePreference),
-            description: analysis.accentPiece?.description || 
+            name: analysis.styles?.[0]?.styleName || getDefaultAccentFurniture(quizData.stylePreference),
+            description: analysis.styles?.[0]?.description || 
                         `A statement piece that embodies the ${quizData.stylePreference || "modern"} aesthetic and serves as the focal point of the room.`,
           },
           moodboard: {
-            elements: analysis.moodElements || 
+            elements: analysis.styles?.[0]?.keywords || 
                      quizData.mustHaveElements || 
                      ["Texture", "Lighting", "Plants", "Art"],
             description: `Key design elements that bring together the ${quizData.stylePreference || "modern"} style with your personal preferences.`,
