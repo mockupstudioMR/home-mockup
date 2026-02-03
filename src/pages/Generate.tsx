@@ -24,6 +24,7 @@ import DesignHighlights from "@/components/generate/DesignHighlights";
 import PersonalizedStyleProfile from "@/components/generate/PersonalizedStyleProfile";
 import DesignItemsList from "@/components/generate/DesignItemsList";
 import LoveThisButton from "@/components/generate/LoveThisButton";
+import VisualSearchLinks from "@/components/generate/VisualSearchLinks";
 
 interface GeneratedDesign {
   id: string;
@@ -1012,6 +1013,18 @@ const Generate = () => {
             moodboard={highlightsData.moodboard}
             onApplyNote={handleApplyHighlightNote}
             isApplying={applyingHighlight}
+          />
+        )}
+
+        {/* Visual Search Links - Show on first screen */}
+        {design && quizData && !design.isLocked && (
+          <VisualSearchLinks
+            stylePreference={quizData.stylePreference}
+            roomType={quizData.roomType}
+            colorPalette={quizData.colorPalette}
+            mustHaveElements={quizData.mustHaveElements}
+            accentFurniture={highlightsData?.accentFurniture?.name}
+            materials={highlightsData?.colorScheme?.materials}
           />
         )}
 
