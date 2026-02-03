@@ -2,7 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ExternalLink, MapPin, Store, Search, Paintbrush, Layers, Sofa, Lamp, Palette, Frame } from "lucide-react";
+import { ExternalLink, MapPin, Store, Search, Paintbrush, Layers, Sofa, Lamp, Palette, Frame, Image } from "lucide-react";
 
 interface DesignItem {
   id: string;
@@ -15,6 +15,7 @@ interface DesignItem {
   priority: "essential" | "recommended" | "optional";
   matched_product_id?: string;
   google_shopping_url?: string;
+  google_images_url?: string;
   matchedProduct?: {
     id: string;
     name: string;
@@ -153,7 +154,7 @@ const DesignItemsList = ({ items, fullDescription, isLoading }: DesignItemsListP
                     </div>
 
                     {/* Shop action */}
-                    <div className="flex-shrink-0">
+                    <div className="flex-shrink-0 flex flex-col items-end gap-1">
                       {item.matchedProduct ? (
                         <div className="flex flex-col items-end gap-1">
                           <div className="flex items-center gap-1 text-xs text-green-600">
@@ -187,6 +188,19 @@ const DesignItemsList = ({ items, fullDescription, isLoading }: DesignItemsListP
                           <ExternalLink className="w-3 h-3 ml-1" />
                         </Button>
                       ) : null}
+                      
+                      {/* Google Images button for furniture items */}
+                      {item.google_images_url && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-7 text-xs text-muted-foreground hover:text-foreground"
+                          onClick={() => window.open(item.google_images_url, "_blank")}
+                        >
+                          <Image className="w-3 h-3 mr-1" />
+                          Images
+                        </Button>
+                      )}
                     </div>
                   </div>
                 ))}

@@ -247,6 +247,7 @@ Return JSON:
       priority: item.priority,
       matched_product_id: item.matchedProductId,
       google_shopping_url: item.googleShoppingUrl,
+      google_images_url: item.googleImagesUrl,
     }));
 
     const { data: insertedItems, error: insertError } = await supabase

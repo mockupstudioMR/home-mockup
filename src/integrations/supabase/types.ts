@@ -130,6 +130,7 @@ export type Database = {
           color: string | null
           created_at: string
           design_id: string
+          google_images_url: string | null
           google_shopping_url: string | null
           id: string
           item_description: string | null
@@ -144,6 +145,7 @@ export type Database = {
           color?: string | null
           created_at?: string
           design_id: string
+          google_images_url?: string | null
           google_shopping_url?: string | null
           id?: string
           item_description?: string | null
@@ -158,6 +160,7 @@ export type Database = {
           color?: string | null
           created_at?: string
           design_id?: string
+          google_images_url?: string | null
           google_shopping_url?: string | null
           id?: string
           item_description?: string | null

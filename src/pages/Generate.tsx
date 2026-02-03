@@ -83,6 +83,7 @@ interface DesignItem {
   priority: "essential" | "recommended" | "optional";
   matched_product_id?: string;
   google_shopping_url?: string;
+  google_images_url?: string;
   matchedProduct?: {
     id: string;
     name: string;
