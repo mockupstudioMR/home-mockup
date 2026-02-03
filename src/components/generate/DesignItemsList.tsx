@@ -155,6 +155,29 @@ const DesignItemsList = ({ items, fullDescription, isLoading }: DesignItemsListP
 
                     {/* Shop action */}
                     <div className="flex-shrink-0 flex flex-col items-end gap-1">
+                      {/* Google Images link - always available */}
+                      {(() => {
+                        const visualTraits = [item.item_name];
+                        if (item.color) visualTraits.push(item.color);
+                        if (item.material) visualTraits.push(item.material);
+                        if (item.style) visualTraits.push(item.style);
+                        const imageQuery = encodeURIComponent(visualTraits.join(" ").trim());
+                        const imagesUrl = item.google_images_url || `https://www.google.com/search?tbm=isch&q=${imageQuery}`;
+                        
+                        return (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-7 text-xs"
+                            onClick={() => window.open(imagesUrl, "_blank")}
+                          >
+                            <Image className="w-3 h-3 mr-1" />
+                            Find Similar
+                            <ExternalLink className="w-3 h-3 ml-1" />
+                          </Button>
+                        );
+                      })()}
+
                       {item.matchedProduct ? (
                         <div className="flex flex-col items-end gap-1">
                           <div className="flex items-center gap-1 text-xs text-green-600">
@@ -168,39 +191,25 @@ const DesignItemsList = ({ items, fullDescription, isLoading }: DesignItemsListP
                           )}
                           <Button
                             size="sm"
-                            variant="outline"
+                            variant="default"
                             className="h-7 text-xs"
                             onClick={() => window.open(item.matchedProduct?.source_url || "#", "_blank")}
                           >
                             <Store className="w-3 h-3 mr-1" />
-                            View
+                            View Product
                           </Button>
                         </div>
                       ) : item.google_shopping_url ? (
                         <Button
                           size="sm"
                           variant="ghost"
-                          className="h-8"
+                          className="h-7 text-xs text-muted-foreground"
                           onClick={() => window.open(item.google_shopping_url, "_blank")}
                         >
                           <Search className="w-3 h-3 mr-1" />
-                          Find
-                          <ExternalLink className="w-3 h-3 ml-1" />
+                          Shop
                         </Button>
                       ) : null}
-                      
-                      {/* Google Images button for furniture items */}
-                      {item.google_images_url && (
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="h-7 text-xs text-muted-foreground hover:text-foreground"
-                          onClick={() => window.open(item.google_images_url, "_blank")}
-                        >
-                          <Image className="w-3 h-3 mr-1" />
-                          Images
-                        </Button>
-                      )}
                     </div>
                   </div>
                 ))}
