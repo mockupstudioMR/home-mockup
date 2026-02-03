@@ -930,8 +930,8 @@ const Generate = () => {
           </div>
         )}
 
-        {/* Locked Design Items List */}
-        {design?.isLocked && (
+        {/* Design Items List - Show when items exist or extracting */}
+        {design && (designItems.length > 0 || extractingItems) && (
           <DesignItemsList
             items={designItems}
             fullDescription={fullDescription}
