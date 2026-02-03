@@ -122,24 +122,82 @@ Return your response as JSON:
     // Build search filters
     console.log("Searching shop_products table...");
 
-    // Query shop_products table
-    let dbQuery = supabase
-      .from("shop_products")
-      .select("*")
-      .eq("is_active", true);
+    // Map detected categories to actual database categories
+    const categoryMapping: Record<string, string[]> = {
+      "furniture": ["furniture", "sofa", "bed", "storage"],
+      "lighting": ["lighting"],
+      "textile": ["textile"],
+      "decor": ["decor", "other"],
+    };
 
-    // If we have detected products, filter by category
-    if (categories.length > 0) {
-      dbQuery = dbQuery.in("category", categories);
+    // Expand detected categories to include all matching db categories
+    const expandedCategories: string[] = [];
+    for (const cat of categories) {
+      const mappedCats = categoryMapping[cat.toLowerCase()];
+      if (mappedCats) {
+        expandedCategories.push(...mappedCats);
+      } else {
+        expandedCategories.push(cat.toLowerCase());
+      }
     }
 
-    // If we have style, filter by style
+    console.log("Expanded categories:", expandedCategories);
+
+    // Query shop_products table - first try with style filter
+    let dbProducts: any[] = [];
+    let dbError: any = null;
+
     if (style) {
       const normalizedStyle = style.toLowerCase().replace(/_/g, " ").replace(/-/g, " ");
-      dbQuery = dbQuery.or(`style.ilike.%${normalizedStyle}%,name.ilike.%${normalizedStyle}%`);
+      const styleVariant = style.toLowerCase(); // Keep hyphenated version too
+      
+      let styleQuery = supabase
+        .from("shop_products")
+        .select("*")
+        .eq("is_active", true)
+        .or(`style.ilike.%${normalizedStyle}%,style.ilike.%${styleVariant}%,name.ilike.%${normalizedStyle}%`);
+
+      if (expandedCategories.length > 0) {
+        styleQuery = styleQuery.in("category", expandedCategories);
+      }
+
+      const styleResult = await styleQuery.limit(50);
+      
+      if (!styleResult.error && styleResult.data && styleResult.data.length > 0) {
+        dbProducts = styleResult.data;
+        console.log("Found products with style filter:", dbProducts.length);
+      }
     }
 
-    const { data: dbProducts, error: dbError } = await dbQuery.limit(50);
+    // If no results with style filter (or no style), get all matching categories
+    if (dbProducts.length === 0) {
+      let fallbackQuery = supabase
+        .from("shop_products")
+        .select("*")
+        .eq("is_active", true);
+
+      if (expandedCategories.length > 0) {
+        fallbackQuery = fallbackQuery.in("category", expandedCategories);
+      }
+
+      const fallbackResult = await fallbackQuery.limit(50);
+      dbProducts = fallbackResult.data || [];
+      dbError = fallbackResult.error;
+      console.log("Fallback query found products:", dbProducts.length);
+    }
+
+    // Final fallback: get any active products if still nothing
+    if (dbProducts.length === 0) {
+      const { data: anyProducts, error: anyError } = await supabase
+        .from("shop_products")
+        .select("*")
+        .eq("is_active", true)
+        .limit(30);
+      
+      dbProducts = anyProducts || [];
+      dbError = anyError;
+      console.log("Final fallback - any active products:", dbProducts.length);
+    }
 
     if (dbError) {
       console.error("Database query error:", dbError);
