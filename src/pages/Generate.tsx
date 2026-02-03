@@ -132,9 +132,89 @@ const Generate = () => {
       return;
     }
 
-    // Auto-generate on load
-    generateDesign();
+    // Check for existing design first, only generate if none exists
+    loadExistingOrGenerate();
   }, [user, loading, navigate, quizData]);
+
+  const loadExistingOrGenerate = async () => {
+    if (!user || !quizData) return;
+
+    setGenerating(true);
+    try {
+      // Look for the most recent unlocked design for this user
+      const { data: existingDesign, error } = await supabase
+        .from("generated_designs")
+        .select("*")
+        .eq("user_id", user.id)
+        .is("is_locked", false)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .single();
+
+      if (existingDesign && !error) {
+        // Load existing design
+        setDesign({
+          id: existingDesign.id,
+          imageUrl: existingDesign.image_url,
+          title: "Your Personalized Design",
+          description: existingDesign.full_description || "Custom room design based on your style preferences",
+          isFavorite: existingDesign.is_favorite || false,
+          isLocked: existingDesign.is_locked || false,
+        });
+
+        // Restore modification history
+        if (existingDesign.modification_history) {
+          const history = existingDesign.modification_history as string[];
+          setModificationHistory(history);
+        }
+
+        // Restore full description
+        if (existingDesign.full_description) {
+          setFullDescription(existingDesign.full_description);
+        }
+
+        // Load design items if locked
+        if (existingDesign.is_locked) {
+          loadDesignItems(existingDesign.id);
+        }
+
+        // Regenerate highlights and search products
+        searchProducts(existingDesign.image_url);
+        generateHighlights(existingDesign.image_url);
+        setGenerating(false);
+        return;
+      }
+
+      // No existing design, generate new one
+      setGenerating(false);
+      generateDesign();
+    } catch (error) {
+      console.error("Error loading existing design:", error);
+      setGenerating(false);
+      generateDesign();
+    }
+  };
+
+  const loadDesignItems = async (designId: string) => {
+    try {
+      const { data: items } = await supabase
+        .from("design_items")
+        .select(`
+          *,
+          matchedProduct:matched_product_id(id, name, price, currency, image_urls, source_url)
+        `)
+        .eq("design_id", designId);
+
+      if (items) {
+        setDesignItems(items.map(item => ({
+          ...item,
+          priority: item.priority as "essential" | "recommended" | "optional",
+        })));
+      }
+    } catch (error) {
+      console.error("Error loading design items:", error);
+    }
+  };
 
   const generateDesign = async () => {
     if (!quizData || !user) return;
