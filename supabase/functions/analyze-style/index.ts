@@ -131,15 +131,96 @@ Respond in this exact JSON format:
     const data = await response.json();
     const textContent = data.choices?.[0]?.message?.content || "";
 
-    console.log("AI response:", textContent);
+    console.log("AI response:", textContent.substring(0, 500) + "...");
 
-    // Parse JSON from response
-    const jsonMatch = textContent.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
-      throw new Error("Failed to parse AI response");
+    // Robust JSON extraction
+    const result = extractJsonFromResponse(textContent, mode);
+
+function extractJsonFromResponse(response: string, mode: string): unknown {
+  // Step 1: Remove markdown code blocks
+  let cleaned = response
+    .replace(/```json\s*/gi, "")
+    .replace(/```\s*/g, "")
+    .trim();
+
+  // Step 2: Find JSON boundaries
+  const jsonStart = cleaned.indexOf("{");
+  const jsonEnd = cleaned.lastIndexOf("}");
+
+  if (jsonStart === -1 || jsonEnd === -1) {
+    throw new Error("No JSON object found in response");
+  }
+
+  cleaned = cleaned.substring(jsonStart, jsonEnd + 1);
+
+  // Step 3: Attempt parse with error handling
+  try {
+    return JSON.parse(cleaned);
+  } catch (e) {
+    console.log("Initial parse failed, attempting fixes...");
+    
+    // Step 4: Try to fix common issues
+    cleaned = cleaned
+      .replace(/,\s*}/g, "}") // Remove trailing commas before }
+      .replace(/,\s*]/g, "]") // Remove trailing commas before ]
+      .replace(/[\x00-\x1F\x7F]/g, "") // Remove control characters
+      .replace(/\n/g, " ") // Replace newlines with spaces
+      .replace(/\r/g, ""); // Remove carriage returns
+
+    try {
+      return JSON.parse(cleaned);
+    } catch (e2) {
+      console.log("Second parse failed, attempting truncation repair...");
+      
+      // Step 5: Try to repair truncated JSON
+      const repaired = repairTruncatedJson(cleaned, mode);
+      return JSON.parse(repaired);
     }
+  }
+}
 
-    const result = JSON.parse(jsonMatch[0]);
+function repairTruncatedJson(json: string, mode: string): string {
+  let repaired = json;
+  
+  // Count brackets to detect truncation
+  const openBraces = (repaired.match(/{/g) || []).length;
+  const closeBraces = (repaired.match(/}/g) || []).length;
+  const openBrackets = (repaired.match(/\[/g) || []).length;
+  const closeBrackets = (repaired.match(/]/g) || []).length;
+  
+  // Remove incomplete key-value pairs at the end
+  repaired = repaired.replace(/,?\s*"[^"]*":\s*$/, "");
+  repaired = repaired.replace(/,?\s*"[^"]*":\s*\[$/, "");
+  repaired = repaired.replace(/,?\s*"[^"]*":\s*"[^"]*$/, "");
+  
+  // Close any unclosed strings
+  const quoteCount = (repaired.match(/"/g) || []).length;
+  if (quoteCount % 2 !== 0) {
+    repaired += '"';
+  }
+  
+  // Add missing closing brackets
+  const newOpenBrackets = (repaired.match(/\[/g) || []).length;
+  const newCloseBrackets = (repaired.match(/]/g) || []).length;
+  for (let i = 0; i < newOpenBrackets - newCloseBrackets; i++) {
+    repaired += "]";
+  }
+  
+  // Add missing closing braces
+  const newOpenBraces = (repaired.match(/{/g) || []).length;
+  const newCloseBraces = (repaired.match(/}/g) || []).length;
+  for (let i = 0; i < newOpenBraces - newCloseBraces; i++) {
+    repaired += "}";
+  }
+  
+  // Clean up any trailing commas we might have created
+  repaired = repaired.replace(/,\s*}/g, "}");
+  repaired = repaired.replace(/,\s*]/g, "]");
+  
+  console.log("Repaired JSON:", repaired.substring(0, 200) + "...");
+  
+  return repaired;
+}
 
     return new Response(
       JSON.stringify(result),
