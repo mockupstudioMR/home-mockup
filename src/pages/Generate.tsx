@@ -18,8 +18,8 @@ import {
 import type { QuizData } from "@/contexts/QuizContext";
 import DesignImage from "@/components/generate/DesignImage";
 import ProductCard from "@/components/generate/ProductCard";
-import StyleExplanation from "@/components/generate/StyleExplanation";
 import DesignHighlights from "@/components/generate/DesignHighlights";
+import PersonalizedStyleProfile from "@/components/generate/PersonalizedStyleProfile";
 
 interface GeneratedDesign {
   id: string;
@@ -47,6 +47,7 @@ interface DesignHighlightsData {
     colors: string[];
     description: string;
     visual?: string;
+    materials?: string[];
   };
   accentFurniture: {
     name: string;
@@ -58,6 +59,12 @@ interface DesignHighlightsData {
     description: string;
     visual?: string;
   };
+}
+
+interface StyleMatch {
+  style: string;
+  percentage: number;
+  color: string;
 }
 
 const Generate = () => {
@@ -76,6 +83,11 @@ const Generate = () => {
   const [highlightsData, setHighlightsData] = useState<DesignHighlightsData | null>(null);
   const [generatingHighlights, setGeneratingHighlights] = useState(false);
   const [applyingHighlight, setApplyingHighlight] = useState<string | null>(null);
+  const [styleProfile, setStyleProfile] = useState<{
+    matches: StyleMatch[];
+    name: string;
+    description: string;
+  } | null>(null);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -172,54 +184,50 @@ const Generate = () => {
         },
       });
 
-      if (response.data && !response.data.error) {
-        const analysis = response.data;
-        
-        // Map the analysis to highlights format
-        setHighlightsData({
-          colorScheme: {
-            colors: analysis.dominantColors || getDefaultColors(quizData.colorPalette),
-            description: analysis.moodboardDescription || 
-                        `A harmonious ${quizData.colorPalette || "neutral"} palette that creates the perfect atmosphere for your ${quizData.roomType || "space"}.`,
-          },
-          accentFurniture: {
-            name: analysis.styles?.[0]?.styleName || getDefaultAccentFurniture(quizData.stylePreference),
-            description: analysis.styles?.[0]?.description || 
-                        `A statement piece that embodies the ${quizData.stylePreference || "modern"} aesthetic and serves as the focal point of the room.`,
-          },
-          moodboard: {
-            elements: analysis.styles?.[0]?.keywords || 
-                     quizData.mustHaveElements || 
-                     ["Texture", "Lighting", "Plants", "Art"],
-            description: `Key design elements that bring together the ${quizData.stylePreference || "modern"} style with your personal preferences.`,
-          },
-        });
-      } else {
-        // Fallback to default highlights based on quiz data
-        setHighlightsData({
-          colorScheme: {
-            colors: getDefaultColors(quizData.colorPalette),
-            description: `A curated ${quizData.colorPalette || "neutral"} palette that creates warmth and sophistication in your ${quizData.roomType || "space"}.`,
-          },
-          accentFurniture: {
-            name: getDefaultAccentFurniture(quizData.stylePreference),
-            description: `The perfect accent piece to complement your ${quizData.stylePreference || "modern"} design vision.`,
-          },
-          moodboard: {
-            elements: quizData.mustHaveElements?.length 
-              ? quizData.mustHaveElements 
-              : ["Natural textures", "Ambient lighting", "Organic shapes", "Personal touches"],
-            description: `A collection of elements that define your unique style and create a cohesive, inviting space.`,
-          },
-        });
-      }
+      const analysis = response.data && !response.data.error ? response.data : null;
+      
+      // Build style matches for the profile
+      const styleMatches = buildStyleMatches(quizData.stylePreference, analysis);
+      const profileData = generateStyleProfile(styleMatches, quizData);
+      setStyleProfile(profileData);
+
+      // Base highlights data
+      const colors = analysis?.dominantColors || getDefaultColors(quizData.colorPalette);
+      const materials = analysis?.materials || getMaterialsForStyle(quizData.stylePreference);
+      const furnitureName = analysis?.styles?.[0]?.styleName || getDefaultAccentFurniture(quizData.stylePreference);
+      const elements = analysis?.styles?.[0]?.keywords || quizData.mustHaveElements || ["Texture", "Lighting", "Plants", "Art"];
+
+      const baseHighlights: DesignHighlightsData = {
+        colorScheme: {
+          colors,
+          materials,
+          description: analysis?.moodboardDescription || 
+            `A harmonious ${quizData.colorPalette || "neutral"} palette expressed through ${materials.slice(0, 3).join(", ")} for your ${quizData.roomType || "space"}.`,
+        },
+        accentFurniture: {
+          name: furnitureName,
+          description: analysis?.styles?.[0]?.description || 
+            `A statement piece that embodies the ${quizData.stylePreference || "modern"} aesthetic and serves as the focal point of the room.`,
+        },
+        moodboard: {
+          elements,
+          description: `Key design elements that bring together the ${quizData.stylePreference || "modern"} style with your personal preferences.`,
+        },
+      };
+
+      setHighlightsData(baseHighlights);
+
+      // Generate AI visuals for each highlight in parallel
+      generateHighlightVisuals(baseHighlights, quizData);
     } catch (error) {
       console.error("Highlights generation error:", error);
       // Set default highlights on error
+      const materials = getMaterialsForStyle(quizData.stylePreference);
       setHighlightsData({
         colorScheme: {
           colors: getDefaultColors(quizData.colorPalette),
-          description: `A balanced color scheme reflecting your ${quizData.colorPalette || "neutral"} preferences.`,
+          materials,
+          description: `A balanced color scheme reflecting your ${quizData.colorPalette || "neutral"} preferences through ${materials.slice(0, 2).join(" and ")}.`,
         },
         accentFurniture: {
           name: getDefaultAccentFurniture(quizData.stylePreference),
@@ -230,9 +238,159 @@ const Generate = () => {
           description: "The essential elements that make your space uniquely yours.",
         },
       });
+      
+      // Set default style profile
+      const defaultMatches = buildStyleMatches(quizData.stylePreference, null);
+      setStyleProfile(generateStyleProfile(defaultMatches, quizData));
     } finally {
       setGeneratingHighlights(false);
     }
+  };
+
+  const generateHighlightVisuals = async (highlights: DesignHighlightsData, quiz: QuizData) => {
+    const style = quiz.stylePreference || "modern-minimal";
+    const room = quiz.roomType || "living room";
+
+    // Generate all three visuals in parallel
+    const [colorResult, furnitureResult, moodboardResult] = await Promise.allSettled([
+      supabase.functions.invoke("generate-highlight-visuals", {
+        body: {
+          type: "colorPalette",
+          style,
+          room,
+          colors: highlights.colorScheme.colors,
+          materials: highlights.colorScheme.materials,
+        },
+      }),
+      supabase.functions.invoke("generate-highlight-visuals", {
+        body: {
+          type: "accentFurniture",
+          style,
+          room,
+          furnitureName: highlights.accentFurniture.name,
+          furnitureDescription: highlights.accentFurniture.description,
+        },
+      }),
+      supabase.functions.invoke("generate-highlight-visuals", {
+        body: {
+          type: "moodboard",
+          style,
+          room,
+          elements: highlights.moodboard.elements,
+        },
+      }),
+    ]);
+
+    // Update highlights with generated visuals as they complete
+    setHighlightsData((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        colorScheme: {
+          ...prev.colorScheme,
+          visual: colorResult.status === "fulfilled" ? colorResult.value.data?.imageUrl : undefined,
+        },
+        accentFurniture: {
+          ...prev.accentFurniture,
+          visual: furnitureResult.status === "fulfilled" ? furnitureResult.value.data?.imageUrl : undefined,
+        },
+        moodboard: {
+          ...prev.moodboard,
+          visual: moodboardResult.status === "fulfilled" ? moodboardResult.value.data?.imageUrl : undefined,
+        },
+      };
+    });
+  };
+
+  const buildStyleMatches = (primaryStyle?: string, analysis?: Record<string, unknown> | null): StyleMatch[] => {
+    const styleColors: Record<string, string> = {
+      "modern-minimal": "#64748B",
+      "classic-historical": "#92400E",
+      "bohemian-eclectic": "#7C3AED",
+      "rustic-nature": "#059669",
+      "mediterranean": "#0891B2",
+      "glam-luxe": "#BE185D",
+    };
+
+    const primary = primaryStyle || "modern-minimal";
+    
+    // Calculate percentages based on primary style
+    const matches: StyleMatch[] = [];
+    
+    // Primary style gets highest percentage
+    matches.push({
+      style: primary,
+      percentage: 45,
+      color: styleColors[primary] || "#64748B",
+    });
+
+    // Add complementary styles based on the primary
+    const complementaryMap: Record<string, string[]> = {
+      "modern-minimal": ["rustic-nature", "mediterranean"],
+      "classic-historical": ["glam-luxe", "mediterranean"],
+      "bohemian-eclectic": ["rustic-nature", "glam-luxe"],
+      "rustic-nature": ["bohemian-eclectic", "mediterranean"],
+      "mediterranean": ["rustic-nature", "modern-minimal"],
+      "glam-luxe": ["classic-historical", "modern-minimal"],
+    };
+
+    const complementary = complementaryMap[primary] || ["rustic-nature", "modern-minimal"];
+    matches.push({
+      style: complementary[0],
+      percentage: 30,
+      color: styleColors[complementary[0]] || "#059669",
+    });
+    matches.push({
+      style: complementary[1],
+      percentage: 25,
+      color: styleColors[complementary[1]] || "#0891B2",
+    });
+
+    return matches;
+  };
+
+  const generateStyleProfile = (matches: StyleMatch[], quiz: QuizData): { matches: StyleMatch[]; name: string; description: string } => {
+    const primary = matches[0]?.style || "modern-minimal";
+    const secondary = matches[1]?.style;
+    
+    const profileNames: Record<string, string> = {
+      "modern-minimal": "Contemporary Zen",
+      "classic-historical": "Timeless Elegance",
+      "bohemian-eclectic": "Creative Spirit",
+      "rustic-nature": "Organic Harmony",
+      "mediterranean": "Coastal Serenity",
+      "glam-luxe": "Modern Luxe",
+    };
+
+    const blendDescriptions: Record<string, string> = {
+      "modern-minimal+rustic-nature": "Your style blends clean contemporary lines with organic natural textures, creating spaces that feel both refined and grounded in nature.",
+      "modern-minimal+mediterranean": "You gravitate toward crisp minimalism softened by coastal warmth—airy spaces with natural light and calming blue accents.",
+      "classic-historical+glam-luxe": "Your aesthetic marries traditional elegance with glamorous touches—rich materials, ornate details, and luxurious finishes.",
+      "bohemian-eclectic+rustic-nature": "You embrace a collected, personal style where global artisan pieces meet earthy organic elements in a warm, layered space.",
+      "rustic-nature+mediterranean": "Your spaces feel like a countryside retreat—natural materials, earthy tones, and a relaxed Mediterranean ease.",
+    };
+
+    const blendKey = `${primary}+${secondary}`;
+    const description = blendDescriptions[blendKey] || 
+      `Your unique style combines ${matches.map(m => m.style.replace(/-/g, " ")).join(", ")} influences, creating a personalized aesthetic for your ${quiz.roomType || "space"}.`;
+
+    return {
+      matches,
+      name: profileNames[primary] || "Personalized Style",
+      description,
+    };
+  };
+
+  const getMaterialsForStyle = (style?: string): string[] => {
+    const materialsMap: Record<string, string[]> = {
+      "modern-minimal": ["oak wood", "linen", "concrete", "brushed steel"],
+      "classic-historical": ["mahogany", "velvet", "marble", "brass"],
+      "bohemian-eclectic": ["rattan", "woven textiles", "terracotta", "macramé"],
+      "rustic-nature": ["reclaimed wood", "jute", "natural stone", "raw linen"],
+      "mediterranean": ["whitewashed wood", "terracotta", "wrought iron", "cotton"],
+      "glam-luxe": ["lacquer", "velvet", "mirror", "gold leaf"],
+    };
+    return materialsMap[style || "modern-minimal"] || materialsMap["modern-minimal"];
   };
 
   const getDefaultColors = (palette?: string): string[] => {
@@ -489,13 +647,12 @@ const Generate = () => {
           </Card>
         )}
 
-        {/* Style Explanation */}
-        {quizData && (
-          <StyleExplanation
-            style={quizData.stylePreference || "modern_minimal"}
-            room={quizData.roomType || "living room"}
-            colors={quizData.colorPalette}
-            elements={quizData.mustHaveElements}
+        {/* Personalized Style Profile */}
+        {styleProfile && (
+          <PersonalizedStyleProfile
+            styleMatches={styleProfile.matches}
+            profileName={styleProfile.name}
+            profileDescription={styleProfile.description}
           />
         )}
 
