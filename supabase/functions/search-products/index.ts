@@ -10,6 +10,7 @@ interface SearchRequest {
   style?: string;
   room?: string;
   query?: string;
+  userCity?: string;
 }
 
 Deno.serve(async (req) => {
@@ -30,7 +31,7 @@ Deno.serve(async (req) => {
       throw new Error("Supabase credentials not configured");
     }
 
-    const { imageUrl, style, room: _room, query: _query }: SearchRequest = await req.json();
+    const { imageUrl, style, room: _room, query: _query, userCity }: SearchRequest = await req.json();
 
     // Initialize Supabase client
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
@@ -104,6 +105,20 @@ Return your response as JSON:
       }
     }
 
+    // Get business profiles with city info for location-based matching
+    const { data: businessProfiles } = await supabase
+      .from("business_profiles")
+      .select("user_id, city, business_name");
+
+    const shopCityMap = new Map<string, string>();
+    const shopNameMap = new Map<string, string>();
+    businessProfiles?.forEach((bp) => {
+      if (bp.city) shopCityMap.set(bp.user_id, bp.city.toLowerCase());
+      if (bp.business_name) shopNameMap.set(bp.user_id, bp.business_name);
+    });
+
+    const userCityLower = userCity?.toLowerCase();
+
     // Build search filters
     console.log("Searching shop_products table...");
 
@@ -124,7 +139,7 @@ Return your response as JSON:
       dbQuery = dbQuery.or(`style.ilike.%${normalizedStyle}%,name.ilike.%${normalizedStyle}%`);
     }
 
-    const { data: dbProducts, error: dbError } = await dbQuery.limit(12);
+    const { data: dbProducts, error: dbError } = await dbQuery.limit(50);
 
     if (dbError) {
       console.error("Database query error:", dbError);
@@ -132,19 +147,36 @@ Return your response as JSON:
 
     console.log("Found products from database:", dbProducts?.length || 0);
 
+    // Sort products: prioritize local shops (same city), then by relevance
+    const sortedProducts = (dbProducts || []).sort((a, b) => {
+      const aIsLocal = userCityLower && shopCityMap.get(a.shop_id) === userCityLower;
+      const bIsLocal = userCityLower && shopCityMap.get(b.shop_id) === userCityLower;
+      
+      if (aIsLocal && !bIsLocal) return -1;
+      if (!aIsLocal && bIsLocal) return 1;
+      return 0;
+    });
+
     // Format products for response
-    const products = (dbProducts || []).map((p: any) => ({
-      id: p.id,
-      title: p.name,
-      description: p.description || `${p.category} - ${p.style || "Various styles"}`,
-      url: p.source_url || "#",
-      source: "Our Shop Partners",
-      price: p.price,
-      currency: p.currency || "EUR",
-      imageUrl: p.image_urls?.[0] || null,
-      category: p.category,
-      style: p.style,
-    }));
+    const products = sortedProducts.slice(0, 12).map((p: any) => {
+      const shopCity = shopCityMap.get(p.shop_id);
+      const isLocalShop = userCityLower && shopCity === userCityLower;
+      const shopName = shopNameMap.get(p.shop_id) || "Partner Shop";
+      
+      return {
+        id: p.id,
+        title: p.name,
+        description: p.description || `${p.category} - ${p.style || "Various styles"}`,
+        url: p.source_url || "#",
+        source: isLocalShop ? `${shopName} (Local)` : shopName,
+        price: p.price,
+        currency: p.currency || "EUR",
+        imageUrl: p.image_urls?.[0] || null,
+        category: p.category,
+        style: p.style,
+        isLocal: isLocalShop,
+      };
+    });
 
     return new Response(
       JSON.stringify({
@@ -152,7 +184,7 @@ Return your response as JSON:
         products,
         detectedItems: detectedProducts,
         message: products.length > 0 
-          ? `Found ${products.length} matching products` 
+          ? `Found ${products.length} matching products${userCityLower ? ` (prioritizing shops in ${userCity})` : ""}` 
           : "No products found in our catalog yet. Check back soon!",
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }

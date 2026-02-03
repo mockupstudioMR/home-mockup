@@ -20,6 +20,8 @@ import DesignImage from "@/components/generate/DesignImage";
 import ProductCard from "@/components/generate/ProductCard";
 import DesignHighlights from "@/components/generate/DesignHighlights";
 import PersonalizedStyleProfile from "@/components/generate/PersonalizedStyleProfile";
+import DesignItemsList from "@/components/generate/DesignItemsList";
+import LoveThisButton from "@/components/generate/LoveThisButton";
 
 interface GeneratedDesign {
   id: string;
@@ -27,6 +29,7 @@ interface GeneratedDesign {
   title: string;
   description: string;
   isFavorite: boolean;
+  isLocked?: boolean;
 }
 
 interface Product {
@@ -67,6 +70,27 @@ interface StyleMatch {
   color: string;
 }
 
+interface DesignItem {
+  id: string;
+  item_type: string;
+  item_name: string;
+  item_description: string;
+  color?: string;
+  material?: string;
+  style?: string;
+  priority: "essential" | "recommended" | "optional";
+  matched_product_id?: string;
+  google_shopping_url?: string;
+  matchedProduct?: {
+    id: string;
+    name: string;
+    price?: number;
+    currency?: string;
+    image_urls?: string[];
+    source_url?: string;
+  };
+}
+
 const Generate = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -88,6 +112,10 @@ const Generate = () => {
     name: string;
     description: string;
   } | null>(null);
+  const [designItems, setDesignItems] = useState<DesignItem[]>([]);
+  const [extractingItems, setExtractingItems] = useState(false);
+  const [fullDescription, setFullDescription] = useState("");
+  const [modificationHistory, setModificationHistory] = useState<string[]>([]);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -447,6 +475,14 @@ const Generate = () => {
 
   const handleModify = async () => {
     if (!modificationInput.trim() || !quizData || !design) return;
+    if (design.isLocked) {
+      toast({
+        title: "Design is locked",
+        description: "This design has been finalized and cannot be modified",
+        variant: "destructive",
+      });
+      return;
+    }
 
     setGenerating(true);
     try {
@@ -461,6 +497,18 @@ const Generate = () => {
       if (response.error) throw new Error(response.error.message);
 
       const { imageUrl } = response.data;
+
+      // Track modification in history
+      const newHistory = [...modificationHistory, modificationInput];
+      setModificationHistory(newHistory);
+
+      // Save modification history to database
+      if (!design.id.startsWith("design-")) {
+        await supabase
+          .from("generated_designs")
+          .update({ modification_history: newHistory })
+          .eq("id", design.id);
+      }
 
       // Update design
       setDesign({
@@ -486,6 +534,74 @@ const Generate = () => {
       });
     } finally {
       setGenerating(false);
+    }
+  };
+
+  const handleLockDesign = async () => {
+    if (!design || design.isLocked || design.id.startsWith("design-")) {
+      toast({
+        title: "Cannot lock design",
+        description: "Please ensure your design is saved first",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setExtractingItems(true);
+
+    try {
+      // Get user's city from profile
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("city")
+        .eq("user_id", user?.id)
+        .single();
+
+      // Call extract-room-items edge function
+      const response = await supabase.functions.invoke("extract-room-items", {
+        body: {
+          imageUrl: design.imageUrl,
+          designId: design.id,
+          userCity: profile?.city,
+        },
+      });
+
+      if (response.error) throw new Error(response.error.message);
+
+      const { items, fullDescription: desc } = response.data;
+
+      // Fetch matched products for items
+      const itemsWithProducts = await Promise.all(
+        (items || []).map(async (item: DesignItem) => {
+          if (item.matched_product_id) {
+            const { data: product } = await supabase
+              .from("shop_products")
+              .select("id, name, price, currency, image_urls, source_url")
+              .eq("id", item.matched_product_id)
+              .single();
+            return { ...item, matchedProduct: product };
+          }
+          return item;
+        })
+      );
+
+      setDesignItems(itemsWithProducts);
+      setFullDescription(desc || "");
+      setDesign({ ...design, isLocked: true });
+
+      toast({
+        title: "Design locked!",
+        description: `Extracted ${items?.length || 0} items from your design`,
+      });
+    } catch (error) {
+      console.error("Lock design error:", error);
+      toast({
+        title: "Failed to lock design",
+        description: error instanceof Error ? error.message : "Please try again",
+        variant: "destructive",
+      });
+    } finally {
+      setExtractingItems(false);
     }
   };
 
@@ -671,8 +787,28 @@ const Generate = () => {
           </div>
         )}
 
-        {/* Modification Input */}
-        {design && !generating && (
+        {/* Love This Button - Under Main Design */}
+        {design && !generating && !design.isLocked && (
+          <div className="flex justify-center">
+            <LoveThisButton
+              isLocked={design.isLocked || false}
+              isLoading={extractingItems}
+              onLock={handleLockDesign}
+            />
+          </div>
+        )}
+
+        {/* Locked Design Items List */}
+        {design?.isLocked && (
+          <DesignItemsList
+            items={designItems}
+            fullDescription={fullDescription}
+            isLoading={extractingItems}
+          />
+        )}
+
+        {/* Modification Input - Only show if not locked */}
+        {design && !generating && !design.isLocked && (
           <Card className="border-border/50 bg-card/80 backdrop-blur-sm max-w-3xl mx-auto">
             <CardContent className="p-4">
               <div className="space-y-3">

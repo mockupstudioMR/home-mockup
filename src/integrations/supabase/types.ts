@@ -17,6 +17,8 @@ export type Database = {
       business_profiles: {
         Row: {
           business_name: string
+          city: string | null
+          country: string | null
           created_at: string
           credits_balance: number
           description: string | null
@@ -30,6 +32,8 @@ export type Database = {
         }
         Insert: {
           business_name: string
+          city?: string | null
+          country?: string | null
           created_at?: string
           credits_balance?: number
           description?: string | null
@@ -43,6 +47,8 @@ export type Database = {
         }
         Update: {
           business_name?: string
+          city?: string | null
+          country?: string | null
           created_at?: string
           credits_balance?: number
           description?: string | null
@@ -119,12 +125,77 @@ export type Database = {
         }
         Relationships: []
       }
+      design_items: {
+        Row: {
+          color: string | null
+          created_at: string
+          design_id: string
+          google_shopping_url: string | null
+          id: string
+          item_description: string | null
+          item_name: string
+          item_type: string
+          matched_product_id: string | null
+          material: string | null
+          priority: string | null
+          style: string | null
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string
+          design_id: string
+          google_shopping_url?: string | null
+          id?: string
+          item_description?: string | null
+          item_name: string
+          item_type: string
+          matched_product_id?: string | null
+          material?: string | null
+          priority?: string | null
+          style?: string | null
+        }
+        Update: {
+          color?: string | null
+          created_at?: string
+          design_id?: string
+          google_shopping_url?: string | null
+          id?: string
+          item_description?: string | null
+          item_name?: string
+          item_type?: string
+          matched_product_id?: string | null
+          material?: string | null
+          priority?: string | null
+          style?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "design_items_design_id_fkey"
+            columns: ["design_id"]
+            isOneToOne: false
+            referencedRelation: "generated_designs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "design_items_matched_product_id_fkey"
+            columns: ["matched_product_id"]
+            isOneToOne: false
+            referencedRelation: "shop_products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       generated_designs: {
         Row: {
           created_at: string
+          extracted_items: Json | null
+          full_description: string | null
           id: string
           image_url: string
           is_favorite: boolean | null
+          is_locked: boolean | null
+          locked_at: string | null
+          modification_history: Json | null
           parent_design_id: string | null
           prompt: string
           quiz_response_id: string | null
@@ -133,9 +204,14 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          extracted_items?: Json | null
+          full_description?: string | null
           id?: string
           image_url: string
           is_favorite?: boolean | null
+          is_locked?: boolean | null
+          locked_at?: string | null
+          modification_history?: Json | null
           parent_design_id?: string | null
           prompt: string
           quiz_response_id?: string | null
@@ -144,9 +220,14 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          extracted_items?: Json | null
+          full_description?: string | null
           id?: string
           image_url?: string
           is_favorite?: boolean | null
+          is_locked?: boolean | null
+          locked_at?: string | null
+          modification_history?: Json | null
           parent_design_id?: string | null
           prompt?: string
           quiz_response_id?: string | null
@@ -308,6 +389,8 @@ export type Database = {
       profiles: {
         Row: {
           avatar_url: string | null
+          city: string | null
+          country: string | null
           created_at: string
           display_name: string | null
           email: string | null
@@ -317,6 +400,8 @@ export type Database = {
         }
         Insert: {
           avatar_url?: string | null
+          city?: string | null
+          country?: string | null
           created_at?: string
           display_name?: string | null
           email?: string | null
@@ -326,6 +411,8 @@ export type Database = {
         }
         Update: {
           avatar_url?: string | null
+          city?: string | null
+          country?: string | null
           created_at?: string
           display_name?: string | null
           email?: string | null
