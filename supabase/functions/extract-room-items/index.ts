@@ -154,6 +154,7 @@ Return JSON:
     const itemsWithMatches = analysis.items.map((item) => {
       let matchedProductId: string | null = null;
       let googleShoppingUrl: string | null = null;
+      let googleImagesUrl: string | null = null;
 
       // Try to find a matching product from local shops
       const matchingProducts = shopProducts?.filter((p) => {
@@ -181,7 +182,35 @@ Return JSON:
         matchedProductId = matchingProducts[0].id;
       }
 
-      // If no local match, generate Google Shopping URL
+      // Build visual traits query for Google Images
+      const visualTraits: string[] = [];
+      
+      // Add item name as base
+      visualTraits.push(item.itemName);
+      
+      // Add color if available
+      if (item.color) {
+        visualTraits.push(item.color);
+      }
+      
+      // Add material if available
+      if (item.material) {
+        visualTraits.push(item.material);
+      }
+      
+      // Add style if available
+      if (item.style) {
+        visualTraits.push(item.style);
+      }
+
+      // Generate Google Images URL for furniture items
+      const furnitureTypes = ["furniture", "lighting", "textile", "decor"];
+      if (furnitureTypes.includes(item.itemType)) {
+        const imageQuery = encodeURIComponent(visualTraits.join(" ").trim());
+        googleImagesUrl = `https://www.google.com/search?tbm=isch&q=${imageQuery}`;
+      }
+
+      // If no local match, generate Google Shopping URL as fallback
       if (!matchedProductId) {
         const searchQuery = encodeURIComponent(
           `${item.itemName} ${item.material || ""} ${item.style || ""}`.trim()
@@ -193,6 +222,7 @@ Return JSON:
         ...item,
         matchedProductId,
         googleShoppingUrl,
+        googleImagesUrl,
       };
     });
 
