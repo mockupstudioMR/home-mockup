@@ -23,8 +23,7 @@ const LoveThisButton = ({ isLocked, isLoading, onLock }: LoveThisButtonProps) =>
       size="lg"
       className={cn(
         "rounded-full px-8 py-6 text-lg font-semibold",
-        "bg-gradient-to-r from-primary via-accent to-primary",
-        "bg-[length:200%_100%] animate-shimmer",
+        "bg-gradient-to-r from-primary to-accent",
         "hover:shadow-lg hover:shadow-primary/25 transition-all duration-300",
         "group"
       )}
