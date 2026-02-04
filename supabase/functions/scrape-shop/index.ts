@@ -194,7 +194,7 @@ Deno.serve(async (req) => {
 
     // Step 3: Use AI to extract structured product data
     const productsToExtract = scrapedProducts.map(p => 
-      `URL: ${p.url}\nTitle: ${p.metadata.title || 'Unknown'}\nContent:\n${p.content.substring(0, 2000)}`
+      `URL: ${p.url}\nTitle: ${p.metadata.title || 'Unknown'}\nContent:\n${p.content.substring(0, 6000)}`
     ).join("\n\n---\n\n");
 
     const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
