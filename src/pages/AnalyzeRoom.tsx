@@ -23,17 +23,15 @@ interface AnalysisResult {
 
 const STORAGE_KEY = "analyze_room_cache";
 
-const getInitialState = () => {
+// Store only metadata (URLs), not base64 data
+const getInitialState = (): { images: string[]; result: AnalysisResult | null } => {
   try {
     const cached = sessionStorage.getItem(STORAGE_KEY);
-    console.log("[AnalyzeRoom] Reading from sessionStorage:", cached ? "found data" : "no data", cached?.length);
     if (cached) {
-      const parsed = JSON.parse(cached);
-      console.log("[AnalyzeRoom] Parsed cache:", { imagesCount: parsed.images?.length, hasResult: !!parsed.result });
-      return parsed;
+      return JSON.parse(cached);
     }
-  } catch (e) {
-    console.error("[AnalyzeRoom] Error reading cache:", e);
+  } catch {
+    // Ignore parse errors
   }
   return { images: [], result: null };
 };
@@ -44,26 +42,29 @@ const AnalyzeRoom = () => {
   const { updateQuizData } = useQuiz();
   const { toast } = useToast();
   
-  // Use lazy initializer to read from sessionStorage on each mount
   const [uploadedImages, setUploadedImages] = useState<string[]>(() => getInitialState().images);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(() => getInitialState().result);
 
-  // Persist state to sessionStorage
+  // Persist state to sessionStorage - only store URLs (after upload) or skip large base64
   useEffect(() => {
     try {
-      const data = { images: uploadedImages, result: analysisResult };
-      console.log("[AnalyzeRoom] Saving to sessionStorage:", { imagesCount: uploadedImages.length, hasResult: !!analysisResult });
+      // Filter out large base64 strings to avoid quota issues
+      const imagesToStore = uploadedImages.filter(img => 
+        !img.startsWith('data:') || img.length < 50000 // ~37KB limit per image
+      );
+      
+      // Only store if we have URL-based images or small base64
+      const data = { 
+        images: imagesToStore.length === uploadedImages.length ? uploadedImages : [], 
+        result: analysisResult 
+      };
       sessionStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-    } catch (e) {
-      console.error("[AnalyzeRoom] Error saving cache:", e);
+    } catch {
+      // Quota exceeded - clear and continue
+      sessionStorage.removeItem(STORAGE_KEY);
     }
   }, [uploadedImages, analysisResult]);
-
-  // Debug: log on mount
-  useEffect(() => {
-    console.log("[AnalyzeRoom] Component mounted with:", { imagesCount: uploadedImages.length, hasResult: !!analysisResult });
-  }, []);
 
   const handleFileUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
