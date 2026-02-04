@@ -124,9 +124,9 @@ const DesignItemCard = ({ item, designImageUrl, onOrderCustomMade }: DesignItemC
           />
         )}
         
-        {/* Expanded preview on hover */}
+        {/* Expanded preview on hover - fixed position at top */}
         {(hasBoundingBox || !showColorSwatch) && (
-          <div className="absolute left-0 top-0 w-48 h-48 rounded-lg overflow-hidden bg-background border border-border shadow-xl z-50 opacity-0 scale-95 pointer-events-none group-hover/thumb:opacity-100 group-hover/thumb:scale-100 group-hover/thumb:pointer-events-auto transition-all duration-200 origin-top-left">
+          <div className="fixed left-1/2 top-4 -translate-x-1/2 w-80 h-80 md:w-96 md:h-96 rounded-xl overflow-hidden bg-background border-2 border-primary/30 shadow-2xl z-[100] opacity-0 scale-90 pointer-events-none group-hover/thumb:opacity-100 group-hover/thumb:scale-100 group-hover/thumb:pointer-events-auto transition-all duration-300">
             {hasBoundingBox ? (
               <div 
                 className="w-full h-full"
@@ -139,6 +139,9 @@ const DesignItemCard = ({ item, designImageUrl, onOrderCustomMade }: DesignItemC
                 className="w-full h-full object-cover"
               />
             )}
+            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-3">
+              <p className="text-white text-sm font-medium truncate">{item.item_name}</p>
+            </div>
           </div>
         )}
       </div>
