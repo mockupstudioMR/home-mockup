@@ -436,6 +436,7 @@ export type Database = {
           budget_feel: string
           color_palette: string
           created_at: string
+          furniture_source: string | null
           id: string
           must_have_elements: string[] | null
           room_type: string
@@ -447,6 +448,7 @@ export type Database = {
           budget_feel: string
           color_palette: string
           created_at?: string
+          furniture_source?: string | null
           id?: string
           must_have_elements?: string[] | null
           room_type: string
@@ -458,6 +460,7 @@ export type Database = {
           budget_feel?: string
           color_palette?: string
           created_at?: string
+          furniture_source?: string | null
           id?: string
           must_have_elements?: string[] | null
           room_type?: string
