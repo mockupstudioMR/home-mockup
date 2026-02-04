@@ -6,18 +6,27 @@ import { Store, Paintbrush, Layers, Sofa, Lamp, Palette, Frame } from "lucide-re
 import DesignItemCard from "./DesignItemCard";
 import OrderCustomMadeSheet from "./OrderCustomMadeSheet";
 
+interface BoundingBox {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
 interface DesignItem {
   id: string;
   item_type: string;
   item_name: string;
   item_description: string;
   color?: string;
+  hex_code?: string;
   material?: string;
   style?: string;
   priority: "essential" | "recommended" | "optional";
   matched_product_id?: string;
   google_shopping_url?: string;
   google_images_url?: string;
+  bounding_box?: BoundingBox;
   matchedProduct?: {
     id: string;
     name: string;
