@@ -863,11 +863,14 @@ const Generate = () => {
       const newHistory = [...modificationHistory, modificationInput];
       setModificationHistory(newHistory);
 
-      // Save modification history to database
+      // Save modification history AND new image URL to database
       if (!design.id.startsWith("design-")) {
         await supabase
           .from("generated_designs")
-          .update({ modification_history: newHistory })
+          .update({ 
+            modification_history: newHistory,
+            image_url: imageUrl,
+          })
           .eq("id", design.id);
       }
 
@@ -1030,6 +1033,14 @@ const Generate = () => {
       if (response.error) throw new Error(response.error.message);
 
       const { imageUrl } = response.data;
+
+      // Save new image URL to database
+      if (!design.id.startsWith("design-")) {
+        await supabase
+          .from("generated_designs")
+          .update({ image_url: imageUrl })
+          .eq("id", design.id);
+      }
 
       // Update design with the new image
       setDesign({
