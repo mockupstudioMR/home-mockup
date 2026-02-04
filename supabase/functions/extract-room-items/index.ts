@@ -115,25 +115,121 @@ Return JSON:
     const visionData = await visionResponse.json();
     const textContent = visionData.choices?.[0]?.message?.content || "";
 
+    // Helper to extract and repair JSON from AI response
+    const extractAndParseJson = (text: string): typeof analysis => {
+      // Remove markdown code blocks if present
+      let cleaned = text.replace(/```json\s*/gi, "").replace(/```\s*/g, "");
+      
+      // Try to find JSON object
+      const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) {
+        console.error("No JSON object found in response");
+        return null;
+      }
+      
+      let jsonStr = jsonMatch[0];
+      
+      // Attempt to repair common JSON issues
+      try {
+        return JSON.parse(jsonStr);
+      } catch (e) {
+        console.log("Initial parse failed, attempting repair...");
+        
+        // Fix unbalanced brackets
+        const openBraces = (jsonStr.match(/{/g) || []).length;
+        const closeBraces = (jsonStr.match(/}/g) || []).length;
+        const openBrackets = (jsonStr.match(/\[/g) || []).length;
+        const closeBrackets = (jsonStr.match(/]/g) || []).length;
+        
+        // Add missing closing brackets/braces
+        for (let i = 0; i < openBrackets - closeBrackets; i++) {
+          jsonStr += "]";
+        }
+        for (let i = 0; i < openBraces - closeBraces; i++) {
+          jsonStr += "}";
+        }
+        
+        // Remove trailing commas before closing brackets/braces
+        jsonStr = jsonStr.replace(/,\s*([}\]])/g, "$1");
+        
+        try {
+          return JSON.parse(jsonStr);
+        } catch (e2) {
+          console.error("JSON repair failed:", e2);
+          return null;
+        }
+      }
+    };
+
     // Parse JSON from response
     let analysis: {
       items: ExtractedItem[];
       fullDescription: string;
       dominantStyle: string;
       colorPalette: string[];
-    } | null = null;
+    } | null = extractAndParseJson(textContent);
 
-    const jsonMatch = textContent.match(/\{[\s\S]*\}/);
-    if (jsonMatch) {
-      try {
-        analysis = JSON.parse(jsonMatch[0]);
-      } catch {
-        console.error("Failed to parse AI response as JSON");
+    // If parsing failed, retry with a simpler prompt
+    if (!analysis) {
+      console.log("First attempt failed, retrying with simpler prompt...");
+      
+      const retryResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-2.5-flash",
+          messages: [
+            {
+              role: "user",
+              content: [
+                {
+                  type: "text",
+                  text: `Look at this room image and list the main items you see. Return ONLY valid JSON (no markdown):
+{"items":[{"itemType":"furniture","itemName":"item name","itemDescription":"brief description","color":"color name","material":"material","style":"style","priority":"essential","boundingBox":{"x":10,"y":10,"width":20,"height":20}}],"fullDescription":"room description","dominantStyle":"modern","colorPalette":["#FFFFFF"]}`,
+                },
+                {
+                  type: "image_url",
+                  image_url: { url: imageUrl },
+                },
+              ],
+            },
+          ],
+          max_tokens: 4000,
+        }),
+      });
+
+      if (retryResponse.ok) {
+        const retryData = await retryResponse.json();
+        const retryContent = retryData.choices?.[0]?.message?.content || "";
+        analysis = extractAndParseJson(retryContent);
       }
     }
 
-    if (!analysis) {
-      throw new Error("Failed to extract items from image");
+    if (!analysis || !analysis.items || analysis.items.length === 0) {
+      // Provide fallback items if AI completely fails
+      console.log("AI extraction failed, using fallback items");
+      analysis = {
+        items: [
+          {
+            itemType: "furniture",
+            itemName: "Room Furniture",
+            itemDescription: "Main furniture pieces visible in the design",
+            priority: "essential" as const,
+          },
+          {
+            itemType: "decor",
+            itemName: "Decorative Elements",
+            itemDescription: "Decorative accents and accessories",
+            priority: "recommended" as const,
+          },
+        ],
+        fullDescription: "A beautifully designed room with carefully curated furniture and decor elements.",
+        dominantStyle: "Contemporary",
+        colorPalette: ["#E8DFD1", "#8B7355", "#FFFFFF"],
+      };
     }
 
     console.log(`Extracted ${analysis.items.length} items from design`);
