@@ -31,6 +31,7 @@ interface DesignItem {
 interface DesignItemsListProps {
   items: DesignItem[];
   fullDescription: string;
+  designImageUrl?: string;
   isLoading?: boolean;
 }
 
@@ -54,7 +55,7 @@ const itemTypeLabels: Record<string, string> = {
   architectural: "Architectural",
 };
 
-const DesignItemsList = ({ items, fullDescription, isLoading }: DesignItemsListProps) => {
+const DesignItemsList = ({ items, fullDescription, designImageUrl, isLoading }: DesignItemsListProps) => {
   const [selectedItem, setSelectedItem] = useState<DesignItem | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
 
@@ -121,6 +122,7 @@ const DesignItemsList = ({ items, fullDescription, isLoading }: DesignItemsListP
                     <DesignItemCard 
                       key={item.id} 
                       item={item} 
+                      designImageUrl={designImageUrl}
                       onOrderCustomMade={handleOrderCustomMade}
                     />
                   ))}

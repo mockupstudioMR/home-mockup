@@ -256,7 +256,24 @@ const Generate = () => {
 
     setGenerating(true);
     try {
-      // Look for the most recent unlocked design for this user
+      // First, save the quiz response and get its ID
+      const { data: quizResponse } = await supabase
+        .from("quiz_responses")
+        .insert({
+          user_id: user.id,
+          room_type: quizData.roomType || "living_room",
+          style_preference: quizData.stylePreference || "modern-minimal",
+          color_palette: quizData.colorPalette || "neutral",
+          budget_feel: quizData.budgetFeel || "mid_range",
+          must_have_elements: quizData.mustHaveElements || [],
+        })
+        .select()
+        .single();
+
+      const currentQuizId = quizResponse?.id;
+
+      // Check if there's an existing design for THIS quiz response
+      // or if this is a fresh quiz (no quiz_response_id match means new quiz)
       const { data: existingDesign, error } = await supabase
         .from("generated_designs")
         .select("*")
@@ -266,50 +283,69 @@ const Generate = () => {
         .limit(1)
         .single();
 
-      if (existingDesign && !error) {
-        // Load existing design
-        
-        // Load existing design
-        setDesign({
-          id: existingDesign.id,
-          imageUrl: existingDesign.image_url,
-          title: "Your Personalized Design",
-          description: existingDesign.full_description || "Custom room design based on your style preferences",
-          isFavorite: existingDesign.is_favorite || false,
-          isLocked: existingDesign.is_locked || false,
-        });
-
-        // Restore modification history
-        if (existingDesign.modification_history) {
-          const history = existingDesign.modification_history as string[];
-          setModificationHistory(history);
-        }
-
-        // Restore full description
-        if (existingDesign.full_description) {
-          setFullDescription(existingDesign.full_description);
-        }
-
-        // Load design items if locked
-        if (existingDesign.is_locked) {
-          loadDesignItems(existingDesign.id);
-        }
-
-        // Only regenerate highlights/products if they weren't cached
-        if (!highlightsData) {
-          generateHighlights(existingDesign.image_url);
-        }
-        if (products.length === 0) {
-          searchProducts(existingDesign.image_url);
-        }
-        
+      // If there's no existing unlocked design, generate a new one
+      if (!existingDesign || error) {
         setGenerating(false);
+        generateDesign(currentQuizId);
         return;
       }
 
-      // No existing design, generate new one
+      // Check if the existing design matches the current quiz params
+      // If not, it's a new quiz - generate fresh design
+      const isNewQuiz = 
+        !existingDesign.quiz_response_id || 
+        existingDesign.quiz_response_id !== currentQuizId;
+
+      if (isNewQuiz) {
+        // Clear caches for fresh start
+        sessionStorage.removeItem('generate_design_cache');
+        sessionStorage.removeItem('generate_products_cache');
+        sessionStorage.removeItem('generate_highlights_cache');
+        sessionStorage.removeItem('generate_styleprofile_cache');
+        sessionStorage.removeItem('generate_items_cache');
+        sessionStorage.removeItem('generate_description_cache');
+        sessionStorage.removeItem('generate_history_cache');
+        
+        setGenerating(false);
+        generateDesign(currentQuizId);
+        return;
+      }
+
+      // Load existing design (same quiz session, returning user)
+      setDesign({
+        id: existingDesign.id,
+        imageUrl: existingDesign.image_url,
+        title: "Your Personalized Design",
+        description: existingDesign.full_description || "Custom room design based on your style preferences",
+        isFavorite: existingDesign.is_favorite || false,
+        isLocked: existingDesign.is_locked || false,
+      });
+
+      // Restore modification history
+      if (existingDesign.modification_history) {
+        const history = existingDesign.modification_history as string[];
+        setModificationHistory(history);
+      }
+
+      // Restore full description
+      if (existingDesign.full_description) {
+        setFullDescription(existingDesign.full_description);
+      }
+
+      // Load design items if locked
+      if (existingDesign.is_locked) {
+        loadDesignItems(existingDesign.id);
+      }
+
+      // Only regenerate highlights/products if they weren't cached
+      if (!highlightsData) {
+        generateHighlights(existingDesign.image_url);
+      }
+      if (products.length === 0) {
+        searchProducts(existingDesign.image_url);
+      }
+      
       setGenerating(false);
-      generateDesign();
     } catch (error) {
       console.error("Error loading existing design:", error);
       setGenerating(false);
@@ -338,7 +374,7 @@ const Generate = () => {
     }
   };
 
-  const generateDesign = async () => {
+  const generateDesign = async (quizResponseId?: string) => {
     if (!quizData || !user) return;
 
     const { productAnalysis, sourceImages, includeProducts } = location.state || {};
@@ -346,6 +382,10 @@ const Generate = () => {
     setGenerating(true);
     setDesign(null);
     setHighlightsData(null);
+    setProducts([]);
+    setDesignItems([]);
+    setModificationHistory([]);
+    setFullDescription("");
 
     try {
       const response = await supabase.functions.invoke("generate-design", {
@@ -363,7 +403,7 @@ const Generate = () => {
 
       const { imageUrl, prompt: usedPrompt } = response.data;
 
-      // Save to database
+      // Save to database with quiz_response_id link
       const { data: savedDesign } = await supabase
         .from("generated_designs")
         .insert({
@@ -371,6 +411,7 @@ const Generate = () => {
           image_url: imageUrl,
           prompt: usedPrompt,
           source_image_url: quizData.sourceImageUrl,
+          quiz_response_id: quizResponseId,
         })
         .select()
         .single();
@@ -1057,6 +1098,7 @@ const Generate = () => {
           <DesignItemsList
             items={designItems}
             fullDescription={fullDescription}
+            designImageUrl={design.imageUrl}
             isLoading={extractingItems}
           />
         )}
@@ -1116,7 +1158,7 @@ const Generate = () => {
                   <Button onClick={handleModify} disabled={!modificationInput.trim() || generating}>
                     <Send className="w-4 h-4" />
                   </Button>
-                  <Button variant="outline" onClick={generateDesign} disabled={generating}>
+                  <Button variant="outline" onClick={() => generateDesign()} disabled={generating}>
                     <RefreshCw className="w-4 h-4" />
                   </Button>
                 </div>

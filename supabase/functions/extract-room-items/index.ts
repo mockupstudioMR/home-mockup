@@ -10,9 +10,16 @@ interface ExtractedItem {
   itemName: string;
   itemDescription: string;
   color?: string;
+  hexCode?: string;
   material?: string;
   style?: string;
   priority: "essential" | "recommended" | "optional";
+  boundingBox?: {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  };
 }
 
 interface ExtractRequest {
@@ -73,17 +80,21 @@ For EACH item, provide:
 - itemType: category (wall_color, floor_material, furniture, lighting, textile, decor, architectural)
 - itemName: specific name (e.g., "Cream White Wall Paint", "Oak Herringbone Floor")
 - itemDescription: detailed description for shopping
-- color: primary color if applicable
+- color: descriptive color name (e.g., "warm taupe", "sage green")
+- hexCode: REQUIRED for wall_color items - the exact hex color code (e.g., "#E8DFD1", "#B8C5B0"). Must be accurate.
 - material: material type if applicable
 - style: design style (modern, vintage, bohemian, etc.)
 - priority: essential (must-have for the look), recommended (enhances the space), optional (nice additions)
+- boundingBox: approximate location in the image as percentages { x: 0-100, y: 0-100, width: 0-100, height: 0-100 }
+
+IMPORTANT: For all wall_color items, you MUST provide an accurate hexCode field with the paint color in hex format.
 
 Return JSON:
 {
   "items": [...],
   "fullDescription": "A comprehensive 2-3 sentence description of the entire room design, style, and atmosphere",
   "dominantStyle": "primary design style",
-  "colorPalette": ["color1", "color2", ...]
+  "colorPalette": ["#hexcode1", "#hexcode2", ...]
 }`,
               },
               {
@@ -93,7 +104,7 @@ Return JSON:
             ],
           },
         ],
-        max_tokens: 4000,
+        max_tokens: 5000,
       }),
     });
 
@@ -241,7 +252,7 @@ Return JSON:
       item_type: item.itemType,
       item_name: item.itemName,
       item_description: item.itemDescription,
-      color: item.color,
+      color: item.hexCode || item.color, // Prefer hex code for wall colors
       material: item.material,
       style: item.style,
       priority: item.priority,
