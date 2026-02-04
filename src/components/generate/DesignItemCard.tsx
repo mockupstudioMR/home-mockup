@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ExternalLink, MapPin, Store, Search, Image, Clipboard } from "lucide-react";
@@ -26,6 +27,7 @@ interface DesignItem {
 
 interface DesignItemCardProps {
   item: DesignItem;
+  designImageUrl?: string;
   onOrderCustomMade: (item: DesignItem) => void;
 }
 
@@ -45,29 +47,45 @@ const isWallItem = (itemType: string): boolean => {
   return itemType === "wall_color" || itemType === "wall_elements" || itemType.includes("wall");
 };
 
-const DesignItemCard = ({ item, onOrderCustomMade }: DesignItemCardProps) => {
+const DesignItemCard = ({ item, designImageUrl, onOrderCustomMade }: DesignItemCardProps) => {
+  const [imageError, setImageError] = useState(false);
+  
   // Build visual search query
   const visualTraits = [item.item_name];
   if (item.color) visualTraits.push(item.color);
   if (item.material) visualTraits.push(item.material);
   if (item.style) visualTraits.push(item.style);
   const imageQuery = encodeURIComponent(visualTraits.join(" ").trim());
-  const thumbnailUrl = `https://www.bing.com/th?q=${imageQuery}&w=80&h=80&c=7&o=5&pid=1.7&mkt=en-US&cc=US&setlang=en&adlt=moderate`;
+  const bingThumbnailUrl = `https://www.bing.com/th?q=${imageQuery}&w=80&h=80&c=7&o=5&pid=1.7&mkt=en-US&cc=US&setlang=en&adlt=moderate`;
   const imagesUrl = `https://www.bing.com/images/search?q=${imageQuery}`;
+
+  // Use design image as primary, fall back to Bing thumbnail
+  const thumbnailUrl = designImageUrl && !imageError ? designImageUrl : bingThumbnailUrl;
+
+  // For wall items with hex color, show a color swatch instead of image
+  const showColorSwatch = isWallItem(item.item_type) && item.color && isHexColor(item.color);
 
   return (
     <div className="flex items-start gap-3 p-3 rounded-lg bg-background/80 border border-border/50 hover:border-primary/30 transition-colors">
-      {/* Item thumbnail */}
+      {/* Item thumbnail or color swatch */}
       <div className="flex-shrink-0 w-16 h-16 rounded-md overflow-hidden bg-muted border border-border/50">
-        <img 
-          src={thumbnailUrl} 
-          alt={item.item_name}
-          className="w-full h-full object-cover"
-          onError={(e) => {
-            e.currentTarget.style.display = 'none';
-            e.currentTarget.parentElement!.innerHTML = `<div class="w-full h-full flex items-center justify-center text-muted-foreground"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg></div>`;
-          }}
-        />
+        {showColorSwatch ? (
+          <div 
+            className="w-full h-full flex items-center justify-center"
+            style={{ backgroundColor: item.color }}
+          >
+            <span className="text-[10px] font-mono text-white drop-shadow-md bg-black/30 px-1 rounded">
+              {item.color?.toUpperCase()}
+            </span>
+          </div>
+        ) : (
+          <img 
+            src={thumbnailUrl} 
+            alt={item.item_name}
+            className="w-full h-full object-cover"
+            onError={() => setImageError(true)}
+          />
+        )}
       </div>
 
       <div className="flex-1 min-w-0">
