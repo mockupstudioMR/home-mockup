@@ -186,48 +186,75 @@ const Generate = () => {
   // Track if initial load has been done
   const hasInitializedRef = useRef(false);
 
-  // Cache state changes to sessionStorage
+  // Safe sessionStorage setter that handles quota errors
+  const safeSessionStorage = useCallback((key: string, value: string) => {
+    try {
+      sessionStorage.setItem(key, value);
+    } catch (error) {
+      // Quota exceeded - clear old caches and try again
+      console.warn('SessionStorage quota exceeded, clearing caches');
+      sessionStorage.removeItem('generate_highlights_cache');
+      sessionStorage.removeItem('generate_products_cache');
+      sessionStorage.removeItem('generate_styleprofile_cache');
+      try {
+        sessionStorage.setItem(key, value);
+      } catch {
+        // Still failing, just skip caching
+        console.warn('Unable to cache:', key);
+      }
+    }
+  }, []);
+
+  // Cache state changes to sessionStorage (skip large data like highlights visuals)
   useEffect(() => {
     if (design) {
-      sessionStorage.setItem('generate_design_cache', JSON.stringify(design));
+      safeSessionStorage('generate_design_cache', JSON.stringify(design));
     }
-  }, [design]);
+  }, [design, safeSessionStorage]);
 
   useEffect(() => {
     if (products.length > 0) {
-      sessionStorage.setItem('generate_products_cache', JSON.stringify(products));
+      // Only cache first 10 products to save space
+      const limitedProducts = products.slice(0, 10);
+      safeSessionStorage('generate_products_cache', JSON.stringify(limitedProducts));
     }
-  }, [products]);
+  }, [products, safeSessionStorage]);
 
   useEffect(() => {
     if (highlightsData) {
-      sessionStorage.setItem('generate_highlights_cache', JSON.stringify(highlightsData));
+      // Strip visual URLs to save space - they can be regenerated
+      const lightHighlights = {
+        colorScheme: { ...highlightsData.colorScheme, visual: undefined },
+        accentFurniture: { ...highlightsData.accentFurniture, visual: undefined },
+        moodboard: { ...highlightsData.moodboard, visual: undefined },
+      };
+      safeSessionStorage('generate_highlights_cache', JSON.stringify(lightHighlights));
     }
-  }, [highlightsData]);
+  }, [highlightsData, safeSessionStorage]);
 
   useEffect(() => {
     if (styleProfile) {
-      sessionStorage.setItem('generate_styleprofile_cache', JSON.stringify(styleProfile));
+      safeSessionStorage('generate_styleprofile_cache', JSON.stringify(styleProfile));
     }
-  }, [styleProfile]);
+  }, [styleProfile, safeSessionStorage]);
 
   useEffect(() => {
     if (designItems.length > 0) {
-      sessionStorage.setItem('generate_items_cache', JSON.stringify(designItems));
+      safeSessionStorage('generate_items_cache', JSON.stringify(designItems));
     }
-  }, [designItems]);
+  }, [designItems, safeSessionStorage]);
 
   useEffect(() => {
     if (fullDescription) {
-      sessionStorage.setItem('generate_description_cache', fullDescription);
+      safeSessionStorage('generate_description_cache', fullDescription);
     }
-  }, [fullDescription]);
+  }, [fullDescription, safeSessionStorage]);
 
   useEffect(() => {
     if (modificationHistory.length > 0) {
-      sessionStorage.setItem('generate_history_cache', JSON.stringify(modificationHistory));
+      safeSessionStorage('generate_history_cache', JSON.stringify(modificationHistory));
     }
-  }, [modificationHistory]);
+  }, [modificationHistory, safeSessionStorage]);
 
   // Track the quiz data to detect new quizzes
   const lastQuizDataRef = useRef<string | null>(null);
