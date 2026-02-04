@@ -2,7 +2,8 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Sparkles, Home, Palette, Wand2, ImageIcon, LogOut, User } from "lucide-react";
+import { Sparkles, Palette, Wand2, ImageIcon, LogOut, User } from "lucide-react";
+import Logo from "@/components/Logo";
 
 const Index = () => {
   const navigate = useNavigate();
@@ -55,9 +56,7 @@ const Index = () => {
       {/* Header */}
       <header className="relative z-10 flex items-center justify-between p-4 md:p-6">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center">
-            <Home className="w-5 h-5 text-primary-foreground" />
-          </div>
+          <Logo size={32} />
           <span className="font-semibold text-lg tracking-tight">RoomCraft AI</span>
         </div>
         <div className="flex items-center gap-2">
