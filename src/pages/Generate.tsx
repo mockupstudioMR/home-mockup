@@ -264,7 +264,7 @@ const Generate = () => {
   }, [extractingItems, safeSessionStorage]);
 
   // Track the quiz data to detect new quizzes
-  const lastQuizDataRef = useRef<string | null>(null);
+  const lastQuizDataRef = useRef<string | null>(sessionStorage.getItem('generate_quiz_hash'));
 
   useEffect(() => {
     if (!loading && !user) {
@@ -284,10 +284,14 @@ const Generate = () => {
       roomType: quizData.roomType,
       budgetFeel: quizData.budgetFeel,
       mustHaveElements: quizData.mustHaveElements,
+      furnitureSource: quizData.furnitureSource,
     });
 
-    // Check if this is a NEW quiz (different from last one)
-    const isNewQuiz = lastQuizDataRef.current !== null && lastQuizDataRef.current !== quizHash;
+    // Get the last quiz hash from sessionStorage
+    const storedHash = sessionStorage.getItem('generate_quiz_hash');
+    
+    // Check if this is a NEW quiz (different from stored one)
+    const isNewQuiz = storedHash !== null && storedHash !== quizHash;
     
     if (isNewQuiz) {
       // Clear all caches for fresh start
@@ -299,6 +303,7 @@ const Generate = () => {
       sessionStorage.removeItem('generate_description_cache');
       sessionStorage.removeItem('generate_history_cache');
       sessionStorage.removeItem('generate_extracting_cache');
+      sessionStorage.removeItem('generate_quiz_response_id');
       
       // Reset state
       setDesign(null);
@@ -313,7 +318,29 @@ const Generate = () => {
     }
 
     // Store current quiz hash
+    sessionStorage.setItem('generate_quiz_hash', quizHash);
     lastQuizDataRef.current = quizHash;
+
+    // Skip if we already have a cached design (tab switching)
+    const cachedDesign = getInitialDesign();
+    if (cachedDesign && !isNewQuiz) {
+      // Already have design from sessionStorage, just make sure state is set
+      if (!design) {
+        setDesign(cachedDesign);
+      }
+      // If design is locked and we have items cached, we're done
+      if (cachedDesign.isLocked && designItems.length > 0) {
+        return;
+      }
+      // If design exists but highlights missing, load them
+      if (!highlightsData && cachedDesign.imageUrl) {
+        generateHighlights(cachedDesign.imageUrl);
+      }
+      if (products.length === 0 && cachedDesign.imageUrl) {
+        searchProducts(cachedDesign.imageUrl);
+      }
+      return;
+    }
 
     // Skip if we already initialized this session
     if (hasInitializedRef.current) {
@@ -330,60 +357,45 @@ const Generate = () => {
 
     setGenerating(true);
     try {
-      // First, save the quiz response and get its ID
-      const { data: quizResponse } = await supabase
-        .from("quiz_responses")
-        .insert({
-          user_id: user.id,
-          room_type: quizData.roomType || "living_room",
-          style_preference: quizData.stylePreference || "modern-minimal",
-          color_palette: quizData.colorPalette || "neutral",
-          budget_feel: quizData.budgetFeel || "mid_range",
-          must_have_elements: quizData.mustHaveElements || [],
-        })
-        .select()
-        .single();
+      // Check if we have a cached quiz response ID from this session
+      let currentQuizId = sessionStorage.getItem('generate_quiz_response_id');
+      
+      if (!currentQuizId) {
+        // First time in this session - save the quiz response
+        const { data: quizResponse } = await supabase
+          .from("quiz_responses")
+          .insert({
+            user_id: user.id,
+            room_type: quizData.roomType || "living_room",
+            style_preference: quizData.stylePreference || "modern-minimal",
+            color_palette: quizData.colorPalette || "neutral",
+            budget_feel: quizData.budgetFeel || "mid_range",
+            must_have_elements: quizData.mustHaveElements || [],
+            furniture_source: quizData.furnitureSource || "open",
+          })
+          .select()
+          .single();
 
-      const currentQuizId = quizResponse?.id;
+        currentQuizId = quizResponse?.id || null;
+        if (currentQuizId) {
+          sessionStorage.setItem('generate_quiz_response_id', currentQuizId);
+        }
+      }
 
       // Check if there's an existing design for THIS quiz response
-      // or if this is a fresh quiz (no quiz_response_id match means new quiz)
       const { data: existingDesign, error } = await supabase
         .from("generated_designs")
         .select("*")
         .eq("user_id", user.id)
-        .is("is_locked", false)
+        .eq("quiz_response_id", currentQuizId)
         .order("created_at", { ascending: false })
         .limit(1)
-        .single();
+        .maybeSingle();
 
-      // If there's no existing unlocked design, generate a new one
+      // If there's no existing design for this quiz, generate a new one
       if (!existingDesign || error) {
         setGenerating(false);
-        generateDesign(currentQuizId);
-        return;
-      }
-
-      // Check if the existing design matches the current quiz params
-      // If not, it's a new quiz - generate fresh design
-      const isNewQuiz = 
-        !existingDesign.quiz_response_id || 
-        existingDesign.quiz_response_id !== currentQuizId;
-
-      if (isNewQuiz) {
-        // Clear caches for fresh start
-        sessionStorage.removeItem('generate_design_cache');
-        sessionStorage.removeItem('generate_products_cache');
-        sessionStorage.removeItem('generate_highlights_cache');
-        sessionStorage.removeItem('generate_styleprofile_cache');
-        sessionStorage.removeItem('generate_items_cache');
-        sessionStorage.removeItem('generate_description_cache');
-        sessionStorage.removeItem('generate_history_cache');
-        sessionStorage.removeItem('generate_extracting_cache');
-        
-        setGenerating(false);
-        setExtractingItems(false);
-        generateDesign(currentQuizId);
+        generateDesign(currentQuizId || undefined);
         return;
       }
 
