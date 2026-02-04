@@ -100,7 +100,7 @@ const DesignItemCard = ({ item, designImageUrl, onOrderCustomMade }: DesignItemC
   return (
     <div className="flex items-start gap-3 p-3 rounded-lg bg-background/80 border border-border/50 hover:border-primary/30 transition-colors">
       {/* Item thumbnail or color swatch */}
-      <div className="flex-shrink-0 w-16 h-16 rounded-md overflow-hidden bg-muted border border-border/50">
+      <div className="flex-shrink-0 w-16 h-16 rounded-md overflow-hidden bg-muted border border-border/50 relative group/thumb cursor-pointer">
         {showColorSwatch ? (
           <div 
             className="w-full h-full flex items-center justify-center"
@@ -122,6 +122,24 @@ const DesignItemCard = ({ item, designImageUrl, onOrderCustomMade }: DesignItemC
             className="w-full h-full object-cover"
             onError={() => setImageError(true)}
           />
+        )}
+        
+        {/* Expanded preview on hover */}
+        {(hasBoundingBox || !showColorSwatch) && (
+          <div className="absolute left-0 top-0 w-48 h-48 rounded-lg overflow-hidden bg-background border border-border shadow-xl z-50 opacity-0 scale-95 pointer-events-none group-hover/thumb:opacity-100 group-hover/thumb:scale-100 group-hover/thumb:pointer-events-auto transition-all duration-200 origin-top-left">
+            {hasBoundingBox ? (
+              <div 
+                className="w-full h-full"
+                style={getCropBackgroundStyles()}
+              />
+            ) : (
+              <img 
+                src={bingThumbnailUrl} 
+                alt={item.item_name}
+                className="w-full h-full object-cover"
+              />
+            )}
+          </div>
         )}
       </div>
 
