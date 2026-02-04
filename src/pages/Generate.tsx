@@ -103,28 +103,122 @@ const Generate = () => {
 
   const quizData = location.state?.quizData as QuizData | undefined;
 
+  // Initialize state from sessionStorage to persist across tab switches
+  const getInitialDesign = (): GeneratedDesign | null => {
+    try {
+      const cached = sessionStorage.getItem('generate_design_cache');
+      return cached ? JSON.parse(cached) : null;
+    } catch {
+      return null;
+    }
+  };
+
+  const getInitialProducts = (): Product[] => {
+    try {
+      const cached = sessionStorage.getItem('generate_products_cache');
+      return cached ? JSON.parse(cached) : [];
+    } catch {
+      return [];
+    }
+  };
+
+  const getInitialHighlights = (): DesignHighlightsData | null => {
+    try {
+      const cached = sessionStorage.getItem('generate_highlights_cache');
+      return cached ? JSON.parse(cached) : null;
+    } catch {
+      return null;
+    }
+  };
+
   const [generating, setGenerating] = useState(false);
-  const [design, setDesign] = useState<GeneratedDesign | null>(null);
-  const [products, setProducts] = useState<Product[]>([]);
+  const [design, setDesign] = useState<GeneratedDesign | null>(getInitialDesign);
+  const [products, setProducts] = useState<Product[]>(getInitialProducts);
   const [loadingProducts, setLoadingProducts] = useState(false);
   const [modificationInput, setModificationInput] = useState("");
-  const [highlightsData, setHighlightsData] = useState<DesignHighlightsData | null>(null);
+  const [highlightsData, setHighlightsData] = useState<DesignHighlightsData | null>(getInitialHighlights);
   const [generatingHighlights, setGeneratingHighlights] = useState(false);
   const [applyingHighlight, setApplyingHighlight] = useState<string | null>(null);
   const [styleProfile, setStyleProfile] = useState<{
     matches: StyleMatch[];
     name: string;
     description: string;
-  } | null>(null);
-  const [designItems, setDesignItems] = useState<DesignItem[]>([]);
+  } | null>(() => {
+    try {
+      const cached = sessionStorage.getItem('generate_styleprofile_cache');
+      return cached ? JSON.parse(cached) : null;
+    } catch {
+      return null;
+    }
+  });
+  const [designItems, setDesignItems] = useState<DesignItem[]>(() => {
+    try {
+      const cached = sessionStorage.getItem('generate_items_cache');
+      return cached ? JSON.parse(cached) : [];
+    } catch {
+      return [];
+    }
+  });
   const [extractingItems, setExtractingItems] = useState(false);
-  const [fullDescription, setFullDescription] = useState("");
-  const [modificationHistory, setModificationHistory] = useState<string[]>([]);
+  const [fullDescription, setFullDescription] = useState(() => {
+    return sessionStorage.getItem('generate_description_cache') || "";
+  });
+  const [modificationHistory, setModificationHistory] = useState<string[]>(() => {
+    try {
+      const cached = sessionStorage.getItem('generate_history_cache');
+      return cached ? JSON.parse(cached) : [];
+    } catch {
+      return [];
+    }
+  });
   const [referenceImageUrl, setReferenceImageUrl] = useState<string | null>(null);
   const [uploadingReference, setUploadingReference] = useState(false);
   
-  // Track loaded design ID to prevent re-fetching on navigation
-  const loadedDesignIdRef = useRef<string | null>(null);
+  // Track if initial load has been done
+  const hasInitializedRef = useRef(false);
+
+  // Cache state changes to sessionStorage
+  useEffect(() => {
+    if (design) {
+      sessionStorage.setItem('generate_design_cache', JSON.stringify(design));
+    }
+  }, [design]);
+
+  useEffect(() => {
+    if (products.length > 0) {
+      sessionStorage.setItem('generate_products_cache', JSON.stringify(products));
+    }
+  }, [products]);
+
+  useEffect(() => {
+    if (highlightsData) {
+      sessionStorage.setItem('generate_highlights_cache', JSON.stringify(highlightsData));
+    }
+  }, [highlightsData]);
+
+  useEffect(() => {
+    if (styleProfile) {
+      sessionStorage.setItem('generate_styleprofile_cache', JSON.stringify(styleProfile));
+    }
+  }, [styleProfile]);
+
+  useEffect(() => {
+    if (designItems.length > 0) {
+      sessionStorage.setItem('generate_items_cache', JSON.stringify(designItems));
+    }
+  }, [designItems]);
+
+  useEffect(() => {
+    if (fullDescription) {
+      sessionStorage.setItem('generate_description_cache', fullDescription);
+    }
+  }, [fullDescription]);
+
+  useEffect(() => {
+    if (modificationHistory.length > 0) {
+      sessionStorage.setItem('generate_history_cache', JSON.stringify(modificationHistory));
+    }
+  }, [modificationHistory]);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -137,23 +231,28 @@ const Generate = () => {
       return;
     }
 
-    // Check sessionStorage for already loaded design to survive component remounts
-    const sessionKey = `generate_loaded_${user?.id}`;
-    const storedDesignId = sessionStorage.getItem(sessionKey);
-    
-    // If we already have design data in state, don't reload
-    if (design && loadedDesignIdRef.current === design.id) {
+    // Skip if we already have a cached design (returning from external link)
+    if (design && hasInitializedRef.current) {
+      return;
+    }
+
+    // Skip if we've already initialized and have design data
+    if (hasInitializedRef.current) {
+      return;
+    }
+    hasInitializedRef.current = true;
+
+    // If we already have design from cache, don't reload from DB
+    if (design) {
       return;
     }
 
     // Check for existing design first, only generate if none exists
-    loadExistingOrGenerate(storedDesignId);
-  }, [user, loading, navigate, quizData]);
+    loadExistingOrGenerate();
+  }, [user, loading, navigate, quizData, design]);
 
-  const loadExistingOrGenerate = async (storedDesignId: string | null) => {
+  const loadExistingOrGenerate = async () => {
     if (!user || !quizData) return;
-
-    const sessionKey = `generate_loaded_${user.id}`;
 
     setGenerating(true);
     try {
@@ -168,9 +267,7 @@ const Generate = () => {
         .single();
 
       if (existingDesign && !error) {
-        // Track that we've loaded this design
-        loadedDesignIdRef.current = existingDesign.id;
-        sessionStorage.setItem(sessionKey, existingDesign.id);
+        // Load existing design
         
         // Load existing design
         setDesign({
@@ -198,11 +295,12 @@ const Generate = () => {
           loadDesignItems(existingDesign.id);
         }
 
-        // Only regenerate highlights/products if this is a fresh load (not returning from external link)
-        const isReturningFromExternalLink = storedDesignId === existingDesign.id;
-        if (!isReturningFromExternalLink) {
-          searchProducts(existingDesign.image_url);
+        // Only regenerate highlights/products if they weren't cached
+        if (!highlightsData) {
           generateHighlights(existingDesign.image_url);
+        }
+        if (products.length === 0) {
+          searchProducts(existingDesign.image_url);
         }
         
         setGenerating(false);
