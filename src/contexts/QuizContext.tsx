@@ -6,6 +6,7 @@ export interface QuizData {
   roomType: string;
   budgetFeel: string;
   mustHaveElements: string[];
+  furnitureSource: "shop_only" | "open";
   sourceImageUrl?: string;
 }
 
@@ -24,6 +25,7 @@ const defaultQuizData: QuizData = {
   roomType: "",
   budgetFeel: "",
   mustHaveElements: [],
+  furnitureSource: "open",
   sourceImageUrl: undefined,
 };
 
@@ -32,7 +34,7 @@ const QuizContext = createContext<QuizContextType | undefined>(undefined);
 export const QuizProvider = ({ children }: { children: React.ReactNode }) => {
   const [quizData, setQuizData] = useState<QuizData>(defaultQuizData);
   const [currentStep, setCurrentStep] = useState(0);
-  const totalSteps = 6; // 5 questions + image selection
+  const totalSteps = 7; // 6 questions + image selection
 
   const updateQuizData = (data: Partial<QuizData>) => {
     setQuizData((prev) => ({ ...prev, ...data }));

@@ -11,6 +11,7 @@ import ColorStep from "@/components/quiz/steps/ColorStep";
 import RoomStep from "@/components/quiz/steps/RoomStep";
 import BudgetStep from "@/components/quiz/steps/BudgetStep";
 import ElementsStep from "@/components/quiz/steps/ElementsStep";
+import FurnitureSourceStep from "@/components/quiz/steps/FurnitureSourceStep";
 import ImageStep from "@/components/quiz/steps/ImageStep";
 import { ArrowLeft, ArrowRight, Sparkles, Home } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -40,6 +41,8 @@ const Quiz = () => {
       case 4:
         return true; // Elements are optional
       case 5:
+        return !!quizData.furnitureSource; // Furniture source is required
+      case 6:
         return true; // Image is optional but recommended
       default:
         return false;
@@ -59,6 +62,7 @@ const Quiz = () => {
           room_type: quizData.roomType,
           budget_feel: quizData.budgetFeel,
           must_have_elements: quizData.mustHaveElements,
+          furniture_source: quizData.furnitureSource,
         });
 
         if (error) throw error;
@@ -98,6 +102,8 @@ const Quiz = () => {
       case 4:
         return <ElementsStep />;
       case 5:
+        return <FurnitureSourceStep />;
+      case 6:
         return <ImageStep />;
       default:
         return null;

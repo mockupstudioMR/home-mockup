@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -10,6 +11,7 @@ interface ProductInfo {
   category: string;
   style?: string;
   description?: string;
+  image_urls?: string[];
 }
 
 interface GenerateRequest {
@@ -18,6 +20,7 @@ interface GenerateRequest {
   roomType: string;
   budgetFeel: string;
   mustHaveElements: string[];
+  furnitureSource?: "shop_only" | "open";
   sourceImageUrl?: string;
   modificationPrompt?: string;
   selectedProducts?: ProductInfo[];
@@ -31,26 +34,81 @@ serve(async (req) => {
 
   try {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
+    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+
     if (!LOVABLE_API_KEY) {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
     const requestData: GenerateRequest = await req.json();
 
+    // If furniture source is "shop_only", fetch products from the database
+    let shopProducts: ProductInfo[] = [];
+    let shopProductImageUrls: string[] = [];
+
+    if (requestData.furnitureSource === "shop_only" && SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY) {
+      console.log("Fetching shop products for exclusive use...");
+      const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+      
+      // Fetch active products matching the style preference
+      const { data: products } = await supabase
+        .from("shop_products")
+        .select("id, name, category, style, description, image_urls")
+        .eq("is_active", true)
+        .limit(10); // Limit to prevent overwhelming the prompt
+
+      if (products && products.length > 0) {
+        shopProducts = products.map(p => ({
+          name: p.name,
+          category: p.category,
+          style: p.style || undefined,
+          description: p.description || undefined,
+          image_urls: p.image_urls || [],
+        }));
+
+        // Collect image URLs from shop products
+        for (const product of products) {
+          if (product.image_urls && product.image_urls.length > 0) {
+            shopProductImageUrls.push(product.image_urls[0]); // Use first image
+          }
+        }
+
+        console.log(`Found ${shopProducts.length} shop products to include`);
+      }
+    }
+
+    // Merge shop products with any explicitly selected products
+    const allProducts = [
+      ...(requestData.selectedProducts || []),
+      ...shopProducts,
+    ];
+    const allProductImageUrls = [
+      ...(requestData.productImageUrls || []),
+      ...shopProductImageUrls,
+    ];
+
+    // Update request data with shop products
+    const enrichedRequestData = {
+      ...requestData,
+      selectedProducts: allProducts.length > 0 ? allProducts : requestData.selectedProducts,
+      productImageUrls: allProductImageUrls.length > 0 ? allProductImageUrls : requestData.productImageUrls,
+    };
+
     // Build the image generation prompt
-    let prompt = buildImagePrompt(requestData);
+    let prompt = buildImagePrompt(enrichedRequestData);
 
     // Prepare messages for image generation
     const contentParts: any[] = [{ type: "text", text: prompt }];
     
     // Add source image if provided
-    if (requestData.sourceImageUrl) {
-      contentParts.push({ type: "image_url", image_url: { url: requestData.sourceImageUrl } });
+    if (enrichedRequestData.sourceImageUrl) {
+      contentParts.push({ type: "image_url", image_url: { url: enrichedRequestData.sourceImageUrl } });
     }
     
     // Add product images if provided - these must be included exactly
-    if (requestData.productImageUrls && requestData.productImageUrls.length > 0) {
-      for (const imageUrl of requestData.productImageUrls) {
+    if (enrichedRequestData.productImageUrls && enrichedRequestData.productImageUrls.length > 0) {
+      for (const imageUrl of enrichedRequestData.productImageUrls) {
         contentParts.push({ type: "image_url", image_url: { url: imageUrl } });
       }
     }
@@ -200,7 +258,12 @@ function buildImagePrompt(data: GenerateRequest): string {
     const productList = data.selectedProducts
       .map(p => `${p.name} (${p.category})${p.description ? `: ${p.description}` : ""}`)
       .join("; ");
-    productInstructions = `CRITICAL: You MUST include ALL of these exact products in the design, keeping their original appearance, colors, and details exactly as shown in the reference images: ${productList}. These products must be prominently featured and clearly visible in the final room design.`;
+    
+    const exclusivityNote = data.furnitureSource === "shop_only" 
+      ? " IMPORTANT: Use ONLY these products - do not add any other furniture that is not in this list."
+      : "";
+    
+    productInstructions = `CRITICAL: You MUST include ALL of these exact products in the design, keeping their original appearance, colors, and details exactly as shown in the reference images: ${productList}. These products must be prominently featured and clearly visible in the final room design.${exclusivityNote}`;
   }
 
   if (data.modificationPrompt) {
