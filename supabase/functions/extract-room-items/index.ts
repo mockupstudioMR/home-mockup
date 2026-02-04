@@ -252,13 +252,15 @@ Return JSON:
       item_type: item.itemType,
       item_name: item.itemName,
       item_description: item.itemDescription,
-      color: item.hexCode || item.color, // Prefer hex code for wall colors
+      color: item.color,
+      hex_code: item.hexCode,
       material: item.material,
       style: item.style,
       priority: item.priority,
       matched_product_id: item.matchedProductId,
       google_shopping_url: item.googleShoppingUrl,
       google_images_url: item.googleImagesUrl,
+      bounding_box: item.boundingBox,
     }));
 
     const { data: insertedItems, error: insertError } = await supabase

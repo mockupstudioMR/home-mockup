@@ -3,18 +3,27 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ExternalLink, MapPin, Store, Search, Image, Clipboard } from "lucide-react";
 
+interface BoundingBox {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
 interface DesignItem {
   id: string;
   item_type: string;
   item_name: string;
   item_description: string;
   color?: string;
+  hex_code?: string;
   material?: string;
   style?: string;
   priority: "essential" | "recommended" | "optional";
   matched_product_id?: string;
   google_shopping_url?: string;
   google_images_url?: string;
+  bounding_box?: BoundingBox;
   matchedProduct?: {
     id: string;
     name: string;
@@ -59,11 +68,30 @@ const DesignItemCard = ({ item, designImageUrl, onOrderCustomMade }: DesignItemC
   const bingThumbnailUrl = `https://www.bing.com/th?q=${imageQuery}&w=80&h=80&c=7&o=5&pid=1.7&mkt=en-US&cc=US&setlang=en&adlt=moderate`;
   const imagesUrl = `https://www.bing.com/images/search?q=${imageQuery}`;
 
-  // Use design image as primary, fall back to Bing thumbnail
-  const thumbnailUrl = designImageUrl && !imageError ? designImageUrl : bingThumbnailUrl;
+  // Check if we have bounding box for cropping
+  const hasBoundingBox = designImageUrl && item.bounding_box && !imageError;
+  
+  // For wall items with hex color, show a color swatch
+  const hexColor = item.hex_code || (isHexColor(item.color || "") ? item.color : null);
+  const showColorSwatch = isWallItem(item.item_type) && hexColor;
 
-  // For wall items with hex color, show a color swatch instead of image
-  const showColorSwatch = isWallItem(item.item_type) && item.color && isHexColor(item.color);
+  // Calculate crop styles for bounding box
+  const getCropStyles = (): React.CSSProperties => {
+    if (!item.bounding_box) return {};
+    const { x, y, width, height } = item.bounding_box;
+    
+    // Scale factor to zoom into the region
+    const scaleX = 100 / width;
+    const scaleY = 100 / height;
+    const scale = Math.min(scaleX, scaleY, 4); // Cap at 4x zoom
+    
+    return {
+      objectFit: 'none' as const,
+      objectPosition: `${x}% ${y}%`,
+      transform: `scale(${scale})`,
+      transformOrigin: `${x}% ${y}%`,
+    };
+  };
 
   return (
     <div className="flex items-start gap-3 p-3 rounded-lg bg-background/80 border border-border/50 hover:border-primary/30 transition-colors">
@@ -72,15 +100,23 @@ const DesignItemCard = ({ item, designImageUrl, onOrderCustomMade }: DesignItemC
         {showColorSwatch ? (
           <div 
             className="w-full h-full flex items-center justify-center"
-            style={{ backgroundColor: item.color }}
+            style={{ backgroundColor: hexColor }}
           >
             <span className="text-[10px] font-mono text-white drop-shadow-md bg-black/30 px-1 rounded">
-              {item.color?.toUpperCase()}
+              {hexColor?.toUpperCase()}
             </span>
           </div>
+        ) : hasBoundingBox ? (
+          <img 
+            src={designImageUrl} 
+            alt={item.item_name}
+            className="w-full h-full"
+            style={getCropStyles()}
+            onError={() => setImageError(true)}
+          />
         ) : (
           <img 
-            src={thumbnailUrl} 
+            src={bingThumbnailUrl} 
             alt={item.item_name}
             className="w-full h-full object-cover"
             onError={() => setImageError(true)}
@@ -91,19 +127,19 @@ const DesignItemCard = ({ item, designImageUrl, onOrderCustomMade }: DesignItemC
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 flex-wrap">
           <span className="font-medium text-sm">{item.item_name}</span>
-          {/* Show color for wall items */}
-          {isWallItem(item.item_type) && item.color && (
+          {/* Show hex color for wall items */}
+          {isWallItem(item.item_type) && (item.hex_code || item.color) && (
             <Badge 
               variant="secondary" 
               className="text-xs"
             >
-              {isHexColor(item.color) ? (
+              {hexColor ? (
                 <div className="flex items-center gap-1.5">
                   <div 
                     className="w-2.5 h-2.5 rounded-full border border-border/50"
-                    style={{ backgroundColor: item.color }}
+                    style={{ backgroundColor: hexColor }}
                   />
-                  <span className="font-mono">{item.color.toUpperCase()}</span>
+                  <span className="font-mono">{hexColor.toUpperCase()}</span>
                 </div>
               ) : (
                 <span>🎨 {item.color}</span>

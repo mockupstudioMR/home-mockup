@@ -127,11 +127,13 @@ export type Database = {
       }
       design_items: {
         Row: {
+          bounding_box: Json | null
           color: string | null
           created_at: string
           design_id: string
           google_images_url: string | null
           google_shopping_url: string | null
+          hex_code: string | null
           id: string
           item_description: string | null
           item_name: string
@@ -142,11 +144,13 @@ export type Database = {
           style: string | null
         }
         Insert: {
+          bounding_box?: Json | null
           color?: string | null
           created_at?: string
           design_id: string
           google_images_url?: string | null
           google_shopping_url?: string | null
+          hex_code?: string | null
           id?: string
           item_description?: string | null
           item_name: string
@@ -157,11 +161,13 @@ export type Database = {
           style?: string | null
         }
         Update: {
+          bounding_box?: Json | null
           color?: string | null
           created_at?: string
           design_id?: string
           google_images_url?: string | null
           google_shopping_url?: string | null
+          hex_code?: string | null
           id?: string
           item_description?: string | null
           item_name?: string
