@@ -120,6 +120,19 @@ const DesignItemsList = ({ items, fullDescription, isLoading }: DesignItemsListP
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="font-medium text-sm">{item.item_name}</span>
+                        {/* Show color code badge for wall items */}
+                        {item.item_type === "wall_color" && item.color && (
+                          <Badge 
+                            variant="outline" 
+                            className="text-xs font-mono bg-background"
+                          >
+                            <div 
+                              className="w-2.5 h-2.5 rounded-full mr-1.5 border border-border/50"
+                              style={{ backgroundColor: item.color }}
+                            />
+                            {item.color.toUpperCase()}
+                          </Badge>
+                        )}
                         <Badge 
                           variant="outline" 
                           className={`text-xs ${priorityColors[item.priority]}`}
