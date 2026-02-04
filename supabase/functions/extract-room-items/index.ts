@@ -203,19 +203,19 @@ Return JSON:
         visualTraits.push(item.style);
       }
 
-      // Generate Google Images URL for furniture items
+      // Generate Bing Images URL for furniture items
       const furnitureTypes = ["furniture", "lighting", "textile", "decor"];
       if (furnitureTypes.includes(item.itemType)) {
         const imageQuery = encodeURIComponent(visualTraits.join(" ").trim());
-        googleImagesUrl = `https://www.google.com/search?tbm=isch&q=${imageQuery}`;
+        googleImagesUrl = `https://www.bing.com/images/search?q=${imageQuery}`;
       }
 
-      // If no local match, generate Google Shopping URL as fallback
+      // If no local match, generate Bing Shopping URL as fallback
       if (!matchedProductId) {
         const searchQuery = encodeURIComponent(
           `${item.itemName} ${item.material || ""} ${item.style || ""}`.trim()
         );
-        googleShoppingUrl = `https://www.google.com/search?tbm=shop&q=${searchQuery}`;
+        googleShoppingUrl = `https://www.bing.com/shop?q=${searchQuery}`;
       }
 
       return {

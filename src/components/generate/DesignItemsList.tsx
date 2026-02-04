@@ -155,14 +155,14 @@ const DesignItemsList = ({ items, fullDescription, isLoading }: DesignItemsListP
 
                     {/* Shop action */}
                     <div className="flex-shrink-0 flex flex-col items-end gap-1">
-                      {/* Google Images link - always available */}
+                      {/* Bing Images link - always available */}
                       {(() => {
                         const visualTraits = [item.item_name];
                         if (item.color) visualTraits.push(item.color);
                         if (item.material) visualTraits.push(item.material);
                         if (item.style) visualTraits.push(item.style);
                         const imageQuery = encodeURIComponent(visualTraits.join(" ").trim());
-                        const imagesUrl = item.google_images_url || `https://www.google.com/search?tbm=isch&q=${imageQuery}`;
+                        const imagesUrl = `https://www.bing.com/images/search?q=${imageQuery}`;
                         
                         return (
                           <Button
