@@ -123,8 +123,8 @@ const Generate = () => {
   const [referenceImageUrl, setReferenceImageUrl] = useState<string | null>(null);
   const [uploadingReference, setUploadingReference] = useState(false);
   
-  // Track if we've already loaded to prevent re-fetching on tab switches
-  const hasLoadedRef = useRef(false);
+  // Track loaded design ID to prevent re-fetching on navigation
+  const loadedDesignIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -137,18 +137,23 @@ const Generate = () => {
       return;
     }
 
-    // Only load once - prevent re-fetching on tab switches or returning from external links
-    if (hasLoadedRef.current) {
+    // Check sessionStorage for already loaded design to survive component remounts
+    const sessionKey = `generate_loaded_${user?.id}`;
+    const storedDesignId = sessionStorage.getItem(sessionKey);
+    
+    // If we already have design data in state, don't reload
+    if (design && loadedDesignIdRef.current === design.id) {
       return;
     }
-    hasLoadedRef.current = true;
 
     // Check for existing design first, only generate if none exists
-    loadExistingOrGenerate();
+    loadExistingOrGenerate(storedDesignId);
   }, [user, loading, navigate, quizData]);
 
-  const loadExistingOrGenerate = async () => {
+  const loadExistingOrGenerate = async (storedDesignId: string | null) => {
     if (!user || !quizData) return;
+
+    const sessionKey = `generate_loaded_${user.id}`;
 
     setGenerating(true);
     try {
@@ -163,6 +168,10 @@ const Generate = () => {
         .single();
 
       if (existingDesign && !error) {
+        // Track that we've loaded this design
+        loadedDesignIdRef.current = existingDesign.id;
+        sessionStorage.setItem(sessionKey, existingDesign.id);
+        
         // Load existing design
         setDesign({
           id: existingDesign.id,
@@ -189,9 +198,13 @@ const Generate = () => {
           loadDesignItems(existingDesign.id);
         }
 
-        // Regenerate highlights and search products
-        searchProducts(existingDesign.image_url);
-        generateHighlights(existingDesign.image_url);
+        // Only regenerate highlights/products if this is a fresh load (not returning from external link)
+        const isReturningFromExternalLink = storedDesignId === existingDesign.id;
+        if (!isReturningFromExternalLink) {
+          searchProducts(existingDesign.image_url);
+          generateHighlights(existingDesign.image_url);
+        }
+        
         setGenerating(false);
         return;
       }
