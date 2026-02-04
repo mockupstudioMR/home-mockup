@@ -229,6 +229,9 @@ const Generate = () => {
     }
   }, [modificationHistory]);
 
+  // Track the quiz data to detect new quizzes
+  const lastQuizDataRef = useRef<string | null>(null);
+
   useEffect(() => {
     if (!loading && !user) {
       navigate("/auth");
@@ -240,25 +243,51 @@ const Generate = () => {
       return;
     }
 
-    // Skip if we already have a cached design (returning from external link)
-    if (design && hasInitializedRef.current) {
-      return;
+    // Create a hash of quiz data to detect changes
+    const quizHash = JSON.stringify({
+      stylePreference: quizData.stylePreference,
+      colorPalette: quizData.colorPalette,
+      roomType: quizData.roomType,
+      budgetFeel: quizData.budgetFeel,
+      mustHaveElements: quizData.mustHaveElements,
+    });
+
+    // Check if this is a NEW quiz (different from last one)
+    const isNewQuiz = lastQuizDataRef.current !== null && lastQuizDataRef.current !== quizHash;
+    
+    if (isNewQuiz) {
+      // Clear all caches for fresh start
+      sessionStorage.removeItem('generate_design_cache');
+      sessionStorage.removeItem('generate_products_cache');
+      sessionStorage.removeItem('generate_highlights_cache');
+      sessionStorage.removeItem('generate_styleprofile_cache');
+      sessionStorage.removeItem('generate_items_cache');
+      sessionStorage.removeItem('generate_description_cache');
+      sessionStorage.removeItem('generate_history_cache');
+      
+      // Reset state
+      setDesign(null);
+      setProducts([]);
+      setHighlightsData(null);
+      setStyleProfile(null);
+      setDesignItems([]);
+      setFullDescription("");
+      setModificationHistory([]);
+      hasInitializedRef.current = false;
     }
 
-    // Skip if we've already initialized and have design data
+    // Store current quiz hash
+    lastQuizDataRef.current = quizHash;
+
+    // Skip if we already initialized this session
     if (hasInitializedRef.current) {
       return;
     }
     hasInitializedRef.current = true;
 
-    // If we already have design from cache, don't reload from DB
-    if (design) {
-      return;
-    }
-
     // Check for existing design first, only generate if none exists
     loadExistingOrGenerate();
-  }, [user, loading, navigate, quizData, design]);
+  }, [user, loading, navigate, quizData]);
 
   const loadExistingOrGenerate = async () => {
     if (!user || !quizData) return;
