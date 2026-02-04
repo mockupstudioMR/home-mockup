@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -122,6 +122,9 @@ const Generate = () => {
   const [modificationHistory, setModificationHistory] = useState<string[]>([]);
   const [referenceImageUrl, setReferenceImageUrl] = useState<string | null>(null);
   const [uploadingReference, setUploadingReference] = useState(false);
+  
+  // Track if we've already loaded to prevent re-fetching on tab switches
+  const hasLoadedRef = useRef(false);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -133,6 +136,12 @@ const Generate = () => {
       navigate("/quiz");
       return;
     }
+
+    // Only load once - prevent re-fetching on tab switches or returning from external links
+    if (hasLoadedRef.current) {
+      return;
+    }
+    hasLoadedRef.current = true;
 
     // Check for existing design first, only generate if none exists
     loadExistingOrGenerate();
