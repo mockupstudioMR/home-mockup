@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import {
   Loader2,
@@ -16,6 +17,9 @@ import {
   RefreshCw,
   Upload,
   X,
+  Clock,
+  Heart,
+  Sparkles,
 } from "lucide-react";
 import type { QuizData } from "@/contexts/QuizContext";
 import DesignImage from "@/components/generate/DesignImage";
@@ -25,6 +29,8 @@ import PersonalizedStyleProfile from "@/components/generate/PersonalizedStylePro
 import DesignItemsList from "@/components/generate/DesignItemsList";
 import LoveThisButton from "@/components/generate/LoveThisButton";
 import VisualSearchLinks from "@/components/generate/VisualSearchLinks";
+import DesignHistoryTab from "@/components/generate/DesignHistoryTab";
+import DesignLikesTab from "@/components/generate/DesignLikesTab";
 
 interface GeneratedDesign {
   id: string;
@@ -1136,13 +1142,31 @@ const Generate = () => {
           </div>
         </div>
 
-        {/* Page Title */}
-        <div className="text-center space-y-2">
-          <h1 className="text-3xl md:text-4xl font-bold">Your Design Results</h1>
-          <p className="text-muted-foreground">
-            Your personalized room design with key highlights
-          </p>
-        </div>
+        {/* Tabs for Current Design, History, and Likes */}
+        <Tabs defaultValue="current" className="w-full">
+          <TabsList className="grid w-full max-w-md mx-auto grid-cols-3 mb-6">
+            <TabsTrigger value="current" className="flex items-center gap-2">
+              <Sparkles className="w-4 h-4" />
+              <span className="hidden sm:inline">Current</span>
+            </TabsTrigger>
+            <TabsTrigger value="history" className="flex items-center gap-2">
+              <Clock className="w-4 h-4" />
+              <span className="hidden sm:inline">History</span>
+            </TabsTrigger>
+            <TabsTrigger value="likes" className="flex items-center gap-2">
+              <Heart className="w-4 h-4" />
+              <span className="hidden sm:inline">Likes</span>
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="current" className="space-y-8">
+            {/* Page Title */}
+            <div className="text-center space-y-2">
+              <h1 className="text-3xl md:text-4xl font-bold">Your Design Results</h1>
+              <p className="text-muted-foreground">
+                Your personalized room design with key highlights
+              </p>
+            </div>
 
         {/* Generation Progress */}
         {generating && !design && (
@@ -1358,6 +1382,28 @@ const Generate = () => {
             </Card>
           )}
         </div>
+          </TabsContent>
+
+          <TabsContent value="history" className="space-y-6">
+            <div className="text-center space-y-2">
+              <h1 className="text-3xl md:text-4xl font-bold">Design History</h1>
+              <p className="text-muted-foreground">
+                All your past designs and modifications
+              </p>
+            </div>
+            <DesignHistoryTab />
+          </TabsContent>
+
+          <TabsContent value="likes" className="space-y-6">
+            <div className="text-center space-y-2">
+              <h1 className="text-3xl md:text-4xl font-bold">Favorites</h1>
+              <p className="text-muted-foreground">
+                Designs you've marked as favorites
+              </p>
+            </div>
+            <DesignLikesTab />
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );
