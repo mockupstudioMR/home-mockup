@@ -51,12 +51,47 @@ serve(async (req) => {
       console.log("Fetching shop products for exclusive use...");
       const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
       
-      // Fetch active products matching the style preference
-      const { data: products } = await supabase
+      // Map style preference to database style values
+      const styleMapping: Record<string, string> = {
+        "modern-minimal": "modern-minimal",
+        "bohemian-eclectic": "bohemian-eclectic", 
+        "glam-luxe": "glam-luxe",
+        "rustic-nature": "rustic-nature",
+        "mediterranean": "mediterranean",
+        "classic-historical": "classic-historical",
+      };
+      
+      const userStyle = styleMapping[requestData.stylePreference] || requestData.stylePreference;
+      console.log(`Filtering products by style: ${userStyle}`);
+      
+      // First try to get products matching the user's style preference
+      let { data: products } = await supabase
         .from("shop_products")
         .select("id, name, category, style, description, image_urls")
         .eq("is_active", true)
-        .limit(10); // Limit to prevent overwhelming the prompt
+        .eq("style", userStyle)
+        .limit(15);
+      
+      // If not enough style-matched products, also fetch some general products
+      if (!products || products.length < 5) {
+        console.log(`Only ${products?.length || 0} style-matched products, fetching additional...`);
+        const { data: additionalProducts } = await supabase
+          .from("shop_products")
+          .select("id, name, category, style, description, image_urls")
+          .eq("is_active", true)
+          .neq("style", userStyle)
+          .limit(10);
+        
+        products = [...(products || []), ...(additionalProducts || [])];
+      }
+      
+      // Shuffle products to show variety each time
+      if (products && products.length > 0) {
+        products = products.sort(() => Math.random() - 0.5);
+      }
+      
+      // Take top 10 after shuffling
+      products = products?.slice(0, 10) || [];
 
       if (products && products.length > 0) {
         shopProducts = products.map(p => ({
