@@ -168,7 +168,9 @@ const Generate = () => {
       return [];
     }
   });
-  const [extractingItems, setExtractingItems] = useState(false);
+  const [extractingItems, setExtractingItems] = useState(() => {
+    return sessionStorage.getItem('generate_extracting_cache') === 'true';
+  });
   const [fullDescription, setFullDescription] = useState(() => {
     return sessionStorage.getItem('generate_description_cache') || "";
   });
@@ -256,6 +258,11 @@ const Generate = () => {
     }
   }, [modificationHistory, safeSessionStorage]);
 
+  // Cache extracting state to persist across tab switches
+  useEffect(() => {
+    safeSessionStorage('generate_extracting_cache', extractingItems ? 'true' : 'false');
+  }, [extractingItems, safeSessionStorage]);
+
   // Track the quiz data to detect new quizzes
   const lastQuizDataRef = useRef<string | null>(null);
 
@@ -291,6 +298,7 @@ const Generate = () => {
       sessionStorage.removeItem('generate_items_cache');
       sessionStorage.removeItem('generate_description_cache');
       sessionStorage.removeItem('generate_history_cache');
+      sessionStorage.removeItem('generate_extracting_cache');
       
       // Reset state
       setDesign(null);
@@ -300,6 +308,7 @@ const Generate = () => {
       setDesignItems([]);
       setFullDescription("");
       setModificationHistory([]);
+      setExtractingItems(false);
       hasInitializedRef.current = false;
     }
 
@@ -370,8 +379,10 @@ const Generate = () => {
         sessionStorage.removeItem('generate_items_cache');
         sessionStorage.removeItem('generate_description_cache');
         sessionStorage.removeItem('generate_history_cache');
+        sessionStorage.removeItem('generate_extracting_cache');
         
         setGenerating(false);
+        setExtractingItems(false);
         generateDesign(currentQuizId);
         return;
       }
@@ -397,9 +408,12 @@ const Generate = () => {
         setFullDescription(existingDesign.full_description);
       }
 
-      // Load design items if locked
+      // Load design items if locked - also clear extracting state
       if (existingDesign.is_locked) {
         loadDesignItems(existingDesign.id);
+        // Clear any stale extracting state since design is already locked
+        setExtractingItems(false);
+        sessionStorage.removeItem('generate_extracting_cache');
       }
 
       // Only regenerate highlights/products if they weren't cached
