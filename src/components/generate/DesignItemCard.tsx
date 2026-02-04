@@ -75,21 +75,25 @@ const DesignItemCard = ({ item, designImageUrl, onOrderCustomMade }: DesignItemC
   const hexColor = item.hex_code || (isHexColor(item.color || "") ? item.color : null);
   const showColorSwatch = isWallItem(item.item_type) && hexColor;
 
-  // Calculate crop styles for bounding box
-  const getCropStyles = (): React.CSSProperties => {
-    if (!item.bounding_box) return {};
+  // Calculate background styles to show the entire bounding box region
+  const getCropBackgroundStyles = (): React.CSSProperties => {
+    if (!item.bounding_box || !designImageUrl) return {};
     const { x, y, width, height } = item.bounding_box;
     
-    // Scale factor to zoom into the region
+    // Scale so the bounding box fits within the container (contain behavior)
     const scaleX = 100 / width;
     const scaleY = 100 / height;
     const scale = Math.min(scaleX, scaleY, 4); // Cap at 4x zoom
     
+    // Center of the bounding box - this point should be centered in container
+    const bboxCenterX = x + width / 2;
+    const bboxCenterY = y + height / 2;
+    
     return {
-      objectFit: 'none' as const,
-      objectPosition: `${x}% ${y}%`,
-      transform: `scale(${scale})`,
-      transformOrigin: `${x}% ${y}%`,
+      backgroundImage: `url(${designImageUrl})`,
+      backgroundSize: `${scale * 100}%`,
+      backgroundPosition: `${bboxCenterX}% ${bboxCenterY}%`,
+      backgroundRepeat: 'no-repeat',
     };
   };
 
@@ -107,12 +111,9 @@ const DesignItemCard = ({ item, designImageUrl, onOrderCustomMade }: DesignItemC
             </span>
           </div>
         ) : hasBoundingBox ? (
-          <img 
-            src={designImageUrl} 
-            alt={item.item_name}
+          <div 
             className="w-full h-full"
-            style={getCropStyles()}
-            onError={() => setImageError(true)}
+            style={getCropBackgroundStyles()}
           />
         ) : (
           <img 
