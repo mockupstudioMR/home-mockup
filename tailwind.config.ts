@@ -57,11 +57,29 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
+        // MockupStudio extended palette
+        sage: {
+          DEFAULT: "hsl(85 18% 65%)",
+          light: "hsl(85 22% 72%)",
+          dark: "hsl(85 15% 50%)",
+        },
+        coral: {
+          DEFAULT: "hsl(15 55% 75%)",
+          light: "hsl(20 60% 82%)",
+          dark: "hsl(12 50% 65%)",
+        },
+        cream: {
+          DEFAULT: "hsl(30 33% 96%)",
+          dark: "hsl(30 25% 92%)",
+        },
       },
       borderRadius: {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
+      },
+      fontFamily: {
+        sans: ["Inter", "system-ui", "sans-serif"],
       },
       keyframes: {
         "accordion-down": {
