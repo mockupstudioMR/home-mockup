@@ -57,7 +57,7 @@ const Index = () => {
       <header className="relative z-10 flex items-center justify-between p-4 md:p-6">
         <div className="flex items-center gap-3">
           <Logo size={32} />
-          <span className="font-semibold text-lg tracking-tight">RoomCraft AI</span>
+          <span className="font-semibold text-lg tracking-tight">HomeMockUp</span>
         </div>
         <div className="flex items-center gap-2">
           {user ? (
