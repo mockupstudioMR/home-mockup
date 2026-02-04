@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuiz } from "@/contexts/QuizContext";
 import { Card, CardContent } from "@/components/ui/card";
@@ -21,15 +21,42 @@ interface AnalysisResult {
   dominantColors: string[];
 }
 
+const STORAGE_KEY = "analyze_room_cache";
+
+const getInitialState = () => {
+  try {
+    const cached = sessionStorage.getItem(STORAGE_KEY);
+    if (cached) {
+      return JSON.parse(cached);
+    }
+  } catch {
+    // Ignore parse errors
+  }
+  return { images: [], result: null };
+};
+
 const AnalyzeRoom = () => {
   const navigate = useNavigate();
   const { user, loading } = useAuth();
   const { updateQuizData } = useQuiz();
   const { toast } = useToast();
   
-  const [uploadedImages, setUploadedImages] = useState<string[]>([]);
+  const initial = getInitialState();
+  const [uploadedImages, setUploadedImages] = useState<string[]>(initial.images);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
+  const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(initial.result);
+
+  // Persist state to sessionStorage
+  useEffect(() => {
+    try {
+      sessionStorage.setItem(STORAGE_KEY, JSON.stringify({
+        images: uploadedImages,
+        result: analysisResult,
+      }));
+    } catch {
+      // Quota exceeded - ignore
+    }
+  }, [uploadedImages, analysisResult]);
 
   const handleFileUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
