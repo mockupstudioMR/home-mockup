@@ -9,6 +9,7 @@ import QuizProgress from "@/components/quiz/QuizProgress";
 import RoomStep from "@/components/quiz/steps/RoomStep";
 import BudgetStep from "@/components/quiz/steps/BudgetStep";
 import ElementsStep from "@/components/quiz/steps/ElementsStep";
+import FurnitureSourceStep from "@/components/quiz/steps/FurnitureSourceStep";
 import ImageStep from "@/components/quiz/steps/ImageStep";
 import { ArrowLeft, ArrowRight, Sparkles, Home } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -21,7 +22,7 @@ const QuizDetails = () => {
   const { toast } = useToast();
   
   const [currentStep, setCurrentStep] = useState(0);
-  const totalSteps = 4; // Room type, budget, elements, image (optional)
+  const totalSteps = 5; // Room type, budget, elements, furniture source, image (optional)
   
   const { selectedStyle, analysisResult, productAnalysis, uploadedImages, includeProducts } = location.state || {};
 
@@ -47,6 +48,8 @@ const QuizDetails = () => {
       case 2:
         return true; // Elements are optional
       case 3:
+        return !!quizData.furnitureSource; // Furniture source is required
+      case 4:
         return true; // Image is optional
       default:
         return false;
@@ -66,6 +69,7 @@ const QuizDetails = () => {
           room_type: quizData.roomType,
           budget_feel: quizData.budgetFeel,
           must_have_elements: quizData.mustHaveElements,
+          furniture_source: quizData.furnitureSource,
         });
 
         if (error) throw error;
@@ -115,6 +119,8 @@ const QuizDetails = () => {
       case 2:
         return <ElementsStep />;
       case 3:
+        return <FurnitureSourceStep />;
+      case 4:
         return <ImageStep />;
       default:
         return null;
