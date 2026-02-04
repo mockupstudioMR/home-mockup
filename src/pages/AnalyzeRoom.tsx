@@ -26,11 +26,14 @@ const STORAGE_KEY = "analyze_room_cache";
 const getInitialState = () => {
   try {
     const cached = sessionStorage.getItem(STORAGE_KEY);
+    console.log("[AnalyzeRoom] Reading from sessionStorage:", cached ? "found data" : "no data", cached?.length);
     if (cached) {
-      return JSON.parse(cached);
+      const parsed = JSON.parse(cached);
+      console.log("[AnalyzeRoom] Parsed cache:", { imagesCount: parsed.images?.length, hasResult: !!parsed.result });
+      return parsed;
     }
-  } catch {
-    // Ignore parse errors
+  } catch (e) {
+    console.error("[AnalyzeRoom] Error reading cache:", e);
   }
   return { images: [], result: null };
 };
@@ -49,14 +52,18 @@ const AnalyzeRoom = () => {
   // Persist state to sessionStorage
   useEffect(() => {
     try {
-      sessionStorage.setItem(STORAGE_KEY, JSON.stringify({
-        images: uploadedImages,
-        result: analysisResult,
-      }));
-    } catch {
-      // Quota exceeded - ignore
+      const data = { images: uploadedImages, result: analysisResult };
+      console.log("[AnalyzeRoom] Saving to sessionStorage:", { imagesCount: uploadedImages.length, hasResult: !!analysisResult });
+      sessionStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    } catch (e) {
+      console.error("[AnalyzeRoom] Error saving cache:", e);
     }
   }, [uploadedImages, analysisResult]);
+
+  // Debug: log on mount
+  useEffect(() => {
+    console.log("[AnalyzeRoom] Component mounted with:", { imagesCount: uploadedImages.length, hasResult: !!analysisResult });
+  }, []);
 
   const handleFileUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
