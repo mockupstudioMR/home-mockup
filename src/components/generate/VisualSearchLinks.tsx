@@ -123,8 +123,8 @@ const VisualSearchLinks = ({
     });
   }
 
-  const buildGoogleImagesUrl = (query: string): string => {
-    return `https://www.google.com/search?tbm=isch&q=${encodeURIComponent(query)}`;
+  const buildBingImagesUrl = (query: string): string => {
+    return `https://www.bing.com/images/search?q=${encodeURIComponent(query)}`;
   };
 
   const handleSearch = (url: string) => {
@@ -155,7 +155,7 @@ const VisualSearchLinks = ({
                 variant="outline"
                 size="sm"
                 className="h-auto py-2 px-3 justify-start text-left hover:bg-primary/5 hover:border-primary/30 transition-colors"
-                onClick={() => handleSearch(buildGoogleImagesUrl(item.query))}
+                onClick={() => handleSearch(buildBingImagesUrl(item.query))}
               >
                 <IconComponent className="w-3.5 h-3.5 mr-2 flex-shrink-0 text-muted-foreground" />
                 <div className="flex-1 min-w-0">
