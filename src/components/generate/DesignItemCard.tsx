@@ -35,41 +35,14 @@ const priorityColors: Record<string, string> = {
   optional: "bg-muted text-muted-foreground border-border",
 };
 
-// Helper to get color tone name from hex
-const getColorTone = (hex: string): string => {
-  const r = parseInt(hex.slice(1, 3), 16);
-  const g = parseInt(hex.slice(2, 4), 16);
-  const b = parseInt(hex.slice(4, 6), 16);
-  
-  const brightness = (r * 299 + g * 587 + b * 114) / 1000;
-  const saturation = Math.max(r, g, b) - Math.min(r, g, b);
-  
-  // Determine warmth
-  const warmth = r > b ? "Warm" : r < b ? "Cool" : "Neutral";
-  
-  // Determine lightness
-  let lightness = "";
-  if (brightness > 200) lightness = "Light";
-  else if (brightness > 150) lightness = "Soft";
-  else if (brightness > 100) lightness = "Medium";
-  else if (brightness > 50) lightness = "Deep";
-  else lightness = "Dark";
-  
-  // Determine hue name
-  let hueName = "";
-  if (saturation < 30) {
-    hueName = brightness > 200 ? "White" : brightness > 100 ? "Gray" : "Charcoal";
-  } else if (r > g && r > b) {
-    hueName = g > b ? "Beige" : "Rose";
-  } else if (g > r && g > b) {
-    hueName = r > b ? "Olive" : "Sage";
-  } else if (b > r && b > g) {
-    hueName = g > r ? "Teal" : "Blue";
-  } else {
-    hueName = "Taupe";
-  }
-  
-  return `${warmth} ${lightness} ${hueName}`;
+// Check if string is a valid hex color
+const isHexColor = (str: string): boolean => {
+  return /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/.test(str);
+};
+
+// Check if item is a wall-related type
+const isWallItem = (itemType: string): boolean => {
+  return itemType === "wall_color" || itemType === "wall_elements" || itemType.includes("wall");
 };
 
 const DesignItemCard = ({ item, onOrderCustomMade }: DesignItemCardProps) => {
@@ -100,26 +73,24 @@ const DesignItemCard = ({ item, onOrderCustomMade }: DesignItemCardProps) => {
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 flex-wrap">
           <span className="font-medium text-sm">{item.item_name}</span>
-          {/* Show color tone for wall items */}
-          {item.item_type === "wall_color" && item.color && (
-            <>
-              <Badge 
-                variant="outline" 
-                className="text-xs font-mono bg-background"
-              >
-                <div 
-                  className="w-2.5 h-2.5 rounded-full mr-1.5 border border-border/50"
-                  style={{ backgroundColor: item.color }}
-                />
-                {item.color.toUpperCase()}
-              </Badge>
-              <Badge 
-                variant="secondary" 
-                className="text-xs"
-              >
-                {getColorTone(item.color)}
-              </Badge>
-            </>
+          {/* Show color for wall items */}
+          {isWallItem(item.item_type) && item.color && (
+            <Badge 
+              variant="secondary" 
+              className="text-xs"
+            >
+              {isHexColor(item.color) ? (
+                <div className="flex items-center gap-1.5">
+                  <div 
+                    className="w-2.5 h-2.5 rounded-full border border-border/50"
+                    style={{ backgroundColor: item.color }}
+                  />
+                  <span className="font-mono">{item.color.toUpperCase()}</span>
+                </div>
+              ) : (
+                <span>🎨 {item.color}</span>
+              )}
+            </Badge>
           )}
           <Badge 
             variant="outline" 
@@ -132,12 +103,14 @@ const DesignItemCard = ({ item, onOrderCustomMade }: DesignItemCardProps) => {
           {item.item_description}
         </p>
         <div className="flex items-center gap-2 mt-2 flex-wrap">
-          {item.color && item.item_type !== "wall_color" && (
+          {item.color && !isWallItem(item.item_type) && (
             <div className="flex items-center gap-1">
-              <div 
-                className="w-3 h-3 rounded-full border border-border"
-                style={{ backgroundColor: item.color }}
-              />
+              {isHexColor(item.color) && (
+                <div 
+                  className="w-3 h-3 rounded-full border border-border"
+                  style={{ backgroundColor: item.color }}
+                />
+              )}
               <span className="text-xs text-muted-foreground">{item.color}</span>
             </div>
           )}
