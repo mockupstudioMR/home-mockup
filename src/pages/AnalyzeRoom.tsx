@@ -43,55 +43,93 @@ const AnalyzeRoom = () => {
   const { toast } = useToast();
   
   const [uploadedImages, setUploadedImages] = useState<string[]>(() => getInitialState().images);
+  const [isUploading, setIsUploading] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(() => getInitialState().result);
 
-  // Persist state to sessionStorage - only store URLs (after upload) or skip large base64
+  // Persist state to sessionStorage - URLs are small so they fit
   useEffect(() => {
     try {
-      // Filter out large base64 strings to avoid quota issues
-      const imagesToStore = uploadedImages.filter(img => 
-        !img.startsWith('data:') || img.length < 50000 // ~37KB limit per image
-      );
-      
-      // Only store if we have URL-based images or small base64
-      const data = { 
-        images: imagesToStore.length === uploadedImages.length ? uploadedImages : [], 
-        result: analysisResult 
-      };
+      // Only store URLs (not base64) - they're small enough for sessionStorage
+      const urlImages = uploadedImages.filter(img => !img.startsWith('data:'));
+      const data = { images: urlImages, result: analysisResult };
       sessionStorage.setItem(STORAGE_KEY, JSON.stringify(data));
     } catch {
-      // Quota exceeded - clear and continue
       sessionStorage.removeItem(STORAGE_KEY);
     }
   }, [uploadedImages, analysisResult]);
 
+  // Upload file to Supabase storage and return public URL
+  const uploadToStorage = async (file: File): Promise<string | null> => {
+    if (!user) return null;
+    
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${user.id}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+    
+    const { error } = await supabase.storage
+      .from('room-photos')
+      .upload(fileName, file);
+    
+    if (error) {
+      console.error('Upload error:', error);
+      return null;
+    }
+    
+    const { data: urlData } = supabase.storage
+      .from('room-photos')
+      .getPublicUrl(fileName);
+    
+    return urlData.publicUrl;
+  };
+
   const handleFileUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
-    if (!files) return;
+    if (!files || !user) return;
 
-    const newImages: string[] = [];
+    setIsUploading(true);
+    const newUrls: string[] = [];
     
-    for (const file of Array.from(files)) {
-      if (file.type.startsWith("image/")) {
-        const reader = new FileReader();
-        await new Promise<void>((resolve) => {
-          reader.onload = (event) => {
-            if (event.target?.result) {
-              newImages.push(event.target.result as string);
-            }
-            resolve();
-          };
-          reader.readAsDataURL(file);
-        });
+    try {
+      for (const file of Array.from(files)) {
+        if (file.type.startsWith("image/")) {
+          const url = await uploadToStorage(file);
+          if (url) {
+            newUrls.push(url);
+          }
+        }
+      }
+
+      if (newUrls.length > 0) {
+        setUploadedImages(prev => [...prev, ...newUrls].slice(0, 6));
+        setAnalysisResult(null);
+      }
+    } catch (error) {
+      console.error('Upload failed:', error);
+      toast({
+        title: "Upload failed",
+        description: "Please try again",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploading(false);
+    }
+  }, [user, toast]);
+
+  const removeImage = async (index: number) => {
+    const imageUrl = uploadedImages[index];
+    
+    // Extract path from URL and delete from storage
+    if (imageUrl && user) {
+      try {
+        const urlParts = imageUrl.split('/room-photos/');
+        if (urlParts[1]) {
+          await supabase.storage.from('room-photos').remove([urlParts[1]]);
+        }
+      } catch (error) {
+        console.error('Delete error:', error);
       }
     }
-
-    setUploadedImages(prev => [...prev, ...newImages].slice(0, 6));
-    setAnalysisResult(null);
-  }, []);
-
-  const removeImage = (index: number) => {
+    
     setUploadedImages(prev => prev.filter((_, i) => i !== index));
     setAnalysisResult(null);
   };
@@ -198,7 +236,7 @@ const AnalyzeRoom = () => {
           {/* Upload Area */}
           <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
             <CardContent className="p-6">
-              {uploadedImages.length === 0 ? (
+              {uploadedImages.length === 0 && !isUploading ? (
                 <label className="flex flex-col items-center justify-center h-64 border-2 border-dashed border-border rounded-xl cursor-pointer hover:border-primary/50 hover:bg-primary/5 transition-colors">
                   <Upload className="w-12 h-12 text-muted-foreground mb-4" />
                   <p className="text-lg font-medium">Drop images here or click to upload</p>
@@ -213,6 +251,11 @@ const AnalyzeRoom = () => {
                     className="hidden"
                   />
                 </label>
+              ) : uploadedImages.length === 0 && isUploading ? (
+                <div className="flex flex-col items-center justify-center h-64 border-2 border-dashed border-primary/50 rounded-xl bg-primary/5">
+                  <Loader2 className="w-12 h-12 text-primary mb-4 animate-spin" />
+                  <p className="text-lg font-medium">Uploading images...</p>
+                </div>
               ) : (
                 <div className="space-y-4">
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
@@ -227,7 +270,7 @@ const AnalyzeRoom = () => {
                         </button>
                       </div>
                     ))}
-                    {uploadedImages.length < 6 && (
+                    {uploadedImages.length < 6 && !isUploading && (
                       <label className="aspect-square rounded-xl border-2 border-dashed border-border flex items-center justify-center cursor-pointer hover:border-primary/50 hover:bg-primary/5 transition-colors">
                         <div className="text-center">
                           <Upload className="w-8 h-8 text-muted-foreground mx-auto" />
@@ -242,6 +285,11 @@ const AnalyzeRoom = () => {
                         />
                       </label>
                     )}
+                    {isUploading && (
+                      <div className="aspect-square rounded-xl border-2 border-dashed border-primary/50 flex items-center justify-center bg-primary/5">
+                        <Loader2 className="w-8 h-8 text-primary animate-spin" />
+                      </div>
+                    )}
                   </div>
 
                   {!analysisResult && (
@@ -249,7 +297,7 @@ const AnalyzeRoom = () => {
                       size="lg"
                       className="w-full"
                       onClick={analyzeImages}
-                      disabled={isAnalyzing}
+                      disabled={isAnalyzing || isUploading}
                     >
                       {isAnalyzing ? (
                         <>
