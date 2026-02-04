@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState } from "react";
+import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 
 export interface QuizData {
   stylePreference: string;
@@ -29,21 +29,72 @@ const defaultQuizData: QuizData = {
   sourceImageUrl: undefined,
 };
 
+const STORAGE_KEY = "quiz_data_cache";
+const STEP_STORAGE_KEY = "quiz_step_cache";
+
+const getInitialQuizData = (): QuizData => {
+  try {
+    const cached = sessionStorage.getItem(STORAGE_KEY);
+    if (cached) {
+      return { ...defaultQuizData, ...JSON.parse(cached) };
+    }
+  } catch {
+    // Ignore parse errors
+  }
+  return defaultQuizData;
+};
+
+const getInitialStep = (): number => {
+  try {
+    const cached = sessionStorage.getItem(STEP_STORAGE_KEY);
+    if (cached) {
+      return parseInt(cached, 10) || 0;
+    }
+  } catch {
+    // Ignore parse errors
+  }
+  return 0;
+};
+
 const QuizContext = createContext<QuizContextType | undefined>(undefined);
 
 export const QuizProvider = ({ children }: { children: React.ReactNode }) => {
-  const [quizData, setQuizData] = useState<QuizData>(defaultQuizData);
-  const [currentStep, setCurrentStep] = useState(0);
+  const [quizData, setQuizData] = useState<QuizData>(getInitialQuizData);
+  const [currentStep, setCurrentStepState] = useState(getInitialStep);
   const totalSteps = 7; // 6 questions + image selection
 
-  const updateQuizData = (data: Partial<QuizData>) => {
-    setQuizData((prev) => ({ ...prev, ...data }));
-  };
+  // Persist quiz data to sessionStorage
+  useEffect(() => {
+    try {
+      sessionStorage.setItem(STORAGE_KEY, JSON.stringify(quizData));
+    } catch {
+      // Quota exceeded - ignore
+    }
+  }, [quizData]);
 
-  const resetQuiz = () => {
+  // Persist current step to sessionStorage
+  useEffect(() => {
+    try {
+      sessionStorage.setItem(STEP_STORAGE_KEY, String(currentStep));
+    } catch {
+      // Quota exceeded - ignore
+    }
+  }, [currentStep]);
+
+  const updateQuizData = useCallback((data: Partial<QuizData>) => {
+    setQuizData((prev) => ({ ...prev, ...data }));
+  }, []);
+
+  const setCurrentStep = useCallback((step: number) => {
+    setCurrentStepState(step);
+  }, []);
+
+  const resetQuiz = useCallback(() => {
     setQuizData(defaultQuizData);
-    setCurrentStep(0);
-  };
+    setCurrentStepState(0);
+    sessionStorage.removeItem(STORAGE_KEY);
+    sessionStorage.removeItem(STEP_STORAGE_KEY);
+  }, []);
 
   return (
     <QuizContext.Provider
