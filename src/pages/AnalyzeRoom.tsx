@@ -41,10 +41,10 @@ const AnalyzeRoom = () => {
   const { updateQuizData } = useQuiz();
   const { toast } = useToast();
   
-  const initial = getInitialState();
-  const [uploadedImages, setUploadedImages] = useState<string[]>(initial.images);
+  // Use lazy initializer to read from sessionStorage on each mount
+  const [uploadedImages, setUploadedImages] = useState<string[]>(() => getInitialState().images);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(initial.result);
+  const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(() => getInitialState().result);
 
   // Persist state to sessionStorage
   useEffect(() => {
