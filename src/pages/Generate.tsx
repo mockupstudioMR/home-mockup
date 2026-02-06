@@ -191,8 +191,17 @@ const Generate = () => {
   });
   const [referenceImageUrl, setReferenceImageUrl] = useState<string | null>(null);
   const [uploadingReference, setUploadingReference] = useState(false);
-  const [debugSteps, setDebugSteps] = useState<Array<{ timestamp: string; step: string; detail: string; data?: unknown }>>([]);
-  const [debugPrompt, setDebugPrompt] = useState<string>("");
+  const [debugSteps, setDebugSteps] = useState<Array<{ timestamp: string; step: string; detail: string; data?: unknown }>>(() => {
+    try {
+      const cached = sessionStorage.getItem('generate_debug_steps_cache');
+      return cached ? JSON.parse(cached) : [];
+    } catch {
+      return [];
+    }
+  });
+  const [debugPrompt, setDebugPrompt] = useState<string>(() => {
+    return sessionStorage.getItem('generate_debug_prompt_cache') || "";
+  });
   
   // Track if initial load has been done
   const hasInitializedRef = useRef(false);
@@ -272,6 +281,19 @@ const Generate = () => {
     safeSessionStorage('generate_extracting_cache', extractingItems ? 'true' : 'false');
   }, [extractingItems, safeSessionStorage]);
 
+  // Cache debug data
+  useEffect(() => {
+    if (debugSteps.length > 0) {
+      safeSessionStorage('generate_debug_steps_cache', JSON.stringify(debugSteps));
+    }
+  }, [debugSteps, safeSessionStorage]);
+
+  useEffect(() => {
+    if (debugPrompt) {
+      safeSessionStorage('generate_debug_prompt_cache', debugPrompt);
+    }
+  }, [debugPrompt, safeSessionStorage]);
+
   // Track the quiz data to detect new quizzes
   const lastQuizDataRef = useRef<string | null>(sessionStorage.getItem('generate_quiz_hash'));
 
@@ -313,6 +335,8 @@ const Generate = () => {
       sessionStorage.removeItem('generate_history_cache');
       sessionStorage.removeItem('generate_extracting_cache');
       sessionStorage.removeItem('generate_quiz_response_id');
+      sessionStorage.removeItem('generate_debug_steps_cache');
+      sessionStorage.removeItem('generate_debug_prompt_cache');
       
       // Reset state
       setDesign(null);
@@ -323,6 +347,8 @@ const Generate = () => {
       setFullDescription("");
       setModificationHistory([]);
       setExtractingItems(false);
+      setDebugSteps([]);
+      setDebugPrompt("");
       hasInitializedRef.current = false;
     }
 
@@ -427,6 +453,28 @@ const Generate = () => {
       // Restore full description
       if (existingDesign.full_description) {
         setFullDescription(existingDesign.full_description);
+      }
+
+      // Restore debug prompt from saved design (prompt is saved on generation)
+      if (existingDesign.prompt && !debugPrompt) {
+        setDebugPrompt(existingDesign.prompt);
+        // Add a reconstructed debug step so the panel is visible
+        if (debugSteps.length === 0) {
+          setDebugSteps([
+            {
+              timestamp: existingDesign.created_at,
+              step: "Design loaded",
+              detail: "Restored from previously generated design",
+              data: {
+                designId: existingDesign.id,
+                hasSourceImage: !!existingDesign.source_image_url,
+                quizResponseId: existingDesign.quiz_response_id,
+                isLocked: existingDesign.is_locked,
+                isFavorite: existingDesign.is_favorite,
+              },
+            },
+          ]);
+        }
       }
 
       // Load design items if locked - also clear extracting state
