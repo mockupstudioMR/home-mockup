@@ -31,6 +31,7 @@ import LoveThisButton from "@/components/generate/LoveThisButton";
 import VisualSearchLinks from "@/components/generate/VisualSearchLinks";
 import DesignHistoryTab from "@/components/generate/DesignHistoryTab";
 import DesignLikesTab from "@/components/generate/DesignLikesTab";
+import DebugPanel from "@/components/generate/DebugPanel";
 
 interface GeneratedDesign {
   id: string;
@@ -190,6 +191,8 @@ const Generate = () => {
   });
   const [referenceImageUrl, setReferenceImageUrl] = useState<string | null>(null);
   const [uploadingReference, setUploadingReference] = useState(false);
+  const [debugSteps, setDebugSteps] = useState<Array<{ timestamp: string; step: string; detail: string; data?: unknown }>>([]);
+  const [debugPrompt, setDebugPrompt] = useState<string>("");
   
   // Track if initial load has been done
   const hasInitializedRef = useRef(false);
@@ -484,6 +487,8 @@ const Generate = () => {
     setDesignItems([]);
     setModificationHistory([]);
     setFullDescription("");
+    setDebugSteps([]);
+    setDebugPrompt("");
 
     try {
       const response = await supabase.functions.invoke("generate-design", {
@@ -499,7 +504,9 @@ const Generate = () => {
         throw new Error(response.error.message);
       }
 
-      const { imageUrl, prompt: usedPrompt } = response.data;
+      const { imageUrl, prompt: usedPrompt, debugSteps: steps } = response.data;
+      if (steps) setDebugSteps(steps);
+      if (usedPrompt) setDebugPrompt(usedPrompt);
 
       // Save to database with quiz_response_id link
       const { data: savedDesign } = await supabase
@@ -889,7 +896,9 @@ const Generate = () => {
 
       if (response.error) throw new Error(response.error.message);
 
-      const { imageUrl } = response.data;
+      const { imageUrl, debugSteps: steps, prompt: usedPrompt } = response.data;
+      if (steps) setDebugSteps(steps);
+      if (usedPrompt) setDebugPrompt(usedPrompt);
 
       // Track modification in history
       const newHistory = [...modificationHistory, modificationInput];
@@ -1207,6 +1216,11 @@ const Generate = () => {
               onDownload={handleDownload}
             />
           </div>
+        )}
+
+        {/* Debug Panel - Testing */}
+        {design && (debugSteps.length > 0 || debugPrompt) && (
+          <DebugPanel steps={debugSteps} prompt={debugPrompt} />
         )}
 
         {/* Love This Button - Under Main Design */}

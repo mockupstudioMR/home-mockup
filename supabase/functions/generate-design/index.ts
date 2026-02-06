@@ -27,12 +27,25 @@ interface GenerateRequest {
   productImageUrls?: string[];
 }
 
+interface DebugStep {
+  timestamp: string;
+  step: string;
+  detail: string;
+  data?: unknown;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
+    const debugSteps: DebugStep[] = [];
+    const addDebug = (step: string, detail: string, data?: unknown) => {
+      debugSteps.push({ timestamp: new Date().toISOString(), step, detail, data });
+      console.log(`[DEBUG] ${step}: ${detail}`);
+    };
+
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
@@ -42,13 +55,25 @@ serve(async (req) => {
     }
 
     const requestData: GenerateRequest = await req.json();
+    addDebug("Request received", "Quiz data parsed", {
+      stylePreference: requestData.stylePreference,
+      colorPalette: requestData.colorPalette,
+      roomType: requestData.roomType,
+      budgetFeel: requestData.budgetFeel,
+      mustHaveElements: requestData.mustHaveElements,
+      furnitureSource: requestData.furnitureSource,
+      hasSourceImage: !!requestData.sourceImageUrl,
+      hasModificationPrompt: !!requestData.modificationPrompt,
+      selectedProductsCount: requestData.selectedProducts?.length || 0,
+      productImageUrlsCount: requestData.productImageUrls?.length || 0,
+    });
 
     // If furniture source is "shop_only", fetch products from the database
     let shopProducts: ProductInfo[] = [];
     let shopProductImageUrls: string[] = [];
 
     if (requestData.furnitureSource === "shop_only" && SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY) {
-      console.log("Fetching shop products for exclusive use...");
+      addDebug("Product fetch", "Fetching shop products (shop_only mode)");
       const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
       
       // Map style preference to database style values
@@ -62,7 +87,7 @@ serve(async (req) => {
       };
       
       const userStyle = styleMapping[requestData.stylePreference] || requestData.stylePreference;
-      console.log(`Filtering products by style: ${userStyle}`);
+      addDebug("Style mapping", `Mapped "${requestData.stylePreference}" → "${userStyle}"`);
       
       // First try to get products matching the user's style preference
       let { data: products } = await supabase
@@ -72,15 +97,23 @@ serve(async (req) => {
         .eq("style", userStyle)
         .limit(15);
       
+      addDebug("Style-matched products", `Found ${products?.length || 0} products matching style "${userStyle}"`, 
+        products?.map(p => ({ name: p.name, category: p.category, style: p.style }))
+      );
+      
       // If not enough style-matched products, also fetch some general products
       if (!products || products.length < 5) {
-        console.log(`Only ${products?.length || 0} style-matched products, fetching additional...`);
+        addDebug("Fallback fetch", `Only ${products?.length || 0} style-matched, fetching additional products`);
         const { data: additionalProducts } = await supabase
           .from("shop_products")
           .select("id, name, category, style, description, image_urls")
           .eq("is_active", true)
           .neq("style", userStyle)
           .limit(10);
+        
+        addDebug("Additional products", `Found ${additionalProducts?.length || 0} additional products`,
+          additionalProducts?.map(p => ({ name: p.name, category: p.category, style: p.style }))
+        );
         
         products = [...(products || []), ...(additionalProducts || [])];
       }
@@ -92,6 +125,10 @@ serve(async (req) => {
       
       // Take top 10 after shuffling
       products = products?.slice(0, 10) || [];
+
+      addDebug("Final product selection", `Selected ${products.length} products after shuffle`,
+        products.map(p => ({ name: p.name, category: p.category, style: p.style, hasImage: !!(p.image_urls?.length) }))
+      );
 
       if (products && products.length > 0) {
         shopProducts = products.map(p => ({
@@ -109,8 +146,10 @@ serve(async (req) => {
           }
         }
 
-        console.log(`Found ${shopProducts.length} shop products to include`);
+        addDebug("Product images", `Collected ${shopProductImageUrls.length} product image URLs`);
       }
+    } else {
+      addDebug("Product fetch", `Skipped (furnitureSource: "${requestData.furnitureSource}")`);
     }
 
     // Merge shop products with any explicitly selected products
@@ -123,6 +162,11 @@ serve(async (req) => {
       ...shopProductImageUrls,
     ];
 
+    addDebug("Product merge", `Total products: ${allProducts.length} (${requestData.selectedProducts?.length || 0} selected + ${shopProducts.length} shop)`, {
+      totalProducts: allProducts.length,
+      totalImageUrls: allProductImageUrls.length,
+    });
+
     // Update request data with shop products
     const enrichedRequestData = {
       ...requestData,
@@ -132,6 +176,7 @@ serve(async (req) => {
 
     // Build the image generation prompt
     let prompt = buildImagePrompt(enrichedRequestData);
+    addDebug("Prompt built", `${prompt.length} chars`, { prompt });
 
     // Prepare messages for image generation
     const contentParts: any[] = [{ type: "text", text: prompt }];
@@ -139,6 +184,7 @@ serve(async (req) => {
     // Add source image if provided
     if (enrichedRequestData.sourceImageUrl) {
       contentParts.push({ type: "image_url", image_url: { url: enrichedRequestData.sourceImageUrl } });
+      addDebug("Source image", "Added source image to request");
     }
     
     // Add product images if provided - these must be included exactly
@@ -146,6 +192,7 @@ serve(async (req) => {
       for (const imageUrl of enrichedRequestData.productImageUrls) {
         contentParts.push({ type: "image_url", image_url: { url: imageUrl } });
       }
+      addDebug("Product images", `Added ${enrichedRequestData.productImageUrls.length} product images to request`);
     }
 
     const messages: any[] = [
@@ -155,7 +202,7 @@ serve(async (req) => {
       }
     ];
 
-    console.log("Generating image with prompt:", prompt);
+    addDebug("AI request prepared", `Model: google/gemini-3-pro-image-preview, ${contentParts.length} content parts`);
 
     // Retry logic for image generation
     let imageUrl: string | undefined;
@@ -163,7 +210,7 @@ serve(async (req) => {
     const maxRetries = 3;
     
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
-      console.log(`Image generation attempt ${attempt}/${maxRetries}`);
+      addDebug("AI generation attempt", `Attempt ${attempt}/${maxRetries}`);
       
       const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
@@ -180,23 +227,25 @@ serve(async (req) => {
 
       if (!response.ok) {
         if (response.status === 429) {
+          addDebug("Rate limited", "429 Too Many Requests");
           return new Response(
-            JSON.stringify({ error: "Rate limits exceeded, please try again later." }),
+            JSON.stringify({ error: "Rate limits exceeded, please try again later.", debugSteps }),
             { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
           );
         }
         if (response.status === 402) {
+          addDebug("Payment required", "402 Payment Required");
           return new Response(
-            JSON.stringify({ error: "Payment required, please add funds." }),
+            JSON.stringify({ error: "Payment required, please add funds.", debugSteps }),
             { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
           );
         }
         const errorText = await response.text();
-        console.error("AI gateway error:", response.status, errorText);
+        addDebug("AI gateway error", `Status ${response.status}`, { errorText: errorText.slice(0, 200) });
         
         // Only retry on 5xx errors
         if (response.status >= 500 && attempt < maxRetries) {
-          console.log("Server error, retrying...");
+          addDebug("Retrying", `Server error ${response.status}, waiting ${attempt}s`);
           await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
           continue;
         }
@@ -204,32 +253,38 @@ serve(async (req) => {
       }
 
       const data = await response.json();
-      console.log("AI response received");
 
       // Extract image from response
       imageUrl = data.choices?.[0]?.message?.images?.[0]?.image_url?.url;
       textContent = data.choices?.[0]?.message?.content || "";
 
       if (imageUrl) {
-        console.log("Image generated successfully");
+        addDebug("Image generated", `Success on attempt ${attempt}`, { 
+          hasTextContent: !!textContent,
+          textContentPreview: textContent.slice(0, 100),
+        });
         break;
       }
       
-      console.log("No image in response, retrying...");
+      addDebug("No image in response", `Attempt ${attempt} returned text only, retrying...`);
       if (attempt < maxRetries) {
         await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
       }
     }
 
     if (!imageUrl) {
+      addDebug("Generation failed", "No image after all attempts");
       throw new Error("Failed to generate image after multiple attempts. Please try again.");
     }
+
+    addDebug("Complete", `Pipeline finished successfully`);
 
     return new Response(
       JSON.stringify({ 
         imageUrl, 
         description: textContent,
-        prompt 
+        prompt,
+        debugSteps,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
