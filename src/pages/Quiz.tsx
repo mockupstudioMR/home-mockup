@@ -67,6 +67,9 @@ const Quiz = () => {
 
         if (error) throw error;
 
+        // Set a unique session nonce so Generate page always detects a fresh quiz
+        sessionStorage.setItem('generate_quiz_nonce', crypto.randomUUID());
+
         toast({
           title: "Preferences saved!",
           description: "Generating your dream room...",

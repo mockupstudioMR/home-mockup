@@ -318,11 +318,15 @@ const Generate = () => {
       furnitureSource: quizData.furnitureSource,
     });
 
+    // Also include the nonce to detect re-submissions with same preferences
+    const quizNonce = sessionStorage.getItem('generate_quiz_nonce') || '';
+    const fullHash = quizHash + '|' + quizNonce;
+
     // Get the last quiz hash from sessionStorage
     const storedHash = sessionStorage.getItem('generate_quiz_hash');
     
     // Check if this is a NEW quiz (different from stored one)
-    const isNewQuiz = storedHash !== null && storedHash !== quizHash;
+    const isNewQuiz = storedHash !== null && storedHash !== fullHash;
     
     if (isNewQuiz) {
       // Clear all caches for fresh start
@@ -352,9 +356,9 @@ const Generate = () => {
       hasInitializedRef.current = false;
     }
 
-    // Store current quiz hash
-    sessionStorage.setItem('generate_quiz_hash', quizHash);
-    lastQuizDataRef.current = quizHash;
+    // Store current quiz hash (includes nonce)
+    sessionStorage.setItem('generate_quiz_hash', fullHash);
+    lastQuizDataRef.current = fullHash;
 
     // Skip if we already have a cached design (tab switching)
     const cachedDesign = getInitialDesign();
