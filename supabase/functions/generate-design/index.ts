@@ -68,15 +68,48 @@ serve(async (req) => {
       productImageUrlsCount: requestData.productImageUrls?.length || 0,
     });
 
+    // Create supabase client for DB queries
+    const supabase = SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY
+      ? createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
+      : null;
+
+    // Fetch prompt templates and room furniture config from DB
+    let promptTemplates: Record<string, string> = {};
+    let roomFurnitureItems: string[] = [];
+
+    if (supabase) {
+      // Fetch prompt templates
+      const { data: templates } = await supabase
+        .from("prompt_templates")
+        .select("template_key, template");
+
+      if (templates) {
+        for (const t of templates) {
+          promptTemplates[t.template_key] = t.template;
+        }
+        addDebug("Prompt templates loaded", `${templates.length} templates from database`, Object.keys(promptTemplates));
+      }
+
+      // Fetch furniture config for this room type
+      const { data: roomConfig } = await supabase
+        .from("room_furniture_config")
+        .select("furniture_items")
+        .eq("room_type", requestData.roomType)
+        .maybeSingle();
+
+      if (roomConfig) {
+        roomFurnitureItems = roomConfig.furniture_items || [];
+        addDebug("Room furniture loaded", `${roomFurnitureItems.length} items for "${requestData.roomType}"`, roomFurnitureItems);
+      }
+    }
+
     // If furniture source is "shop_only", fetch products from the database
     let shopProducts: ProductInfo[] = [];
     let shopProductImageUrls: string[] = [];
 
-    if (requestData.furnitureSource === "shop_only" && SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY) {
+    if (requestData.furnitureSource === "shop_only" && supabase) {
       addDebug("Product fetch", "Fetching shop products (shop_only mode)");
-      const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
       
-      // Map style preference to database style values
       const styleMapping: Record<string, string> = {
         "modern-minimal": "modern-minimal",
         "bohemian-eclectic": "bohemian-eclectic", 
@@ -89,7 +122,6 @@ serve(async (req) => {
       const userStyle = styleMapping[requestData.stylePreference] || requestData.stylePreference;
       addDebug("Style mapping", `Mapped "${requestData.stylePreference}" → "${userStyle}"`);
       
-      // First try to get products matching the user's style preference
       let { data: products } = await supabase
         .from("shop_products")
         .select("id, name, category, style, description, image_urls")
@@ -101,7 +133,6 @@ serve(async (req) => {
         products?.map(p => ({ name: p.name, category: p.category, style: p.style }))
       );
       
-      // If not enough style-matched products, also fetch some general products
       if (!products || products.length < 5) {
         addDebug("Fallback fetch", `Only ${products?.length || 0} style-matched, fetching additional products`);
         const { data: additionalProducts } = await supabase
@@ -118,12 +149,10 @@ serve(async (req) => {
         products = [...(products || []), ...(additionalProducts || [])];
       }
       
-      // Shuffle products to show variety each time
       if (products && products.length > 0) {
         products = products.sort(() => Math.random() - 0.5);
       }
       
-      // Take top 10 after shuffling
       products = products?.slice(0, 10) || [];
 
       addDebug("Final product selection", `Selected ${products.length} products after shuffle`,
@@ -139,10 +168,9 @@ serve(async (req) => {
           image_urls: p.image_urls || [],
         }));
 
-        // Collect image URLs from shop products
         for (const product of products) {
           if (product.image_urls && product.image_urls.length > 0) {
-            shopProductImageUrls.push(product.image_urls[0]); // Use first image
+            shopProductImageUrls.push(product.image_urls[0]);
           }
         }
 
@@ -167,27 +195,24 @@ serve(async (req) => {
       totalImageUrls: allProductImageUrls.length,
     });
 
-    // Update request data with shop products
     const enrichedRequestData = {
       ...requestData,
       selectedProducts: allProducts.length > 0 ? allProducts : requestData.selectedProducts,
       productImageUrls: allProductImageUrls.length > 0 ? allProductImageUrls : requestData.productImageUrls,
     };
 
-    // Build the image generation prompt
-    let prompt = buildImagePrompt(enrichedRequestData);
+    // Build the image generation prompt using DB templates
+    let prompt = buildImagePrompt(enrichedRequestData, promptTemplates, roomFurnitureItems);
     addDebug("Prompt built", `${prompt.length} chars`, { prompt });
 
     // Prepare messages for image generation
     const contentParts: any[] = [{ type: "text", text: prompt }];
     
-    // Add source image if provided
     if (enrichedRequestData.sourceImageUrl) {
       contentParts.push({ type: "image_url", image_url: { url: enrichedRequestData.sourceImageUrl } });
       addDebug("Source image", "Added source image to request");
     }
     
-    // Add product images if provided - these must be included exactly
     if (enrichedRequestData.productImageUrls && enrichedRequestData.productImageUrls.length > 0) {
       for (const imageUrl of enrichedRequestData.productImageUrls) {
         contentParts.push({ type: "image_url", image_url: { url: imageUrl } });
@@ -243,7 +268,6 @@ serve(async (req) => {
         const errorText = await response.text();
         addDebug("AI gateway error", `Status ${response.status}`, { errorText: errorText.slice(0, 200) });
         
-        // Only retry on 5xx errors
         if (response.status >= 500 && attempt < maxRetries) {
           addDebug("Retrying", `Server error ${response.status}, waiting ${attempt}s`);
           await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
@@ -254,7 +278,6 @@ serve(async (req) => {
 
       const data = await response.json();
 
-      // Extract image from response
       imageUrl = data.choices?.[0]?.message?.images?.[0]?.image_url?.url;
       textContent = data.choices?.[0]?.message?.content || "";
 
@@ -297,7 +320,11 @@ serve(async (req) => {
   }
 });
 
-function buildImagePrompt(data: GenerateRequest): string {
+function buildImagePrompt(
+  data: GenerateRequest,
+  templates: Record<string, string>,
+  furnitureItems: string[]
+): string {
   const styleMap: Record<string, string> = {
     modern: "modern contemporary",
     minimalist: "minimalist Scandinavian",
@@ -356,19 +383,50 @@ function buildImagePrompt(data: GenerateRequest): string {
     productInstructions = `CRITICAL: You MUST include ALL of these exact products in the design, keeping their original appearance, colors, and details exactly as shown in the reference images: ${productList}. These products must be prominently featured and clearly visible in the final room design.${exclusivityNote}`;
   }
 
+  // Build furniture context from DB config
+  const furnitureList = furnitureItems.length > 0 ? furnitureItems.join(", ") : "";
+
+  // Helper to replace template variables
+  const fillTemplate = (template: string): string => {
+    return template
+      .replace(/\{\{style\}\}/g, style)
+      .replace(/\{\{room\}\}/g, room)
+      .replace(/\{\{colors\}\}/g, colors)
+      .replace(/\{\{budget\}\}/g, budget)
+      .replace(/\{\{elements\}\}/g, elements)
+      .replace(/\{\{product_instructions\}\}/g, productInstructions)
+      .replace(/\{\{modification_prompt\}\}/g, data.modificationPrompt || "")
+      .replace(/\{\{furniture_list\}\}/g, furnitureList);
+  };
+
+  // Add furniture context prefix if we have furniture items from DB
+  let furnitureContext = "";
+  if (furnitureItems.length > 0 && templates["furniture_context"]) {
+    furnitureContext = fillTemplate(templates["furniture_context"]) + " ";
+  }
+
+  // Determine which template to use
   if (data.modificationPrompt) {
-    return `Modify this interior design image: ${data.modificationPrompt}. Maintain the ${style} style with ${colors}. ${productInstructions} Ultra high resolution, photorealistic interior design photography.`;
+    const tpl = templates["modification"] || 
+      `Modify this interior design image: {{modification_prompt}}. Maintain the {{style}} style with {{colors}}. {{product_instructions}} Ultra high resolution, photorealistic interior design photography.`;
+    return furnitureContext + fillTemplate(tpl);
   }
 
   const hasProductImages = data.productImageUrls && data.productImageUrls.length > 0;
   
   if (hasProductImages) {
-    return `Create a stunning ${style} ${room} interior design that prominently features ALL the products shown in the reference images. ${productInstructions} Use ${colors}. Create a ${budget} aesthetic. ${elements} The products must appear EXACTLY as they look in the reference images - same colors, textures, and design details. Ultra high resolution, photorealistic interior design photography, professional lighting, magazine quality, 16:9 aspect ratio.`;
+    const tpl = templates["with_product_images"] || 
+      `Create a stunning {{style}} {{room}} interior design that prominently features ALL the products shown in the reference images. {{product_instructions}} Use {{colors}}. Create a {{budget}} aesthetic. {{elements}} The products must appear EXACTLY as they look in the reference images - same colors, textures, and design details. Ultra high resolution, photorealistic interior design photography, professional lighting, magazine quality, 16:9 aspect ratio.`;
+    return furnitureContext + fillTemplate(tpl);
   }
 
-  const basePrompt = data.sourceImageUrl
-    ? `Transform this room into a beautiful ${style} ${room} design. Use ${colors}. Create a ${budget} aesthetic. ${elements} ${productInstructions} Ultra high resolution, photorealistic interior design photography, professional lighting, magazine quality.`
-    : `Generate a stunning ${style} ${room} interior design. Use ${colors}. Create a ${budget} aesthetic. ${elements} ${productInstructions} Ultra high resolution, photorealistic interior design photography, professional lighting, magazine quality, 16:9 aspect ratio.`;
+  if (data.sourceImageUrl) {
+    const tpl = templates["with_source_image"] || 
+      `Transform this room into a beautiful {{style}} {{room}} design. Use {{colors}}. Create a {{budget}} aesthetic. {{elements}} {{product_instructions}} Ultra high resolution, photorealistic interior design photography, professional lighting, magazine quality.`;
+    return furnitureContext + fillTemplate(tpl);
+  }
 
-  return basePrompt;
+  const tpl = templates["default"] || 
+    `Generate a stunning {{style}} {{room}} interior design. Use {{colors}}. Create a {{budget}} aesthetic. {{elements}} {{product_instructions}} Ultra high resolution, photorealistic interior design photography, professional lighting, magazine quality, 16:9 aspect ratio.`;
+  return furnitureContext + fillTemplate(tpl);
 }
