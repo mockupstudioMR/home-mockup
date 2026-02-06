@@ -12,6 +12,8 @@ import { supabase } from "@/integrations/supabase/client";
 import CMSEditor from "@/components/admin/CMSEditor";
 import AddUserDialog from "@/components/admin/AddUserDialog";
 import AdminProductManagement from "@/components/admin/AdminProductManagement";
+import RoomFurnitureManager from "@/components/admin/RoomFurnitureManager";
+import PromptTemplateManager from "@/components/admin/PromptTemplateManager";
 import { 
   Shield, 
   Users, 
@@ -22,7 +24,8 @@ import {
   Palette,
   FileText,
   CreditCard,
-  Package
+  Package,
+  Settings2
 } from "lucide-react";
 import {
   Select,
@@ -161,10 +164,14 @@ const AdminDashboard = () => {
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 py-8">
         <Tabs defaultValue="products" className="space-y-6">
-          <TabsList className="grid w-full max-w-xl grid-cols-5">
+          <TabsList className="grid w-full max-w-3xl grid-cols-6">
             <TabsTrigger value="products" className="flex items-center gap-2">
               <Package className="w-4 h-4" />
               <span className="hidden sm:inline">Products</span>
+            </TabsTrigger>
+            <TabsTrigger value="design-config" className="flex items-center gap-2">
+              <Settings2 className="w-4 h-4" />
+              <span className="hidden sm:inline">Design Config</span>
             </TabsTrigger>
             <TabsTrigger value="invites" className="flex items-center gap-2">
               <Users className="w-4 h-4" />
@@ -184,9 +191,15 @@ const AdminDashboard = () => {
             </TabsTrigger>
           </TabsList>
 
-          {/* Products Tab - Super Admin View */}
+          {/* Products Tab */}
           <TabsContent value="products">
             <AdminProductManagement />
+          </TabsContent>
+
+          {/* Design Config Tab */}
+          <TabsContent value="design-config" className="space-y-8">
+            <RoomFurnitureManager />
+            <PromptTemplateManager />
           </TabsContent>
 
           {/* Invites Tab */}

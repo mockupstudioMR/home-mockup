@@ -431,6 +431,36 @@ export type Database = {
         }
         Relationships: []
       }
+      prompt_templates: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          template: string
+          template_key: string
+          template_label: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          template: string
+          template_key: string
+          template_label: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          template?: string
+          template_key?: string
+          template_label?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       quiz_responses: {
         Row: {
           budget_feel: string
@@ -503,6 +533,36 @@ export type Database = {
           status?: Database["public"]["Enums"]["invite_status"]
           token?: string
           used_by?: string | null
+        }
+        Relationships: []
+      }
+      room_furniture_config: {
+        Row: {
+          created_at: string
+          description: string | null
+          furniture_items: string[]
+          id: string
+          room_label: string
+          room_type: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          furniture_items?: string[]
+          id?: string
+          room_label: string
+          room_type: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          furniture_items?: string[]
+          id?: string
+          room_label?: string
+          room_type?: string
+          updated_at?: string
         }
         Relationships: []
       }
