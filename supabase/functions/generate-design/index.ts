@@ -1,8 +1,8 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const VERSION = "v2.2.0";
-const DEPLOYED_AT = "2026-02-06T12:10:00Z";
+const VERSION = "v2.3.0";
+const DEPLOYED_AT = "2026-02-06T12:30:00Z";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -152,12 +152,34 @@ serve(async (req) => {
           .select("id, name, category, style, description, image_urls")
           .eq("is_active", true)
           .in("style", matchedStyles)
-          .limit(15);
+          .limit(30);
         
-        products = styleProducts || [];
+        let rawStyleProducts = styleProducts || [];
+        addDebug("Style-matched products (raw)", `Found ${rawStyleProducts.length} before furniture filter`, 
+          rawStyleProducts.map(p => ({ name: p.name, category: p.category, style: p.style }))
+        );
+
+        // Filter style-matched products against the approved furniture list
+        if (roomFurnitureItems.length > 0) {
+          const approvedLower = roomFurnitureItems.map(f => f.toLowerCase());
+          rawStyleProducts = rawStyleProducts.filter(p => {
+            const catLower = (p.category || "").toLowerCase();
+            const nameLower = (p.name || "").toLowerCase();
+            return approvedLower.some(approved => 
+              catLower.includes(approved) || approved.includes(catLower) ||
+              nameLower.includes(approved) || approved.includes(nameLower)
+            );
+          });
+          addDebug("Style-matched products (filtered)", `${rawStyleProducts.length} products match approved furniture list`, {
+            approvedFurniture: roomFurnitureItems,
+            filtered: rawStyleProducts.map(p => ({ name: p.name, category: p.category })),
+          });
+        }
+
+        products = rawStyleProducts;
       }
       
-      addDebug("Style-matched products", `Found ${products.length} products matching styles [${matchedStyles.join(", ")}]`, 
+      addDebug("Style-matched products", `Final ${products.length} products after style+furniture filter`, 
         products.map(p => ({ name: p.name, category: p.category, style: p.style }))
       );
       
