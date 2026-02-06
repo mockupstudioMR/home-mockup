@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Home, Sparkles, Ticket, Loader2 } from "lucide-react";
 
 const Auth = () => {
@@ -183,12 +184,10 @@ const Auth = () => {
 
             {isLogin && (
               <div className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
+                <Checkbox
                   id="remember"
                   checked={rememberMe}
-                  onChange={(e) => setRememberMe(e.target.checked)}
-                  className="h-4 w-4 rounded border-input text-primary focus:ring-ring"
+                  onCheckedChange={(checked) => setRememberMe(checked === true)}
                 />
                 <Label htmlFor="remember" className="text-sm font-normal cursor-pointer">
                   Remember me
