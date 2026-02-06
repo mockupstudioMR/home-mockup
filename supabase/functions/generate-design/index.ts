@@ -298,14 +298,31 @@ serve(async (req) => {
       addDebug("Source image", "Added source image to request");
     }
     
-    // Limit product images to avoid 400 errors from too many images
+    // Validate and limit product images to avoid 400 errors
     const maxProductImages = 4;
     if (enrichedRequestData.productImageUrls && enrichedRequestData.productImageUrls.length > 0) {
-      const limitedImageUrls = enrichedRequestData.productImageUrls.slice(0, maxProductImages);
-      for (const imageUrl of limitedImageUrls) {
+      const candidateUrls = enrichedRequestData.productImageUrls.slice(0, maxProductImages + 2); // check extras in case some fail
+      const validImageUrls: string[] = [];
+      
+      // Validate each image URL with a HEAD request
+      for (const imageUrl of candidateUrls) {
+        if (validImageUrls.length >= maxProductImages) break;
+        try {
+          const headResp = await fetch(imageUrl, { method: "HEAD", redirect: "follow" });
+          if (headResp.ok) {
+            validImageUrls.push(imageUrl);
+          } else {
+            addDebug("Image validation", `Skipping broken image (HTTP ${headResp.status}): ${imageUrl.slice(0, 100)}`);
+          }
+        } catch (e) {
+          addDebug("Image validation", `Skipping unreachable image: ${imageUrl.slice(0, 100)}`);
+        }
+      }
+      
+      for (const imageUrl of validImageUrls) {
         contentParts.push({ type: "image_url", image_url: { url: imageUrl } });
       }
-      addDebug("Product images", `Added ${limitedImageUrls.length}/${enrichedRequestData.productImageUrls.length} product images to request (max ${maxProductImages})`);
+      addDebug("Product images", `Added ${validImageUrls.length}/${enrichedRequestData.productImageUrls.length} product images to request (max ${maxProductImages}, ${candidateUrls.length - validImageUrls.length} skipped)`);
     }
 
     const messages: any[] = [
