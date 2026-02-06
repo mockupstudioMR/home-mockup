@@ -401,8 +401,12 @@ function buildImagePrompt(
 
   // Add furniture context prefix if we have furniture items from DB
   let furnitureContext = "";
-  if (furnitureItems.length > 0 && templates["furniture_context"]) {
-    furnitureContext = fillTemplate(templates["furniture_context"]) + " ";
+  if (furnitureItems.length > 0) {
+    if (templates["furniture_context"]) {
+      furnitureContext = fillTemplate(templates["furniture_context"]) + " ";
+    } else {
+      furnitureContext = `STRICT FURNITURE CONSTRAINT: The ${room} must ONLY contain furniture from this approved list: ${furnitureList}. Do NOT add any furniture items that are not on this list. `;
+    }
   }
 
   // Determine which template to use
