@@ -1,8 +1,8 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const VERSION = "v2.1.0";
-const DEPLOYED_AT = "2026-02-06T11:35:00Z";
+const VERSION = "v2.2.0";
+const DEPLOYED_AT = "2026-02-06T12:10:00Z";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -115,43 +115,101 @@ serve(async (req) => {
     if (requestData.furnitureSource === "shop_only" && supabase) {
       addDebug("Product fetch", "Fetching shop products (shop_only mode)");
       
-      const styleMapping: Record<string, string> = {
-        "modern-minimal": "modern-minimal",
-        "bohemian-eclectic": "bohemian-eclectic", 
-        "glam-luxe": "glam-luxe",
-        "rustic-nature": "rustic-nature",
-        "mediterranean": "mediterranean",
-        "classic-historical": "classic-historical",
+      // Normalize style preference: handle underscores, hyphens, ampersands, spaces
+      const normalizeStyle = (s: string): string => {
+        return s.toLowerCase().replace(/[_&\s]+/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "");
       };
       
-      const userStyle = styleMapping[requestData.stylePreference] || requestData.stylePreference;
-      addDebug("Style mapping", `Mapped "${requestData.stylePreference}" → "${userStyle}"`);
+      const normalizedInput = normalizeStyle(requestData.stylePreference);
       
-      let { data: products } = await supabase
-        .from("shop_products")
-        .select("id, name, category, style, description, image_urls")
-        .eq("is_active", true)
-        .eq("style", userStyle)
-        .limit(15);
+      // Extract individual keywords from the style for partial matching
+      const styleKeywords = normalizedInput.split("-").filter(Boolean);
       
-      addDebug("Style-matched products", `Found ${products?.length || 0} products matching style "${userStyle}"`, 
-        products?.map(p => ({ name: p.name, category: p.category, style: p.style }))
-      );
+      // Canonical style values in the DB
+      const canonicalStyles = [
+        "modern-minimal", "bohemian-eclectic", "glam-luxe",
+        "rustic-nature", "mediterranean", "classic-historical",
+        "modern", "bohemian", "modern minimal",
+      ];
       
-      if (!products || products.length < 5) {
-        addDebug("Fallback fetch", `Only ${products?.length || 0} style-matched, fetching additional products`);
-        const { data: additionalProducts } = await supabase
+      // Find best matching canonical style(s)
+      const matchedStyles = canonicalStyles.filter(canonical => {
+        const normalizedCanonical = normalizeStyle(canonical);
+        // Exact match after normalization
+        if (normalizedCanonical === normalizedInput) return true;
+        // Check if any keyword from user input appears in the canonical style
+        return styleKeywords.some(kw => normalizedCanonical.includes(kw));
+      });
+      
+      addDebug("Style mapping", `Input "${requestData.stylePreference}" → normalized "${normalizedInput}" → matched styles: [${matchedStyles.join(", ")}]`);
+      
+      // Fetch products matching any of the resolved styles
+      let products: any[] = [];
+      
+      if (matchedStyles.length > 0) {
+        const { data: styleProducts } = await supabase
           .from("shop_products")
           .select("id, name, category, style, description, image_urls")
           .eq("is_active", true)
-          .neq("style", userStyle)
-          .limit(10);
+          .in("style", matchedStyles)
+          .limit(15);
         
-        addDebug("Additional products", `Found ${additionalProducts?.length || 0} additional products`,
-          additionalProducts?.map(p => ({ name: p.name, category: p.category, style: p.style }))
+        products = styleProducts || [];
+      }
+      
+      addDebug("Style-matched products", `Found ${products.length} products matching styles [${matchedStyles.join(", ")}]`, 
+        products.map(p => ({ name: p.name, category: p.category, style: p.style }))
+      );
+      
+      if (products.length < 5) {
+        addDebug("Fallback fetch", `Only ${products.length} style-matched, fetching additional products`);
+        
+        // Build category filter from approved furniture list if available
+        let additionalProducts: any[] = [];
+        
+        if (roomFurnitureItems.length > 0) {
+          // Fetch all active products not already matched, then filter by approved furniture categories
+          const excludeStyles = matchedStyles.length > 0 ? matchedStyles : ["__none__"];
+          const { data: candidates } = await supabase
+            .from("shop_products")
+            .select("id, name, category, style, description, image_urls")
+            .eq("is_active", true)
+            .not("style", "in", `(${excludeStyles.join(",")})`)
+            .limit(30);
+          
+          // Filter candidates to only include products whose category matches approved furniture items
+          const approvedLower = roomFurnitureItems.map(f => f.toLowerCase());
+          additionalProducts = (candidates || []).filter(p => {
+            const catLower = (p.category || "").toLowerCase();
+            const nameLower = (p.name || "").toLowerCase();
+            return approvedLower.some(approved => 
+              catLower.includes(approved) || approved.includes(catLower) ||
+              nameLower.includes(approved) || approved.includes(nameLower)
+            );
+          });
+          
+          addDebug("Furniture-filtered additional products", `${additionalProducts.length} products match approved furniture list`, {
+            approvedFurniture: roomFurnitureItems,
+            matchedProducts: additionalProducts.map(p => ({ name: p.name, category: p.category })),
+          });
+        } else {
+          // No furniture config - fetch any additional products
+          const excludeStyles = matchedStyles.length > 0 ? matchedStyles : ["__none__"];
+          const { data: fallbackProducts } = await supabase
+            .from("shop_products")
+            .select("id, name, category, style, description, image_urls")
+            .eq("is_active", true)
+            .not("style", "in", `(${excludeStyles.join(",")})`)
+            .limit(10);
+          
+          additionalProducts = fallbackProducts || [];
+        }
+        
+        addDebug("Additional products", `Found ${additionalProducts.length} additional products`,
+          additionalProducts.map(p => ({ name: p.name, category: p.category, style: p.style }))
         );
         
-        products = [...(products || []), ...(additionalProducts || [])];
+        products = [...products, ...additionalProducts];
       }
       
       if (products && products.length > 0) {
