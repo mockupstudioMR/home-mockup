@@ -45,7 +45,8 @@ const AnalyzeRoom = () => {
   const [uploadedImages, setUploadedImages] = useState<string[]>(() => getInitialState().images);
   const [isUploading, setIsUploading] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(() => getInitialState().result);
+const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(() => getInitialState().result);
+  const [selectedStyleIndex, setSelectedStyleIndex] = useState<number | null>(null);
 
   // Persist state to sessionStorage - URLs are small so they fit
   useEffect(() => {
@@ -102,6 +103,7 @@ const AnalyzeRoom = () => {
       if (newUrls.length > 0) {
         setUploadedImages(prev => [...prev, ...newUrls].slice(0, 6));
         setAnalysisResult(null);
+        setSelectedStyleIndex(null);
       }
     } catch (error) {
       console.error('Upload failed:', error);
@@ -132,6 +134,7 @@ const AnalyzeRoom = () => {
     
     setUploadedImages(prev => prev.filter((_, i) => i !== index));
     setAnalysisResult(null);
+    setSelectedStyleIndex(null);
   };
 
   const analyzeImages = async () => {
@@ -163,18 +166,18 @@ const AnalyzeRoom = () => {
   };
 
   const handleContinue = () => {
-    if (analysisResult && analysisResult.styles.length > 0) {
-      const primaryStyle = analysisResult.styles[0];
+    if (analysisResult && selectedStyleIndex !== null) {
+      const selectedStyle = analysisResult.styles[selectedStyleIndex];
       updateQuizData({
-        stylePreference: primaryStyle.styleName.toLowerCase().replace(/\s+/g, "-"),
-        colorPalette: "neutral", // Will be refined based on analysis
+        stylePreference: selectedStyle.styleName.toLowerCase().replace(/\s+/g, "-"),
+        colorPalette: "neutral",
       });
       navigate("/quiz-details", { 
         state: { 
           selectedStyle: {
-            id: primaryStyle.styleName.toLowerCase().replace(/\s+/g, "-"),
-            title: primaryStyle.styleName,
-            description: primaryStyle.description,
+            id: selectedStyle.styleName.toLowerCase().replace(/\s+/g, "-"),
+            title: selectedStyle.styleName,
+            description: selectedStyle.description,
           },
           analysisResult,
           uploadedImages,
@@ -325,9 +328,11 @@ const AnalyzeRoom = () => {
                   <h2 className="text-xl font-semibold mb-4">Detected Styles</h2>
                   <div className="space-y-4">
                     {analysisResult.styles.map((style, index) => (
-                      <div
+                      <button
+                        type="button"
                         key={index}
-                        className={`p-4 rounded-xl ${index === 0 ? "bg-primary/10 border border-primary/30" : "bg-secondary/50"}`}
+                        onClick={() => setSelectedStyleIndex(index)}
+                        className={`w-full text-left p-4 rounded-xl transition-all cursor-pointer ${selectedStyleIndex === index ? "bg-primary/10 border-2 border-primary ring-2 ring-primary/20" : "bg-secondary/50 border-2 border-transparent hover:border-primary/30"}`}
                       >
                         <div className="flex items-center justify-between mb-2">
                           <h3 className="font-semibold">{style.styleName}</h3>
@@ -346,7 +351,7 @@ const AnalyzeRoom = () => {
                             </span>
                           ))}
                         </div>
-                      </div>
+                      </button>
                     ))}
                   </div>
                 </div>
@@ -372,8 +377,10 @@ const AnalyzeRoom = () => {
                   <p className="text-muted-foreground">{analysisResult.moodboardDescription}</p>
                 </div>
 
-                <Button size="lg" className="w-full" onClick={handleContinue}>
-                  Continue with {analysisResult.styles[0]?.styleName}
+                <Button size="lg" className="w-full" onClick={handleContinue} disabled={selectedStyleIndex === null}>
+                  {selectedStyleIndex !== null
+                    ? `Continue with ${analysisResult.styles[selectedStyleIndex]?.styleName}`
+                    : "Select a style to continue"}
                 </Button>
               </CardContent>
             </Card>
