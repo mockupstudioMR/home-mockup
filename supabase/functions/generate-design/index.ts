@@ -1,6 +1,9 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
+const VERSION = "v2.1.0";
+const DEPLOYED_AT = "2026-02-06T11:35:00Z";
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
@@ -43,8 +46,10 @@ serve(async (req) => {
     const debugSteps: DebugStep[] = [];
     const addDebug = (step: string, detail: string, data?: unknown) => {
       debugSteps.push({ timestamp: new Date().toISOString(), step, detail, data });
-      console.log(`[DEBUG] ${step}: ${detail}`);
+      console.log(`[${VERSION}] ${step}: ${detail}`);
     };
+
+    addDebug("Version", `${VERSION} deployed at ${DEPLOYED_AT}`);
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
@@ -308,6 +313,7 @@ serve(async (req) => {
         description: textContent,
         prompt,
         debugSteps,
+        _version: VERSION,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
