@@ -13,10 +13,13 @@ const Auth = () => {
   const inviteToken = searchParams.get("invite");
   
   const [isLogin, setIsLogin] = useState(!inviteToken);
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState(() => localStorage.getItem("rememberedEmail") || "");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [acceptingInvite, setAcceptingInvite] = useState(false);
+  const [rememberMe, setRememberMe] = useState(() => {
+    return localStorage.getItem("rememberMe") === "true";
+  });
   
   const { user, role, signIn, signUp, acceptInvite } = useAuth();
   const navigate = useNavigate();
@@ -77,6 +80,15 @@ const Auth = () => {
           variant: "destructive",
         });
       } else {
+        // Save or clear remembered credentials
+        if (isLogin && rememberMe) {
+          localStorage.setItem("rememberMe", "true");
+          localStorage.setItem("rememberedEmail", email);
+        } else {
+          localStorage.removeItem("rememberMe");
+          localStorage.removeItem("rememberedEmail");
+        }
+
         toast({
           title: isLogin ? "Welcome back!" : "Account created!",
           description: inviteToken 
@@ -165,8 +177,24 @@ const Auth = () => {
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 minLength={6}
+                autoComplete={isLogin ? "current-password" : "new-password"}
               />
             </div>
+
+            {isLogin && (
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id="remember"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                  className="h-4 w-4 rounded border-input text-primary focus:ring-ring"
+                />
+                <Label htmlFor="remember" className="text-sm font-normal cursor-pointer">
+                  Remember me
+                </Label>
+              </div>
+            )}
 
             <Button type="submit" className="w-full" size="lg" disabled={loading}>
               {loading ? "Please wait..." : isLogin ? "Sign In" : "Create Account"}
