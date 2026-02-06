@@ -238,7 +238,7 @@ serve(async (req) => {
         products = products.sort(() => Math.random() - 0.5);
       }
       
-      products = products?.slice(0, 10) || [];
+      products = products?.slice(0, 6) || [];
 
       addDebug("Final product selection", `Selected ${products.length} products after shuffle`,
         products.map(p => ({ name: p.name, category: p.category, style: p.style, hasImage: !!(p.image_urls?.length) }))
@@ -298,11 +298,14 @@ serve(async (req) => {
       addDebug("Source image", "Added source image to request");
     }
     
+    // Limit product images to avoid 400 errors from too many images
+    const maxProductImages = 4;
     if (enrichedRequestData.productImageUrls && enrichedRequestData.productImageUrls.length > 0) {
-      for (const imageUrl of enrichedRequestData.productImageUrls) {
+      const limitedImageUrls = enrichedRequestData.productImageUrls.slice(0, maxProductImages);
+      for (const imageUrl of limitedImageUrls) {
         contentParts.push({ type: "image_url", image_url: { url: imageUrl } });
       }
-      addDebug("Product images", `Added ${enrichedRequestData.productImageUrls.length} product images to request`);
+      addDebug("Product images", `Added ${limitedImageUrls.length}/${enrichedRequestData.productImageUrls.length} product images to request (max ${maxProductImages})`);
     }
 
     const messages: any[] = [
@@ -351,7 +354,8 @@ serve(async (req) => {
           );
         }
         const errorText = await response.text();
-        addDebug("AI gateway error", `Status ${response.status}`, { errorText: errorText.slice(0, 200) });
+        addDebug("AI gateway error", `Status ${response.status}`, { errorText: errorText.slice(0, 1000) });
+        console.error(`AI gateway error body: ${errorText.slice(0, 1000)}`);
         
         if (response.status >= 500 && attempt < maxRetries) {
           addDebug("Retrying", `Server error ${response.status}, waiting ${attempt}s`);
