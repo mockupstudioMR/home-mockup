@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { QuizProvider } from "@/contexts/QuizContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
+import DevRoleSwitcher from "@/components/DevRoleSwitcher";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Start from "./pages/Start";
@@ -31,6 +32,7 @@ const App = () => (
           <Toaster />
           <Sonner />
           <BrowserRouter>
+            <DevRoleSwitcher />
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/auth" element={<Auth />} />
