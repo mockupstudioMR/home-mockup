@@ -16,8 +16,11 @@ import {
   Sparkles,
   Store,
   ExternalLink,
-  Trash2
+  Trash2,
+  Pencil,
+  Check
 } from "lucide-react";
+import EditableTagList from "./EditableTagList";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Select,
@@ -149,17 +152,29 @@ const AdminProductManagement = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-all-products"] });
-      toast({
-        title: "Product deleted",
-        description: "Product has been removed from the catalog.",
-      });
+      toast({ title: "Product deleted" });
     },
     onError: () => {
-      toast({
-        title: "Error",
-        description: "Failed to delete product.",
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: "Failed to delete product.", variant: "destructive" });
+    },
+  });
+
+  // Update product tags mutation
+  const updateTagsMutation = useMutation({
+    mutationFn: async ({ productId, tags }: { productId: string; tags: string[] }) => {
+      const { error } = await supabase
+        .from("shop_products")
+        .update({ ai_style_tags: tags })
+        .eq("id", productId);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-all-products"] });
+      toast({ title: "Tags updated" });
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to update tags.", variant: "destructive" });
     },
   });
 
@@ -563,22 +578,18 @@ const AdminProductManagement = () => {
                         )}
                       </div>
 
-                      {/* AI Generated Tags */}
-                      {product.ai_style_tags && product.ai_style_tags.length > 0 && (
-                        <div className="pt-3 border-t border-border">
-                          <div className="flex items-center gap-1 mb-2">
-                            <Sparkles className="w-3 h-3 text-primary" />
-                            <span className="text-xs text-muted-foreground font-medium">AI Style Tags</span>
-                          </div>
-                          <div className="flex flex-wrap gap-1">
-                            {product.ai_style_tags.map((tag: string, i: number) => (
-                              <Badge key={i} variant="outline" className="text-xs bg-primary/5">
-                                {tag}
-                              </Badge>
-                            ))}
-                          </div>
+                      {/* Editable AI Style Tags */}
+                      <div className="pt-3 border-t border-border">
+                        <div className="flex items-center gap-1 mb-2">
+                          <Sparkles className="w-3 h-3 text-primary" />
+                          <span className="text-xs text-muted-foreground font-medium">AI Style Tags</span>
                         </div>
-                      )}
+                        <EditableTagList
+                          tags={product.ai_style_tags || []}
+                          onUpdate={(tags) => updateTagsMutation.mutate({ productId: product.id, tags })}
+                          isPending={updateTagsMutation.isPending}
+                        />
+                      </div>
 
                       {/* AI Image Description */}
                       {product.ai_image_description && (
