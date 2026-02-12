@@ -257,7 +257,8 @@ Return JSON:
 
     const userCityLower = userCity?.toLowerCase();
 
-    // Process each item and find matches
+    // Process each item and find matches (track used product IDs to avoid duplicates)
+    const usedProductIds = new Set<string>();
     const itemsWithMatches = analysis.items.map((item) => {
       let matchedProductId: string | null = null;
       let googleShoppingUrl: string | null = null;
@@ -265,6 +266,7 @@ Return JSON:
 
       // Try to find a matching product from local shops
       const matchingProducts = shopProducts?.filter((p) => {
+        if (usedProductIds.has(p.id)) return false; // Skip already-matched products
         const categoryMatch = p.category?.toLowerCase().includes(item.itemType.replace("_", " ")) ||
           item.itemName.toLowerCase().includes(p.category?.toLowerCase() || "");
         const styleMatch = !item.style || !p.style || 
@@ -281,12 +283,16 @@ Return JSON:
         
         if (localMatch) {
           matchedProductId = localMatch.id;
-        } else if (matchingProducts.length > 0) {
-          // Fallback to any matching product
+        } else {
           matchedProductId = matchingProducts[0].id;
         }
       } else if (matchingProducts.length > 0) {
         matchedProductId = matchingProducts[0].id;
+      }
+
+      // Track used product to prevent duplicate matches
+      if (matchedProductId) {
+        usedProductIds.add(matchedProductId);
       }
 
       // Build visual traits query for Google Images
