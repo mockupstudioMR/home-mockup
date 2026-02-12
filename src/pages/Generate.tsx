@@ -108,6 +108,7 @@ interface DesignItem {
     currency?: string;
     image_urls?: string[];
     source_url?: string;
+    ai_style_tags?: string[];
   };
 }
 
@@ -511,7 +512,7 @@ const Generate = () => {
         .from("design_items")
         .select(`
           *,
-          matchedProduct:matched_product_id(id, name, price, currency, image_urls, source_url)
+          matchedProduct:matched_product_id(id, name, price, currency, image_urls, source_url, ai_style_tags)
         `)
         .eq("design_id", designId);
 
@@ -1033,7 +1034,7 @@ const Generate = () => {
           if (item.matched_product_id) {
             const { data: product } = await supabase
               .from("shop_products")
-              .select("id, name, price, currency, image_urls, source_url")
+              .select("id, name, price, currency, image_urls, source_url, ai_style_tags")
               .eq("id", item.matched_product_id)
               .single();
             return { ...item, matchedProduct: product };

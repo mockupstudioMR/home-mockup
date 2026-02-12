@@ -31,6 +31,7 @@ interface DesignItem {
     currency?: string;
     image_urls?: string[];
     source_url?: string;
+    ai_style_tags?: string[];
   };
 }
 
@@ -58,6 +59,10 @@ const isWallItem = (itemType: string): boolean => {
 
 const DesignItemCard = ({ item, designImageUrl, onOrderCustomMade }: DesignItemCardProps) => {
   const [imageError, setImageError] = useState(false);
+  
+  const hasMatchedProduct = !!item.matchedProduct;
+  const matchedImage = item.matchedProduct?.image_urls?.[0];
+  const displayName = hasMatchedProduct ? item.matchedProduct!.name : item.item_name;
   
   // Build visual search query
   const visualTraits = [item.item_name];
@@ -99,7 +104,7 @@ const DesignItemCard = ({ item, designImageUrl, onOrderCustomMade }: DesignItemC
 
   return (
     <div className="flex items-start gap-3 p-3 rounded-lg bg-background/80 border border-border/50 hover:border-primary/30 transition-colors">
-      {/* Item thumbnail or color swatch */}
+      {/* Item thumbnail - prefer matched product image */}
       <div className="flex-shrink-0 w-16 h-16 rounded-md overflow-hidden bg-muted border border-border/50 relative group/thumb cursor-pointer">
         {showColorSwatch ? (
           <div 
@@ -110,6 +115,13 @@ const DesignItemCard = ({ item, designImageUrl, onOrderCustomMade }: DesignItemC
               {hexColor?.toUpperCase()}
             </span>
           </div>
+        ) : matchedImage && !imageError ? (
+          <img 
+            src={matchedImage} 
+            alt={displayName}
+            className="w-full h-full object-cover"
+            onError={() => setImageError(true)}
+          />
         ) : hasBoundingBox ? (
           <div 
             className="w-full h-full"
@@ -124,10 +136,16 @@ const DesignItemCard = ({ item, designImageUrl, onOrderCustomMade }: DesignItemC
           />
         )}
         
-        {/* Expanded preview on hover - fixed position at top */}
-        {(hasBoundingBox || !showColorSwatch) && (
+        {/* Expanded preview on hover */}
+        {(matchedImage || hasBoundingBox || !showColorSwatch) && (
           <div className="fixed left-1/2 top-4 -translate-x-1/2 w-80 h-80 md:w-96 md:h-96 rounded-xl overflow-hidden bg-background border-2 border-primary/30 shadow-2xl z-[100] opacity-0 scale-90 pointer-events-none group-hover/thumb:opacity-100 group-hover/thumb:scale-100 group-hover/thumb:pointer-events-auto transition-all duration-300">
-            {hasBoundingBox ? (
+            {matchedImage && !imageError ? (
+              <img 
+                src={matchedImage} 
+                alt={displayName}
+                className="w-full h-full object-cover"
+              />
+            ) : hasBoundingBox ? (
               <div 
                 className="w-full h-full"
                 style={getCropBackgroundStyles()}
@@ -140,7 +158,7 @@ const DesignItemCard = ({ item, designImageUrl, onOrderCustomMade }: DesignItemC
               />
             )}
             <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-3">
-              <p className="text-white text-sm font-medium truncate">{item.item_name}</p>
+              <p className="text-white text-sm font-medium truncate">{displayName}</p>
             </div>
           </div>
         )}
@@ -148,7 +166,13 @@ const DesignItemCard = ({ item, designImageUrl, onOrderCustomMade }: DesignItemC
 
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 flex-wrap">
-          <span className="font-medium text-sm">{item.item_name}</span>
+          <span className="font-medium text-sm">{displayName}</span>
+          {hasMatchedProduct && (
+            <Badge variant="outline" className="text-xs border-green-500/30 text-green-600">
+              <MapPin className="w-2.5 h-2.5 mr-0.5" />
+              Local shop
+            </Badge>
+          )}
           {/* Show hex color for wall items */}
           {isWallItem(item.item_type) && (item.hex_code || item.color) && (
             <Badge 
@@ -175,6 +199,16 @@ const DesignItemCard = ({ item, designImageUrl, onOrderCustomMade }: DesignItemC
             {item.priority}
           </Badge>
         </div>
+        {/* Show matched product's style tags */}
+        {item.matchedProduct?.ai_style_tags && item.matchedProduct.ai_style_tags.length > 0 && (
+          <div className="flex items-center gap-1 mt-1 flex-wrap">
+            {item.matchedProduct.ai_style_tags.map((tag, idx) => (
+              <Badge key={idx} variant="secondary" className="text-[10px] px-1.5 py-0">
+                {tag}
+              </Badge>
+            ))}
+          </div>
+        )}
         <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
           {item.item_description}
         </p>
@@ -195,7 +229,7 @@ const DesignItemCard = ({ item, designImageUrl, onOrderCustomMade }: DesignItemC
               {item.material}
             </span>
           )}
-          {item.style && (
+          {item.style && !hasMatchedProduct && (
             <Badge variant="secondary" className="text-xs">
               {item.style}
             </Badge>
@@ -230,10 +264,6 @@ const DesignItemCard = ({ item, designImageUrl, onOrderCustomMade }: DesignItemC
 
         {item.matchedProduct ? (
           <div className="flex flex-col items-end gap-1">
-            <div className="flex items-center gap-1 text-xs text-green-600">
-              <MapPin className="w-3 h-3" />
-              <span>Local shop</span>
-            </div>
             {item.matchedProduct.price && (
               <span className="text-sm font-semibold">
                 {item.matchedProduct.currency || "€"}{item.matchedProduct.price}

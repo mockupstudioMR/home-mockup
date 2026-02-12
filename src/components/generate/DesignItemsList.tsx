@@ -35,6 +35,7 @@ interface DesignItem {
     currency?: string;
     image_urls?: string[];
     source_url?: string;
+    ai_style_tags?: string[];
   };
 }
 
