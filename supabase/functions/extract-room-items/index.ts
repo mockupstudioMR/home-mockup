@@ -28,44 +28,7 @@ interface ExtractRequest {
   userCity?: string;
 }
 
-Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
-
-  try {
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
-    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-
-    if (!LOVABLE_API_KEY || !SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
-      throw new Error("Missing required environment variables");
-    }
-
-    const { imageUrl, designId, userCity }: ExtractRequest = await req.json();
-
-    if (!imageUrl || !designId) {
-      throw new Error("imageUrl and designId are required");
-    }
-
-    console.log("Extracting items from design:", designId);
-
-    // Use AI to analyze the image and extract all items
-    const visionResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [
-          {
-            role: "user",
-            content: [
-              {
-                type: "text",
-                text: `Analyze this interior design image comprehensively. Extract EVERY visible design element including:
+const DEFAULT_EXTRACT_PROMPT = `Analyze this interior design image comprehensively. Extract EVERY visible design element including:
 
 1. **Wall Elements**: wall color(s), paint finish, wallpaper patterns, wall textures
 2. **Floor Elements**: flooring type (hardwood, tile, carpet, etc.), color, material
@@ -95,12 +58,68 @@ Return JSON:
   "fullDescription": "A comprehensive 2-3 sentence description of the entire room design, style, and atmosphere",
   "dominantStyle": "primary design style",
   "colorPalette": ["#hexcode1", "#hexcode2", ...]
-}`,
-              },
-              {
-                type: "image_url",
-                image_url: { url: imageUrl },
-              },
+}`;
+
+const DEFAULT_RETRY_PROMPT = `Look at this room image and list the main items you see. Return ONLY valid JSON (no markdown):
+{"items":[{"itemType":"furniture","itemName":"item name","itemDescription":"brief description","color":"color name","material":"material","style":"style","priority":"essential","boundingBox":{"x":10,"y":10,"width":20,"height":20}}],"fullDescription":"room description","dominantStyle":"modern","colorPalette":["#FFFFFF"]}`;
+
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
+    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+
+    if (!LOVABLE_API_KEY || !SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+      throw new Error("Missing required environment variables");
+    }
+
+    const { imageUrl, designId, userCity }: ExtractRequest = await req.json();
+
+    if (!imageUrl || !designId) {
+      throw new Error("imageUrl and designId are required");
+    }
+
+    console.log("Extracting items from design:", designId);
+
+    // Initialize Supabase client
+    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+
+    // Fetch prompt templates from DB
+    let extractPrompt = DEFAULT_EXTRACT_PROMPT;
+    let retryPrompt = DEFAULT_RETRY_PROMPT;
+
+    const { data: templates } = await supabase
+      .from("prompt_templates")
+      .select("template_key, template")
+      .in("template_key", ["extract_room_items", "extract_room_items_retry"]);
+
+    if (templates) {
+      for (const t of templates) {
+        if (t.template_key === "extract_room_items") extractPrompt = t.template;
+        if (t.template_key === "extract_room_items_retry") retryPrompt = t.template;
+      }
+      console.log(`Loaded ${templates.length} prompt templates from DB`);
+    }
+
+    // Use AI to analyze the image and extract all items
+    const visionResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "google/gemini-2.5-flash",
+        messages: [
+          {
+            role: "user",
+            content: [
+              { type: "text", text: extractPrompt },
+              { type: "image_url", image_url: { url: imageUrl } },
             ],
           },
         ],
@@ -117,41 +136,24 @@ Return JSON:
 
     // Helper to extract and repair JSON from AI response
     const extractAndParseJson = (text: string): typeof analysis => {
-      // Remove markdown code blocks if present
       let cleaned = text.replace(/```json\s*/gi, "").replace(/```\s*/g, "");
-      
-      // Try to find JSON object
       const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
       if (!jsonMatch) {
         console.error("No JSON object found in response");
         return null;
       }
-      
       let jsonStr = jsonMatch[0];
-      
-      // Attempt to repair common JSON issues
       try {
         return JSON.parse(jsonStr);
       } catch (e) {
         console.log("Initial parse failed, attempting repair...");
-        
-        // Fix unbalanced brackets
-        const openBraces = (jsonStr.match(/{/g) || []).length;
-        const closeBraces = (jsonStr.match(/}/g) || []).length;
         const openBrackets = (jsonStr.match(/\[/g) || []).length;
         const closeBrackets = (jsonStr.match(/]/g) || []).length;
-        
-        // Add missing closing brackets/braces
-        for (let i = 0; i < openBrackets - closeBrackets; i++) {
-          jsonStr += "]";
-        }
-        for (let i = 0; i < openBraces - closeBraces; i++) {
-          jsonStr += "}";
-        }
-        
-        // Remove trailing commas before closing brackets/braces
+        const openBraces = (jsonStr.match(/{/g) || []).length;
+        const closeBraces = (jsonStr.match(/}/g) || []).length;
+        for (let i = 0; i < openBrackets - closeBrackets; i++) jsonStr += "]";
+        for (let i = 0; i < openBraces - closeBraces; i++) jsonStr += "}";
         jsonStr = jsonStr.replace(/,\s*([}\]])/g, "$1");
-        
         try {
           return JSON.parse(jsonStr);
         } catch (e2) {
@@ -161,7 +163,6 @@ Return JSON:
       }
     };
 
-    // Parse JSON from response
     let analysis: {
       items: ExtractedItem[];
       fullDescription: string;
@@ -169,10 +170,9 @@ Return JSON:
       colorPalette: string[];
     } | null = extractAndParseJson(textContent);
 
-    // If parsing failed, retry with a simpler prompt
+    // If parsing failed, retry with simpler prompt
     if (!analysis) {
       console.log("First attempt failed, retrying with simpler prompt...");
-      
       const retryResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
         headers: {
@@ -185,22 +185,14 @@ Return JSON:
             {
               role: "user",
               content: [
-                {
-                  type: "text",
-                  text: `Look at this room image and list the main items you see. Return ONLY valid JSON (no markdown):
-{"items":[{"itemType":"furniture","itemName":"item name","itemDescription":"brief description","color":"color name","material":"material","style":"style","priority":"essential","boundingBox":{"x":10,"y":10,"width":20,"height":20}}],"fullDescription":"room description","dominantStyle":"modern","colorPalette":["#FFFFFF"]}`,
-                },
-                {
-                  type: "image_url",
-                  image_url: { url: imageUrl },
-                },
+                { type: "text", text: retryPrompt },
+                { type: "image_url", image_url: { url: imageUrl } },
               ],
             },
           ],
           max_tokens: 4000,
         }),
       });
-
       if (retryResponse.ok) {
         const retryData = await retryResponse.json();
         const retryContent = retryData.choices?.[0]?.message?.content || "";
@@ -209,22 +201,11 @@ Return JSON:
     }
 
     if (!analysis || !analysis.items || analysis.items.length === 0) {
-      // Provide fallback items if AI completely fails
       console.log("AI extraction failed, using fallback items");
       analysis = {
         items: [
-          {
-            itemType: "furniture",
-            itemName: "Room Furniture",
-            itemDescription: "Main furniture pieces visible in the design",
-            priority: "essential" as const,
-          },
-          {
-            itemType: "decor",
-            itemName: "Decorative Elements",
-            itemDescription: "Decorative accents and accessories",
-            priority: "recommended" as const,
-          },
+          { itemType: "furniture", itemName: "Room Furniture", itemDescription: "Main furniture pieces visible in the design", priority: "essential" as const },
+          { itemType: "decor", itemName: "Decorative Elements", itemDescription: "Decorative accents and accessories", priority: "recommended" as const },
         ],
         fullDescription: "A beautifully designed room with carefully curated furniture and decor elements.",
         dominantStyle: "Contemporary",
@@ -234,19 +215,12 @@ Return JSON:
 
     console.log(`Extracted ${analysis.items.length} items from design`);
 
-    // Initialize Supabase client
-    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-
     // Get all shop products for matching
     const { data: shopProducts } = await supabase
       .from("shop_products")
-      .select(`
-        id, name, category, style, 
-        shop_id
-      `)
+      .select("id, name, category, style, shop_id")
       .eq("is_active", true);
 
-    // Get business profiles with cities for location matching
     const { data: businessProfiles } = await supabase
       .from("business_profiles")
       .select("user_id, city, business_name");
@@ -254,19 +228,17 @@ Return JSON:
     const shopCityMap = new Map(
       businessProfiles?.map((bp) => [bp.user_id, bp.city?.toLowerCase()]) || []
     );
-
     const userCityLower = userCity?.toLowerCase();
 
-    // Process each item and find matches (track used product IDs to avoid duplicates)
+    // Process each item and find matches
     const usedProductIds = new Set<string>();
     const itemsWithMatches = analysis.items.map((item) => {
       let matchedProductId: string | null = null;
       let googleShoppingUrl: string | null = null;
       let googleImagesUrl: string | null = null;
 
-      // Try to find a matching product from local shops
       const matchingProducts = shopProducts?.filter((p) => {
-        if (usedProductIds.has(p.id)) return false; // Skip already-matched products
+        if (usedProductIds.has(p.id)) return false;
         const categoryMatch = p.category?.toLowerCase().includes(item.itemType.replace("_", " ")) ||
           item.itemName.toLowerCase().includes(p.category?.toLowerCase() || "");
         const styleMatch = !item.style || !p.style || 
@@ -274,56 +246,29 @@ Return JSON:
         return categoryMatch && styleMatch;
       }) || [];
 
-      // Prioritize shops in user's city
       if (userCityLower && matchingProducts.length > 0) {
         const localMatch = matchingProducts.find((p) => {
           const shopCity = shopCityMap.get(p.shop_id);
           return shopCity === userCityLower;
         });
-        
-        if (localMatch) {
-          matchedProductId = localMatch.id;
-        } else {
-          matchedProductId = matchingProducts[0].id;
-        }
+        matchedProductId = localMatch ? localMatch.id : matchingProducts[0].id;
       } else if (matchingProducts.length > 0) {
         matchedProductId = matchingProducts[0].id;
       }
 
-      // Track used product to prevent duplicate matches
-      if (matchedProductId) {
-        usedProductIds.add(matchedProductId);
-      }
+      if (matchedProductId) usedProductIds.add(matchedProductId);
 
-      // Build visual traits query for Google Images
-      const visualTraits: string[] = [];
-      
-      // Add item name as base
-      visualTraits.push(item.itemName);
-      
-      // Add color if available
-      if (item.color) {
-        visualTraits.push(item.color);
-      }
-      
-      // Add material if available
-      if (item.material) {
-        visualTraits.push(item.material);
-      }
-      
-      // Add style if available
-      if (item.style) {
-        visualTraits.push(item.style);
-      }
+      const visualTraits: string[] = [item.itemName];
+      if (item.color) visualTraits.push(item.color);
+      if (item.material) visualTraits.push(item.material);
+      if (item.style) visualTraits.push(item.style);
 
-      // Generate Bing Images URL for furniture items
       const furnitureTypes = ["furniture", "lighting", "textile", "decor"];
       if (furnitureTypes.includes(item.itemType)) {
         const imageQuery = encodeURIComponent(visualTraits.join(" ").trim());
         googleImagesUrl = `https://www.bing.com/images/search?q=${imageQuery}`;
       }
 
-      // If no local match, generate Bing Shopping URL as fallback
       if (!matchedProductId) {
         const searchQuery = encodeURIComponent(
           `${item.itemName} ${item.material || ""} ${item.style || ""}`.trim()
@@ -331,12 +276,7 @@ Return JSON:
         googleShoppingUrl = `https://www.bing.com/shop?q=${searchQuery}`;
       }
 
-      return {
-        ...item,
-        matchedProductId,
-        googleShoppingUrl,
-        googleImagesUrl,
-      };
+      return { ...item, matchedProductId, googleShoppingUrl, googleImagesUrl };
     });
 
     // Save items to database
@@ -344,10 +284,7 @@ Return JSON:
       .from("design_items")
       .delete()
       .eq("design_id", designId);
-
-    if (deleteError) {
-      console.warn("Error clearing existing items:", deleteError);
-    }
+    if (deleteError) console.warn("Error clearing existing items:", deleteError);
 
     const itemsToInsert = itemsWithMatches.map((item) => ({
       design_id: designId,
@@ -369,12 +306,8 @@ Return JSON:
       .from("design_items")
       .insert(itemsToInsert)
       .select();
+    if (insertError) console.error("Error inserting items:", insertError);
 
-    if (insertError) {
-      console.error("Error inserting items:", insertError);
-    }
-
-    // Update the generated_designs record with full description and lock it
     const { error: updateError } = await supabase
       .from("generated_designs")
       .update({
@@ -384,10 +317,7 @@ Return JSON:
         extracted_items: analysis.items,
       })
       .eq("id", designId);
-
-    if (updateError) {
-      console.error("Error updating design:", updateError);
-    }
+    if (updateError) console.error("Error updating design:", updateError);
 
     return new Response(
       JSON.stringify({

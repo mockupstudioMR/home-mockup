@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -10,27 +11,8 @@ interface AnalyzeRequest {
   mode: "room" | "products";
 }
 
-serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
-
-  try {
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) {
-      throw new Error("LOVABLE_API_KEY is not configured");
-    }
-
-    const { images, mode }: AnalyzeRequest = await req.json();
-
-    if (!images || images.length === 0) {
-      throw new Error("No images provided");
-    }
-
-    let prompt: string;
-    
-    if (mode === "room") {
-      prompt = `Analyze these interior design images and identify the dominant styles. For each detected style, provide:
+// Default prompts (fallbacks if DB templates not found)
+const DEFAULT_ROOM_PROMPT = `Analyze these interior design images and identify the dominant styles. For each detected style, provide:
 1. Style name (e.g., "Modern & Minimal", "Bohemian Eclectic", "Mediterranean", "Classic Historical", "Rustic Nature", "Glam & Luxe")
 2. Confidence score (0-1)
 3. Brief description of why this style matches
@@ -53,8 +35,8 @@ Respond in this exact JSON format:
   "dominantColors": ["#hex"],
   "moodboardDescription": "string"
 }`;
-    } else {
-      prompt = `Analyze these product/furniture images. For each product, identify:
+
+const DEFAULT_PRODUCTS_PROMPT = `Analyze these product/furniture images. For each product, identify:
 1. Product name/type
 2. Category (furniture, lighting, decor, textile, etc.)
 3. Best matching interior style
@@ -92,6 +74,43 @@ Respond in this exact JSON format:
   "styleDescription": "string",
   "moodboardSuggestion": "string"
 }`;
+
+serve(async (req) => {
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
+    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+
+    if (!LOVABLE_API_KEY) {
+      throw new Error("LOVABLE_API_KEY is not configured");
+    }
+
+    const { images, mode }: AnalyzeRequest = await req.json();
+
+    if (!images || images.length === 0) {
+      throw new Error("No images provided");
+    }
+
+    // Fetch prompt template from DB
+    let prompt: string;
+    const templateKey = mode === "room" ? "analyze_style_room" : "analyze_style_products";
+    
+    if (SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY) {
+      const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+      const { data: tpl } = await supabase
+        .from("prompt_templates")
+        .select("template")
+        .eq("template_key", templateKey)
+        .maybeSingle();
+      
+      prompt = tpl?.template || (mode === "room" ? DEFAULT_ROOM_PROMPT : DEFAULT_PRODUCTS_PROMPT);
+      console.log(`Using ${tpl ? "DB" : "default"} template for ${templateKey}`);
+    } else {
+      prompt = mode === "room" ? DEFAULT_ROOM_PROMPT : DEFAULT_PRODUCTS_PROMPT;
     }
 
     // Build content array with all images
@@ -136,92 +155,6 @@ Respond in this exact JSON format:
     // Robust JSON extraction
     const result = extractJsonFromResponse(textContent, mode);
 
-function extractJsonFromResponse(response: string, mode: string): unknown {
-  // Step 1: Remove markdown code blocks
-  let cleaned = response
-    .replace(/```json\s*/gi, "")
-    .replace(/```\s*/g, "")
-    .trim();
-
-  // Step 2: Find JSON boundaries
-  const jsonStart = cleaned.indexOf("{");
-  const jsonEnd = cleaned.lastIndexOf("}");
-
-  if (jsonStart === -1 || jsonEnd === -1) {
-    throw new Error("No JSON object found in response");
-  }
-
-  cleaned = cleaned.substring(jsonStart, jsonEnd + 1);
-
-  // Step 3: Attempt parse with error handling
-  try {
-    return JSON.parse(cleaned);
-  } catch (e) {
-    console.log("Initial parse failed, attempting fixes...");
-    
-    // Step 4: Try to fix common issues
-    cleaned = cleaned
-      .replace(/,\s*}/g, "}") // Remove trailing commas before }
-      .replace(/,\s*]/g, "]") // Remove trailing commas before ]
-      .replace(/[\x00-\x1F\x7F]/g, "") // Remove control characters
-      .replace(/\n/g, " ") // Replace newlines with spaces
-      .replace(/\r/g, ""); // Remove carriage returns
-
-    try {
-      return JSON.parse(cleaned);
-    } catch (e2) {
-      console.log("Second parse failed, attempting truncation repair...");
-      
-      // Step 5: Try to repair truncated JSON
-      const repaired = repairTruncatedJson(cleaned, mode);
-      return JSON.parse(repaired);
-    }
-  }
-}
-
-function repairTruncatedJson(json: string, mode: string): string {
-  let repaired = json;
-  
-  // Count brackets to detect truncation
-  const openBraces = (repaired.match(/{/g) || []).length;
-  const closeBraces = (repaired.match(/}/g) || []).length;
-  const openBrackets = (repaired.match(/\[/g) || []).length;
-  const closeBrackets = (repaired.match(/]/g) || []).length;
-  
-  // Remove incomplete key-value pairs at the end
-  repaired = repaired.replace(/,?\s*"[^"]*":\s*$/, "");
-  repaired = repaired.replace(/,?\s*"[^"]*":\s*\[$/, "");
-  repaired = repaired.replace(/,?\s*"[^"]*":\s*"[^"]*$/, "");
-  
-  // Close any unclosed strings
-  const quoteCount = (repaired.match(/"/g) || []).length;
-  if (quoteCount % 2 !== 0) {
-    repaired += '"';
-  }
-  
-  // Add missing closing brackets
-  const newOpenBrackets = (repaired.match(/\[/g) || []).length;
-  const newCloseBrackets = (repaired.match(/]/g) || []).length;
-  for (let i = 0; i < newOpenBrackets - newCloseBrackets; i++) {
-    repaired += "]";
-  }
-  
-  // Add missing closing braces
-  const newOpenBraces = (repaired.match(/{/g) || []).length;
-  const newCloseBraces = (repaired.match(/}/g) || []).length;
-  for (let i = 0; i < newOpenBraces - newCloseBraces; i++) {
-    repaired += "}";
-  }
-  
-  // Clean up any trailing commas we might have created
-  repaired = repaired.replace(/,\s*}/g, "}");
-  repaired = repaired.replace(/,\s*]/g, "]");
-  
-  console.log("Repaired JSON:", repaired.substring(0, 200) + "...");
-  
-  return repaired;
-}
-
     return new Response(
       JSON.stringify(result),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -234,3 +167,72 @@ function repairTruncatedJson(json: string, mode: string): string {
     );
   }
 });
+
+function extractJsonFromResponse(response: string, mode: string): unknown {
+  let cleaned = response
+    .replace(/```json\s*/gi, "")
+    .replace(/```\s*/g, "")
+    .trim();
+
+  const jsonStart = cleaned.indexOf("{");
+  const jsonEnd = cleaned.lastIndexOf("}");
+
+  if (jsonStart === -1 || jsonEnd === -1) {
+    throw new Error("No JSON object found in response");
+  }
+
+  cleaned = cleaned.substring(jsonStart, jsonEnd + 1);
+
+  try {
+    return JSON.parse(cleaned);
+  } catch (e) {
+    console.log("Initial parse failed, attempting fixes...");
+    
+    cleaned = cleaned
+      .replace(/,\s*}/g, "}")
+      .replace(/,\s*]/g, "]")
+      .replace(/[\x00-\x1F\x7F]/g, "")
+      .replace(/\n/g, " ")
+      .replace(/\r/g, "");
+
+    try {
+      return JSON.parse(cleaned);
+    } catch (e2) {
+      console.log("Second parse failed, attempting truncation repair...");
+      const repaired = repairTruncatedJson(cleaned);
+      return JSON.parse(repaired);
+    }
+  }
+}
+
+function repairTruncatedJson(json: string): string {
+  let repaired = json;
+  
+  repaired = repaired.replace(/,?\s*"[^"]*":\s*$/, "");
+  repaired = repaired.replace(/,?\s*"[^"]*":\s*\[$/, "");
+  repaired = repaired.replace(/,?\s*"[^"]*":\s*"[^"]*$/, "");
+  
+  const quoteCount = (repaired.match(/"/g) || []).length;
+  if (quoteCount % 2 !== 0) {
+    repaired += '"';
+  }
+  
+  const openBrackets = (repaired.match(/\[/g) || []).length;
+  const closeBrackets = (repaired.match(/]/g) || []).length;
+  for (let i = 0; i < openBrackets - closeBrackets; i++) {
+    repaired += "]";
+  }
+  
+  const openBraces = (repaired.match(/{/g) || []).length;
+  const closeBraces = (repaired.match(/}/g) || []).length;
+  for (let i = 0; i < openBraces - closeBraces; i++) {
+    repaired += "}";
+  }
+  
+  repaired = repaired.replace(/,\s*}/g, "}");
+  repaired = repaired.replace(/,\s*]/g, "]");
+  
+  console.log("Repaired JSON:", repaired.substring(0, 200) + "...");
+  
+  return repaired;
+}
