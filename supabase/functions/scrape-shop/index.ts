@@ -197,18 +197,21 @@ Deno.serve(async (req) => {
       `URL: ${p.url}\nTitle: ${p.metadata.title || 'Unknown'}\nContent:\n${p.content.substring(0, 6000)}`
     ).join("\n\n---\n\n");
 
-    const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [
-          {
-            role: "user",
-            content: `Extract product information from these scraped furniture/home decor pages. For each product found, extract:
+    // Fetch scrape prompt template from DB
+    let scrapePromptTemplate = "";
+    {
+      const { data: tpl } = await supabase
+        .from("prompt_templates")
+        .select("template")
+        .eq("template_key", "scrape_shop_extract")
+        .maybeSingle();
+      if (tpl?.template) {
+        scrapePromptTemplate = tpl.template.replace(/\{\{scraped_content\}\}/g, productsToExtract);
+        console.log("Using DB template for scrape_shop_extract");
+      }
+    }
+
+    const scrapePrompt = scrapePromptTemplate || `Extract product information from these scraped furniture/home decor pages. For each product found, extract:
 - name: Product name
 - description: Brief description (max 200 chars)
 - category: One of: sofa, chair, table, bed, storage, lighting, decor, rug, outdoor, other
@@ -237,7 +240,20 @@ Return as JSON array:
 }
 
 Scraped pages:
-${productsToExtract}`,
+${productsToExtract}`;
+
+    const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "google/gemini-2.5-flash",
+        messages: [
+          {
+            role: "user",
+            content: scrapePrompt,
           },
         ],
       }),

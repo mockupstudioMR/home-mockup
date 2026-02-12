@@ -24,16 +24,56 @@ interface PromptTemplate {
   description: string | null;
 }
 
-const AVAILABLE_VARIABLES = [
-  { name: "{{style}}", desc: "The mapped style preference (e.g. 'modern minimalist with clean lines')" },
-  { name: "{{room}}", desc: "The room type label (e.g. 'living room')" },
-  { name: "{{colors}}", desc: "The mapped color palette description" },
-  { name: "{{budget}}", desc: "The mapped budget description (e.g. 'luxurious high-end designer')" },
-  { name: "{{elements}}", desc: "User's must-have elements as a sentence" },
-  { name: "{{product_instructions}}", desc: "Auto-generated product inclusion instructions" },
-  { name: "{{modification_prompt}}", desc: "User's modification request text (modification template only)" },
-  { name: "{{furniture_list}}", desc: "Comma-separated furniture items for the room type" },
-];
+const AVAILABLE_VARIABLES: Record<string, { name: string; desc: string }[]> = {
+  // Design generation templates
+  default: [
+    { name: "{{style}}", desc: "The mapped style preference (e.g. 'modern minimalist with clean lines')" },
+    { name: "{{room}}", desc: "The room type label (e.g. 'living room')" },
+    { name: "{{colors}}", desc: "The mapped color palette description" },
+    { name: "{{budget}}", desc: "The mapped budget description (e.g. 'luxurious high-end designer')" },
+    { name: "{{elements}}", desc: "User's must-have elements as a sentence" },
+    { name: "{{product_instructions}}", desc: "Auto-generated product inclusion instructions" },
+    { name: "{{furniture_list}}", desc: "Comma-separated furniture items for the room type" },
+  ],
+  modification: [
+    { name: "{{modification_prompt}}", desc: "User's modification request text" },
+    { name: "{{style}}", desc: "The mapped style preference" },
+    { name: "{{colors}}", desc: "The mapped color palette description" },
+    { name: "{{product_instructions}}", desc: "Auto-generated product inclusion instructions" },
+  ],
+  // Highlight visual templates
+  highlight_color_palette: [
+    { name: "{{style}}", desc: "Mapped style description (e.g. 'sleek modern minimalist')" },
+    { name: "{{colors}}", desc: "Color list (e.g. 'terracotta, sage green, cream')" },
+    { name: "{{materials}}", desc: "Material list (e.g. 'wood, fabric, stone, metal')" },
+  ],
+  highlight_accent_furniture: [
+    { name: "{{style}}", desc: "Mapped style description" },
+    { name: "{{room}}", desc: "Room type" },
+    { name: "{{furnitureName}}", desc: "Name of the accent furniture piece" },
+    { name: "{{furnitureDescription}}", desc: "Description of the furniture piece" },
+  ],
+  highlight_moodboard: [
+    { name: "{{style}}", desc: "Mapped style description" },
+    { name: "{{room}}", desc: "Room type" },
+    { name: "{{elements}}", desc: "Design elements to include" },
+  ],
+  // Scrape shop template
+  scrape_shop_extract: [
+    { name: "{{scraped_content}}", desc: "Auto-injected scraped page content" },
+  ],
+};
+
+const getVariablesForTemplate = (templateKey: string) => {
+  // Direct match
+  if (AVAILABLE_VARIABLES[templateKey]) return AVAILABLE_VARIABLES[templateKey];
+  // Design generation templates share variables
+  if (["with_product_images", "with_source_image", "furniture_context"].includes(templateKey)) {
+    return AVAILABLE_VARIABLES["default"];
+  }
+  // Analyze-style and extract templates have no variables
+  return [];
+};
 
 const PromptTemplateManager = () => {
   const { toast } = useToast();
@@ -89,31 +129,7 @@ const PromptTemplateManager = () => {
         </p>
       </div>
 
-      {/* Variable Reference */}
-      <Card className="bg-muted/30">
-        <CardContent className="p-4">
-          <div className="flex items-center gap-2 mb-2">
-            <Info className="w-4 h-4 text-muted-foreground" />
-            <span className="text-sm font-medium">Available Variables</span>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <TooltipProvider>
-              {AVAILABLE_VARIABLES.map((v) => (
-                <Tooltip key={v.name}>
-                  <TooltipTrigger>
-                    <Badge variant="outline" className="font-mono text-xs cursor-help">
-                      {v.name}
-                    </Badge>
-                  </TooltipTrigger>
-                  <TooltipContent className="max-w-xs">
-                    <p className="text-sm">{v.desc}</p>
-                  </TooltipContent>
-                </Tooltip>
-              ))}
-            </TooltipProvider>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Variable reference is now shown per-template */}
 
       {templates?.map((tpl) => {
         const isEditing = editingId === tpl.id;
@@ -174,6 +190,31 @@ const PromptTemplateManager = () => {
                       />
                     </div>
                   </div>
+                  {/* Per-template variable hints */}
+                  {(() => {
+                    const vars = getVariablesForTemplate(tpl.template_key);
+                    if (vars.length === 0) return null;
+                    return (
+                      <div className="flex flex-wrap gap-1.5 items-center">
+                        <Info className="w-3.5 h-3.5 text-muted-foreground" />
+                        <span className="text-xs text-muted-foreground mr-1">Variables:</span>
+                        <TooltipProvider>
+                          {vars.map((v) => (
+                            <Tooltip key={v.name}>
+                              <TooltipTrigger>
+                                <Badge variant="outline" className="font-mono text-xs cursor-help">
+                                  {v.name}
+                                </Badge>
+                              </TooltipTrigger>
+                              <TooltipContent className="max-w-xs">
+                                <p className="text-sm">{v.desc}</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          ))}
+                        </TooltipProvider>
+                      </div>
+                    );
+                  })()}
                   <div className="space-y-1">
                     <Label className="text-xs">Prompt Template</Label>
                     <Textarea
