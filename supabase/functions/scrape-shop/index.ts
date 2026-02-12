@@ -264,11 +264,54 @@ ${productsToExtract}`,
 
     console.log(`Extracted ${extractedProducts.length} products`);
 
-    // Step 4: Save products to database
+    // Step 4: Save products to database, re-hosting images to storage
     const savedProducts: any[] = [];
     
     for (const product of extractedProducts) {
       if (!product.name || !product.category) continue;
+
+      // Re-host image to our storage bucket
+      let imageUrls: string[] = [];
+      if (product.image_url) {
+        try {
+          console.log("Downloading image:", product.image_url);
+          const imgResponse = await fetch(product.image_url, {
+            headers: { "User-Agent": "Mozilla/5.0" },
+          });
+          
+          if (imgResponse.ok) {
+            const contentType = imgResponse.headers.get("content-type") || "image/jpeg";
+            const ext = contentType.includes("png") ? "png" : contentType.includes("webp") ? "webp" : "jpg";
+            const imgBuffer = await imgResponse.arrayBuffer();
+            const storagePath = `${userId}/${crypto.randomUUID()}.${ext}`;
+            
+            const { error: uploadError } = await supabase.storage
+              .from("product-images")
+              .upload(storagePath, imgBuffer, {
+                contentType,
+                upsert: false,
+              });
+            
+            if (!uploadError) {
+              const { data: publicUrlData } = supabase.storage
+                .from("product-images")
+                .getPublicUrl(storagePath);
+              imageUrls = [publicUrlData.publicUrl];
+              console.log("Image re-hosted:", publicUrlData.publicUrl);
+            } else {
+              console.error("Image upload failed:", uploadError.message);
+              // Fallback to original URL
+              imageUrls = [product.image_url];
+            }
+          } else {
+            console.log("Image download failed, using original URL");
+            imageUrls = [product.image_url];
+          }
+        } catch (imgErr) {
+          console.error("Image re-host error:", imgErr);
+          imageUrls = product.image_url ? [product.image_url] : [];
+        }
+      }
 
       const { data, error } = await supabase
         .from("shop_products")
@@ -280,7 +323,7 @@ ${productsToExtract}`,
           style: product.style || null,
           price: product.price || null,
           source_url: product.source_url || null,
-          image_urls: product.image_url ? [product.image_url] : [],
+          image_urls: imageUrls,
           is_active: true,
           ai_style_tags: product.ai_style_tags || [],
           ai_image_description: product.ai_image_description || null,
