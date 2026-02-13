@@ -627,7 +627,7 @@ const Generate = () => {
       // Base highlights data
       const colors = analysis?.dominantColors || getDefaultColors(quizData.colorPalette);
       const materials = analysis?.materials || getMaterialsForStyle(quizData.stylePreference);
-      const furnitureName = analysis?.styles?.[0]?.styleName || getDefaultAccentFurniture(quizData.stylePreference);
+      const furnitureName = getDefaultAccentFurniture(quizData.stylePreference);
       const elements = analysis?.styles?.[0]?.keywords || quizData.mustHaveElements || ["Texture", "Lighting", "Plants", "Art"];
 
       const baseHighlights: DesignHighlightsData = {
