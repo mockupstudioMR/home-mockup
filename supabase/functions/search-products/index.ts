@@ -220,22 +220,41 @@ Return your response as JSON:
 
     console.log("Found products from database:", dbProducts?.length || 0);
 
-    // Sort products: prioritize local shops (same city), then by relevance
-    const sortedProducts = (dbProducts || []).sort((a, b) => {
+    // Build shop city/name maps for location-based sorting
+    const shopIds = [...new Set((dbProducts || []).map((p: any) => p.shop_id))];
+    const shopCityMap = new Map<string, string>();
+    const shopNameMap = new Map<string, string>();
+
+    if (shopIds.length > 0) {
+      const { data: shopProfiles } = await supabase
+        .from("business_profiles")
+        .select("user_id, city, business_name")
+        .in("user_id", shopIds);
+
+      for (const sp of shopProfiles || []) {
+        if (sp.city) shopCityMap.set(sp.user_id, sp.city.toLowerCase());
+        if (sp.business_name) shopNameMap.set(sp.user_id, sp.business_name);
+      }
+    }
+
+    const userCityLower = userCity?.toLowerCase() || "";
+
+    // Sort products: prioritize local shops (same city), then randomize for variety
+    const sortedProducts = (dbProducts || []).sort((a: any, b: any) => {
       const aIsLocal = userCityLower && shopCityMap.get(a.shop_id) === userCityLower;
       const bIsLocal = userCityLower && shopCityMap.get(b.shop_id) === userCityLower;
-      
+
       if (aIsLocal && !bIsLocal) return -1;
       if (!aIsLocal && bIsLocal) return 1;
-      return 0;
+      return Math.random() - 0.5;
     });
 
     // Format products for response
     const products = sortedProducts.slice(0, 12).map((p: any) => {
       const shopCity = shopCityMap.get(p.shop_id);
-      const isLocalShop = userCityLower && shopCity === userCityLower;
+      const isLocalShop = !!(userCityLower && shopCity === userCityLower);
       const shopName = shopNameMap.get(p.shop_id) || "Partner Shop";
-      
+
       return {
         id: p.id,
         title: p.name,
