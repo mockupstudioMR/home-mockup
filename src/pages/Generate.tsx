@@ -204,6 +204,39 @@ const Generate = () => {
     return sessionStorage.getItem('generate_debug_prompt_cache') || "";
   });
   
+  // Upload a base64 data URI to storage and return the public URL
+  const uploadDesignImage = useCallback(async (base64DataUri: string, userId: string): Promise<string> => {
+    if (!base64DataUri.startsWith('data:')) return base64DataUri;
+    try {
+      const mimeMatch = base64DataUri.match(/^data:(image\/\w+);base64,/);
+      const mimeType = mimeMatch?.[1] || 'image/png';
+      const ext = mimeType === 'image/jpeg' ? 'jpg' : 'png';
+      const base64 = base64DataUri.replace(/^data:image\/\w+;base64,/, '');
+      const byteString = atob(base64);
+      const ab = new ArrayBuffer(byteString.length);
+      const ia = new Uint8Array(ab);
+      for (let i = 0; i < byteString.length; i++) {
+        ia[i] = byteString.charCodeAt(i);
+      }
+      const blob = new Blob([ab], { type: mimeType });
+      const fileName = `${userId}/design-${Date.now()}.${ext}`;
+      const { error: uploadError } = await supabase.storage
+        .from('design-images')
+        .upload(fileName, blob, { contentType: mimeType });
+      if (uploadError) {
+        console.error('Failed to upload design image:', uploadError);
+        return base64DataUri;
+      }
+      const { data: urlData } = supabase.storage
+        .from('design-images')
+        .getPublicUrl(fileName);
+      return urlData.publicUrl;
+    } catch (err) {
+      console.error('Error uploading design image:', err);
+      return base64DataUri;
+    }
+  }, []);
+
   // Track if initial load has been done
   const hasInitializedRef = useRef(false);
 
@@ -561,12 +594,15 @@ const Generate = () => {
       if (steps) setDebugSteps(steps);
       if (usedPrompt) setDebugPrompt(usedPrompt);
 
+      // Upload image to storage before saving to DB
+      const storedImageUrl = await uploadDesignImage(imageUrl, user.id);
+
       // Save to database with quiz_response_id link
       const { data: savedDesign } = await supabase
         .from("generated_designs")
         .insert({
           user_id: user.id,
-          image_url: imageUrl,
+          image_url: storedImageUrl,
           prompt: usedPrompt,
           source_image_url: quizData.sourceImageUrl,
           quiz_response_id: quizResponseId,
@@ -1128,11 +1164,12 @@ const Generate = () => {
 
       const { imageUrl } = response.data;
 
-      // Save new image URL to database
+      // Upload to storage and save URL to database
+      const storedUrl = user ? await uploadDesignImage(imageUrl, user.id) : imageUrl;
       if (!design.id.startsWith("design-")) {
         await supabase
           .from("generated_designs")
-          .update({ image_url: imageUrl })
+          .update({ image_url: storedUrl })
           .eq("id", design.id);
       }
 
