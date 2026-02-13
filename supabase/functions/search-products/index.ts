@@ -31,7 +31,7 @@ Deno.serve(async (req) => {
       throw new Error("Supabase credentials not configured");
     }
 
-    const { imageUrl, style, room: _room, query: _query, userCity }: SearchRequest = await req.json();
+    const { imageUrl, style, room, query: _query, userCity }: SearchRequest = await req.json();
 
     // Initialize Supabase client
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
@@ -105,19 +105,34 @@ Return your response as JSON:
       }
     }
 
-    // Get business profiles with city info for location-based matching
-    const { data: businessProfiles } = await supabase
-      .from("business_profiles")
-      .select("user_id, city, business_name");
+    // Fetch room furniture config for filtering
+    let roomFurnitureItems: string[] = [];
+    if (room) {
+      const { data: roomConfig } = await supabase
+        .from("room_furniture_config")
+        .select("furniture_items")
+        .eq("room_type", room)
+        .maybeSingle();
 
-    const shopCityMap = new Map<string, string>();
-    const shopNameMap = new Map<string, string>();
-    businessProfiles?.forEach((bp) => {
-      if (bp.city) shopCityMap.set(bp.user_id, bp.city.toLowerCase());
-      if (bp.business_name) shopNameMap.set(bp.user_id, bp.business_name);
-    });
+      if (roomConfig?.furniture_items) {
+        roomFurnitureItems = roomConfig.furniture_items;
+        console.log("Room furniture config loaded:", roomFurnitureItems);
+      }
+    }
 
-    const userCityLower = userCity?.toLowerCase();
+    // Helper to filter products against approved furniture list
+    const filterByRoomFurniture = (products: any[]): any[] => {
+      if (roomFurnitureItems.length === 0) return products;
+      const approvedLower = roomFurnitureItems.map(f => f.toLowerCase());
+      return products.filter(p => {
+        const catLower = (p.category || "").toLowerCase();
+        const nameLower = (p.name || "").toLowerCase();
+        return approvedLower.some(approved =>
+          catLower.includes(approved) || approved.includes(catLower) ||
+          nameLower.includes(approved) || approved.includes(nameLower)
+        );
+      });
+    };
 
     // Build search filters
     console.log("Searching shop_products table...");
@@ -164,8 +179,8 @@ Return your response as JSON:
       const styleResult = await styleQuery.limit(50);
       
       if (!styleResult.error && styleResult.data && styleResult.data.length > 0) {
-        dbProducts = styleResult.data;
-        console.log("Found products with style filter:", dbProducts.length);
+        dbProducts = filterByRoomFurniture(styleResult.data);
+        console.log("Found products with style filter (after room filter):", dbProducts.length);
       }
     }
 
@@ -181,12 +196,12 @@ Return your response as JSON:
       }
 
       const fallbackResult = await fallbackQuery.limit(50);
-      dbProducts = fallbackResult.data || [];
+      dbProducts = filterByRoomFurniture(fallbackResult.data || []);
       dbError = fallbackResult.error;
-      console.log("Fallback query found products:", dbProducts.length);
+      console.log("Fallback query found products (after room filter):", dbProducts.length);
     }
 
-    // Final fallback: get any active products if still nothing
+    // Final fallback: get any active products matching room config
     if (dbProducts.length === 0) {
       const { data: anyProducts, error: anyError } = await supabase
         .from("shop_products")
@@ -194,9 +209,9 @@ Return your response as JSON:
         .eq("is_active", true)
         .limit(30);
       
-      dbProducts = anyProducts || [];
+      dbProducts = filterByRoomFurniture(anyProducts || []);
       dbError = anyError;
-      console.log("Final fallback - any active products:", dbProducts.length);
+      console.log("Final fallback - filtered active products:", dbProducts.length);
     }
 
     if (dbError) {
