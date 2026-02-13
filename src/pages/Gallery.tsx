@@ -10,9 +10,9 @@ import {
   Trash2,
   Heart,
   Home,
-  ArrowLeft,
   Plus,
   Loader2,
+  Play,
 } from "lucide-react";
 
 interface Design {
@@ -21,6 +21,7 @@ interface Design {
   prompt: string;
   is_favorite: boolean;
   created_at: string;
+  quiz_response_id: string | null;
 }
 
 const Gallery = () => {
@@ -31,6 +32,7 @@ const Gallery = () => {
   const [designs, setDesigns] = useState<Design[]>([]);
   const [loadingDesigns, setLoadingDesigns] = useState(true);
   const [filter, setFilter] = useState<"all" | "favorites">("all");
+  const [resumingId, setResumingId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -118,6 +120,92 @@ const Gallery = () => {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+  };
+
+  const handleContinueDesign = async (design: Design) => {
+    if (!design.quiz_response_id) {
+      toast({
+        title: "Cannot resume",
+        description: "This design has no linked quiz data",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setResumingId(design.id);
+    try {
+      // Fetch the quiz response to restore context
+      const { data: quizResponse, error } = await supabase
+        .from("quiz_responses")
+        .select("*")
+        .eq("id", design.quiz_response_id)
+        .single();
+
+      if (error || !quizResponse) {
+        toast({
+          title: "Cannot resume",
+          description: "Quiz data not found for this design",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Build quizData from the saved quiz response
+      const quizData = {
+        stylePreference: quizResponse.style_preference,
+        colorPalette: quizResponse.color_palette,
+        roomType: quizResponse.room_type,
+        budgetFeel: quizResponse.budget_feel,
+        mustHaveElements: quizResponse.must_have_elements || [],
+        furnitureSource: (quizResponse.furniture_source as "shop_only" | "open") || "open",
+      };
+
+      // Clear existing generate caches so the page loads from DB
+      const generateKeys = [
+        'generate_design_cache',
+        'generate_products_cache',
+        'generate_highlights_cache',
+        'generate_styleprofile_cache',
+        'generate_items_cache',
+        'generate_description_cache',
+        'generate_history_cache',
+        'generate_extracting_cache',
+        'generate_debug_steps_cache',
+        'generate_debug_prompt_cache',
+        'generate_quiz_hash',
+        'generate_quiz_nonce',
+      ];
+      generateKeys.forEach((key) => sessionStorage.removeItem(key));
+
+      // Set the quiz_response_id so Generate picks up this design
+      sessionStorage.setItem('generate_quiz_response_id', design.quiz_response_id);
+
+      // Also update quiz context sessionStorage so QuizProvider has matching data
+      sessionStorage.setItem('quiz_data_cache', JSON.stringify(quizData));
+
+      // Build and store quiz hash so Generate doesn't treat this as a "new" quiz
+      const quizHash = JSON.stringify({
+        stylePreference: quizData.stylePreference,
+        colorPalette: quizData.colorPalette,
+        roomType: quizData.roomType,
+        budgetFeel: quizData.budgetFeel,
+        mustHaveElements: quizData.mustHaveElements,
+        furnitureSource: quizData.furnitureSource,
+      });
+      sessionStorage.setItem('generate_quiz_hash', quizHash + '|');
+
+      // Navigate to generate with restored quiz data
+      navigate("/generate", { state: { quizData } });
+    } catch (err) {
+      console.error("Error resuming design:", err);
+      toast({
+        title: "Error",
+        description: "Failed to resume design",
+        variant: "destructive",
+      });
+    } finally {
+      setResumingId(null);
+    }
   };
 
   const filteredDesigns =
@@ -209,6 +297,21 @@ const Gallery = () => {
                     className="w-full h-full object-cover"
                   />
                   <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                    {design.quiz_response_id && (
+                      <Button
+                        size="icon"
+                        variant="secondary"
+                        onClick={() => handleContinueDesign(design)}
+                        disabled={resumingId === design.id}
+                        title="Continue working on this design"
+                      >
+                        {resumingId === design.id ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Play className="w-4 h-4" />
+                        )}
+                      </Button>
+                    )}
                     <Button
                       size="icon"
                       variant="secondary"
@@ -242,9 +345,25 @@ const Gallery = () => {
                   <p className="text-xs text-muted-foreground line-clamp-2">
                     {design.prompt}
                   </p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {new Date(design.created_at).toLocaleDateString()}
-                  </p>
+                  <div className="flex items-center justify-between mt-1">
+                    <p className="text-xs text-muted-foreground">
+                      {new Date(design.created_at).toLocaleDateString()}
+                    </p>
+                    {design.quiz_response_id && (
+                      <button
+                        onClick={() => handleContinueDesign(design)}
+                        disabled={resumingId === design.id}
+                        className="text-xs text-primary hover:text-primary/80 transition-colors flex items-center gap-1"
+                      >
+                        {resumingId === design.id ? (
+                          <Loader2 className="w-3 h-3 animate-spin" />
+                        ) : (
+                          <Play className="w-3 h-3" />
+                        )}
+                        Continue
+                      </button>
+                    )}
+                  </div>
                 </CardContent>
               </Card>
             ))}
