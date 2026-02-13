@@ -24,6 +24,14 @@ const Start = () => {
 
   const entryOptions = [
     {
+      id: "existing-room",
+      icon: <Home className="w-8 h-8" />,
+      title: "Start with Your Room",
+      description: "Upload a photo of your existing room and we'll redesign it while keeping your space's layout",
+      preview: null,
+      path: "/quiz?source=existing-room",
+    },
+    {
       id: "style-tree",
       icon: <Palette className="w-8 h-8" />,
       title: "Browse Style Tree",
