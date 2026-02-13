@@ -34,6 +34,7 @@ import DesignLikesTab from "@/components/generate/DesignLikesTab";
 import DebugPanel from "@/components/generate/DebugPanel";
 import OtherAnglesButton from "@/components/generate/OtherAnglesButton";
 import ExistingRoomUpload from "@/components/generate/ExistingRoomUpload";
+import GenerationCountdown from "@/components/generate/GenerationCountdown";
 
 interface GeneratedDesign {
   id: string;
@@ -1302,21 +1303,7 @@ const Generate = () => {
             </div>
 
         {/* Generation Progress */}
-        {generating && !design && (
-          <Card className="border-primary/30 bg-primary/5">
-            <CardContent className="p-6">
-              <div className="flex flex-col items-center gap-4">
-                <Loader2 className="w-10 h-10 animate-spin text-primary" />
-                <div className="text-center">
-                  <p className="font-medium">Creating your personalized design...</p>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    This may take a moment
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
+        {generating && !design && <GenerationCountdown />}
 
         {/* Personalized Style Profile */}
         {styleProfile && (
