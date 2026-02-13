@@ -35,6 +35,7 @@ import DebugPanel from "@/components/generate/DebugPanel";
 import OtherAnglesButton from "@/components/generate/OtherAnglesButton";
 import ExistingRoomUpload from "@/components/generate/ExistingRoomUpload";
 import GenerationCountdown from "@/components/generate/GenerationCountdown";
+import TryAnotherStyle from "@/components/generate/TryAnotherStyle";
 
 interface GeneratedDesign {
   id: string;
@@ -673,6 +674,90 @@ const Generate = () => {
       setGenerating(false);
     }
   };
+
+  const handleTryStyle = useCallback((newStyle: string) => {
+    if (!quizData || !user) return;
+    // Override the style preference and regenerate
+    const overriddenQuiz = { ...quizData, stylePreference: newStyle };
+    // Update location state so regeneration uses the new style
+    window.history.replaceState(
+      { ...location.state, quizData: overriddenQuiz },
+      ""
+    );
+    // Regenerate with new style by invoking the edge function directly
+    setGenerating(true);
+    setDesign(null);
+    setHighlightsData(null);
+    setProducts([]);
+    setDesignItems([]);
+    setModificationHistory([]);
+    setFullDescription("");
+    setDebugSteps([]);
+    setDebugPrompt("");
+
+    const run = async () => {
+      try {
+        const response = await supabase.functions.invoke("generate-design", {
+          body: {
+            ...overriddenQuiz,
+            sourceImageUrl: overriddenQuiz.sourceImageUrl,
+          },
+        });
+        if (response.error) throw new Error(response.error.message);
+        const { imageUrl, prompt: usedPrompt, debugSteps: steps } = response.data;
+        if (steps) setDebugSteps(steps);
+        if (usedPrompt) setDebugPrompt(usedPrompt);
+
+        const storedImageUrl = await uploadDesignImage(imageUrl, user.id);
+
+        const { data: savedDesign } = await supabase
+          .from("generated_designs")
+          .insert({
+            user_id: user.id,
+            image_url: storedImageUrl,
+            prompt: usedPrompt,
+            source_image_url: overriddenQuiz.sourceImageUrl,
+          })
+          .select()
+          .single();
+
+        const newDesign: GeneratedDesign = {
+          id: savedDesign?.id || `design-${Date.now()}`,
+          imageUrl,
+          title: "Your Personalized Design",
+          description: "Custom room design based on your style preferences",
+          isFavorite: false,
+        };
+
+        setDesign(newDesign);
+        searchProducts(imageUrl);
+        generateHighlights(imageUrl);
+
+        toast({
+          title: "New style generated!",
+          description: `Switched to ${newStyle.replace(/-/g, " ")} style`,
+        });
+      } catch (error) {
+        console.error("Style switch error:", error);
+        toast({
+          title: "Generation failed",
+          description: error instanceof Error ? error.message : "Please try again",
+          variant: "destructive",
+        });
+      } finally {
+        setGenerating(false);
+      }
+    };
+    run();
+  }, [quizData, user, location.state, uploadDesignImage, toast]);
+
+  const handleSurpriseStyle = useCallback(() => {
+    const styles = ["modern-minimal", "bohemian-eclectic", "classic-historical", "rustic-nature", "mediterranean", "glam-luxe"];
+    const current = quizData?.stylePreference || "";
+    const others = styles.filter((s) => s !== current);
+    const random = others[Math.floor(Math.random() * others.length)];
+    handleTryStyle(random);
+  }, [quizData, handleTryStyle]);
 
   const generateHighlights = async (imageUrl: string) => {
     if (!quizData) return;
@@ -1354,6 +1439,18 @@ const Generate = () => {
             <OtherAnglesButton
               onGenerate={handleGenerateAngle}
               disabled={extractingItems || generating}
+            />
+          </div>
+        )}
+
+        {/* Try Another Style */}
+        {design && !generating && !design.isLocked && quizData && (
+          <div className="max-w-3xl mx-auto">
+            <TryAnotherStyle
+              currentStyle={quizData.stylePreference}
+              onSelectStyle={handleTryStyle}
+              onSurpriseMe={handleSurpriseStyle}
+              disabled={generating || extractingItems}
             />
           </div>
         )}
