@@ -33,6 +33,7 @@ import DesignHistoryTab from "@/components/generate/DesignHistoryTab";
 import DesignLikesTab from "@/components/generate/DesignLikesTab";
 import DebugPanel from "@/components/generate/DebugPanel";
 import OtherAnglesButton from "@/components/generate/OtherAnglesButton";
+import ExistingRoomUpload from "@/components/generate/ExistingRoomUpload";
 
 interface GeneratedDesign {
   id: string;
@@ -192,6 +193,7 @@ const Generate = () => {
     }
   });
   const [referenceImageUrl, setReferenceImageUrl] = useState<string | null>(null);
+  const [existingRoomImages, setExistingRoomImages] = useState<string[]>([]);
   const [uploadingReference, setUploadingReference] = useState(false);
   const [debugSteps, setDebugSteps] = useState<Array<{ timestamp: string; step: string; detail: string; data?: unknown }>>(() => {
     try {
@@ -1011,6 +1013,7 @@ const Generate = () => {
           modificationPrompt: modificationInput,
           sourceImageUrl: design.imageUrl,
           referenceImageUrl: referenceImageUrl,
+          existingRoomImages: existingRoomImages.length > 0 ? existingRoomImages : undefined,
         },
       });
 
@@ -1342,6 +1345,15 @@ const Generate = () => {
         {/* Debug Panel - Testing */}
         {design && (debugSteps.length > 0 || debugPrompt) && (
           <DebugPanel steps={debugSteps} prompt={debugPrompt} />
+        )}
+
+        {/* Existing Room Photos Upload */}
+        {design && !generating && !design.isLocked && (
+          <ExistingRoomUpload
+            images={existingRoomImages}
+            onImagesChange={setExistingRoomImages}
+            disabled={generating || extractingItems}
+          />
         )}
 
         {/* Love This Button - Under Main Design */}
