@@ -47,9 +47,10 @@ const Gallery = () => {
     try {
       const { data, error } = await supabase
         .from("generated_designs")
-        .select("*")
+        .select("id, image_url, prompt, is_favorite, is_locked, created_at, quiz_response_id")
         .eq("user_id", user!.id)
-        .order("created_at", { ascending: false });
+        .order("created_at", { ascending: false })
+        .limit(50);
 
       if (error) throw error;
       setDesigns(data || []);
