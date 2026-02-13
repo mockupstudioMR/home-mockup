@@ -11,6 +11,7 @@ import BudgetStep from "@/components/quiz/steps/BudgetStep";
 import ElementsStep from "@/components/quiz/steps/ElementsStep";
 import FurnitureSourceStep from "@/components/quiz/steps/FurnitureSourceStep";
 import ImageStep from "@/components/quiz/steps/ImageStep";
+import ExistingRoomUpload from "@/components/generate/ExistingRoomUpload";
 import { ArrowLeft, ArrowRight, Sparkles, Home } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -22,9 +23,11 @@ const QuizDetails = () => {
   const { toast } = useToast();
   
   const [currentStep, setCurrentStep] = useState(0);
-  const totalSteps = 5; // Room type, budget, elements, furniture source, image (optional)
+  const [existingRoomImages, setExistingRoomImages] = useState<string[]>([]);
   
-  const { selectedStyle, analysisResult, productAnalysis, uploadedImages, includeProducts } = location.state || {};
+  const { selectedStyle, analysisResult, productAnalysis, uploadedImages, includeProducts, source } = location.state || {};
+  const isExistingRoom = source === "existing-room";
+  const totalSteps = isExistingRoom ? 6 : 5; // Extra step for existing room upload
 
   useEffect(() => {
     if (!loading && !user) {
@@ -39,8 +42,14 @@ const QuizDetails = () => {
     }
   }, [selectedStyle, loading, navigate]);
 
+  const getStepOffset = () => (isExistingRoom ? 1 : 0);
+  const adjustedStep = currentStep - getStepOffset();
+
   const canProceed = () => {
-    switch (currentStep) {
+    if (isExistingRoom && currentStep === 0) {
+      return existingRoomImages.length > 0;
+    }
+    switch (adjustedStep) {
       case 0:
         return !!quizData.roomType;
       case 1:
@@ -90,6 +99,7 @@ const QuizDetails = () => {
             productAnalysis,
             sourceImages: uploadedImages,
             includeProducts,
+            existingRoomImages: isExistingRoom ? existingRoomImages : undefined,
           } 
         });
       } catch (error) {
@@ -111,7 +121,23 @@ const QuizDetails = () => {
   };
 
   const renderStep = () => {
-    switch (currentStep) {
+    if (isExistingRoom && currentStep === 0) {
+      return (
+        <div className="space-y-6">
+          <div className="text-center space-y-2">
+            <h2 className="text-2xl font-bold">Upload your room photos</h2>
+            <p className="text-muted-foreground">
+              Share photos of your existing space so we can redesign it while keeping your layout
+            </p>
+          </div>
+          <ExistingRoomUpload
+            images={existingRoomImages}
+            onImagesChange={setExistingRoomImages}
+          />
+        </div>
+      );
+    }
+    switch (adjustedStep) {
       case 0:
         return <RoomStep />;
       case 1:

@@ -1,4 +1,4 @@
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuiz } from "@/contexts/QuizContext";
@@ -71,6 +71,8 @@ const StyleTree = () => {
   const navigate = useNavigate();
   const { user, loading } = useAuth();
   const { updateQuizData } = useQuiz();
+  const [searchParams] = useSearchParams();
+  const source = searchParams.get("source");
   const [selectedStyle, setSelectedStyle] = useState<string | null>(null);
 
   if (loading) {
@@ -98,7 +100,7 @@ const StyleTree = () => {
           stylePreference: selectedStyle,
           colorPalette: getDefaultColorForStyle(selectedStyle),
         });
-        navigate("/quiz-details", { state: { selectedStyle: style } });
+        navigate("/quiz-details", { state: { selectedStyle: style, source } });
       }
     }
   };
