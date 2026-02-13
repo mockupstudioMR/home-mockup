@@ -32,6 +32,7 @@ import VisualSearchLinks from "@/components/generate/VisualSearchLinks";
 import DesignHistoryTab from "@/components/generate/DesignHistoryTab";
 import DesignLikesTab from "@/components/generate/DesignLikesTab";
 import DebugPanel from "@/components/generate/DebugPanel";
+import OtherAnglesButton from "@/components/generate/OtherAnglesButton";
 
 interface GeneratedDesign {
   id: string;
@@ -558,6 +559,36 @@ const Generate = () => {
       }
     } catch (error) {
       console.error("Error loading design items:", error);
+    }
+  };
+
+  const handleGenerateAngle = async (anglePrompt: string): Promise<string | null> => {
+    if (!design || !quizData) return null;
+    try {
+      const response = await supabase.functions.invoke("generate-design", {
+        body: {
+          ...quizData,
+          sourceImageUrl: design.imageUrl,
+          modificationPrompt: anglePrompt,
+        },
+      });
+      if (response.error) throw new Error(response.error.message);
+      const { imageUrl } = response.data;
+      if (!imageUrl) return null;
+      // Upload to storage
+      if (user) {
+        const storedUrl = await uploadDesignImage(imageUrl, user.id);
+        return storedUrl;
+      }
+      return imageUrl;
+    } catch (error) {
+      console.error("Angle generation error:", error);
+      toast({
+        title: "Angle generation failed",
+        description: error instanceof Error ? error.message : "Please try again",
+        variant: "destructive",
+      });
+      return null;
     }
   };
 
@@ -1315,11 +1346,15 @@ const Generate = () => {
 
         {/* Love This Button - Under Main Design */}
         {design && !generating && !design.isLocked && (
-          <div className="flex justify-center">
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <LoveThisButton
               isLocked={design.isLocked || false}
               isLoading={extractingItems}
               onLock={handleLockDesign}
+            />
+            <OtherAnglesButton
+              onGenerate={handleGenerateAngle}
+              disabled={extractingItems || generating}
             />
           </div>
         )}
