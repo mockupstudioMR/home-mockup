@@ -113,6 +113,7 @@ const Generate = () => {
   const { toast } = useToast();
 
   const quizData = location.state?.quizData as QuizData | undefined;
+  const existingRoomImagesFromState = (location.state?.quizData?.existingRoomImages || location.state?.existingRoomImages) as string[] | undefined;
 
   // Initialize state from sessionStorage to persist across tab switches
   const getInitialDesign = (): GeneratedDesign | null => {
@@ -599,6 +600,7 @@ const Generate = () => {
           sourceImageUrl: quizData.sourceImageUrl,
           selectedProducts: includeProducts ? productAnalysis?.products : undefined,
           productImageUrls: includeProducts ? sourceImages : undefined,
+          existingRoomImages: existingRoomImagesFromState,
         },
       });
 
@@ -681,6 +683,7 @@ const Generate = () => {
           body: {
             ...overriddenQuiz,
             sourceImageUrl: overriddenQuiz.sourceImageUrl,
+            existingRoomImages: existingRoomImagesFromState,
           },
         });
         if (response.error) throw new Error(response.error.message);
