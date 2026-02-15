@@ -61,7 +61,7 @@ const QuizContext = createContext<QuizContextType | undefined>(undefined);
 export const QuizProvider = ({ children }: { children: React.ReactNode }) => {
   const [quizData, setQuizData] = useState<QuizData>(getInitialQuizData);
   const [currentStep, setCurrentStepState] = useState(getInitialStep);
-  const totalSteps = 7; // 6 questions + image selection
+  const totalSteps = 2; // room type + elements
 
   // Persist quiz data to sessionStorage
   useEffect(() => {
