@@ -114,8 +114,63 @@ Respond ONLY with valid JSON array, no markdown, no explanation.`,
     try {
       walls = JSON.parse(wallsText);
     } catch {
-      console.error("Failed to parse walls JSON:", wallsText);
-      walls = [];
+      console.error("Failed to parse walls JSON, attempting repair:", wallsText);
+      // Try to repair: extract individual JSON objects and reconstruct array
+      try {
+        const objectMatches = [...wallsText.matchAll(/\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}/g)];
+        if (objectMatches.length > 0) {
+          const repairedArray = objectMatches
+            .map((m) => {
+              try {
+                // Remove stray words between key-value pairs
+                const cleaned = m[0].replace(/,\s*\n\s*\w+\s*\n/g, ",\n");
+                return JSON.parse(cleaned);
+              } catch {
+                // More aggressive cleanup: remove any non-JSON word on its own line
+                const aggressiveCleaned = m[0]
+                  .split("\n")
+                  .filter((line: string) => {
+                    const trimmed = line.trim();
+                    // Keep lines that look like JSON (start with {, }, ", or contain :)
+                    return !trimmed || /^[{}\[\]",]|:/.test(trimmed);
+                  })
+                  .join("\n");
+                try {
+                  return JSON.parse(aggressiveCleaned);
+                } catch {
+                  return null;
+                }
+              }
+            })
+            .filter(Boolean);
+          if (repairedArray.length > 0) {
+            walls = repairedArray;
+            console.log(`Repaired JSON: recovered ${walls.length} walls`);
+          } else {
+            walls = [];
+          }
+        } else {
+          walls = [];
+        }
+      } catch {
+        walls = [];
+      }
+    }
+
+    // Ensure exactly 4 walls with fallback
+    if (walls.length < 4) {
+      const positions = ["left", "right", "back", "front"];
+      const existingPositions = new Set(walls.map((w: any) => w.position));
+      for (const pos of positions) {
+        if (!existingPositions.has(pos) && walls.length < 4) {
+          walls.push({
+            wall_type: "pleine_wall",
+            label: `${pos.charAt(0).toUpperCase() + pos.slice(1)} Wall (Plain)`,
+            description: "Inferred plain wall",
+            position: pos,
+          });
+        }
+      }
     }
 
     console.log(`Found ${walls.length} walls`);
