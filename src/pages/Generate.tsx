@@ -22,7 +22,7 @@ import {
 } from "lucide-react";
 import type { QuizData } from "@/contexts/QuizContext";
 import DesignImage from "@/components/generate/DesignImage";
-import DesignHighlights from "@/components/generate/DesignHighlights";
+
 import PersonalizedStyleProfile from "@/components/generate/PersonalizedStyleProfile";
 import DesignItemsList from "@/components/generate/DesignItemsList";
 import LoveThisButton from "@/components/generate/LoveThisButton";
@@ -1553,47 +1553,6 @@ const Generate = () => {
           </Card>
         )}
 
-        {/* Design Highlights */}
-        {highlightsData && (
-          <DesignHighlights
-            colorScheme={highlightsData.colorScheme}
-            accentFurniture={highlightsData.accentFurniture}
-            moodboard={highlightsData.moodboard}
-            onApplyNote={handleApplyHighlightNote}
-            isApplying={applyingHighlight}
-          />
-        )}
-
-        {/* Visual Search Links - Show on first screen */}
-        {design && quizData && !design.isLocked && (
-          <VisualSearchLinks
-            stylePreference={quizData.stylePreference}
-            roomType={quizData.roomType}
-            colorPalette={quizData.colorPalette}
-            mustHaveElements={quizData.mustHaveElements}
-            accentFurniture={highlightsData?.accentFurniture?.name}
-            materials={highlightsData?.colorScheme?.materials}
-          />
-        )}
-
-        {/* Loading Highlights */}
-        {generatingHighlights && !highlightsData && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {[1, 2, 3].map((i) => (
-              <Card key={i} className="overflow-hidden">
-                <CardContent className="p-4 space-y-4">
-                  <div className="flex items-center gap-3">
-                    <Skeleton className="w-10 h-10 rounded-xl" />
-                    <Skeleton className="h-5 w-24" />
-                  </div>
-                  <Skeleton className="aspect-square rounded-xl" />
-                  <Skeleton className="h-4 w-full" />
-                  <Skeleton className="h-20 w-full" />
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        )}
 
         {/* Generated Angles Gallery */}
         {angleImages.length > 0 && (
