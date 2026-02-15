@@ -102,7 +102,9 @@ const WallExtractionPanel = ({
 
     setUploadingWallId(wallId);
     try {
-      const fileName = `${designId}/real-wall-${wallId}-${Date.now()}.${file.name.split(".").pop()}`;
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
+      const fileName = `${user.id}/real-wall-${wallId}-${Date.now()}.${file.name.split(".").pop()}`;
       const { error: uploadError } = await supabase.storage
         .from("room-photos")
         .upload(fileName, file, { contentType: file.type });
