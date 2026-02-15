@@ -13,6 +13,7 @@ interface ReplaceWallRequest {
   wallDescription: string;
   wallType: string;
   realWallImageUrl: string;
+  userInstructions?: string;
 }
 
 Deno.serve(async (req) => {
@@ -36,6 +37,7 @@ Deno.serve(async (req) => {
       wallDescription,
       wallType,
       realWallImageUrl,
+      userInstructions,
     }: ReplaceWallRequest = await req.json();
 
     if (!designImageUrl || !designId || !realWallImageUrl) {
@@ -63,6 +65,10 @@ Deno.serve(async (req) => {
 
     const typeContext = wallTypeDesc[wallType] || "a wall";
 
+    const userNote = userInstructions?.trim()
+      ? `\n\nUSER INSTRUCTIONS (follow these carefully): ${userInstructions}`
+      : "";
+
     const prompt = `I have two images:
 
 IMAGE 1 (first image): An AI-generated interior design rendering.
@@ -78,7 +84,7 @@ CRITICAL RULES:
 5. Blend seamlessly - the real wall should look natural in the designed room
 6. Keep all OTHER walls in the design EXACTLY as they are - only change the "${wallLabel}"
 7. Maintain the same room proportions, floor, ceiling, and overall composition
-8. The result should look like a professional interior design rendering using the actual room's wall`;
+8. The result should look like a professional interior design rendering using the actual room's wall${userNote}`;
 
     const response = await fetch(
       "https://ai.gateway.lovable.dev/v1/chat/completions",
