@@ -124,7 +124,7 @@ const AnalyzeProducts = () => {
         stylePreference: analysisResult.recommendedStyle.toLowerCase().replace(/\s+/g, "-"),
         colorPalette: "neutral",
       });
-      navigate("/quiz-details", { 
+      navigate("/generate", { 
         state: { 
           selectedStyle: {
             id: analysisResult.recommendedStyle.toLowerCase().replace(/\s+/g, "-"),
@@ -135,7 +135,7 @@ const AnalyzeProducts = () => {
             ...analysisResult,
             products: selectedProductData,
           },
-          uploadedImages: selectedImageData,
+          sourceImages: selectedImageData,
           includeProducts: true,
         } 
       });

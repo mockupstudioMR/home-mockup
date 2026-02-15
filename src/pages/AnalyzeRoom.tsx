@@ -176,7 +176,7 @@ const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(() =
         stylePreference: selectedStyle.styleName.toLowerCase().replace(/\s+/g, "-"),
         colorPalette: "neutral",
       });
-      navigate("/quiz-details", { 
+      navigate("/generate", { 
         state: { 
           selectedStyle: {
             id: selectedStyle.styleName.toLowerCase().replace(/\s+/g, "-"),
@@ -184,7 +184,7 @@ const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(() =
             description: selectedStyle.description,
           },
           analysisResult: { ...analysisResult, dominantColors: editableColors },
-          uploadedImages,
+          sourceImages: uploadedImages,
           selectedInspirations,
         } 
       });

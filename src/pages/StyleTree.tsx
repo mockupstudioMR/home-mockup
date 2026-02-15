@@ -100,7 +100,7 @@ const StyleTree = () => {
           stylePreference: selectedStyle,
           colorPalette: getDefaultColorForStyle(selectedStyle),
         });
-        navigate("/quiz-details", { state: { selectedStyle: style, source } });
+        navigate("/generate", { state: { selectedStyle: style, source } });
       }
     }
   };
