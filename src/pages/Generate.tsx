@@ -1405,7 +1405,7 @@ const Generate = () => {
             </div>
 
         {/* Generation Progress */}
-        {generating && !design && <GenerationCountdown />}
+        {generating && <GenerationCountdown />}
 
         {/* Personalized Style Profile */}
         {styleProfile && (
