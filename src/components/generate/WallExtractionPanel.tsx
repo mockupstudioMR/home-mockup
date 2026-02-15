@@ -25,6 +25,7 @@ interface ExtractedWall {
   imageUrl?: string;
   realWallImageUrl?: string;
   userInstructions?: string;
+  resultImageUrl?: string;
 }
 
 interface WallExtractionPanelProps {
@@ -182,7 +183,14 @@ const WallExtractionPanel = ({
       if (response.error) throw new Error(response.error.message);
 
       if (response.data?.imageUrl) {
-        onDesignUpdated(response.data.imageUrl);
+        // Store result per wall, don't update main design
+        setWalls((prev) =>
+          prev.map((w) =>
+            w.id === wall.id
+              ? { ...w, resultImageUrl: response.data.imageUrl }
+              : w
+          )
+        );
         toast({
           title: "Wall replaced!",
           description: `${wall.label} has been replaced with your real wall`,
@@ -272,7 +280,7 @@ const WallExtractionPanel = ({
 
               {/* Wall images row */}
               <div className="p-3 space-y-2">
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-3 gap-2">
                   {/* Design wall */}
                   <div className="space-y-1">
                     <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">
@@ -320,7 +328,7 @@ const WallExtractionPanel = ({
                           <>
                             <Upload className="w-4 h-4 text-muted-foreground" />
                             <span className="text-[10px] text-muted-foreground">
-                              Upload photo
+                              Upload
                             </span>
                           </>
                         )}
@@ -332,6 +340,30 @@ const WallExtractionPanel = ({
                           disabled={uploadingWallId === activeWall.id || disabled}
                         />
                       </label>
+                    )}
+                  </div>
+
+                  {/* Result wall */}
+                  <div className="space-y-1">
+                    <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">
+                      Result
+                    </span>
+                    {replacingWallId === activeWall.id ? (
+                      <div className="aspect-[3/2] rounded-md bg-muted flex items-center justify-center border border-border/50">
+                        <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+                      </div>
+                    ) : activeWall.resultImageUrl ? (
+                      <div className="aspect-[3/2] rounded-md overflow-hidden border-2 border-primary/50">
+                        <img
+                          src={activeWall.resultImageUrl}
+                          alt="Result"
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                    ) : (
+                      <div className="aspect-[3/2] rounded-md bg-muted/50 flex items-center justify-center border border-dashed border-border/50">
+                        <span className="text-[10px] text-muted-foreground/50">Pending</span>
+                      </div>
                     )}
                   </div>
                 </div>
