@@ -6,20 +6,17 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import QuizProgress from "@/components/quiz/QuizProgress";
-import StyleStep from "@/components/quiz/steps/StyleStep";
-import ColorStep from "@/components/quiz/steps/ColorStep";
 import RoomStep from "@/components/quiz/steps/RoomStep";
-import BudgetStep from "@/components/quiz/steps/BudgetStep";
 import ElementsStep from "@/components/quiz/steps/ElementsStep";
-import FurnitureSourceStep from "@/components/quiz/steps/FurnitureSourceStep";
-import ImageStep from "@/components/quiz/steps/ImageStep";
 import { ArrowLeft, ArrowRight, Sparkles, Home } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+
+const TOTAL_STEPS = 2;
 
 const Quiz = () => {
   const navigate = useNavigate();
   const { user, loading } = useAuth();
-  const { quizData, currentStep, setCurrentStep, totalSteps, resetQuiz } = useQuiz();
+  const { quizData, currentStep, setCurrentStep, resetQuiz } = useQuiz();
   const { toast } = useToast();
 
   useEffect(() => {
@@ -31,43 +28,32 @@ const Quiz = () => {
   const canProceed = () => {
     switch (currentStep) {
       case 0:
-        return !!quizData.stylePreference;
-      case 1:
-        return !!quizData.colorPalette;
-      case 2:
         return !!quizData.roomType;
-      case 3:
-        return !!quizData.budgetFeel;
-      case 4:
+      case 1:
         return true; // Elements are optional
-      case 5:
-        return !!quizData.furnitureSource; // Furniture source is required
-      case 6:
-        return true; // Image is optional but recommended
       default:
         return false;
     }
   };
 
   const handleNext = async () => {
-    if (currentStep < totalSteps - 1) {
+    if (currentStep < TOTAL_STEPS - 1) {
       setCurrentStep(currentStep + 1);
     } else {
       // Final step - save and navigate to generate
       try {
         const { error } = await supabase.from("quiz_responses").insert({
           user_id: user!.id,
-          style_preference: quizData.stylePreference,
-          color_palette: quizData.colorPalette,
+          style_preference: quizData.stylePreference || "modern-minimal",
+          color_palette: quizData.colorPalette || "neutral",
           room_type: quizData.roomType,
-          budget_feel: quizData.budgetFeel,
+          budget_feel: quizData.budgetFeel || "mid-range",
           must_have_elements: quizData.mustHaveElements,
           furniture_source: quizData.furnitureSource,
         });
 
         if (error) throw error;
 
-        // Set a unique session nonce so Generate page always detects a fresh quiz
         sessionStorage.setItem('generate_quiz_nonce', crypto.randomUUID());
 
         toast({
@@ -95,19 +81,9 @@ const Quiz = () => {
   const renderStep = () => {
     switch (currentStep) {
       case 0:
-        return <StyleStep />;
-      case 1:
-        return <ColorStep />;
-      case 2:
         return <RoomStep />;
-      case 3:
-        return <BudgetStep />;
-      case 4:
+      case 1:
         return <ElementsStep />;
-      case 5:
-        return <FurnitureSourceStep />;
-      case 6:
-        return <ImageStep />;
       default:
         return null;
     }
@@ -147,7 +123,7 @@ const Quiz = () => {
         </div>
 
         {/* Progress */}
-        <QuizProgress currentStep={currentStep} totalSteps={totalSteps} />
+        <QuizProgress currentStep={currentStep} totalSteps={TOTAL_STEPS} />
 
         {/* Quiz Card */}
         <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
@@ -170,7 +146,7 @@ const Quiz = () => {
             disabled={!canProceed()}
             className="flex-1"
           >
-            {currentStep === totalSteps - 1 ? (
+            {currentStep === TOTAL_STEPS - 1 ? (
               <>
                 <Sparkles className="w-4 h-4 mr-2" />
                 Generate Design
