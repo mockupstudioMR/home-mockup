@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -21,6 +22,7 @@ interface ExtractedWall {
   description: string;
   imageUrl?: string;
   realWallImageUrl?: string;
+  userInstructions?: string;
 }
 
 interface WallExtractionPanelProps {
@@ -130,6 +132,14 @@ const WallExtractionPanel = ({
     );
   };
 
+  const handleInstructionsChange = (wallId: string, value: string) => {
+    setWalls((prev) =>
+      prev.map((w) =>
+        w.id === wallId ? { ...w, userInstructions: value } : w
+      )
+    );
+  };
+
   const handleReplaceWall = async (wall: ExtractedWall) => {
     if (!wall.realWallImageUrl) return;
 
@@ -143,6 +153,7 @@ const WallExtractionPanel = ({
           wallDescription: wall.description,
           wallType: wall.wall_type,
           realWallImageUrl: wall.realWallImageUrl,
+          userInstructions: wall.userInstructions || "",
         },
       });
 
@@ -301,6 +312,22 @@ const WallExtractionPanel = ({
               <p className="text-[11px] text-muted-foreground line-clamp-2">
                 {wall.description}
               </p>
+
+              {/* User instructions */}
+              {wall.realWallImageUrl && (
+                <div className="space-y-1">
+                  <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">
+                    Instructions
+                  </span>
+                  <Textarea
+                    placeholder="e.g. Keep the shelf and plants, replace only the wall paint and texture..."
+                    value={wall.userInstructions || ""}
+                    onChange={(e) => handleInstructionsChange(wall.id, e.target.value)}
+                    className="min-h-[60px] text-xs resize-none"
+                    disabled={replacingWallId === wall.id || disabled}
+                  />
+                </div>
+              )}
 
               {/* Replace button */}
               {wall.realWallImageUrl && (
