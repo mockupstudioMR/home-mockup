@@ -74,17 +74,16 @@ Deno.serve(async (req) => {
 IMAGE 1 (first image): An AI-generated interior design rendering.
 IMAGE 2 (second image): A real photograph of an actual wall in someone's room.
 
-TASK: Generate a new version of IMAGE 1 (the design) where the "${wallLabel}" (${wallDescription}) is REPLACED with the actual wall from IMAGE 2.
+TASK: Generate a new image showing the designed furniture and decor from IMAGE 1 placed onto the REAL wall from IMAGE 2, using the SAME CAMERA ANGLE and perspective as IMAGE 2 (the uploaded photo).
 
 CRITICAL RULES:
 1. The "${wallLabel}" is ${typeContext}
-2. Take the REAL wall texture, color, paint, material, and any architectural features (windows, doors, outlets, moldings) from IMAGE 2
-3. KEEP ALL FURNITURE that was against or near this wall in the EXACT SAME POSITION - do not move, remove, or change any furniture
-4. Adapt the lighting and perspective of the real wall to match the design's camera angle
-5. Blend seamlessly - the real wall should look natural in the designed room
-6. Keep all OTHER walls in the design EXACTLY as they are - only change the "${wallLabel}"
-7. Maintain the same room proportions, floor, ceiling, and overall composition
-8. The result should look like a professional interior design rendering using the actual room's wall${userNote}`;
+2. Use IMAGE 2's exact camera angle, perspective, and viewpoint - the result must look like a photo taken from the same position as IMAGE 2
+3. Take the REAL wall texture, color, paint, material, and any architectural features (windows, doors, outlets, moldings) from IMAGE 2
+4. Place the furniture and decor items from IMAGE 1 that belong on this wall into the scene, keeping their relative positions and proportions
+5. Adapt the furniture's lighting, shadows, and scale to match IMAGE 2's real-world perspective
+6. The result should look like a professional interior design visualization overlaid on the actual room photo
+7. Maintain the real wall's proportions, floor, ceiling as seen in IMAGE 2${userNote}`;
 
     let base64Image: string | undefined;
     const maxAttempts = 3;
