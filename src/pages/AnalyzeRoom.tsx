@@ -364,6 +364,8 @@ const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(() =
                           keywords={style.keywords}
                           selectedItems={selectedInspirations}
                           onToggle={(id) => {
+                            // Auto-select this style when toggling its inspiration
+                            setSelectedStyleIndex(index);
                             setSelectedInspirations((prev) =>
                               prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
                             );
