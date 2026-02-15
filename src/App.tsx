@@ -13,7 +13,7 @@ import Start from "./pages/Start";
 import StyleTree from "./pages/StyleTree";
 import AnalyzeRoom from "./pages/AnalyzeRoom";
 import AnalyzeProducts from "./pages/AnalyzeProducts";
-import QuizDetails from "./pages/QuizDetails";
+
 import Quiz from "./pages/Quiz";
 import Generate from "./pages/Generate";
 import Gallery from "./pages/Gallery";
@@ -56,11 +56,6 @@ const App = () => (
               <Route path="/analyze-products" element={
                 <ProtectedRoute allowedRoles={["user"]}>
                   <AnalyzeProducts />
-                </ProtectedRoute>
-              } />
-              <Route path="/quiz-details" element={
-                <ProtectedRoute allowedRoles={["user"]}>
-                  <QuizDetails />
                 </ProtectedRoute>
               } />
               <Route path="/quiz" element={
