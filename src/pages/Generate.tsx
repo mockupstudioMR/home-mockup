@@ -1456,6 +1456,7 @@ const Generate = () => {
               onLock={handleLockDesign}
             />
             <OtherAnglesButton
+              key={design?.id}
               onGenerate={handleGenerateAngle}
               disabled={extractingItems || generating}
               onImageGenerated={handleAngleImageGenerated}
