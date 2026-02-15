@@ -24,6 +24,8 @@ interface DesignItem {
   google_shopping_url?: string;
   google_images_url?: string;
   bounding_box?: BoundingBox;
+  product_photo_url?: string;
+  wall_type?: string;
   matchedProduct?: {
     id: string;
     name: string;
@@ -115,6 +117,13 @@ const DesignItemCard = ({ item, designImageUrl, onOrderCustomMade }: DesignItemC
               {hexColor?.toUpperCase()}
             </span>
           </div>
+        ) : item.product_photo_url && !imageError ? (
+          <img 
+            src={item.product_photo_url} 
+            alt={displayName}
+            className="w-full h-full object-contain bg-white"
+            onError={() => setImageError(true)}
+          />
         ) : matchedImage && !imageError ? (
           <img 
             src={matchedImage} 
@@ -137,9 +146,15 @@ const DesignItemCard = ({ item, designImageUrl, onOrderCustomMade }: DesignItemC
         )}
         
         {/* Expanded preview on hover */}
-        {(matchedImage || hasBoundingBox || !showColorSwatch) && (
+        {(item.product_photo_url || matchedImage || hasBoundingBox || !showColorSwatch) && (
           <div className="fixed left-1/2 top-4 -translate-x-1/2 w-80 h-80 md:w-96 md:h-96 rounded-xl overflow-hidden bg-background border-2 border-primary/30 shadow-2xl z-[100] opacity-0 scale-90 pointer-events-none group-hover/thumb:opacity-100 group-hover/thumb:scale-100 group-hover/thumb:pointer-events-auto transition-all duration-300">
-            {matchedImage && !imageError ? (
+            {item.product_photo_url && !imageError ? (
+              <img 
+                src={item.product_photo_url} 
+                alt={displayName}
+                className="w-full h-full object-contain bg-white p-4"
+              />
+            ) : matchedImage && !imageError ? (
               <img 
                 src={matchedImage} 
                 alt={displayName}

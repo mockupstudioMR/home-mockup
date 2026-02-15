@@ -141,7 +141,9 @@ export type Database = {
           matched_product_id: string | null
           material: string | null
           priority: string | null
+          product_photo_url: string | null
           style: string | null
+          wall_type: string | null
         }
         Insert: {
           bounding_box?: Json | null
@@ -158,7 +160,9 @@ export type Database = {
           matched_product_id?: string | null
           material?: string | null
           priority?: string | null
+          product_photo_url?: string | null
           style?: string | null
+          wall_type?: string | null
         }
         Update: {
           bounding_box?: Json | null
@@ -175,7 +179,9 @@ export type Database = {
           matched_product_id?: string | null
           material?: string | null
           priority?: string | null
+          product_photo_url?: string | null
           style?: string | null
+          wall_type?: string | null
         }
         Relationships: [
           {

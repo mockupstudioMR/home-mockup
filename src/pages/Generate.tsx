@@ -95,6 +95,8 @@ interface DesignItem {
   google_shopping_url?: string;
   google_images_url?: string;
   bounding_box?: BoundingBox;
+  product_photo_url?: string;
+  wall_type?: string;
   matchedProduct?: {
     id: string;
     name: string;
@@ -213,6 +215,7 @@ const Generate = () => {
     }
   });
   const [referenceImageUrl, setReferenceImageUrl] = useState<string | null>(null);
+  const [isolatingPhotos, setIsolatingPhotos] = useState(false);
   const [existingRoomImages, setExistingRoomImages] = useState<string[]>([]);
   const [uploadingReference, setUploadingReference] = useState(false);
   const [debugSteps, setDebugSteps] = useState<Array<{ timestamp: string; step: string; detail: string; data?: unknown }>>(() => {
@@ -1258,8 +1261,52 @@ const Generate = () => {
 
       toast({
         title: "Design locked!",
-        description: `Extracted ${items?.length || 0} items from your design`,
+        description: `Extracted ${items?.length || 0} items. Generating product photos...`,
       });
+
+      // Trigger product photo isolation in the background
+      setIsolatingPhotos(true);
+      supabase.functions
+        .invoke("isolate-product-photos", {
+          body: {
+            designId: design.id,
+            designImageUrl: design.imageUrl,
+            items: (items || []).map((item: DesignItem) => ({
+              id: item.id,
+              item_name: item.item_name,
+              item_description: item.item_description,
+              item_type: item.item_type,
+              color: item.color,
+              material: item.material,
+              bounding_box: item.bounding_box,
+            })),
+          },
+        })
+        .then(async (response) => {
+          if (response.data?.results) {
+            // Update items with product photo URLs
+            setDesignItems((prev) =>
+              prev.map((item) => {
+                const match = response.data.results.find(
+                  (r: { itemId: string; photoUrl: string | null }) => r.itemId === item.id
+                );
+                return match?.photoUrl
+                  ? { ...item, product_photo_url: match.photoUrl }
+                  : item;
+              })
+            );
+            toast({
+              title: "Product photos ready!",
+              description: `Generated ${response.data.generated} isolated product photos`,
+            });
+          }
+        })
+        .catch((err) => {
+          console.error("Product photo isolation error:", err);
+        })
+        .finally(() => {
+          setIsolatingPhotos(false);
+        });
     } catch (error) {
       console.error("Lock design error:", error);
       toast({
@@ -1529,6 +1576,7 @@ const Generate = () => {
             fullDescription={fullDescription}
             designImageUrl={design.imageUrl}
             isLoading={extractingItems}
+            isolatingPhotos={isolatingPhotos}
           />
         )}
 
