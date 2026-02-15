@@ -517,38 +517,53 @@ function buildImagePrompt(
   // Build inspiration context from selected moodboard/furniture items
   let inspirationContext = "";
   if (data.selectedInspirations && data.selectedInspirations.length > 0) {
-    const furnitureInspirations: string[] = [];
-    const moodboardInspirations: string[] = [];
+    const furnitureDescriptions: string[] = [];
+    const moodboardDescriptions: string[] = [];
     
-    const furnitureForStyleMap: Record<string, string> = {
-      "modern-minimal": "Sculptural Lounge Chair",
-      "classic-historical": "Antique Armoire",
-      "bohemian-eclectic": "Rattan Peacock Chair",
-      "rustic-nature": "Live Edge Wood Table",
-      "mediterranean": "Wrought Iron Daybed",
-      "glam-luxe": "Velvet Statement Sofa",
+    const furnitureForStyleMap: Record<string, { name: string; desc: string }> = {
+      "modern-minimal": { name: "Sculptural Lounge Chair", desc: "sleek sculptural accent chair with clean lines and minimal form" },
+      "classic-historical": { name: "Antique Armoire", desc: "ornate period armoire with rich wood tones and carved details" },
+      "bohemian-eclectic": { name: "Rattan Peacock Chair", desc: "statement rattan peacock chair with bohemian flair" },
+      "rustic-nature": { name: "Live Edge Wood Table", desc: "raw live-edge wood table showcasing natural grain patterns" },
+      "mediterranean": { name: "Wrought Iron Daybed", desc: "Mediterranean wrought iron daybed with flowing fabric drapes" },
+      "glam-luxe": { name: "Velvet Statement Sofa", desc: "luxurious tufted velvet sofa with gold accents" },
     };
-    
+
+    // Map style slug from the style preference
+    const styleSlug = data.stylePreference || style.toLowerCase().replace(/\s+/g, "-");
+
     for (const id of data.selectedInspirations) {
       if (id.startsWith("furniture-")) {
-        // Extract style index and map to furniture name
         const idx = parseInt(id.replace("furniture-", ""), 10);
-        // We don't have the full style list here, but the furniture names are deterministic
-        furnitureInspirations.push(`accent furniture piece #${idx + 1}`);
+        // Try to match via analysisResult styles if available
+        const matchedStyle = data.detectedKeywords ? styleSlug : null;
+        const furnitureMatch = furnitureForStyleMap[matchedStyle || styleSlug];
+        if (furnitureMatch) {
+          furnitureDescriptions.push(`a ${furnitureMatch.desc}`);
+        } else {
+          furnitureDescriptions.push("a designer accent furniture piece matching the chosen style");
+        }
       } else if (id.startsWith("moodboard-")) {
-        moodboardInspirations.push(`moodboard inspiration #${parseInt(id.replace("moodboard-", ""), 10) + 1}`);
+        const idx = parseInt(id.replace("moodboard-", ""), 10);
+        // Use detected keywords for this style's moodboard context
+        const keywordSubset = data.detectedKeywords?.slice(0, 6) || [];
+        if (keywordSubset.length > 0) {
+          moodboardDescriptions.push(`moodboard featuring ${keywordSubset.join(", ")}`);
+        } else {
+          moodboardDescriptions.push("curated moodboard matching the selected style aesthetic");
+        }
       }
     }
     
     const parts: string[] = [];
-    if (furnitureInspirations.length > 0) {
-      parts.push(`Incorporate accent furniture inspired by the user's selected pieces (${furnitureInspirations.length} selected)`);
+    if (furnitureDescriptions.length > 0) {
+      parts.push(`ACCENT FURNITURE DIRECTIVE: Include these specific accent pieces: ${furnitureDescriptions.join("; ")}`);
     }
-    if (moodboardInspirations.length > 0) {
-      parts.push(`Draw from the user's selected moodboard inspirations (${moodboardInspirations.length} selected) to guide the overall aesthetic, textures, and material choices`);
+    if (moodboardDescriptions.length > 0) {
+      parts.push(`MOODBOARD AESTHETIC DIRECTIVE: Follow the aesthetic of: ${moodboardDescriptions.join("; ")} — use these as guides for textures, materials, patterns, and overall visual language`);
     }
     if (parts.length > 0) {
-      inspirationContext = `STYLE INSPIRATION CONTEXT: ${parts.join(". ")}. Blend these selected inspirations naturally into a cohesive design. `;
+      inspirationContext = `${parts.join(". ")}. `;
     }
   }
 
