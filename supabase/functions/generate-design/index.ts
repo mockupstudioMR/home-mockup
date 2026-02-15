@@ -529,14 +529,14 @@ function buildImagePrompt(
   // Determine which template to use
   if (data.modificationPrompt) {
     const tpl = templates["modification"] || 
-      `Modify this interior design image: {{modification_prompt}}. Maintain the {{style}} style with {{colors}}. {{product_instructions}} Ultra high resolution, photorealistic interior design photography.`;
+      `STRICT POSITIONAL CONSTRAINT: You MUST keep every single piece of furniture, decor item, and object in the EXACT SAME position, size, angle, and arrangement as the original image. Do NOT move, remove, add, rearrange, or resize any element. The spatial layout, composition, and placement of all items must remain pixel-perfect identical. ONLY change the visual styling as requested: {{modification_prompt}}. Apply {{style}} style with {{colors}}. {{product_instructions}} The result must look like the exact same photo with only the surface styling/textures/colors changed — every object stays precisely where it is. Ultra high resolution, photorealistic interior design photography.`;
     return furnitureContext + fillTemplate(tpl);
   }
 
-  // Existing room redesign - preserve layout, proportions, and spatial arrangement
+  // Existing room redesign - allow layout/furniture rearrangement to match new style
   if (data.existingRoomImages && data.existingRoomImages.length > 0) {
     const tpl = templates["existing_room_redesign"] ||
-      `CRITICAL INSTRUCTION: Study the attached photos of the existing room very carefully. You must recreate this EXACT SAME room — same layout, same proportions, same spatial arrangement, same window/door positions, same room shape and dimensions. Keep every architectural element (walls, ceiling, floor plan, windows, doors, alcoves, columns) exactly where they are. Now redesign ONLY the interior styling: apply a {{style}} aesthetic with {{colors}}. Replace or restyle the furniture and decor to match the {{budget}} {{style}} look, but keep them in the same positions and roughly the same scale as in the original photos. {{elements}} {{product_instructions}} The final image must look like the same physical room photographed after a professional interior redesign — not a different room. Ultra high resolution, photorealistic interior design photography, professional lighting, magazine quality, 16:9 aspect ratio.`;
+      `ROOM REDESIGN INSTRUCTION: Study the attached photos of the existing room carefully. Preserve the architectural shell — walls, ceiling, floor shape, windows, doors, alcoves, and columns must stay in their exact positions. However, you ARE free to completely rearrange, replace, add, or remove furniture and decor to best suit the new {{style}} aesthetic with {{colors}}. Create a {{budget}} look with an optimal furniture layout for this room's dimensions and architecture. {{elements}} {{product_instructions}} The final image should feel like a professional redesign of the same physical space — same room structure, but with a fresh, well-arranged interior. Ultra high resolution, photorealistic interior design photography, professional lighting, magazine quality, 16:9 aspect ratio.`;
     return furnitureContext + fillTemplate(tpl);
   }
 
