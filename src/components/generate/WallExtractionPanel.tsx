@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,8 @@ import {
   Loader2,
   ArrowRightLeft,
   ImageIcon,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -60,6 +62,31 @@ const WallExtractionPanel = ({
   const [extracted, setExtracted] = useState(false);
   const [uploadingWallId, setUploadingWallId] = useState<string | null>(null);
   const [replacingWallId, setReplacingWallId] = useState<string | null>(null);
+  const [activeIndex, setActiveIndex] = useState(0);
+  const autoRotateRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Auto-rotate walls every 4 seconds, pause when user interacts
+  const startAutoRotate = useCallback(() => {
+    if (autoRotateRef.current) clearInterval(autoRotateRef.current);
+    autoRotateRef.current = setInterval(() => {
+      setActiveIndex((prev) => (prev + 1) % Math.max(walls.length, 1));
+    }, 4000);
+  }, [walls.length]);
+
+  useEffect(() => {
+    if (extracted && walls.length > 1) {
+      startAutoRotate();
+    }
+    return () => {
+      if (autoRotateRef.current) clearInterval(autoRotateRef.current);
+    };
+  }, [extracted, walls.length, startAutoRotate]);
+
+  const goToWall = (index: number) => {
+    setActiveIndex(index);
+    // Reset auto-rotate timer on manual navigation
+    if (walls.length > 1) startAutoRotate();
+  };
 
   const handleExtractWalls = useCallback(async () => {
     setExtracting(true);
@@ -211,6 +238,8 @@ const WallExtractionPanel = ({
     );
   }
 
+  const activeWall = walls[activeIndex];
+
   return (
     <div className="pt-3 border-t border-border/50 space-y-3">
       <div className="flex items-center justify-between">
@@ -223,142 +252,165 @@ const WallExtractionPanel = ({
         </Badge>
       </div>
 
-      <div className="space-y-3">
-        {walls.map((wall) => (
-          <div
-            key={wall.id}
-            className="rounded-lg border border-border/50 bg-background/50 overflow-hidden"
-          >
-            {/* Wall header */}
-            <div className="flex items-center gap-2 px-3 py-2 bg-muted/30">
-              <span className="text-base">
-                {WALL_TYPE_EMOJI[wall.wall_type] || "🧱"}
-              </span>
-              <span className="text-sm font-medium flex-1">{wall.label}</span>
-              <Badge variant="secondary" className="text-[10px]">
-                {WALL_TYPE_LABELS[wall.wall_type] || wall.wall_type}
-              </Badge>
-            </div>
+      {walls.length > 0 && activeWall ? (
+        <>
+          {/* Navigation arrows + wall card */}
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => goToWall((activeIndex - 1 + walls.length) % walls.length)}
+              className="shrink-0 w-7 h-7 rounded-full flex items-center justify-center hover:bg-accent transition-colors text-muted-foreground hover:text-foreground"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
 
-            {/* Wall images row */}
-            <div className="p-3 space-y-2">
-              <div className="grid grid-cols-2 gap-3">
-                {/* Design wall */}
-                <div className="space-y-1">
-                  <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">
-                    Design
-                  </span>
-                  {wall.imageUrl ? (
-                    <div className="aspect-[3/2] rounded-md overflow-hidden border border-border/50">
-                      <img
-                        src={wall.imageUrl}
-                        alt={wall.label}
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                  ) : (
-                    <div className="aspect-[3/2] rounded-md bg-muted flex items-center justify-center border border-border/50">
-                      <ImageIcon className="w-5 h-5 text-muted-foreground/50" />
-                    </div>
-                  )}
-                </div>
-
-                {/* Real wall */}
-                <div className="space-y-1">
-                  <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">
-                    Your Wall
-                  </span>
-                  {wall.realWallImageUrl ? (
-                    <div className="relative aspect-[3/2] rounded-md overflow-hidden border border-border/50">
-                      <img
-                        src={wall.realWallImageUrl}
-                        alt="Your wall"
-                        className="w-full h-full object-cover"
-                      />
-                      <button
-                        onClick={() => handleRemoveRealWall(wall.id)}
-                        className="absolute top-1 right-1 w-5 h-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center hover:bg-destructive/90"
-                      >
-                        <X className="w-3 h-3" />
-                      </button>
-                    </div>
-                  ) : (
-                    <label className="aspect-[3/2] rounded-md border border-dashed border-border cursor-pointer hover:border-primary/50 hover:bg-accent/30 transition-colors flex flex-col items-center justify-center gap-1">
-                      {uploadingWallId === wall.id ? (
-                        <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
-                      ) : (
-                        <>
-                          <Upload className="w-4 h-4 text-muted-foreground" />
-                          <span className="text-[10px] text-muted-foreground">
-                            Upload photo
-                          </span>
-                        </>
-                      )}
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={(e) => handleUploadRealWall(wall.id, e)}
-                        className="hidden"
-                        disabled={
-                          uploadingWallId === wall.id || disabled
-                        }
-                      />
-                    </label>
-                  )}
-                </div>
+            <div className="flex-1 rounded-lg border border-border/50 bg-background/50 overflow-hidden">
+              {/* Wall header */}
+              <div className="flex items-center gap-2 px-3 py-2 bg-muted/30">
+                <span className="text-base">
+                  {WALL_TYPE_EMOJI[activeWall.wall_type] || "🧱"}
+                </span>
+                <span className="text-sm font-medium flex-1">{activeWall.label}</span>
+                <Badge variant="secondary" className="text-[10px]">
+                  {WALL_TYPE_LABELS[activeWall.wall_type] || activeWall.wall_type}
+                </Badge>
               </div>
 
-              {/* Description */}
-              <p className="text-[11px] text-muted-foreground line-clamp-2">
-                {wall.description}
-              </p>
+              {/* Wall images row */}
+              <div className="p-3 space-y-2">
+                <div className="grid grid-cols-2 gap-3">
+                  {/* Design wall */}
+                  <div className="space-y-1">
+                    <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">
+                      Design
+                    </span>
+                    {activeWall.imageUrl ? (
+                      <div className="aspect-[3/2] rounded-md overflow-hidden border border-border/50">
+                        <img
+                          src={activeWall.imageUrl}
+                          alt={activeWall.label}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                    ) : (
+                      <div className="aspect-[3/2] rounded-md bg-muted flex items-center justify-center border border-border/50">
+                        <ImageIcon className="w-5 h-5 text-muted-foreground/50" />
+                      </div>
+                    )}
+                  </div>
 
-              {/* User instructions */}
-              {wall.realWallImageUrl && (
-                <div className="space-y-1">
-                  <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">
-                    Instructions
-                  </span>
-                  <Textarea
-                    placeholder="e.g. Keep the shelf and plants, replace only the wall paint and texture..."
-                    value={wall.userInstructions || ""}
-                    onChange={(e) => handleInstructionsChange(wall.id, e.target.value)}
-                    className="min-h-[60px] text-xs resize-none"
-                    disabled={replacingWallId === wall.id || disabled}
-                  />
+                  {/* Real wall */}
+                  <div className="space-y-1">
+                    <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">
+                      Your Wall
+                    </span>
+                    {activeWall.realWallImageUrl ? (
+                      <div className="relative aspect-[3/2] rounded-md overflow-hidden border border-border/50">
+                        <img
+                          src={activeWall.realWallImageUrl}
+                          alt="Your wall"
+                          className="w-full h-full object-cover"
+                        />
+                        <button
+                          onClick={() => handleRemoveRealWall(activeWall.id)}
+                          className="absolute top-1 right-1 w-5 h-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center hover:bg-destructive/90"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                    ) : (
+                      <label className="aspect-[3/2] rounded-md border border-dashed border-border cursor-pointer hover:border-primary/50 hover:bg-accent/30 transition-colors flex flex-col items-center justify-center gap-1">
+                        {uploadingWallId === activeWall.id ? (
+                          <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+                        ) : (
+                          <>
+                            <Upload className="w-4 h-4 text-muted-foreground" />
+                            <span className="text-[10px] text-muted-foreground">
+                              Upload photo
+                            </span>
+                          </>
+                        )}
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => handleUploadRealWall(activeWall.id, e)}
+                          className="hidden"
+                          disabled={uploadingWallId === activeWall.id || disabled}
+                        />
+                      </label>
+                    )}
+                  </div>
                 </div>
-              )}
 
-              {/* Replace button */}
-              {wall.realWallImageUrl && (
-                <Button
-                  size="sm"
-                  onClick={() => handleReplaceWall(wall)}
-                  disabled={
-                    replacingWallId === wall.id ||
-                    disabled
-                  }
-                  className="w-full gap-2 h-8 text-xs"
-                >
-                  {replacingWallId === wall.id ? (
-                    <>
-                      <Loader2 className="w-3 h-3 animate-spin" />
-                      Replacing...
-                    </>
-                  ) : (
-                    <>
-                      <ArrowRightLeft className="w-3 h-3" />
-                      Replace with my wall
-                    </>
-                  )}
-                </Button>
-              )}
+                {/* Description */}
+                <p className="text-[11px] text-muted-foreground line-clamp-2">
+                  {activeWall.description}
+                </p>
+
+                {/* User instructions */}
+                {activeWall.realWallImageUrl && (
+                  <div className="space-y-1">
+                    <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">
+                      Instructions
+                    </span>
+                    <Textarea
+                      placeholder="e.g. Keep the shelf and plants, replace only the wall paint and texture..."
+                      value={activeWall.userInstructions || ""}
+                      onChange={(e) => handleInstructionsChange(activeWall.id, e.target.value)}
+                      className="min-h-[60px] text-xs resize-none"
+                      disabled={replacingWallId === activeWall.id || disabled}
+                    />
+                  </div>
+                )}
+
+                {/* Replace button */}
+                {activeWall.realWallImageUrl && (
+                  <Button
+                    size="sm"
+                    onClick={() => handleReplaceWall(activeWall)}
+                    disabled={replacingWallId === activeWall.id || disabled}
+                    className="w-full gap-2 h-8 text-xs"
+                  >
+                    {replacingWallId === activeWall.id ? (
+                      <>
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                        Replacing...
+                      </>
+                    ) : (
+                      <>
+                        <ArrowRightLeft className="w-3 h-3" />
+                        Replace with my wall
+                      </>
+                    )}
+                  </Button>
+                )}
+              </div>
             </div>
-          </div>
-        ))}
-      </div>
 
-      {walls.length === 0 && (
+            <button
+              onClick={() => goToWall((activeIndex + 1) % walls.length)}
+              className="shrink-0 w-7 h-7 rounded-full flex items-center justify-center hover:bg-accent transition-colors text-muted-foreground hover:text-foreground"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
+
+          {/* Dot indicators */}
+          <div className="flex items-center justify-center gap-1.5">
+            {walls.map((wall, i) => (
+              <button
+                key={wall.id}
+                onClick={() => goToWall(i)}
+                className={`w-2 h-2 rounded-full transition-all ${
+                  i === activeIndex
+                    ? "bg-primary scale-125"
+                    : "bg-muted-foreground/30 hover:bg-muted-foreground/50"
+                }`}
+                title={wall.label}
+              />
+            ))}
+          </div>
+        </>
+      ) : (
         <p className="text-xs text-muted-foreground text-center py-2">
           No walls detected in this design
         </p>
