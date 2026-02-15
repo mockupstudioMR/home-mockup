@@ -98,19 +98,29 @@ const WallExtractionPanel = ({
     e: React.ChangeEvent<HTMLInputElement>
   ) => {
     const file = e.target.files?.[0];
-    if (!file) return;
+    if (!file) {
+      console.log("[WallUpload] No file selected");
+      return;
+    }
 
+    console.log("[WallUpload] Starting upload for wall:", wallId, "file:", file.name, file.size);
     setUploadingWallId(wallId);
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
-      const fileName = `${user.id}/real-wall-${wallId}-${Date.now()}.${file.name.split(".").pop()}`;
-      const { error: uploadError } = await supabase.storage
+      const ext = file.name.split(".").pop() || "jpg";
+      const fileName = `${user.id}/real-wall-${wallId}-${Date.now()}.${ext}`;
+      console.log("[WallUpload] Uploading to:", fileName);
+      const { error: uploadError, data: uploadData } = await supabase.storage
         .from("room-photos")
         .upload(fileName, file, { contentType: file.type, upsert: true });
 
-      if (uploadError) throw uploadError;
+      if (uploadError) {
+        console.error("[WallUpload] Upload error:", uploadError);
+        throw uploadError;
+      }
 
+      console.log("[WallUpload] Upload success:", uploadData);
       const { data: urlData } = supabase.storage
         .from("room-photos")
         .getPublicUrl(fileName);
@@ -123,13 +133,16 @@ const WallExtractionPanel = ({
         )
       );
     } catch (error) {
+      console.error("[WallUpload] Error:", error);
       toast({
         title: "Upload failed",
-        description: "Could not upload wall photo",
+        description: error instanceof Error ? error.message : "Could not upload wall photo",
         variant: "destructive",
       });
     } finally {
       setUploadingWallId(null);
+      // Reset input so same file can be re-selected
+      e.target.value = "";
     }
   };
 
