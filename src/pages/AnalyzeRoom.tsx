@@ -431,8 +431,8 @@ const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(() =
 
                 <Button size="lg" className="w-full" onClick={handleContinue} disabled={selectedStyleIndex === null}>
                   {selectedStyleIndex !== null
-                    ? `Continue with ${analysisResult.styles[selectedStyleIndex]?.styleName}`
-                    : "Select a style to continue"}
+                    ? `Select elements and colors to continue with ${analysisResult.styles[selectedStyleIndex]?.styleName}`
+                    : "Select elements and colors to continue"}
                 </Button>
               </CardContent>
             </Card>
