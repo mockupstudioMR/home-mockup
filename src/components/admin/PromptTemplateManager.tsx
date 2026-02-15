@@ -62,6 +62,15 @@ const AVAILABLE_VARIABLES: Record<string, { name: string; desc: string }[]> = {
   scrape_shop_extract: [
     { name: "{{scraped_content}}", desc: "Auto-injected scraped page content" },
   ],
+  // Existing room redesign template
+  existing_room_redesign: [
+    { name: "{{style}}", desc: "The mapped style preference" },
+    { name: "{{colors}}", desc: "The mapped color palette description" },
+    { name: "{{budget}}", desc: "The mapped budget description" },
+    { name: "{{elements}}", desc: "User's must-have elements" },
+    { name: "{{product_instructions}}", desc: "Auto-generated product inclusion instructions" },
+    { name: "{{furniture_list}}", desc: "Comma-separated furniture items for the room type" },
+  ],
 };
 
 const getVariablesForTemplate = (templateKey: string) => {
