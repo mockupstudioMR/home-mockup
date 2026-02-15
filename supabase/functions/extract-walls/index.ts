@@ -199,15 +199,27 @@ Respond ONLY with valid JSON array, no markdown, no extra words, no explanation.
 
     for (const wall of walls) {
       try {
-        const cropPrompt = `Look at this interior design image. I need you to generate a cropped view showing ONLY the "${wall.label}" wall (${wall.description}). 
+        // Camera angle based on wall position
+        const cameraAngles: Record<string, string> = {
+          left: "Position the camera on the RIGHT side of the room, looking LEFT directly at this wall. The wall should fill most of the frame, seen at a slight 3/4 angle from the right.",
+          right: "Position the camera on the LEFT side of the room, looking RIGHT directly at this wall. The wall should fill most of the frame, seen at a slight 3/4 angle from the left.",
+          back: "Position the camera near the FRONT/entrance of the room, looking straight AHEAD at this wall. Show it as the focal wall from the room's main viewpoint.",
+          front: "Position the camera at the BACK of the room, looking toward the ENTRANCE/front wall. Show the door and this wall as if standing at the far end of the room looking back.",
+        };
+        const angleInstruction = cameraAngles[wall.position] || "Show the wall from a straight-on perspective.";
 
-Show this wall from a straight-on perspective, including:
+        const cropPrompt = `Look at this interior design image. Generate a NEW VIEW of the same room, but from a DIFFERENT CAMERA ANGLE that focuses on the "${wall.label}" wall (${wall.description}).
+
+${angleInstruction}
+
+Include in the image:
 - The wall surface, paint/wallpaper color and texture
-- Any architectural features (windows, doors, moldings)
-- Furniture pieces that are placed against or near this wall
-- The section of floor visible at the base of this wall
+- Any architectural features (windows, doors, moldings) on this wall
+- Furniture pieces placed against or near this wall
+- Adjacent walls visible at the edges for spatial context
+- The floor visible at the base
 
-Crop tightly to show just this wall section. Keep the same style and quality as the original image.`;
+IMPORTANT: This must look like the SAME ROOM from a different camera position, not a crop. Maintain the same style, lighting, colors, and all furniture/decor from the original design.`;
 
         const imageResponse = await fetch(
           "https://ai.gateway.lovable.dev/v1/chat/completions",
