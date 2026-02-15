@@ -77,6 +77,11 @@ serve(async (req) => {
       selectedProductsCount: requestData.selectedProducts?.length || 0,
       productImageUrlsCount: requestData.productImageUrls?.length || 0,
       existingRoomImagesCount: requestData.existingRoomImages?.length || 0,
+      detectedColorsCount: requestData.detectedColors?.length || 0,
+      detectedColors: requestData.detectedColors,
+      detectedKeywordsCount: requestData.detectedKeywords?.length || 0,
+      detectedKeywords: requestData.detectedKeywords,
+      hasMoodboardDescription: !!requestData.moodboardDescription,
     });
 
     // Create supabase client for DB queries
