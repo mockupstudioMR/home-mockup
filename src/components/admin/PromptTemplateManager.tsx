@@ -25,6 +25,13 @@ interface PromptTemplate {
 }
 
 const AVAILABLE_VARIABLES: Record<string, { name: string; desc: string }[]> = {
+  // Shared analysis variables used across generation templates
+  _analysis_vars: [
+    { name: "{{detected_colors}}", desc: "COLOR PALETTE DIRECTIVE built from room analysis detected colors" },
+    { name: "{{detected_keywords}}", desc: "VISUAL ELEMENTS DIRECTIVE built from detected design keywords/materials" },
+    { name: "{{moodboard_context}}", desc: "STYLE NARRATIVE from the moodboard description" },
+    { name: "{{inspiration_context}}", desc: "ACCENT FURNITURE + MOODBOARD AESTHETIC directives from selected inspirations" },
+  ],
   // Design generation templates
   default: [
     { name: "{{style}}", desc: "The mapped style preference (e.g. 'modern minimalist with clean lines')" },
@@ -73,15 +80,18 @@ const AVAILABLE_VARIABLES: Record<string, { name: string; desc: string }[]> = {
   ],
 };
 
+const GENERATION_TEMPLATE_KEYS = ["default", "with_product_images", "with_source_image", "existing_room_redesign", "modification"];
+
 const getVariablesForTemplate = (templateKey: string) => {
-  // Direct match
-  if (AVAILABLE_VARIABLES[templateKey]) return AVAILABLE_VARIABLES[templateKey];
-  // Design generation templates share variables
-  if (["with_product_images", "with_source_image", "furniture_context", "existing_room_redesign"].includes(templateKey)) {
-    return AVAILABLE_VARIABLES[templateKey] || AVAILABLE_VARIABLES["default"];
+  const baseVars = AVAILABLE_VARIABLES[templateKey] || [];
+  // Generation templates also get the analysis variables
+  if (GENERATION_TEMPLATE_KEYS.includes(templateKey)) {
+    return [...baseVars, ...(baseVars.length > 0 ? [] : AVAILABLE_VARIABLES["default"] || []), ...AVAILABLE_VARIABLES["_analysis_vars"]];
   }
-  // Analyze-style and extract templates have no variables
-  return [];
+  if (["furniture_context"].includes(templateKey)) {
+    return [...(AVAILABLE_VARIABLES["default"] || []), ...AVAILABLE_VARIABLES["_analysis_vars"]];
+  }
+  return baseVars;
 };
 
 const PromptTemplateManager = () => {
