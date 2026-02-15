@@ -60,20 +60,22 @@ Deno.serve(async (req) => {
               content: [
                 {
                   type: "text",
-                  text: `Analyze this interior design image and identify ALL visible walls. For each wall, determine its type from this list:
+                  text: `Analyze this interior design image and identify exactly 4 walls of the room. Every room has 4 walls even if some are not fully visible - infer them from the room's perspective.
+
+For each wall, determine its type from this list:
 - "pleine_wall" - A solid wall with no openings (plain wall)
 - "window_wall" - A wall that contains a window
 - "balcony_wall" - A wall with balcony door/opening
 - "door_wall_left" - A wall with a door on the left side
 - "door_wall_right" - A wall with a door on the right side
 
-Return a JSON array of walls found. Each wall should have:
+Return a JSON array of EXACTLY 4 walls. Each wall should have:
 - "wall_type": one of the types above
 - "label": human-readable label like "Left Wall (Window)", "Back Wall (Plain)", etc.
 - "description": brief description of what's on/against this wall (furniture, colors, features)
-- "position": where it is in the room ("left", "right", "back", "front")
+- "position": where it is in the room - must be one of "left", "right", "back", "front" (each used exactly once)
 
-IMPORTANT: Only include walls that are clearly visible in the image. Most rooms show 2-3 walls.
+IMPORTANT: Always return exactly 4 walls, one for each position (left, right, back, front). If a wall is not visible, infer its type as "pleine_wall" and describe it based on the room's style.
 
 Respond ONLY with valid JSON array, no markdown, no explanation.`,
                 },
