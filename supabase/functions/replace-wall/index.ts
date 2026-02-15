@@ -48,7 +48,7 @@ Deno.serve(async (req) => {
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-    console.log(`Replacing wall "${wallLabel}" in design ${designId}`);
+    console.log(`[v2] Replacing wall "${wallLabel}" in design ${designId}`);
 
     const wallTypeDesc: Record<string, string> = {
       pleine_wall:
