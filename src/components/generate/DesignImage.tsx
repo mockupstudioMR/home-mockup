@@ -2,14 +2,8 @@ import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Heart, MessageSquare, Download, ExternalLink } from "lucide-react";
+import { Heart, Download, Wand2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-
-interface Comment {
-  id: string;
-  text: string;
-  createdAt: Date;
-}
 
 interface DesignImageProps {
   imageUrl: string;
@@ -19,6 +13,7 @@ interface DesignImageProps {
   isFavorite?: boolean;
   onFavorite?: () => void;
   onDownload?: () => void;
+  onRefine?: (instruction: string) => void;
 }
 
 const DesignImage = ({
@@ -29,22 +24,16 @@ const DesignImage = ({
   isFavorite = false,
   onFavorite,
   onDownload,
+  onRefine,
 }: DesignImageProps) => {
-  const [showComments, setShowComments] = useState(false);
-  const [comments, setComments] = useState<Comment[]>([]);
-  const [newComment, setNewComment] = useState("");
+  const [showRefine, setShowRefine] = useState(false);
+  const [refineText, setRefineText] = useState("");
 
-  const handleAddComment = () => {
-    if (!newComment.trim()) return;
-    setComments([
-      ...comments,
-      {
-        id: `comment-${Date.now()}`,
-        text: newComment,
-        createdAt: new Date(),
-      },
-    ]);
-    setNewComment("");
+  const handleRefine = () => {
+    if (!refineText.trim()) return;
+    onRefine?.(refineText);
+    setRefineText("");
+    setShowRefine(false);
   };
 
   return (
@@ -94,54 +83,38 @@ const DesignImage = ({
           <p className="text-sm text-muted-foreground line-clamp-2">{description}</p>
         </div>
 
-        {/* Actions */}
+        {/* Refine action */}
         <div className="flex items-center gap-2 pt-2 border-t border-border/50">
           <Button
             variant="ghost"
             size="sm"
             className="flex-1"
-            onClick={() => setShowComments(!showComments)}
+            onClick={() => setShowRefine(!showRefine)}
           >
-            <MessageSquare className="w-4 h-4 mr-2" />
-            Comments ({comments.length})
+            <Wand2 className="w-4 h-4 mr-2" />
+            Refine Your Design
           </Button>
         </div>
 
-        {/* Comments section */}
-        {showComments && (
+        {/* Refine section */}
+        {showRefine && (
           <div className="space-y-3 pt-3 border-t border-border/50">
-            {/* Comment list */}
-            {comments.length > 0 ? (
-              <div className="space-y-2 max-h-40 overflow-y-auto">
-                {comments.map((comment) => (
-                  <div
-                    key={comment.id}
-                    className="p-2 rounded-lg bg-secondary/50 text-sm"
-                  >
-                    {comment.text}
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-sm text-muted-foreground text-center py-2">
-                No comments yet
-              </p>
-            )}
-
-            {/* Add comment */}
+            <p className="text-sm text-muted-foreground">
+              Describe what you'd like to change about this design
+            </p>
             <div className="flex gap-2">
               <Textarea
-                placeholder="Add a comment..."
-                value={newComment}
-                onChange={(e) => setNewComment(e.target.value)}
+                placeholder="e.g. Make the sofa darker, add more plants, change the rug..."
+                value={refineText}
+                onChange={(e) => setRefineText(e.target.value)}
                 className="min-h-[60px] resize-none"
               />
               <Button
                 size="sm"
-                onClick={handleAddComment}
-                disabled={!newComment.trim()}
+                onClick={handleRefine}
+                disabled={!refineText.trim()}
               >
-                Post
+                Refine
               </Button>
             </div>
           </div>
