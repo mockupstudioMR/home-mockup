@@ -30,6 +30,9 @@ interface GenerateRequest {
   productImageUrls?: string[];
   existingRoomImages?: string[];
   selectedInspirations?: string[];
+  detectedColors?: string[];
+  detectedKeywords?: string[];
+  moodboardDescription?: string;
 }
 
 interface DebugStep {
@@ -487,6 +490,25 @@ function buildImagePrompt(
     ? `Include these elements: ${data.mustHaveElements.join(", ")}.` 
     : "";
 
+  // Build detected colors context
+  let detectedColorsContext = "";
+  if (data.detectedColors && data.detectedColors.length > 0) {
+    detectedColorsContext = `COLOR PALETTE DIRECTIVE: Use these specific colors as the dominant palette throughout the design: ${data.detectedColors.join(", ")}. These colors should be prominently visible in walls, textiles, furniture, and accents. `;
+  }
+
+  // Build detected keywords/visual elements context
+  let detectedKeywordsContext = "";
+  if (data.detectedKeywords && data.detectedKeywords.length > 0) {
+    const uniqueKeywords = [...new Set(data.detectedKeywords)];
+    detectedKeywordsContext = `VISUAL ELEMENTS DIRECTIVE: Incorporate these specific design elements and characteristics: ${uniqueKeywords.join(", ")}. These should be clearly reflected in the materials, textures, patterns, and overall aesthetic of the room. `;
+  }
+
+  // Build moodboard description context
+  let moodboardContext = "";
+  if (data.moodboardDescription) {
+    moodboardContext = `STYLE NARRATIVE: ${data.moodboardDescription} `;
+  }
+
   // Build inspiration context from selected moodboard/furniture items
   let inspirationContext = "";
   if (data.selectedInspirations && data.selectedInspirations.length > 0) {
@@ -553,7 +575,10 @@ function buildImagePrompt(
       .replace(/\{\{product_instructions\}\}/g, productInstructions)
       .replace(/\{\{modification_prompt\}\}/g, data.modificationPrompt || "")
       .replace(/\{\{furniture_list\}\}/g, furnitureList)
-      .replace(/\{\{inspiration_context\}\}/g, inspirationContext);
+      .replace(/\{\{inspiration_context\}\}/g, inspirationContext)
+      .replace(/\{\{detected_colors\}\}/g, detectedColorsContext)
+      .replace(/\{\{detected_keywords\}\}/g, detectedKeywordsContext)
+      .replace(/\{\{moodboard_context\}\}/g, moodboardContext);
   };
 
   // Add furniture context prefix if we have furniture items from DB
@@ -576,7 +601,7 @@ function buildImagePrompt(
   // Existing room redesign - allow layout/furniture rearrangement to match new style
   if (data.existingRoomImages && data.existingRoomImages.length > 0) {
     const tpl = templates["existing_room_redesign"] ||
-      `ROOM REDESIGN INSTRUCTION: Study the attached photos of the existing room carefully. Preserve the architectural shell — walls, ceiling, floor shape, windows, doors, alcoves, and columns must stay in their exact positions. However, you ARE free to completely rearrange, replace, add, or remove furniture and decor to best suit the new {{style}} aesthetic with {{colors}}. {{inspiration_context}}Create a {{budget}} look with an optimal furniture layout for this room's dimensions and architecture. {{elements}} {{product_instructions}} The final image should feel like a professional redesign of the same physical space — same room structure, but with a fresh, well-arranged interior. Ultra high resolution, photorealistic interior design photography, professional lighting, magazine quality, 16:9 aspect ratio.`;
+      `ROOM REDESIGN INSTRUCTION: Study the attached photos of the existing room carefully. Preserve the architectural shell — walls, ceiling, floor shape, windows, doors, alcoves, and columns must stay in their exact positions. However, you ARE free to completely rearrange, replace, add, or remove furniture and decor to best suit the new {{style}} aesthetic. {{detected_colors}}{{detected_keywords}}{{moodboard_context}}{{inspiration_context}}Use {{colors}}. Create a {{budget}} look with an optimal furniture layout for this room's dimensions and architecture. {{elements}} {{product_instructions}} The final image should feel like a professional redesign of the same physical space — same room structure, but with a fresh, well-arranged interior. Ultra high resolution, photorealistic interior design photography, professional lighting, magazine quality, 16:9 aspect ratio.`;
     return furnitureContext + fillTemplate(tpl);
   }
 
@@ -584,17 +609,17 @@ function buildImagePrompt(
   
   if (hasProductImages) {
     const tpl = templates["with_product_images"] || 
-      `Create a stunning {{style}} {{room}} interior design that prominently features ALL the products shown in the reference images. {{product_instructions}} {{inspiration_context}}Use {{colors}}. Create a {{budget}} aesthetic. {{elements}} The products must appear EXACTLY as they look in the reference images - same colors, textures, and design details. Ultra high resolution, photorealistic interior design photography, professional lighting, magazine quality, 16:9 aspect ratio.`;
+      `Create a stunning {{style}} {{room}} interior design that prominently features ALL the products shown in the reference images. {{product_instructions}} {{detected_colors}}{{detected_keywords}}{{moodboard_context}}{{inspiration_context}}Use {{colors}}. Create a {{budget}} aesthetic. {{elements}} The products must appear EXACTLY as they look in the reference images - same colors, textures, and design details. Ultra high resolution, photorealistic interior design photography, professional lighting, magazine quality, 16:9 aspect ratio.`;
     return furnitureContext + fillTemplate(tpl);
   }
 
   if (data.sourceImageUrl) {
     const tpl = templates["with_source_image"] || 
-      `Transform this room into a beautiful {{style}} {{room}} design. {{inspiration_context}}Use {{colors}}. Create a {{budget}} aesthetic. {{elements}} {{product_instructions}} Ultra high resolution, photorealistic interior design photography, professional lighting, magazine quality.`;
+      `Transform this room into a beautiful {{style}} {{room}} design. {{detected_colors}}{{detected_keywords}}{{moodboard_context}}{{inspiration_context}}Use {{colors}}. Create a {{budget}} aesthetic. {{elements}} {{product_instructions}} Ultra high resolution, photorealistic interior design photography, professional lighting, magazine quality.`;
     return furnitureContext + fillTemplate(tpl);
   }
 
   const tpl = templates["default"] || 
-    `Generate a stunning {{style}} {{room}} interior design. {{inspiration_context}}Use {{colors}}. Create a {{budget}} aesthetic. {{elements}} {{product_instructions}} Ultra high resolution, photorealistic interior design photography, professional lighting, magazine quality, 16:9 aspect ratio.`;
+    `Generate a stunning {{style}} {{room}} interior design. {{detected_colors}}{{detected_keywords}}{{moodboard_context}}{{inspiration_context}}Use {{colors}}. Create a {{budget}} aesthetic. {{elements}} {{product_instructions}} Ultra high resolution, photorealistic interior design photography, professional lighting, magazine quality, 16:9 aspect ratio.`;
   return furnitureContext + fillTemplate(tpl);
 }
