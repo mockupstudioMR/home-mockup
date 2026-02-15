@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Home, ArrowLeft, Upload, X, Loader2, Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import StyleInspirationGrid from "@/components/analyze/StyleInspirationGrid";
 
 interface AnalyzedStyle {
   styleName: string;
@@ -47,6 +48,7 @@ const AnalyzeRoom = () => {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
 const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(() => getInitialState().result);
   const [selectedStyleIndex, setSelectedStyleIndex] = useState<number | null>(null);
+  const [selectedInspirations, setSelectedInspirations] = useState<string[]>([]);
 
   // Persist state to sessionStorage - URLs are small so they fit
   useEffect(() => {
@@ -181,6 +183,7 @@ const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(() =
           },
           analysisResult,
           uploadedImages,
+          selectedInspirations,
         } 
       });
     }
@@ -382,6 +385,19 @@ const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(() =
                     ? `Continue with ${analysisResult.styles[selectedStyleIndex]?.styleName}`
                     : "Select a style to continue"}
                 </Button>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Style Inspirations - Moodboard & Accent Furniture per style */}
+          {analysisResult && (
+            <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
+              <CardContent className="p-6">
+                <StyleInspirationGrid
+                  styles={analysisResult.styles}
+                  selectedItems={selectedInspirations}
+                  onSelectionChange={setSelectedInspirations}
+                />
               </CardContent>
             </Card>
           )}

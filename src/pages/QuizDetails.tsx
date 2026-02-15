@@ -25,7 +25,7 @@ const QuizDetails = () => {
   const [currentStep, setCurrentStep] = useState(0);
   const [existingRoomImages, setExistingRoomImages] = useState<string[]>([]);
   
-  const { selectedStyle, analysisResult, productAnalysis, uploadedImages, includeProducts, source } = location.state || {};
+  const { selectedStyle, analysisResult, productAnalysis, uploadedImages, includeProducts, source, selectedInspirations } = location.state || {};
   const isExistingRoom = source === "existing-room";
   const totalSteps = isExistingRoom ? 6 : 5; // Extra step for existing room upload
 
@@ -100,6 +100,7 @@ const QuizDetails = () => {
             sourceImages: uploadedImages,
             includeProducts,
             existingRoomImages: isExistingRoom ? existingRoomImages : undefined,
+            selectedInspirations,
           } 
         });
       } catch (error) {
