@@ -115,6 +115,7 @@ const Generate = () => {
   const quizData = location.state?.quizData as QuizData | undefined;
   const existingRoomImagesFromState = (location.state?.quizData?.existingRoomImages || location.state?.existingRoomImages) as string[] | undefined;
   const selectedInspirations = location.state?.selectedInspirations as string[] | undefined;
+  const analysisResult = location.state?.analysisResult as { styles?: Array<{ styleName: string; keywords: string[] }>; dominantColors?: string[]; moodboardDescription?: string } | undefined;
 
   // Initialize state from sessionStorage to persist across tab switches
   const getInitialDesign = (): GeneratedDesign | null => {
@@ -603,6 +604,9 @@ const Generate = () => {
           productImageUrls: includeProducts ? sourceImages : undefined,
           existingRoomImages: existingRoomImagesFromState,
           selectedInspirations,
+          detectedColors: analysisResult?.dominantColors,
+          detectedKeywords: analysisResult?.styles?.flatMap(s => s.keywords),
+          moodboardDescription: analysisResult?.moodboardDescription,
         },
       });
 
@@ -687,6 +691,9 @@ const Generate = () => {
             sourceImageUrl: overriddenQuiz.sourceImageUrl,
             existingRoomImages: existingRoomImagesFromState,
             selectedInspirations,
+            detectedColors: analysisResult?.dominantColors,
+            detectedKeywords: analysisResult?.styles?.flatMap(s => s.keywords),
+            moodboardDescription: analysisResult?.moodboardDescription,
           },
         });
         if (response.error) throw new Error(response.error.message);
