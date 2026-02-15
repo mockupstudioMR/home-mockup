@@ -429,8 +429,8 @@ const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(() =
                   <p className="text-muted-foreground">{analysisResult.moodboardDescription}</p>
                 </div>
 
-                <Button size="lg" className="w-full" onClick={handleContinue} disabled={selectedStyleIndex === null}>
-                  {selectedStyleIndex !== null
+                <Button size="lg" className="w-full" onClick={handleContinue} disabled={selectedStyleIndex === null || selectedInspirations.length === 0}>
+                  {selectedStyleIndex !== null && selectedInspirations.length > 0
                     ? `Select elements and colors to continue with ${analysisResult.styles[selectedStyleIndex]?.styleName}`
                     : "Select elements and colors to continue"}
                 </Button>
