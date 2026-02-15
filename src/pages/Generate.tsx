@@ -114,8 +114,34 @@ const Generate = () => {
 
   const quizData = location.state?.quizData as QuizData | undefined;
   const existingRoomImagesFromState = (location.state?.quizData?.existingRoomImages || location.state?.existingRoomImages) as string[] | undefined;
-  const selectedInspirations = location.state?.selectedInspirations as string[] | undefined;
-  const analysisResult = location.state?.analysisResult as { styles?: Array<{ styleName: string; keywords: string[] }>; dominantColors?: string[]; moodboardDescription?: string } | undefined;
+  
+  // Persist analysisResult and selectedInspirations to sessionStorage so they survive re-renders/HMR
+  const selectedInspirations = (() => {
+    const fromState = location.state?.selectedInspirations as string[] | undefined;
+    if (fromState) {
+      sessionStorage.setItem('generate_inspirations_cache', JSON.stringify(fromState));
+      return fromState;
+    }
+    try {
+      const cached = sessionStorage.getItem('generate_inspirations_cache');
+      return cached ? JSON.parse(cached) as string[] : undefined;
+    } catch { return undefined; }
+  })();
+
+  const analysisResult = (() => {
+    type AnalysisData = { styles?: Array<{ styleName: string; keywords: string[] }>; dominantColors?: string[]; moodboardDescription?: string };
+    const fromState = location.state?.analysisResult as AnalysisData | undefined;
+    if (fromState) {
+      sessionStorage.setItem('generate_analysis_cache', JSON.stringify(fromState));
+      return fromState;
+    }
+    try {
+      const cached = sessionStorage.getItem('generate_analysis_cache');
+      return cached ? JSON.parse(cached) as AnalysisData : undefined;
+    } catch { return undefined; }
+  })();
+
+  console.log('[Generate] analysisResult colors:', analysisResult?.dominantColors, 'keywords:', analysisResult?.styles?.flatMap(s => s.keywords));
 
   // Initialize state from sessionStorage to persist across tab switches
   const getInitialDesign = (): GeneratedDesign | null => {
