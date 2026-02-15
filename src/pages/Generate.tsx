@@ -1577,7 +1577,16 @@ const Generate = () => {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => designRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+              onClick={() => {
+                setDesign(prev => prev ? { ...prev, isLocked: false } : prev);
+                setDesignItems([]);
+                setFullDescription("");
+                setExtractingItems(false);
+                setIsolatingPhotos(false);
+                sessionStorage.removeItem('generate_items_cache');
+                sessionStorage.removeItem('generate_description_cache');
+                sessionStorage.removeItem('generate_extracting_cache');
+              }}
               className="gap-2"
             >
               <ArrowLeft className="w-4 h-4" />
