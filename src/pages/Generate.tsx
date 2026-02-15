@@ -229,6 +229,7 @@ const Generate = () => {
   const [debugPrompt, setDebugPrompt] = useState<string>(() => {
     return sessionStorage.getItem('generate_debug_prompt_cache') || "";
   });
+  const designRef = useRef<HTMLDivElement>(null);
   
   // Upload a base64 data URI to storage and return the public URL
   const uploadDesignImage = useCallback(async (base64DataUri: string, userId: string): Promise<string> => {
@@ -1501,7 +1502,7 @@ const Generate = () => {
 
         {/* Main Design */}
         {design && (
-          <div className="max-w-3xl mx-auto">
+          <div className="max-w-3xl mx-auto" ref={designRef}>
             <DesignImage
               imageUrl={design.imageUrl}
               title={design.title}
@@ -1571,6 +1572,18 @@ const Generate = () => {
 
         {/* Design Items List - Show when items exist or extracting */}
         {design && (designItems.length > 0 || extractingItems) && (
+          <>
+          <div className="flex justify-center">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => designRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+              className="gap-2"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Back to Design
+            </Button>
+          </div>
           <DesignItemsList
             items={designItems}
             fullDescription={fullDescription}
@@ -1578,6 +1591,7 @@ const Generate = () => {
             isLoading={extractingItems}
             isolatingPhotos={isolatingPhotos}
           />
+          </>
         )}
 
 
