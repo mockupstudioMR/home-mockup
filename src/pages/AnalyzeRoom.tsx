@@ -4,7 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useQuiz } from "@/contexts/QuizContext";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Home, ArrowLeft, Upload, X, Loader2, Sparkles } from "lucide-react";
+import { Home, ArrowLeft, Upload, X, Loader2, Sparkles, Plus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import StyleInspirationCards from "@/components/analyze/StyleInspirationCards";
@@ -49,6 +49,7 @@ const AnalyzeRoom = () => {
 const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(() => getInitialState().result);
   const [selectedStyleIndex, setSelectedStyleIndex] = useState<number | null>(null);
   const [selectedInspirations, setSelectedInspirations] = useState<string[]>([]);
+  const [editableColors, setEditableColors] = useState<string[]>(() => getInitialState().result?.dominantColors || []);
 
   // Persist state to sessionStorage - URLs are small so they fit
   useEffect(() => {
@@ -151,6 +152,7 @@ const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(() =
       if (error) throw error;
 
       setAnalysisResult(data);
+      setEditableColors(data.dominantColors || []);
       toast({
         title: "Analysis complete!",
         description: `Detected ${data.styles.length} interior styles`,
@@ -181,7 +183,7 @@ const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(() =
             title: selectedStyle.styleName,
             description: selectedStyle.description,
           },
-          analysisResult,
+          analysisResult: { ...analysisResult, dominantColors: editableColors },
           uploadedImages,
           selectedInspirations,
         } 
@@ -372,18 +374,52 @@ const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(() =
                   </div>
                 </div>
 
-                {/* Color Palette */}
+                {/* Editable Color Palette */}
                 <div>
                   <h3 className="font-semibold mb-3">Dominant Colors</h3>
-                  <div className="flex gap-3">
-                    {analysisResult.dominantColors.map((color, index) => (
-                      <div
-                        key={index}
-                        className="w-12 h-12 rounded-lg border border-border"
-                        style={{ backgroundColor: color }}
-                        title={color}
-                      />
+                  <div className="flex flex-wrap gap-3 items-center">
+                    {editableColors.map((color, index) => (
+                      <div key={index} className="relative group">
+                        <label className="block cursor-pointer">
+                          <div
+                            className="w-12 h-12 rounded-lg border-2 border-border hover:border-primary/50 transition-colors"
+                            style={{ backgroundColor: color }}
+                            title={color}
+                          />
+                          <input
+                            type="color"
+                            value={color}
+                            onChange={(e) => {
+                              setEditableColors((prev) =>
+                                prev.map((c, i) => (i === index ? e.target.value : c))
+                              );
+                            }}
+                            className="sr-only"
+                          />
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setEditableColors((prev) => prev.filter((_, i) => i !== index))
+                          }
+                          className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-xs"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
                     ))}
+                    {/* Add color button */}
+                    <label className="w-12 h-12 rounded-lg border-2 border-dashed border-border hover:border-primary/50 flex items-center justify-center cursor-pointer transition-colors">
+                      <Plus className="w-5 h-5 text-muted-foreground" />
+                      <input
+                        type="color"
+                        defaultValue="#808080"
+                        onChange={(e) => {
+                          setEditableColors((prev) => [...prev, e.target.value]);
+                        }}
+                        className="sr-only"
+                      />
+                    </label>
                   </div>
                 </div>
 
