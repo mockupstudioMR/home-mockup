@@ -75,9 +75,12 @@ Return a JSON array of EXACTLY 4 walls. Each wall should have:
 - "description": brief description of what's on/against this wall (furniture, colors, features)
 - "position": where it is in the room - must be one of "left", "right", "back", "front" (each used exactly once)
 
-IMPORTANT: Always return exactly 4 walls, one for each position (left, right, back, front). If a wall is not visible, infer its type as "pleine_wall" and describe it based on the room's style.
+CRITICAL RULES:
+1. Always return exactly 4 walls, one for each position (left, right, back, front).
+2. AT LEAST ONE wall MUST be a door wall ("door_wall_left" or "door_wall_right"). Every room has an entrance. If you can see a door, use that wall. If no door is visible, the wall closest to the camera/viewer perspective (usually "front") is most likely where the entrance door is - assign it as "door_wall_left" or "door_wall_right" based on typical room layouts.
+3. If a wall is not visible, infer its type based on the room's style and logical reasoning.
 
-Respond ONLY with valid JSON array, no markdown, no explanation.`,
+Respond ONLY with valid JSON array, no markdown, no extra words, no explanation.`,
                 },
                 {
                   type: "image_url",
@@ -170,6 +173,22 @@ Respond ONLY with valid JSON array, no markdown, no explanation.`,
             position: pos,
           });
         }
+      }
+    }
+
+    // Ensure at least one door wall exists
+    const hasDoor = walls.some((w: any) =>
+      w.wall_type === "door_wall_left" || w.wall_type === "door_wall_right"
+    );
+    if (!hasDoor) {
+      // Find the "front" wall (viewer perspective = most likely entrance), fallback to last plain wall
+      const frontIdx = walls.findIndex((w: any) => w.position === "front");
+      const plainIdx = walls.findIndex((w: any) => w.wall_type === "pleine_wall");
+      const targetIdx = frontIdx !== -1 ? frontIdx : (plainIdx !== -1 ? plainIdx : walls.length - 1);
+      if (targetIdx >= 0 && targetIdx < walls.length) {
+        walls[targetIdx].wall_type = "door_wall_left";
+        walls[targetIdx].label = walls[targetIdx].label.replace("(Plain)", "(Door)");
+        walls[targetIdx].description += " (entrance door inferred)";
       }
     }
 
