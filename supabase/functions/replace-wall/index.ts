@@ -86,38 +86,55 @@ CRITICAL RULES:
 7. Maintain the same room proportions, floor, ceiling, and overall composition
 8. The result should look like a professional interior design rendering using the actual room's wall${userNote}`;
 
-    const response = await fetch(
-      "https://ai.gateway.lovable.dev/v1/chat/completions",
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${LOVABLE_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "google/gemini-2.5-flash-image",
-          messages: [
-            {
-              role: "user",
-              content: [
-                { type: "text", text: prompt },
-                { type: "image_url", image_url: { url: designImageUrl } },
-                { type: "image_url", image_url: { url: realWallImageUrl } },
-              ],
-            },
-          ],
-          modalities: ["image", "text"],
-        }),
+    let base64Image: string | undefined;
+    const maxAttempts = 3;
+
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      console.log(`Replace wall attempt ${attempt}/${maxAttempts}`);
+      const response = await fetch(
+        "https://ai.gateway.lovable.dev/v1/chat/completions",
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${LOVABLE_API_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model: "google/gemini-2.5-flash-image",
+            messages: [
+              {
+                role: "user",
+                content: [
+                  { type: "text", text: prompt },
+                  { type: "image_url", image_url: { url: designImageUrl } },
+                  { type: "image_url", image_url: { url: realWallImageUrl } },
+                ],
+              },
+            ],
+            modalities: ["image", "text"],
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`AI generation failed (attempt ${attempt}): ${response.status} - ${errorText}`);
+        if (attempt === maxAttempts) throw new Error(`AI generation failed: ${response.status}`);
+        continue;
       }
-    );
 
-    if (!response.ok) {
-      throw new Error(`AI generation failed: ${response.status}`);
+      const data = await response.json();
+      base64Image = data.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+
+      if (base64Image) {
+        console.log(`Image generated on attempt ${attempt}`);
+        break;
+      }
+
+      const textContent = data.choices?.[0]?.message?.content;
+      console.error(`No image on attempt ${attempt}. Response text: ${textContent?.substring(0, 200)}`);
+      if (attempt === maxAttempts) throw new Error("No image generated after 3 attempts");
     }
-
-    const data = await response.json();
-    const base64Image =
-      data.choices?.[0]?.message?.images?.[0]?.image_url?.url;
 
     if (!base64Image) {
       throw new Error("No image generated");
