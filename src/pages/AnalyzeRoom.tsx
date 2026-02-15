@@ -429,10 +429,10 @@ const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(() =
                   <p className="text-muted-foreground">{analysisResult.moodboardDescription}</p>
                 </div>
 
-                <Button size="lg" className="w-full" onClick={handleContinue} disabled={selectedStyleIndex === null || selectedInspirations.length === 0}>
-                  {selectedStyleIndex !== null && selectedInspirations.length > 0
+                <Button size="lg" className="w-full" onClick={handleContinue} disabled={selectedStyleIndex === null || selectedInspirations.length < 1}>
+                  {selectedInspirations.length > 0 && selectedStyleIndex !== null
                     ? `Select elements and colors to continue with ${analysisResult.styles[selectedStyleIndex]?.styleName}`
-                    : "Select elements and colors to continue"}
+                    : "Select at least one element to continue"}
                 </Button>
               </CardContent>
             </Card>
