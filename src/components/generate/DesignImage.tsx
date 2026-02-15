@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Heart, Download, Send, RefreshCw, Upload, X, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import WallExtractionPanel from "./WallExtractionPanel";
 
 interface DesignImageProps {
   imageUrl: string;
@@ -23,6 +24,9 @@ interface DesignImageProps {
   onReferenceUpload?: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onRemoveReference?: () => void;
   uploadingReference?: boolean;
+  // Wall extraction props
+  designId?: string;
+  onDesignUpdated?: (newImageUrl: string) => void;
 }
 
 const DesignImage = ({
@@ -43,6 +47,8 @@ const DesignImage = ({
   onReferenceUpload,
   onRemoveReference,
   uploadingReference = false,
+  designId,
+  onDesignUpdated,
 }: DesignImageProps) => {
   return (
     <Card className="overflow-hidden border-border/50 bg-card/80 backdrop-blur-sm group">
@@ -148,6 +154,16 @@ const DesignImage = ({
               </Button>
             </div>
           </div>
+        )}
+
+        {/* Wall Extraction Panel */}
+        {showRefine && designId && onDesignUpdated && (
+          <WallExtractionPanel
+            designImageUrl={imageUrl}
+            designId={designId}
+            onDesignUpdated={onDesignUpdated}
+            disabled={generating}
+          />
         )}
       </CardContent>
     </Card>

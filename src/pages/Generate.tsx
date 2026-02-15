@@ -1521,6 +1521,8 @@ const Generate = () => {
               onReferenceUpload={handleReferenceUpload}
               onRemoveReference={() => setReferenceImageUrl(null)}
               uploadingReference={uploadingReference}
+              designId={design.id}
+              onDesignUpdated={(newUrl) => setDesign({ ...design, imageUrl: newUrl })}
             />
           </div>
         )}
