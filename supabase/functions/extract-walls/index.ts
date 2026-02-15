@@ -1,0 +1,269 @@
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+};
+
+interface ExtractWallsRequest {
+  designImageUrl: string;
+  designId: string;
+}
+
+interface ExtractedWall {
+  id: string;
+  wall_type: string;
+  label: string;
+  description: string;
+  imageUrl?: string;
+}
+
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
+    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+
+    if (!LOVABLE_API_KEY || !SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+      throw new Error("Missing required environment variables");
+    }
+
+    const { designImageUrl, designId }: ExtractWallsRequest = await req.json();
+
+    if (!designImageUrl || !designId) {
+      throw new Error("designImageUrl and designId are required");
+    }
+
+    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+
+    console.log(`Extracting walls from design ${designId}`);
+
+    // Step 1: Analyze the design to identify walls
+    const analysisResponse = await fetch(
+      "https://ai.gateway.lovable.dev/v1/chat/completions",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-2.5-flash",
+          messages: [
+            {
+              role: "user",
+              content: [
+                {
+                  type: "text",
+                  text: `Analyze this interior design image and identify ALL visible walls. For each wall, determine its type from this list:
+- "pleine_wall" - A solid wall with no openings (plain wall)
+- "window_wall" - A wall that contains a window
+- "balcony_wall" - A wall with balcony door/opening
+- "door_wall_left" - A wall with a door on the left side
+- "door_wall_right" - A wall with a door on the right side
+
+Return a JSON array of walls found. Each wall should have:
+- "wall_type": one of the types above
+- "label": human-readable label like "Left Wall (Window)", "Back Wall (Plain)", etc.
+- "description": brief description of what's on/against this wall (furniture, colors, features)
+- "position": where it is in the room ("left", "right", "back", "front")
+
+IMPORTANT: Only include walls that are clearly visible in the image. Most rooms show 2-3 walls.
+
+Respond ONLY with valid JSON array, no markdown, no explanation.`,
+                },
+                {
+                  type: "image_url",
+                  image_url: { url: designImageUrl },
+                },
+              ],
+            },
+          ],
+        }),
+      }
+    );
+
+    if (!analysisResponse.ok) {
+      throw new Error(`AI analysis failed: ${analysisResponse.status}`);
+    }
+
+    const analysisData = await analysisResponse.json();
+    let wallsText =
+      analysisData.choices?.[0]?.message?.content || "[]";
+
+    // Clean up potential markdown wrapping
+    wallsText = wallsText
+      .replace(/```json\s*/g, "")
+      .replace(/```\s*/g, "")
+      .trim();
+
+    let walls: Array<{
+      wall_type: string;
+      label: string;
+      description: string;
+      position: string;
+    }>;
+
+    try {
+      walls = JSON.parse(wallsText);
+    } catch {
+      console.error("Failed to parse walls JSON:", wallsText);
+      walls = [];
+    }
+
+    console.log(`Found ${walls.length} walls`);
+
+    // Step 2: Generate cropped images for each wall
+    const wallResults: ExtractedWall[] = [];
+
+    for (const wall of walls) {
+      try {
+        const cropPrompt = `Look at this interior design image. I need you to generate a cropped view showing ONLY the "${wall.label}" wall (${wall.description}). 
+
+Show this wall from a straight-on perspective, including:
+- The wall surface, paint/wallpaper color and texture
+- Any architectural features (windows, doors, moldings)
+- Furniture pieces that are placed against or near this wall
+- The section of floor visible at the base of this wall
+
+Crop tightly to show just this wall section. Keep the same style and quality as the original image.`;
+
+        const imageResponse = await fetch(
+          "https://ai.gateway.lovable.dev/v1/chat/completions",
+          {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${LOVABLE_API_KEY}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              model: "google/gemini-2.5-flash-image",
+              messages: [
+                {
+                  role: "user",
+                  content: [
+                    { type: "text", text: cropPrompt },
+                    { type: "image_url", image_url: { url: designImageUrl } },
+                  ],
+                },
+              ],
+              modalities: ["image", "text"],
+            }),
+          }
+        );
+
+        if (!imageResponse.ok) {
+          console.error(
+            `Image generation failed for ${wall.label}: ${imageResponse.status}`
+          );
+          wallResults.push({
+            id: crypto.randomUUID(),
+            wall_type: wall.wall_type,
+            label: wall.label,
+            description: wall.description,
+          });
+          continue;
+        }
+
+        const imageData = await imageResponse.json();
+        const base64Image =
+          imageData.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+
+        if (!base64Image) {
+          wallResults.push({
+            id: crypto.randomUUID(),
+            wall_type: wall.wall_type,
+            label: wall.label,
+            description: wall.description,
+          });
+          continue;
+        }
+
+        // Upload to storage
+        const base64Clean = base64Image.replace(
+          /^data:image\/\w+;base64,/,
+          ""
+        );
+        const byteString = atob(base64Clean);
+        const ab = new ArrayBuffer(byteString.length);
+        const ia = new Uint8Array(ab);
+        for (let j = 0; j < byteString.length; j++) {
+          ia[j] = byteString.charCodeAt(j);
+        }
+        const blob = new Blob([ab], { type: "image/png" });
+
+        const wallId = crypto.randomUUID();
+        const fileName = `${designId}/wall-${wallId}.png`;
+        const { error: uploadError } = await supabase.storage
+          .from("design-images")
+          .upload(fileName, blob, {
+            contentType: "image/png",
+            upsert: true,
+          });
+
+        if (uploadError) {
+          console.error(`Upload error for ${wall.label}:`, uploadError);
+          wallResults.push({
+            id: wallId,
+            wall_type: wall.wall_type,
+            label: wall.label,
+            description: wall.description,
+          });
+          continue;
+        }
+
+        const { data: urlData } = supabase.storage
+          .from("design-images")
+          .getPublicUrl(fileName);
+
+        wallResults.push({
+          id: wallId,
+          wall_type: wall.wall_type,
+          label: wall.label,
+          description: wall.description,
+          imageUrl: urlData.publicUrl,
+        });
+
+        console.log(`Generated wall image for ${wall.label}`);
+      } catch (err) {
+        console.error(`Error processing wall ${wall.label}:`, err);
+        wallResults.push({
+          id: crypto.randomUUID(),
+          wall_type: wall.wall_type,
+          label: wall.label,
+          description: wall.description,
+        });
+      }
+    }
+
+    console.log(
+      `Completed: ${wallResults.filter((w) => w.imageUrl).length}/${walls.length} wall images generated`
+    );
+
+    return new Response(
+      JSON.stringify({
+        success: true,
+        walls: wallResults,
+      }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  } catch (error) {
+    console.error("Extract walls error:", error);
+    return new Response(
+      JSON.stringify({
+        success: false,
+        error:
+          error instanceof Error ? error.message : "Failed to extract walls",
+      }),
+      {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      }
+    );
+  }
+});
