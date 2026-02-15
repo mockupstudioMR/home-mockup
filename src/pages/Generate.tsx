@@ -1463,6 +1463,16 @@ const Generate = () => {
               isFavorite={design.isFavorite}
               onFavorite={handleFavorite}
               onDownload={handleDownload}
+              showRefine={!generating && !design.isLocked}
+              modificationInput={modificationInput}
+              onModificationInputChange={setModificationInput}
+              onModify={handleModify}
+              onRegenerate={() => generateDesign()}
+              generating={generating}
+              referenceImageUrl={referenceImageUrl}
+              onReferenceUpload={handleReferenceUpload}
+              onRemoveReference={() => setReferenceImageUrl(null)}
+              uploadingReference={uploadingReference}
             />
           </div>
         )}
@@ -1522,69 +1532,6 @@ const Generate = () => {
           />
         )}
 
-        {/* Modification Input - Only show if not locked */}
-        {design && !generating && !design.isLocked && (
-          <Card className="border-border/50 bg-card/80 backdrop-blur-sm max-w-3xl mx-auto">
-            <CardContent className="p-4">
-              <div className="space-y-4">
-                <p className="text-sm font-medium">Refine your design</p>
-                
-                {/* Reference Image Upload */}
-                <div className="flex items-center gap-3">
-                  {referenceImageUrl ? (
-                    <div className="relative">
-                      <img 
-                        src={referenceImageUrl} 
-                        alt="Reference" 
-                        className="w-16 h-16 object-cover rounded-lg border border-border"
-                      />
-                      <button
-                        onClick={() => setReferenceImageUrl(null)}
-                        className="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center hover:bg-destructive/90"
-                      >
-                        <X className="w-3 h-3" />
-                      </button>
-                    </div>
-                  ) : (
-                    <label className="flex items-center gap-2 px-3 py-2 rounded-lg border border-dashed border-border cursor-pointer hover:border-primary/50 hover:bg-accent/50 transition-colors">
-                      {uploadingReference ? (
-                        <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
-                      ) : (
-                        <Upload className="w-4 h-4 text-muted-foreground" />
-                      )}
-                      <span className="text-sm text-muted-foreground">Add reference</span>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={handleReferenceUpload}
-                        className="hidden"
-                        disabled={uploadingReference}
-                      />
-                    </label>
-                  )}
-                  {referenceImageUrl && (
-                    <span className="text-xs text-muted-foreground">Reference image added</span>
-                  )}
-                </div>
-
-                <div className="flex gap-2">
-                  <Input
-                    placeholder="Add plants, change wall color to blue, add more lighting..."
-                    value={modificationInput}
-                    onChange={(e) => setModificationInput(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && handleModify()}
-                  />
-                  <Button onClick={handleModify} disabled={!modificationInput.trim() || generating}>
-                    <Send className="w-4 h-4" />
-                  </Button>
-                  <Button variant="outline" onClick={() => generateDesign()} disabled={generating}>
-                    <RefreshCw className="w-4 h-4" />
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
 
 
         {/* Generated Angles Gallery */}
