@@ -25,6 +25,13 @@ const Quiz = () => {
     }
   }, [user, loading, navigate]);
 
+  // Clamp step to valid range (handles stale sessionStorage from old quiz)
+  useEffect(() => {
+    if (currentStep >= TOTAL_STEPS) {
+      setCurrentStep(0);
+    }
+  }, [currentStep, setCurrentStep]);
+
   const canProceed = () => {
     switch (currentStep) {
       case 0:
