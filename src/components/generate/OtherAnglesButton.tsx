@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 interface OtherAnglesButtonProps {
   onGenerate: (anglePrompt: string) => Promise<string | null>;
   disabled?: boolean;
+  onImageGenerated?: (label: string, imageUrl: string) => void;
 }
 
 const ANGLE_PROMPTS = [
@@ -21,7 +22,7 @@ const ANGLE_LABELS = [
   "Detail Close-up",
 ];
 
-const OtherAnglesButton = ({ onGenerate, disabled }: OtherAnglesButtonProps) => {
+const OtherAnglesButton = ({ onGenerate, disabled, onImageGenerated }: OtherAnglesButtonProps) => {
   const [open, setOpen] = useState(false);
   const [generatingIndex, setGeneratingIndex] = useState<number | null>(null);
   const [angleImages, setAngleImages] = useState<(string | null)[]>([null, null, null]);
@@ -38,6 +39,7 @@ const OtherAnglesButton = ({ onGenerate, disabled }: OtherAnglesButtonProps) => 
           return next;
         });
         setActiveSlide(index);
+        onImageGenerated?.(ANGLE_LABELS[index], imageUrl);
       }
     } finally {
       setGeneratingIndex(null);

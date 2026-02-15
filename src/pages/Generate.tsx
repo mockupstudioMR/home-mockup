@@ -13,7 +13,6 @@ import {
   Send,
   Home,
   ArrowLeft,
-  ShoppingBag,
   RefreshCw,
   Upload,
   X,
@@ -23,7 +22,6 @@ import {
 } from "lucide-react";
 import type { QuizData } from "@/contexts/QuizContext";
 import DesignImage from "@/components/generate/DesignImage";
-import ProductCard from "@/components/generate/ProductCard";
 import DesignHighlights from "@/components/generate/DesignHighlights";
 import PersonalizedStyleProfile from "@/components/generate/PersonalizedStyleProfile";
 import DesignItemsList from "@/components/generate/DesignItemsList";
@@ -46,17 +44,9 @@ interface GeneratedDesign {
   isLocked?: boolean;
 }
 
-interface Product {
-  id: string;
-  title: string;
-  description: string;
-  url: string;
-  source: string;
-  price?: number;
-  currency?: string;
-  imageUrl?: string;
-  category?: string;
-  style?: string;
+interface AngleImage {
+  label: string;
+  imageUrl: string;
 }
 
 interface DesignHighlightsData {
@@ -134,9 +124,9 @@ const Generate = () => {
     }
   };
 
-  const getInitialProducts = (): Product[] => {
+  const getInitialAngleImages = (): AngleImage[] => {
     try {
-      const cached = sessionStorage.getItem('generate_products_cache');
+      const cached = sessionStorage.getItem('generate_angles_cache');
       return cached ? JSON.parse(cached) : [];
     } catch {
       return [];
@@ -154,8 +144,7 @@ const Generate = () => {
 
   const [generating, setGenerating] = useState(false);
   const [design, setDesign] = useState<GeneratedDesign | null>(getInitialDesign);
-  const [products, setProducts] = useState<Product[]>(getInitialProducts);
-  const [loadingProducts, setLoadingProducts] = useState(false);
+  const [angleImages, setAngleImages] = useState<AngleImage[]>(getInitialAngleImages);
   const [modificationInput, setModificationInput] = useState("");
   const [highlightsData, setHighlightsData] = useState<DesignHighlightsData | null>(getInitialHighlights);
   const [generatingHighlights, setGeneratingHighlights] = useState(false);
@@ -272,12 +261,10 @@ const Generate = () => {
   }, [design, safeSessionStorage]);
 
   useEffect(() => {
-    if (products.length > 0) {
-      // Only cache first 10 products to save space
-      const limitedProducts = products.slice(0, 10);
-      safeSessionStorage('generate_products_cache', JSON.stringify(limitedProducts));
+    if (angleImages.length > 0) {
+      safeSessionStorage('generate_angles_cache', JSON.stringify(angleImages));
     }
-  }, [products, safeSessionStorage]);
+  }, [angleImages, safeSessionStorage]);
 
   useEffect(() => {
     if (highlightsData) {
@@ -383,7 +370,7 @@ const Generate = () => {
       
       // Reset state
       setDesign(null);
-      setProducts([]);
+      setAngleImages([]);
       setHighlightsData(null);
       setStyleProfile(null);
       setDesignItems([]);
@@ -413,9 +400,6 @@ const Generate = () => {
       // If design exists but highlights missing, load them
       if (!highlightsData && cachedDesign.imageUrl) {
         generateHighlights(cachedDesign.imageUrl);
-      }
-      if (products.length === 0 && cachedDesign.imageUrl) {
-        searchProducts(cachedDesign.imageUrl);
       }
       return;
     }
@@ -532,9 +516,6 @@ const Generate = () => {
       if (!highlightsData) {
         generateHighlights(existingDesign.image_url);
       }
-      if (products.length === 0) {
-        searchProducts(existingDesign.image_url);
-      }
       
       setGenerating(false);
     } catch (error) {
@@ -604,7 +585,7 @@ const Generate = () => {
     setGenerating(true);
     setDesign(null);
     setHighlightsData(null);
-    setProducts([]);
+    setAngleImages([]);
     setDesignItems([]);
     setModificationHistory([]);
     setFullDescription("");
@@ -655,8 +636,7 @@ const Generate = () => {
 
       setDesign(newDesign);
 
-      // Search for products and generate highlights
-      searchProducts(imageUrl);
+      // Generate highlights
       generateHighlights(imageUrl);
 
       toast({
@@ -688,7 +668,7 @@ const Generate = () => {
     setGenerating(true);
     setDesign(null);
     setHighlightsData(null);
-    setProducts([]);
+    setAngleImages([]);
     setDesignItems([]);
     setModificationHistory([]);
     setFullDescription("");
@@ -730,7 +710,7 @@ const Generate = () => {
         };
 
         setDesign(newDesign);
-        searchProducts(imageUrl);
+        
         generateHighlights(imageUrl);
 
         toast({
@@ -1004,34 +984,15 @@ const Generate = () => {
     return furnitureMap[style || "modern-minimal"] || "Designer Accent Chair";
   };
 
-  const searchProducts = async (imageUrl?: string) => {
-    if (!quizData) return;
-
-    setLoadingProducts(true);
-    try {
-      const response = await supabase.functions.invoke("search-products", {
-        body: {
-          imageUrl: imageUrl,
-          style: quizData.stylePreference,
-          room: quizData.roomType,
-          query: quizData.mustHaveElements?.join(" "),
-        },
-      });
-
-      if (response.error) {
-        console.error("Product search failed:", response.error);
-        return;
+  const handleAngleImageGenerated = useCallback((label: string, imageUrl: string) => {
+    setAngleImages(prev => {
+      // Avoid duplicates
+      if (prev.some(a => a.label === label)) {
+        return prev.map(a => a.label === label ? { label, imageUrl } : a);
       }
-
-      if (response.data?.success && response.data?.products) {
-        setProducts(response.data.products);
-      }
-    } catch (error) {
-      console.error("Product search error:", error);
-    } finally {
-      setLoadingProducts(false);
-    }
-  };
+      return [...prev, { label, imageUrl }];
+    });
+  }, []);
 
   const handleReferenceUpload = useCallback(
     async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1439,6 +1400,7 @@ const Generate = () => {
             <OtherAnglesButton
               onGenerate={handleGenerateAngle}
               disabled={extractingItems || generating}
+              onImageGenerated={handleAngleImageGenerated}
             />
           </div>
         )}
@@ -1571,52 +1533,38 @@ const Generate = () => {
           </div>
         )}
 
-        {/* Products Section */}
-        <div className="space-y-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
-              <ShoppingBag className="w-5 h-5 text-primary" />
+        {/* Generated Angles Gallery */}
+        {angleImages.length > 0 && (
+          <div className="space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                <Sparkles className="w-5 h-5 text-primary" />
+              </div>
+              <div>
+                <h2 className="text-xl font-bold">Other Angles</h2>
+                <p className="text-sm text-muted-foreground">
+                  Alternative perspectives of your room design
+                </p>
+              </div>
             </div>
-            <div>
-              <h2 className="text-xl font-bold">Shop the Look</h2>
-              <p className="text-sm text-muted-foreground">
-                AI-detected products from your design
-              </p>
-            </div>
-          </div>
-
-          {loadingProducts ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {[...Array(6)].map((_, i) => (
-                <Card key={i} className="p-4">
-                  <div className="flex items-start gap-3">
-                    <Skeleton className="w-10 h-10 rounded-lg" />
-                    <div className="flex-1 space-y-2">
-                      <Skeleton className="h-4 w-3/4" />
-                      <Skeleton className="h-3 w-full" />
-                      <Skeleton className="h-3 w-1/2" />
-                    </div>
+              {angleImages.map((angle, i) => (
+                <Card key={i} className="overflow-hidden">
+                  <div className="aspect-[4/3] overflow-hidden">
+                    <img
+                      src={angle.imageUrl}
+                      alt={angle.label}
+                      className="w-full h-full object-cover"
+                    />
                   </div>
+                  <CardContent className="p-3">
+                    <p className="text-sm font-medium">{angle.label}</p>
+                  </CardContent>
                 </Card>
               ))}
             </div>
-          ) : products.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {products.map((product) => (
-                <ProductCard key={product.id} product={product} />
-              ))}
-            </div>
-          ) : (
-            <Card className="border-dashed">
-              <CardContent className="p-8 text-center">
-                <ShoppingBag className="w-10 h-10 mx-auto text-muted-foreground mb-3" />
-                <p className="text-muted-foreground">
-                  No matching products found. Try generating a design first.
-                </p>
-              </CardContent>
-            </Card>
-          )}
-        </div>
+          </div>
+        )}
           </TabsContent>
 
           <TabsContent value="history" className="space-y-6">
