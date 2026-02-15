@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useCallback } from "react";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -63,29 +63,9 @@ const WallExtractionPanel = ({
   const [uploadingWallId, setUploadingWallId] = useState<string | null>(null);
   const [replacingWallId, setReplacingWallId] = useState<string | null>(null);
   const [activeIndex, setActiveIndex] = useState(0);
-  const autoRotateRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
-  // Auto-rotate walls every 4 seconds, pause when user interacts
-  const startAutoRotate = useCallback(() => {
-    if (autoRotateRef.current) clearInterval(autoRotateRef.current);
-    autoRotateRef.current = setInterval(() => {
-      setActiveIndex((prev) => (prev + 1) % Math.max(walls.length, 1));
-    }, 4000);
-  }, [walls.length]);
-
-  useEffect(() => {
-    if (extracted && walls.length > 1) {
-      startAutoRotate();
-    }
-    return () => {
-      if (autoRotateRef.current) clearInterval(autoRotateRef.current);
-    };
-  }, [extracted, walls.length, startAutoRotate]);
 
   const goToWall = (index: number) => {
     setActiveIndex(index);
-    // Reset auto-rotate timer on manual navigation
-    if (walls.length > 1) startAutoRotate();
   };
 
   const handleExtractWalls = useCallback(async () => {
@@ -346,21 +326,19 @@ const WallExtractionPanel = ({
                   {activeWall.description}
                 </p>
 
-                {/* User instructions */}
-                {activeWall.realWallImageUrl && (
-                  <div className="space-y-1">
-                    <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">
-                      Instructions
-                    </span>
-                    <Textarea
-                      placeholder="e.g. Keep the shelf and plants, replace only the wall paint and texture..."
-                      value={activeWall.userInstructions || ""}
-                      onChange={(e) => handleInstructionsChange(activeWall.id, e.target.value)}
-                      className="min-h-[60px] text-xs resize-none"
-                      disabled={replacingWallId === activeWall.id || disabled}
-                    />
-                  </div>
-                )}
+                {/* User instructions - always visible */}
+                <div className="space-y-1">
+                  <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">
+                    Instructions
+                  </span>
+                  <Textarea
+                    placeholder="e.g. Keep the shelf and plants, replace only the wall paint and texture..."
+                    value={activeWall.userInstructions || ""}
+                    onChange={(e) => handleInstructionsChange(activeWall.id, e.target.value)}
+                    className="min-h-[60px] text-xs resize-none"
+                    disabled={replacingWallId === activeWall.id || disabled}
+                  />
+                </div>
 
                 {/* Replace button */}
                 {activeWall.realWallImageUrl && (
