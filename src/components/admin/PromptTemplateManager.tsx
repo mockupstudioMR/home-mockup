@@ -77,8 +77,8 @@ const getVariablesForTemplate = (templateKey: string) => {
   // Direct match
   if (AVAILABLE_VARIABLES[templateKey]) return AVAILABLE_VARIABLES[templateKey];
   // Design generation templates share variables
-  if (["with_product_images", "with_source_image", "furniture_context"].includes(templateKey)) {
-    return AVAILABLE_VARIABLES["default"];
+  if (["with_product_images", "with_source_image", "furniture_context", "existing_room_redesign"].includes(templateKey)) {
+    return AVAILABLE_VARIABLES[templateKey] || AVAILABLE_VARIABLES["default"];
   }
   // Analyze-style and extract templates have no variables
   return [];
