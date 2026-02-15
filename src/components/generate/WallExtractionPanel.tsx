@@ -107,7 +107,7 @@ const WallExtractionPanel = ({
       const fileName = `${user.id}/real-wall-${wallId}-${Date.now()}.${file.name.split(".").pop()}`;
       const { error: uploadError } = await supabase.storage
         .from("room-photos")
-        .upload(fileName, file, { contentType: file.type });
+        .upload(fileName, file, { contentType: file.type, upsert: true });
 
       if (uploadError) throw uploadError;
 
