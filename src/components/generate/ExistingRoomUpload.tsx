@@ -2,17 +2,20 @@ import { useState, useCallback } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
-import { Upload, X, Loader2, Camera } from "lucide-react";
+import { Upload, X, Loader2, Camera, Wand2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 
 interface ExistingRoomUploadProps {
   images: string[];
   onImagesChange: (images: string[]) => void;
   disabled?: boolean;
+  onAdjustToRoom?: () => void;
+  adjusting?: boolean;
 }
 
-const ExistingRoomUpload = ({ images, onImagesChange, disabled }: ExistingRoomUploadProps) => {
+const ExistingRoomUpload = ({ images, onImagesChange, disabled, onAdjustToRoom, adjusting }: ExistingRoomUploadProps) => {
   const { user } = useAuth();
   const { toast } = useToast();
   const [uploading, setUploading] = useState(false);
@@ -109,6 +112,27 @@ const ExistingRoomUpload = ({ images, onImagesChange, disabled }: ExistingRoomUp
             </label>
           )}
         </div>
+
+        {images.length > 0 && onAdjustToRoom && (
+          <Button
+            onClick={onAdjustToRoom}
+            disabled={disabled || adjusting}
+            className="w-full"
+            size="sm"
+          >
+            {adjusting ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Adjusting to your room…
+              </>
+            ) : (
+              <>
+                <Wand2 className="w-4 h-4" />
+                Adjust design to my room
+              </>
+            )}
+          </Button>
+        )}
       </CardContent>
     </Card>
   );
