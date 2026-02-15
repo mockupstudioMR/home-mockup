@@ -1115,6 +1115,59 @@ const Generate = () => {
     }
   };
 
+  const handleAdjustToRoom = async () => {
+    if (!quizData || !design || !user || existingRoomImages.length === 0) {
+      toast({
+        title: "No room photos",
+        description: "Please upload photos of your existing room first",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setGenerating(true);
+    try {
+      const response = await supabase.functions.invoke("generate-design", {
+        body: {
+          ...quizData,
+          sourceImageUrl: design.imageUrl,
+          existingRoomImages,
+        },
+      });
+
+      if (response.error) throw new Error(response.error.message);
+
+      const { imageUrl, debugSteps: steps, prompt: usedPrompt } = response.data;
+      if (steps) setDebugSteps(steps);
+      if (usedPrompt) setDebugPrompt(usedPrompt);
+
+      const storedImageUrl = await uploadDesignImage(imageUrl, user.id);
+
+      if (!design.id.startsWith("design-")) {
+        await supabase
+          .from("generated_designs")
+          .update({ image_url: storedImageUrl })
+          .eq("id", design.id);
+      }
+
+      setDesign({ ...design, imageUrl });
+      generateHighlights(imageUrl);
+
+      toast({
+        title: "Design adjusted!",
+        description: "Your design has been adapted to match your room's layout",
+      });
+    } catch (error) {
+      toast({
+        title: "Adjustment failed",
+        description: error instanceof Error ? error.message : "Please try again",
+        variant: "destructive",
+      });
+    } finally {
+      setGenerating(false);
+    }
+  };
+
   const handleLockDesign = async () => {
     if (!design || design.isLocked || design.id.startsWith("design-")) {
       toast({
@@ -1383,12 +1436,14 @@ const Generate = () => {
           <DebugPanel steps={debugSteps} prompt={debugPrompt} />
         )}
 
-        {/* Existing Room Photos Upload */}
+        {/* Existing Room Photos Upload + Adjust Button */}
         {design && !generating && !design.isLocked && (
           <ExistingRoomUpload
             images={existingRoomImages}
             onImagesChange={setExistingRoomImages}
             disabled={generating || extractingItems}
+            onAdjustToRoom={handleAdjustToRoom}
+            adjusting={generating}
           />
         )}
 
