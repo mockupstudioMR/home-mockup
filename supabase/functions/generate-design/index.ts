@@ -28,6 +28,7 @@ interface GenerateRequest {
   modificationPrompt?: string;
   selectedProducts?: ProductInfo[];
   productImageUrls?: string[];
+  existingRoomImages?: string[];
 }
 
 interface DebugStep {
@@ -71,6 +72,7 @@ serve(async (req) => {
       hasModificationPrompt: !!requestData.modificationPrompt,
       selectedProductsCount: requestData.selectedProducts?.length || 0,
       productImageUrlsCount: requestData.productImageUrls?.length || 0,
+      existingRoomImagesCount: requestData.existingRoomImages?.length || 0,
     });
 
     // Create supabase client for DB queries
@@ -293,6 +295,14 @@ serve(async (req) => {
     // Prepare messages for image generation
     const contentParts: any[] = [{ type: "text", text: prompt }];
     
+    // Add existing room images first (highest priority reference)
+    if (enrichedRequestData.existingRoomImages && enrichedRequestData.existingRoomImages.length > 0) {
+      for (const imgUrl of enrichedRequestData.existingRoomImages.slice(0, 4)) {
+        contentParts.push({ type: "image_url", image_url: { url: imgUrl } });
+      }
+      addDebug("Existing room images", `Added ${Math.min(enrichedRequestData.existingRoomImages.length, 4)} existing room photos to request`);
+    }
+
     if (enrichedRequestData.sourceImageUrl) {
       contentParts.push({ type: "image_url", image_url: { url: enrichedRequestData.sourceImageUrl } });
       addDebug("Source image", "Added source image to request");
@@ -520,6 +530,13 @@ function buildImagePrompt(
   if (data.modificationPrompt) {
     const tpl = templates["modification"] || 
       `Modify this interior design image: {{modification_prompt}}. Maintain the {{style}} style with {{colors}}. {{product_instructions}} Ultra high resolution, photorealistic interior design photography.`;
+    return furnitureContext + fillTemplate(tpl);
+  }
+
+  // Existing room redesign - preserve layout, proportions, and spatial arrangement
+  if (data.existingRoomImages && data.existingRoomImages.length > 0) {
+    const tpl = templates["existing_room_redesign"] ||
+      `CRITICAL INSTRUCTION: Study the attached photos of the existing room very carefully. You must recreate this EXACT SAME room — same layout, same proportions, same spatial arrangement, same window/door positions, same room shape and dimensions. Keep every architectural element (walls, ceiling, floor plan, windows, doors, alcoves, columns) exactly where they are. Now redesign ONLY the interior styling: apply a {{style}} aesthetic with {{colors}}. Replace or restyle the furniture and decor to match the {{budget}} {{style}} look, but keep them in the same positions and roughly the same scale as in the original photos. {{elements}} {{product_instructions}} The final image must look like the same physical room photographed after a professional interior redesign — not a different room. Ultra high resolution, photorealistic interior design photography, professional lighting, magazine quality, 16:9 aspect ratio.`;
     return furnitureContext + fillTemplate(tpl);
   }
 
