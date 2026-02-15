@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Home, ArrowLeft, Upload, X, Loader2, Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import StyleInspirationGrid from "@/components/analyze/StyleInspirationGrid";
+import StyleInspirationCards from "@/components/analyze/StyleInspirationCards";
 
 interface AnalyzedStyle {
   styleName: string;
@@ -354,6 +354,19 @@ const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(() =
                             </span>
                           ))}
                         </div>
+
+                        {/* Inline moodboard & accent furniture */}
+                        <StyleInspirationCards
+                          styleIndex={index}
+                          styleName={style.styleName}
+                          keywords={style.keywords}
+                          selectedItems={selectedInspirations}
+                          onToggle={(id) => {
+                            setSelectedInspirations((prev) =>
+                              prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
+                            );
+                          }}
+                        />
                       </button>
                     ))}
                   </div>
@@ -385,19 +398,6 @@ const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(() =
                     ? `Continue with ${analysisResult.styles[selectedStyleIndex]?.styleName}`
                     : "Select a style to continue"}
                 </Button>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Style Inspirations - Moodboard & Accent Furniture per style */}
-          {analysisResult && (
-            <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
-              <CardContent className="p-6">
-                <StyleInspirationGrid
-                  styles={analysisResult.styles}
-                  selectedItems={selectedInspirations}
-                  onSelectionChange={setSelectedInspirations}
-                />
               </CardContent>
             </Card>
           )}
