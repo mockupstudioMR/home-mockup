@@ -35,6 +35,7 @@ import ExistingRoomUpload from "@/components/generate/ExistingRoomUpload";
 import GenerationCountdown from "@/components/generate/GenerationCountdown";
 import TryAnotherStyle from "@/components/generate/TryAnotherStyle";
 import WallExtractionPanel from "@/components/generate/WallExtractionPanel";
+import type { ExtractedWall } from "@/components/generate/WallExtractionPanel";
 
 interface GeneratedDesign {
   id: string;
@@ -178,6 +179,7 @@ const Generate = () => {
   const [design, setDesign] = useState<GeneratedDesign | null>(getInitialDesign);
   const [angleImages, setAngleImages] = useState<AngleImage[]>(getInitialAngleImages);
   const [modificationInput, setModificationInput] = useState("");
+  const [extractedWalls, setExtractedWalls] = useState<ExtractedWall[]>([]);
   const [highlightsData, setHighlightsData] = useState<DesignHighlightsData | null>(getInitialHighlights);
   const [generatingHighlights, setGeneratingHighlights] = useState(false);
   const [applyingHighlight, setApplyingHighlight] = useState<string | null>(null);
@@ -1524,6 +1526,8 @@ const Generate = () => {
               uploadingReference={uploadingReference}
               designId={design.id}
               onDesignUpdated={(newUrl) => setDesign({ ...design, imageUrl: newUrl })}
+              extractedWalls={extractedWalls}
+              onWallsExtracted={setExtractedWalls}
             />
           </div>
         )}
@@ -1603,14 +1607,16 @@ const Generate = () => {
             isLoading={extractingItems}
             isolatingPhotos={isolatingPhotos}
           />
-          {/* Wall Extraction Panel - shown in locked view */}
-          {design.isLocked && (
+          {/* Wall Extraction Panel - shown in locked view only if walls were already extracted */}
+          {design.isLocked && extractedWalls.length > 0 && (
             <div className="max-w-3xl mx-auto">
               <WallExtractionPanel
                 designImageUrl={design.imageUrl}
                 designId={design.id}
                 onDesignUpdated={(newUrl) => setDesign(prev => prev ? { ...prev, imageUrl: newUrl } : prev)}
                 disabled={generating}
+                externalWalls={extractedWalls}
+                readOnly={false}
               />
             </div>
           )}
