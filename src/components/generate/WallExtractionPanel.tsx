@@ -33,6 +33,9 @@ interface WallExtractionPanelProps {
   designId: string;
   onDesignUpdated: (newImageUrl: string) => void;
   disabled?: boolean;
+  externalWalls?: ExtractedWall[];
+  onWallsExtracted?: (walls: ExtractedWall[]) => void;
+  readOnly?: boolean;
 }
 
 const WALL_TYPE_LABELS: Record<string, string> = {
@@ -51,16 +54,21 @@ const WALL_TYPE_EMOJI: Record<string, string> = {
   door_wall_right: "🚪",
 };
 
+export type { ExtractedWall };
+
 const WallExtractionPanel = ({
   designImageUrl,
   designId,
   onDesignUpdated,
   disabled = false,
+  externalWalls,
+  onWallsExtracted,
+  readOnly = false,
 }: WallExtractionPanelProps) => {
   const { toast } = useToast();
-  const [walls, setWalls] = useState<ExtractedWall[]>([]);
+  const [walls, setWalls] = useState<ExtractedWall[]>(externalWalls || []);
   const [extracting, setExtracting] = useState(false);
-  const [extracted, setExtracted] = useState(false);
+  const [extracted, setExtracted] = useState(!!(externalWalls && externalWalls.length > 0));
   const [uploadingWallId, setUploadingWallId] = useState<string | null>(null);
   const [replacingWallId, setReplacingWallId] = useState<string | null>(null);
   const [activeIndex, setActiveIndex] = useState(0);
@@ -81,6 +89,7 @@ const WallExtractionPanel = ({
       if (response.data?.walls) {
         setWalls(response.data.walls);
         setExtracted(true);
+        onWallsExtracted?.(response.data.walls);
       }
     } catch (error) {
       toast({
@@ -209,6 +218,7 @@ const WallExtractionPanel = ({
   };
 
   if (!extracted && !extracting) {
+    if (readOnly) return null;
     return (
       <div className="pt-3 border-t border-border/50">
         <Button

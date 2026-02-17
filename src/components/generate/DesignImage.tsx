@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Heart, Download, Send, RefreshCw, Upload, X, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import WallExtractionPanel from "./WallExtractionPanel";
+import type { ExtractedWall } from "./WallExtractionPanel";
 
 interface DesignImageProps {
   imageUrl: string;
@@ -27,6 +28,8 @@ interface DesignImageProps {
   // Wall extraction props
   designId?: string;
   onDesignUpdated?: (newImageUrl: string) => void;
+  extractedWalls?: ExtractedWall[];
+  onWallsExtracted?: (walls: ExtractedWall[]) => void;
 }
 
 const DesignImage = ({
@@ -49,6 +52,8 @@ const DesignImage = ({
   uploadingReference = false,
   designId,
   onDesignUpdated,
+  extractedWalls,
+  onWallsExtracted,
 }: DesignImageProps) => {
   return (
     <Card className="overflow-hidden border-border/50 bg-card/80 backdrop-blur-sm group">
@@ -163,6 +168,8 @@ const DesignImage = ({
             designId={designId}
             onDesignUpdated={onDesignUpdated}
             disabled={generating}
+            externalWalls={extractedWalls}
+            onWallsExtracted={onWallsExtracted}
           />
         )}
       </CardContent>
