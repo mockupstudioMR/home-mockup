@@ -220,7 +220,7 @@ Respond ONLY with valid JSON array, no markdown, no extra words, no explanation.
     for (const wall of walls) {
       // Build a strong must-have clause for the wall prompt
       const mustHaveClause = furnitureItems.length > 0
-        ? `\n\nCRITICAL MUST-HAVE ITEMS: The following items MUST be clearly visible and realistically placed in the room. If they logically belong against or near this wall, show them prominently: ${furnitureItems.join(", ")}. These are NON-NEGOTIABLE — the image is incorrect if these items are missing from the room.`
+        ? `\n\nROOM FIXTURES: This ${roomType || "room"} contains these items distributed across its walls: ${furnitureItems.join(", ")}. Only show the items that would REALISTICALLY be placed against THIS specific wall. Each item appears EXACTLY ONCE in the entire room — never duplicate an item. For example, a bathroom has ONE toilet, ONE sink, ONE mirror — do not show two of the same fixture.`
         : "";
 
       const cropPrompt = `Look at this interior design image. Generate a NEW VIEW of the same ${roomType || "room"} showing ONLY the "${wall.label}" wall (${wall.description}).
