@@ -36,6 +36,8 @@ interface WallExtractionPanelProps {
   externalWalls?: ExtractedWall[];
   onWallsExtracted?: (walls: ExtractedWall[]) => void;
   readOnly?: boolean;
+  roomType?: string;
+  mustHaveElements?: string[];
 }
 
 const WALL_TYPE_LABELS: Record<string, string> = {
@@ -64,6 +66,8 @@ const WallExtractionPanel = ({
   externalWalls,
   onWallsExtracted,
   readOnly = false,
+  roomType,
+  mustHaveElements,
 }: WallExtractionPanelProps) => {
   const { toast } = useToast();
   const [walls, setWalls] = useState<ExtractedWall[]>(externalWalls || []);
@@ -81,7 +85,7 @@ const WallExtractionPanel = ({
     setExtracting(true);
     try {
       const response = await supabase.functions.invoke("extract-walls", {
-        body: { designImageUrl, designId },
+        body: { designImageUrl, designId, roomType, mustHaveElements },
       });
 
       if (response.error) throw new Error(response.error.message);
