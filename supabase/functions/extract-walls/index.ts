@@ -218,8 +218,7 @@ Respond ONLY with valid JSON array, no markdown, no extra words, no explanation.
     const wallResults: ExtractedWall[] = [];
 
     for (const wall of walls) {
-      try {
-        const cropPrompt = `Look at this interior design image. Generate a NEW VIEW of the same room showing ONLY the "${wall.label}" wall (${wall.description}).
+      const cropPrompt = `Look at this interior design image. Generate a NEW VIEW of the same room showing ONLY the "${wall.label}" wall (${wall.description}).
 
 CAMERA POSITION: Place the camera DIRECTLY FACING this wall, perfectly centered and perpendicular to it. The camera should be at eye level, looking straight at the wall as if you are standing in front of it. This is a FLAT, HEAD-ON, ORTHOGRAPHIC-STYLE view — no perspective angle, no 3/4 view, no side angle.
 
@@ -233,112 +232,92 @@ ${roomContext}
 
 IMPORTANT: This must look like the SAME ROOM, maintaining identical style, lighting, colors, materials, and all furniture/decor from the original design. Only the camera position changes — you are now standing directly in front of this specific wall.`;
 
-        const imageResponse = await fetch(
-          "https://ai.gateway.lovable.dev/v1/chat/completions",
-          {
-            method: "POST",
-            headers: {
-              Authorization: `Bearer ${LOVABLE_API_KEY}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              model: "google/gemini-2.5-flash-image",
-              messages: [
-                {
-                  role: "user",
-                  content: [
-                    { type: "text", text: cropPrompt },
-                    { type: "image_url", image_url: { url: designImageUrl } },
-                  ],
-                },
-              ],
-              modalities: ["image", "text"],
-            }),
-          }
-        );
+      let imageUrl: string | undefined;
+      const MAX_ATTEMPTS = 2;
 
-        if (!imageResponse.ok) {
-          console.error(
-            `Image generation failed for ${wall.label}: ${imageResponse.status}`
+      for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+        try {
+          console.log(`Generating wall image for ${wall.label} (attempt ${attempt}/${MAX_ATTEMPTS})`);
+          const imageResponse = await fetch(
+            "https://ai.gateway.lovable.dev/v1/chat/completions",
+            {
+              method: "POST",
+              headers: {
+                Authorization: `Bearer ${LOVABLE_API_KEY}`,
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                model: "google/gemini-2.5-flash-image",
+                messages: [
+                  {
+                    role: "user",
+                    content: [
+                      { type: "text", text: cropPrompt },
+                      { type: "image_url", image_url: { url: designImageUrl } },
+                    ],
+                  },
+                ],
+                modalities: ["image", "text"],
+              }),
+            }
           );
-          wallResults.push({
-            id: crypto.randomUUID(),
-            wall_type: wall.wall_type,
-            label: wall.label,
-            description: wall.description,
-          });
-          continue;
+
+          if (!imageResponse.ok) {
+            console.error(`Image generation failed for ${wall.label}: ${imageResponse.status}`);
+            if (attempt < MAX_ATTEMPTS) continue;
+            break;
+          }
+
+          const imageData = await imageResponse.json();
+          const base64Image = imageData.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+
+          if (!base64Image) {
+            console.error(`No image in response for ${wall.label}`);
+            if (attempt < MAX_ATTEMPTS) continue;
+            break;
+          }
+
+          // Upload to storage
+          const base64Clean = base64Image.replace(/^data:image\/\w+;base64,/, "");
+          const byteString = atob(base64Clean);
+          const ab = new ArrayBuffer(byteString.length);
+          const ia = new Uint8Array(ab);
+          for (let j = 0; j < byteString.length; j++) {
+            ia[j] = byteString.charCodeAt(j);
+          }
+          const blob = new Blob([ab], { type: "image/png" });
+
+          const wallId = crypto.randomUUID();
+          const fileName = `${designId}/wall-${wallId}.png`;
+          const { error: uploadError } = await supabase.storage
+            .from("design-images")
+            .upload(fileName, blob, { contentType: "image/png", upsert: true });
+
+          if (uploadError) {
+            console.error(`Upload error for ${wall.label}:`, uploadError);
+            break;
+          }
+
+          const { data: urlData } = supabase.storage
+            .from("design-images")
+            .getPublicUrl(fileName);
+
+          imageUrl = urlData.publicUrl;
+          console.log(`Generated wall image for ${wall.label}`);
+          break; // Success, exit retry loop
+        } catch (err) {
+          console.error(`Error processing wall ${wall.label} (attempt ${attempt}):`, err);
+          if (attempt >= MAX_ATTEMPTS) break;
         }
-
-        const imageData = await imageResponse.json();
-        const base64Image =
-          imageData.choices?.[0]?.message?.images?.[0]?.image_url?.url;
-
-        if (!base64Image) {
-          wallResults.push({
-            id: crypto.randomUUID(),
-            wall_type: wall.wall_type,
-            label: wall.label,
-            description: wall.description,
-          });
-          continue;
-        }
-
-        // Upload to storage
-        const base64Clean = base64Image.replace(
-          /^data:image\/\w+;base64,/,
-          ""
-        );
-        const byteString = atob(base64Clean);
-        const ab = new ArrayBuffer(byteString.length);
-        const ia = new Uint8Array(ab);
-        for (let j = 0; j < byteString.length; j++) {
-          ia[j] = byteString.charCodeAt(j);
-        }
-        const blob = new Blob([ab], { type: "image/png" });
-
-        const wallId = crypto.randomUUID();
-        const fileName = `${designId}/wall-${wallId}.png`;
-        const { error: uploadError } = await supabase.storage
-          .from("design-images")
-          .upload(fileName, blob, {
-            contentType: "image/png",
-            upsert: true,
-          });
-
-        if (uploadError) {
-          console.error(`Upload error for ${wall.label}:`, uploadError);
-          wallResults.push({
-            id: wallId,
-            wall_type: wall.wall_type,
-            label: wall.label,
-            description: wall.description,
-          });
-          continue;
-        }
-
-        const { data: urlData } = supabase.storage
-          .from("design-images")
-          .getPublicUrl(fileName);
-
-        wallResults.push({
-          id: wallId,
-          wall_type: wall.wall_type,
-          label: wall.label,
-          description: wall.description,
-          imageUrl: urlData.publicUrl,
-        });
-
-        console.log(`Generated wall image for ${wall.label}`);
-      } catch (err) {
-        console.error(`Error processing wall ${wall.label}:`, err);
-        wallResults.push({
-          id: crypto.randomUUID(),
-          wall_type: wall.wall_type,
-          label: wall.label,
-          description: wall.description,
-        });
       }
+
+      wallResults.push({
+        id: crypto.randomUUID(),
+        wall_type: wall.wall_type,
+        label: wall.label,
+        description: wall.description,
+        imageUrl,
+      });
     }
 
     console.log(
