@@ -34,6 +34,7 @@ import OtherAnglesButton from "@/components/generate/OtherAnglesButton";
 import ExistingRoomUpload from "@/components/generate/ExistingRoomUpload";
 import GenerationCountdown from "@/components/generate/GenerationCountdown";
 import TryAnotherStyle from "@/components/generate/TryAnotherStyle";
+import WallExtractionPanel from "@/components/generate/WallExtractionPanel";
 
 interface GeneratedDesign {
   id: string;
@@ -1602,6 +1603,17 @@ const Generate = () => {
             isLoading={extractingItems}
             isolatingPhotos={isolatingPhotos}
           />
+          {/* Wall Extraction Panel - shown in locked view */}
+          {design.isLocked && (
+            <div className="max-w-3xl mx-auto">
+              <WallExtractionPanel
+                designImageUrl={design.imageUrl}
+                designId={design.id}
+                onDesignUpdated={(newUrl) => setDesign(prev => prev ? { ...prev, imageUrl: newUrl } : prev)}
+                disabled={generating}
+              />
+            </div>
+          )}
           </>
         )}
 
