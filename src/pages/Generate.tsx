@@ -1528,6 +1528,8 @@ const Generate = () => {
               onDesignUpdated={(newUrl) => setDesign({ ...design, imageUrl: newUrl })}
               extractedWalls={extractedWalls}
               onWallsExtracted={setExtractedWalls}
+              roomType={quizData?.roomType}
+              mustHaveElements={quizData?.mustHaveElements}
             />
           </div>
         )}
@@ -1617,6 +1619,8 @@ const Generate = () => {
                 disabled={generating}
                 externalWalls={extractedWalls}
                 readOnly={false}
+                roomType={quizData?.roomType}
+                mustHaveElements={quizData?.mustHaveElements}
               />
             </div>
           )}

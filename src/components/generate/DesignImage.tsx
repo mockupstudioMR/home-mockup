@@ -30,6 +30,8 @@ interface DesignImageProps {
   onDesignUpdated?: (newImageUrl: string) => void;
   extractedWalls?: ExtractedWall[];
   onWallsExtracted?: (walls: ExtractedWall[]) => void;
+  roomType?: string;
+  mustHaveElements?: string[];
 }
 
 const DesignImage = ({
@@ -54,6 +56,8 @@ const DesignImage = ({
   onDesignUpdated,
   extractedWalls,
   onWallsExtracted,
+  roomType,
+  mustHaveElements,
 }: DesignImageProps) => {
   return (
     <Card className="overflow-hidden border-border/50 bg-card/80 backdrop-blur-sm group">
@@ -163,13 +167,15 @@ const DesignImage = ({
 
         {/* Wall Extraction Panel */}
         {showRefine && designId && onDesignUpdated && (
-          <WallExtractionPanel
+           <WallExtractionPanel
             designImageUrl={imageUrl}
             designId={designId}
             onDesignUpdated={onDesignUpdated}
             disabled={generating}
             externalWalls={extractedWalls}
             onWallsExtracted={onWallsExtracted}
+            roomType={roomType}
+            mustHaveElements={mustHaveElements}
           />
         )}
       </CardContent>

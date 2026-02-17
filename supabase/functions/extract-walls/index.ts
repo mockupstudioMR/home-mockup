@@ -9,6 +9,8 @@ const corsHeaders = {
 interface ExtractWallsRequest {
   designImageUrl: string;
   designId: string;
+  roomType?: string;
+  mustHaveElements?: string[];
 }
 
 interface ExtractedWall {
@@ -33,7 +35,7 @@ Deno.serve(async (req) => {
       throw new Error("Missing required environment variables");
     }
 
-    const { designImageUrl, designId }: ExtractWallsRequest = await req.json();
+    const { designImageUrl, designId, roomType, mustHaveElements }: ExtractWallsRequest = await req.json();
 
     if (!designImageUrl || !designId) {
       throw new Error("designImageUrl and designId are required");
@@ -41,7 +43,25 @@ Deno.serve(async (req) => {
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-    console.log(`Extracting walls from design ${designId}`);
+    // Fetch room furniture config for must-have items
+    let furnitureItems: string[] = mustHaveElements || [];
+    if (roomType) {
+      const { data: roomConfig } = await supabase
+        .from("room_furniture_config")
+        .select("furniture_items")
+        .eq("room_type", roomType)
+        .maybeSingle();
+      if (roomConfig?.furniture_items?.length) {
+        const combined = new Set([...furnitureItems, ...roomConfig.furniture_items]);
+        furnitureItems = [...combined];
+      }
+    }
+
+    const roomContext = furnitureItems.length > 0
+      ? `\nThis is a ${roomType || "room"} that MUST contain these essential items/fixtures: ${furnitureItems.join(", ")}. Make sure they are visible and properly placed in the appropriate walls.`
+      : "";
+
+    console.log(`Extracting walls from design ${designId}, room: ${roomType || "unknown"}, must-have: ${furnitureItems.join(", ")}`);
 
     // Step 1: Analyze the design to identify walls
     const analysisResponse = await fetch(
@@ -209,6 +229,7 @@ The wall should FILL THE ENTIRE FRAME from edge to edge. Show:
 - Any architectural features on this wall (windows, doors, moldings)
 - Furniture pieces placed against this wall
 - The floor visible at the very bottom edge
+${roomContext}
 
 IMPORTANT: This must look like the SAME ROOM, maintaining identical style, lighting, colors, materials, and all furniture/decor from the original design. Only the camera position changes — you are now standing directly in front of this specific wall.`;
 
