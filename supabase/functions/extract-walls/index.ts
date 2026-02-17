@@ -199,27 +199,18 @@ Respond ONLY with valid JSON array, no markdown, no extra words, no explanation.
 
     for (const wall of walls) {
       try {
-        // Camera angle based on wall position
-        const cameraAngles: Record<string, string> = {
-          left: "Position the camera on the RIGHT side of the room, looking LEFT directly at this wall. The wall should fill most of the frame, seen at a slight 3/4 angle from the right.",
-          right: "Position the camera on the LEFT side of the room, looking RIGHT directly at this wall. The wall should fill most of the frame, seen at a slight 3/4 angle from the left.",
-          back: "Position the camera near the FRONT/entrance of the room, looking straight AHEAD at this wall. Show it as the focal wall from the room's main viewpoint.",
-          front: "Position the camera at the BACK of the room, looking toward the ENTRANCE/front wall. Show the door and this wall as if standing at the far end of the room looking back.",
-        };
-        const angleInstruction = cameraAngles[wall.position] || "Show the wall from a straight-on perspective.";
+        const cropPrompt = `Look at this interior design image. Generate a NEW VIEW of the same room showing ONLY the "${wall.label}" wall (${wall.description}).
 
-        const cropPrompt = `Look at this interior design image. Generate a NEW VIEW of the same room, but from a DIFFERENT CAMERA ANGLE that focuses on the "${wall.label}" wall (${wall.description}).
+CAMERA POSITION: Place the camera DIRECTLY FACING this wall, perfectly centered and perpendicular to it. The camera should be at eye level, looking straight at the wall as if you are standing in front of it. This is a FLAT, HEAD-ON, ORTHOGRAPHIC-STYLE view — no perspective angle, no 3/4 view, no side angle.
 
-${angleInstruction}
+The wall should FILL THE ENTIRE FRAME from edge to edge. Show:
+- The full wall surface from floor to ceiling
+- Paint/wallpaper color and texture
+- Any architectural features on this wall (windows, doors, moldings)
+- Furniture pieces placed against this wall
+- The floor visible at the very bottom edge
 
-Include in the image:
-- The wall surface, paint/wallpaper color and texture
-- Any architectural features (windows, doors, moldings) on this wall
-- Furniture pieces placed against or near this wall
-- Adjacent walls visible at the edges for spatial context
-- The floor visible at the base
-
-IMPORTANT: This must look like the SAME ROOM from a different camera position, not a crop. Maintain the same style, lighting, colors, and all furniture/decor from the original design.`;
+IMPORTANT: This must look like the SAME ROOM, maintaining identical style, lighting, colors, materials, and all furniture/decor from the original design. Only the camera position changes — you are now standing directly in front of this specific wall.`;
 
         const imageResponse = await fetch(
           "https://ai.gateway.lovable.dev/v1/chat/completions",
