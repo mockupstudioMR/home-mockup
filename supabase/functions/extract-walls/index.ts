@@ -218,7 +218,12 @@ Respond ONLY with valid JSON array, no markdown, no extra words, no explanation.
     const wallResults: ExtractedWall[] = [];
 
     for (const wall of walls) {
-      const cropPrompt = `Look at this interior design image. Generate a NEW VIEW of the same room showing ONLY the "${wall.label}" wall (${wall.description}).
+      // Build a strong must-have clause for the wall prompt
+      const mustHaveClause = furnitureItems.length > 0
+        ? `\n\nCRITICAL MUST-HAVE ITEMS: The following items MUST be clearly visible and realistically placed in the room. If they logically belong against or near this wall, show them prominently: ${furnitureItems.join(", ")}. These are NON-NEGOTIABLE — the image is incorrect if these items are missing from the room.`
+        : "";
+
+      const cropPrompt = `Look at this interior design image. Generate a NEW VIEW of the same ${roomType || "room"} showing ONLY the "${wall.label}" wall (${wall.description}).
 
 CAMERA POSITION: Place the camera DIRECTLY FACING this wall, perfectly centered and perpendicular to it. The camera should be at eye level, looking straight at the wall as if you are standing in front of it. This is a FLAT, HEAD-ON, ORTHOGRAPHIC-STYLE view — no perspective angle, no 3/4 view, no side angle.
 
@@ -226,9 +231,9 @@ The wall should FILL THE ENTIRE FRAME from edge to edge. Show:
 - The full wall surface from floor to ceiling
 - Paint/wallpaper color and texture
 - Any architectural features on this wall (windows, doors, moldings)
-- Furniture pieces placed against this wall
+- Furniture and fixtures placed against or near this wall
 - The floor visible at the very bottom edge
-${roomContext}
+${mustHaveClause}
 
 IMPORTANT: This must look like the SAME ROOM, maintaining identical style, lighting, colors, materials, and all furniture/decor from the original design. Only the camera position changes — you are now standing directly in front of this specific wall.`;
 
