@@ -468,96 +468,119 @@ const AnalyzeProducts = () => {
 
 
 
+          {/* Style Wall — products grouped by detected style */}
           {analysisResult && (
-            <Card className="border-primary/30 bg-card/80 backdrop-blur-sm">
-              <CardContent className="p-6 space-y-6">
-                <div>
-                  <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-xl font-semibold">Select Products to Include</h2>
-                    <span className="text-sm text-muted-foreground">
-                      {selectedProducts.size} of {analysisResult.products.length} selected
-                    </span>
-                  </div>
-                  <div className="grid gap-3">
-                    {analysisResult.products.map((product, index) => {
-                      const isSelected = selectedProducts.has(index);
-                      return (
-                        <button
-                          key={index}
-                          onClick={() => toggleProductSelection(index)}
-                          className={`flex items-start gap-4 p-4 rounded-xl text-left transition-all ${
-                            isSelected 
-                              ? "bg-primary/20 border-2 border-primary" 
-                              : "bg-secondary/50 border-2 border-transparent hover:border-primary/30"
-                          }`}
-                        >
-                          <div className="relative w-16 h-16 rounded-lg overflow-hidden shrink-0">
-                            <img
-                              src={uploadedImages[index]}
-                              alt={product.productName}
-                              className="w-full h-full object-cover"
-                            />
-                            {isSelected && (
-                              <div className="absolute inset-0 bg-primary/40 flex items-center justify-center">
-                                <Check className="w-6 h-6 text-primary-foreground" />
-                              </div>
-                            )}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 mb-1">
-                              <h3 className="font-medium">{product.productName}</h3>
-                              <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary">
-                                {product.category}
-                              </span>
-                            </div>
-                            <p className="text-sm text-muted-foreground line-clamp-2">
-                              {product.description}
-                            </p>
-                          </div>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
+            <div className="space-y-10">
+              {/* Style sections */}
+              {(() => {
+                // Group products by their suggestedStyle
+                const styleGroups = new Map<string, { products: AnalyzedProduct[]; indices: number[] }>();
+                analysisResult.products.forEach((product, index) => {
+                  const key = product.suggestedStyle || "Uncategorized";
+                  if (!styleGroups.has(key)) {
+                    styleGroups.set(key, { products: [], indices: [] });
+                  }
+                  styleGroups.get(key)!.products.push(product);
+                  styleGroups.get(key)!.indices.push(index);
+                });
 
-                {/* Style Analysis - same experience as room analysis */}
-                {analysisResult.styles && analysisResult.styles.length > 0 ? (
-                  <div>
-                    <h2 className="text-xl font-semibold mb-4">Detected Styles</h2>
-                    <div className="space-y-4">
-                      {analysisResult.styles.map((style, index) => (
-                        <button
-                          type="button"
-                          key={index}
-                          onClick={() => setSelectedStyleIndex(index)}
-                          className={`w-full text-left p-4 rounded-xl transition-all cursor-pointer ${selectedStyleIndex === index ? "bg-primary/10 border-2 border-primary ring-2 ring-primary/20" : "bg-secondary/50 border-2 border-transparent hover:border-primary/30"}`}
-                        >
-                          <div className="flex items-center justify-between mb-2">
-                            <h3 className="font-semibold">{style.styleName}</h3>
-                            <span className="text-sm text-muted-foreground">
-                              {Math.round(style.confidence * 100)}% match
+                // Order by detected style confidence if available
+                const orderedStyles = analysisResult.styles
+                  ? [...styleGroups.entries()].sort((a, b) => {
+                      const aStyle = analysisResult.styles!.find(s => s.styleName === a[0]);
+                      const bStyle = analysisResult.styles!.find(s => s.styleName === b[0]);
+                      return (bStyle?.confidence || 0) - (aStyle?.confidence || 0);
+                    })
+                  : [...styleGroups.entries()];
+
+                return orderedStyles.map(([styleName, group]) => {
+                  const detectedStyle = analysisResult.styles?.find(s => s.styleName === styleName);
+                  const styleIdx = analysisResult.styles?.findIndex(s => s.styleName === styleName) ?? -1;
+                  const isSelected = selectedStyleIndex === styleIdx && styleIdx >= 0;
+
+                  return (
+                    <div key={styleName} className="space-y-4">
+                      {/* Style header — clickable to select */}
+                      <button
+                        type="button"
+                        onClick={() => styleIdx >= 0 && setSelectedStyleIndex(styleIdx)}
+                        className={`w-full text-left px-5 py-4 rounded-2xl transition-all ${
+                          isSelected
+                            ? "bg-primary/15 border-2 border-primary ring-2 ring-primary/20"
+                            : "bg-card/80 backdrop-blur-sm border-2 border-border/50 hover:border-primary/40"
+                        }`}
+                      >
+                        <div className="flex items-center justify-between mb-1">
+                          <h2 className="text-2xl font-bold tracking-tight">{styleName}</h2>
+                          {detectedStyle && (
+                            <span className="text-sm font-medium px-3 py-1 rounded-full bg-primary/10 text-primary">
+                              {Math.round(detectedStyle.confidence * 100)}% match
                             </span>
-                          </div>
-                          <p className="text-sm text-muted-foreground mb-3">{style.description}</p>
-                          <div className="flex flex-wrap gap-2">
-                            {style.keywords.map((keyword) => (
-                              <span
-                                key={keyword}
-                                className="text-xs px-2 py-1 rounded-full bg-background text-foreground"
-                              >
-                                {keyword}
-                              </span>
-                            ))}
-                          </div>
+                          )}
+                        </div>
+                        {detectedStyle && (
+                          <>
+                            <p className="text-sm text-muted-foreground mb-2">{detectedStyle.description}</p>
+                            <div className="flex flex-wrap gap-1.5">
+                              {detectedStyle.keywords.map((kw) => (
+                                <span key={kw} className="text-xs px-2 py-0.5 rounded-full bg-secondary text-secondary-foreground">
+                                  {kw}
+                                </span>
+                              ))}
+                            </div>
+                          </>
+                        )}
+                      </button>
 
-                          {/* Inline moodboard & accent furniture */}
+                      {/* Product image wall for this style */}
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                        {group.products.map((product, pi) => {
+                          const originalIndex = group.indices[pi];
+                          const productSelected = selectedProducts.has(originalIndex);
+                          return (
+                            <button
+                              key={originalIndex}
+                              type="button"
+                              onClick={() => toggleProductSelection(originalIndex)}
+                              className={`relative rounded-xl overflow-hidden transition-all group ${
+                                productSelected
+                                  ? "ring-2 ring-primary shadow-lg shadow-primary/20"
+                                  : "ring-1 ring-border/50 hover:ring-primary/40"
+                              }`}
+                            >
+                              <div className="aspect-square">
+                                <img
+                                  src={uploadedImages[originalIndex]}
+                                  alt={product.productName}
+                                  className="w-full h-full object-cover"
+                                />
+                              </div>
+                              {/* Overlay with product info */}
+                              <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-3 pt-8">
+                                <p className="text-sm font-medium text-white truncate">{product.productName}</p>
+                                <p className="text-xs text-white/70">{product.category}</p>
+                              </div>
+                              {/* Selection indicator */}
+                              {productSelected && (
+                                <div className="absolute top-2 right-2 w-7 h-7 rounded-full bg-primary flex items-center justify-center">
+                                  <Check className="w-4 h-4 text-primary-foreground" />
+                                </div>
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      {/* Inspiration cards when this style is selected */}
+                      {isSelected && detectedStyle && (
+                        <div className="px-1">
                           <StyleInspirationCards
-                            styleIndex={index}
-                            styleName={style.styleName}
-                            keywords={style.keywords}
+                            styleIndex={styleIdx}
+                            styleName={detectedStyle.styleName}
+                            keywords={detectedStyle.keywords}
                             selectedItems={selectedInspirations}
                             onToggle={(id) => {
-                              setSelectedStyleIndex(index);
+                              setSelectedStyleIndex(styleIdx);
                               setSelectedInspirations((prev) =>
                                 prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
                               );
@@ -572,134 +595,129 @@ const AnalyzeProducts = () => {
                               });
                             }}
                           />
-                        </button>
-                      ))}
+                        </div>
+                      )}
                     </div>
+                  );
+                });
+              })()}
+
+              {/* Selection summary + color palette */}
+              <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
+                <CardContent className="p-5 space-y-5">
+                  <div className="flex items-center justify-between">
+                    <h3 className="font-semibold">
+                      {selectedProducts.size} of {analysisResult.products.length} products selected
+                    </h3>
                   </div>
-                ) : (
-                  <>
-                    {/* Fallback: simple recommended style */}
-                    <div className="p-4 rounded-xl bg-primary/10 border border-primary/30">
-                      <h3 className="font-semibold mb-2">Recommended Style: {analysisResult.recommendedStyle}</h3>
-                      <p className="text-sm text-muted-foreground">{analysisResult.styleDescription}</p>
-                    </div>
+
+                  {/* Editable Color Palette */}
+                  {editableColors.length > 0 && (
                     <div>
-                      <h3 className="font-semibold mb-2">Design Suggestion</h3>
-                      <p className="text-muted-foreground">{analysisResult.moodboardSuggestion}</p>
-                    </div>
-                  </>
-                )}
-
-                {/* Editable Color Palette */}
-                {editableColors.length > 0 && (
-                  <div>
-                    <h3 className="font-semibold mb-3">Dominant Colors</h3>
-                    <div className="flex flex-wrap gap-3 items-center">
-                      {editableColors.map((color, index) => (
-                        <div key={index} className="relative group">
-                          <label className="block cursor-pointer">
-                            <div
-                              className="w-12 h-12 rounded-lg border-2 border-border hover:border-primary/50 transition-colors"
-                              style={{ backgroundColor: color }}
-                              title={color}
-                            />
-                            <input
-                              type="color"
-                              value={color}
-                              onChange={(e) => {
-                                setEditableColors((prev) =>
-                                  prev.map((c, i) => (i === index ? e.target.value : c))
-                                );
-                              }}
-                              className="sr-only"
-                            />
-                          </label>
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setEditableColors((prev) => prev.filter((_, i) => i !== index))
-                            }
-                            className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-xs"
-                          >
-                            <X className="w-3 h-3" />
-                          </button>
-                        </div>
-                      ))}
-                      <button
-                        type="button"
-                        onClick={() => setEditableColors((prev) => [...prev, "#808080"])}
-                        className="w-12 h-12 rounded-lg border-2 border-dashed border-border hover:border-primary/50 flex items-center justify-center transition-colors"
-                      >
-                        <Plus className="w-4 h-4 text-muted-foreground" />
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                {/* Missing Products - Shoppable Suggestions */}
-                {analysisResult.missingProducts && analysisResult.missingProducts.length > 0 && (
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-2">
-                      <ShoppingBag className="w-5 h-5 text-primary" />
-                      <h3 className="font-semibold">Complete Your Room</h3>
-                    </div>
-                    <p className="text-sm text-muted-foreground">
-                      Based on your products, here are items that would complete your space:
-                    </p>
-                    <div className="grid gap-3">
-                      {analysisResult.missingProducts.map((product, index) => (
-                        <div
-                          key={index}
-                          className="p-4 rounded-xl bg-secondary/50 border border-border hover:border-primary/30 transition-colors"
-                        >
-                          <div className="flex items-start justify-between gap-4">
-                            <div className="flex-1">
-                              <div className="flex items-center gap-2 mb-1 flex-wrap">
-                                <h4 className="font-medium">{product.productName}</h4>
-                                <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary">
-                                  {product.category}
-                                </span>
-                                <span className={`text-xs px-2 py-0.5 rounded-full ${
-                                  product.priority === "essential" 
-                                    ? "bg-destructive/10 text-destructive" 
-                                    : product.priority === "recommended"
-                                    ? "bg-accent/10 text-accent-foreground"
-                                    : "bg-muted text-muted-foreground"
-                                }`}>
-                                  {product.priority}
-                                </span>
-                              </div>
-                              <p className="text-sm text-muted-foreground mb-2">
-                                {product.reason}
-                              </p>
-                              <div className="flex items-center gap-2 flex-wrap">
-                                <span className="text-xs text-muted-foreground">Search:</span>
-                                {product.searchKeywords.slice(0, 3).map((keyword, ki) => (
-                                  <a
-                                    key={ki}
-                                    href={`https://www.google.com/search?tbm=shop&q=${encodeURIComponent(keyword)}`}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
-                                  >
-                                    {keyword}
-                                    <ExternalLink className="w-3 h-3" />
-                                  </a>
-                                ))}
-                              </div>
-                            </div>
-                            <span className="text-xs text-muted-foreground whitespace-nowrap">
-                              {product.priceRange}
-                            </span>
+                      <h3 className="font-semibold mb-3">Dominant Colors</h3>
+                      <div className="flex flex-wrap gap-3 items-center">
+                        {editableColors.map((color, index) => (
+                          <div key={index} className="relative group">
+                            <label className="block cursor-pointer">
+                              <div
+                                className="w-12 h-12 rounded-lg border-2 border-border hover:border-primary/50 transition-colors"
+                                style={{ backgroundColor: color }}
+                                title={color}
+                              />
+                              <input
+                                type="color"
+                                value={color}
+                                onChange={(e) => {
+                                  setEditableColors((prev) =>
+                                    prev.map((c, i) => (i === index ? e.target.value : c))
+                                  );
+                                }}
+                                className="sr-only"
+                              />
+                            </label>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setEditableColors((prev) => prev.filter((_, i) => i !== index))
+                              }
+                              className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-xs"
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
                           </div>
-                        </div>
-                      ))}
+                        ))}
+                        <button
+                          type="button"
+                          onClick={() => setEditableColors((prev) => [...prev, "#808080"])}
+                          className="w-12 h-12 rounded-lg border-2 border-dashed border-border hover:border-primary/50 flex items-center justify-center transition-colors"
+                        >
+                          <Plus className="w-4 h-4 text-muted-foreground" />
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                )}
+                  )}
 
-              </CardContent>
-            </Card>
+                  {/* Missing Products */}
+                  {analysisResult.missingProducts && analysisResult.missingProducts.length > 0 && (
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2">
+                        <ShoppingBag className="w-5 h-5 text-primary" />
+                        <h3 className="font-semibold">Complete Your Room</h3>
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        Items that would complete your space:
+                      </p>
+                      <div className="grid gap-2">
+                        {analysisResult.missingProducts.map((product, index) => (
+                          <div
+                            key={index}
+                            className="p-3 rounded-xl bg-secondary/50 border border-border hover:border-primary/30 transition-colors"
+                          >
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 mb-1 flex-wrap">
+                                  <h4 className="font-medium text-sm">{product.productName}</h4>
+                                  <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary">
+                                    {product.category}
+                                  </span>
+                                  <span className={`text-xs px-2 py-0.5 rounded-full ${
+                                    product.priority === "essential" 
+                                      ? "bg-destructive/10 text-destructive" 
+                                      : product.priority === "recommended"
+                                      ? "bg-accent/10 text-accent-foreground"
+                                      : "bg-muted text-muted-foreground"
+                                  }`}>
+                                    {product.priority}
+                                  </span>
+                                </div>
+                                <p className="text-xs text-muted-foreground mb-1.5">{product.reason}</p>
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                  {product.searchKeywords.slice(0, 3).map((keyword, ki) => (
+                                    <a
+                                      key={ki}
+                                      href={`https://www.google.com/search?tbm=shop&q=${encodeURIComponent(keyword)}`}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+                                    >
+                                      {keyword}
+                                      <ExternalLink className="w-3 h-3" />
+                                    </a>
+                                  ))}
+                                </div>
+                              </div>
+                              <span className="text-xs text-muted-foreground whitespace-nowrap">
+                                {product.priceRange}
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
           )}
         </div>
       </main>
