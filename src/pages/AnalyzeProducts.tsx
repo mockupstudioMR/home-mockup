@@ -67,7 +67,7 @@ const ROOM_ICONS: Record<string, React.ReactNode> = {
 const AnalyzeProducts = () => {
   const navigate = useNavigate();
   const { user, loading, role } = useAuth();
-  const { updateQuizData } = useQuiz();
+  const { quizData, updateQuizData } = useQuiz();
   const { toast } = useToast();
 
   // Upload state
@@ -276,14 +276,21 @@ const AnalyzeProducts = () => {
     };
     const styleTitle = STYLE_LABELS[styleId] || styleId;
 
-    updateQuizData({
+    const updatedQuizData = {
+      ...quizData,
       stylePreference: styleId,
       colorPalette: "neutral",
       roomType: selectedRoom,
-    });
+      budgetFeel: quizData.budgetFeel || "mid-range",
+      mustHaveElements: quizData.mustHaveElements || [],
+      furnitureSource: quizData.furnitureSource || "open",
+    };
+
+    updateQuizData(updatedQuizData);
 
     navigate("/generate", {
       state: {
+        quizData: updatedQuizData,
         selectedStyle: { id: styleId, title: styleTitle, description: chosen.description || "" },
         analysisResult: analysisResult.styles
           ? { styles: analysisResult.styles, dominantColors: editableColors, moodboardDescription: analysisResult.moodboardSuggestion }
