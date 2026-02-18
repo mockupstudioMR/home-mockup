@@ -42,7 +42,15 @@ const DEFAULT_PRODUCTS_PROMPT = `Analyze these product/furniture images. For eac
 3. Best matching interior style
 4. Brief description
 
-Then recommend an overall interior style that would best incorporate all these products.
+Then perform a STYLE ANALYSIS exactly like analyzing a room. Identify all dominant interior design styles present across these products. For each detected style, provide:
+1. Style name (e.g., "Modern & Minimal", "Bohemian Eclectic", "Mediterranean", "Classic Historical", "Rustic Nature", "Glam & Luxe")
+2. Confidence score (0-1)
+3. Brief description of why this style matches
+4. 3-5 keywords that define this style
+
+Also identify:
+- Dominant colors from the products (as hex codes)
+- Overall moodboard description
 
 IMPORTANT: Also identify what essential products are MISSING to complete a cohesive room design. Consider what complementary items would enhance the space based on the uploaded products. For each missing product, suggest:
 - Product type and name
@@ -60,6 +68,15 @@ Respond in this exact JSON format:
       "description": "string"
     }
   ],
+  "styles": [
+    {
+      "styleName": "string",
+      "confidence": number,
+      "description": "string",
+      "keywords": ["string"]
+    }
+  ],
+  "dominantColors": ["#hex"],
   "missingProducts": [
     {
       "productName": "string",
