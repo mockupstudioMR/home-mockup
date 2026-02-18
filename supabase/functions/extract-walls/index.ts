@@ -325,8 +325,110 @@ IMPORTANT: This must look like the SAME ROOM, maintaining identical style, light
       });
     }
 
+    // Step 3: Generate ceiling view
+    console.log("Generating ceiling view...");
+    const ceilingPrompt = `Look at this interior design image. Generate a NEW VIEW of the same ${roomType || "room"} showing ONLY the CEILING, as seen from directly below looking straight up.
+
+CAMERA POSITION: Place the camera at the CENTER of the room, at floor level, pointing STRAIGHT UP at the ceiling. This is a perfectly vertical, bottom-to-top, ORTHOGRAPHIC-STYLE view — no angle, no tilt. The ceiling should FILL THE ENTIRE FRAME.
+
+Show:
+- The full ceiling surface
+- Any light fixtures, chandeliers, recessed lights, ceiling fans
+- Ceiling moldings, beams, coffers, or decorative elements
+- Paint color and texture of the ceiling
+- Where the ceiling meets the walls at the edges of the frame
+
+IMPORTANT: This must look like the SAME ROOM, maintaining identical style, lighting, colors, materials from the original design. Only the camera position changes — you are now looking straight up at the ceiling.`;
+
+    let ceilingImageUrl: string | undefined;
+    const CEILING_MAX_ATTEMPTS = 2;
+
+    for (let attempt = 1; attempt <= CEILING_MAX_ATTEMPTS; attempt++) {
+      try {
+        console.log(`Generating ceiling image (attempt ${attempt}/${CEILING_MAX_ATTEMPTS})`);
+        const ceilingResponse = await fetch(
+          "https://ai.gateway.lovable.dev/v1/chat/completions",
+          {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${LOVABLE_API_KEY}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              model: "google/gemini-2.5-flash-image",
+              messages: [
+                {
+                  role: "user",
+                  content: [
+                    { type: "text", text: ceilingPrompt },
+                    { type: "image_url", image_url: { url: designImageUrl } },
+                  ],
+                },
+              ],
+              modalities: ["image", "text"],
+            }),
+          }
+        );
+
+        if (!ceilingResponse.ok) {
+          console.error(`Ceiling generation failed: ${ceilingResponse.status}`);
+          if (attempt < CEILING_MAX_ATTEMPTS) continue;
+          break;
+        }
+
+        const ceilingData = await ceilingResponse.json();
+        const base64Ceiling = ceilingData.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+
+        if (!base64Ceiling) {
+          console.error("No ceiling image in response");
+          if (attempt < CEILING_MAX_ATTEMPTS) continue;
+          break;
+        }
+
+        const base64Clean = base64Ceiling.replace(/^data:image\/\w+;base64,/, "");
+        const byteString = atob(base64Clean);
+        const ab = new ArrayBuffer(byteString.length);
+        const ia = new Uint8Array(ab);
+        for (let j = 0; j < byteString.length; j++) {
+          ia[j] = byteString.charCodeAt(j);
+        }
+        const blob = new Blob([ab], { type: "image/png" });
+
+        const ceilingId = crypto.randomUUID();
+        const fileName = `${designId}/ceiling-${ceilingId}.png`;
+        const { error: uploadError } = await supabase.storage
+          .from("design-images")
+          .upload(fileName, blob, { contentType: "image/png", upsert: true });
+
+        if (uploadError) {
+          console.error("Ceiling upload error:", uploadError);
+          break;
+        }
+
+        const { data: urlData } = supabase.storage
+          .from("design-images")
+          .getPublicUrl(fileName);
+
+        ceilingImageUrl = urlData.publicUrl;
+        console.log("Generated ceiling image successfully");
+        break;
+      } catch (err) {
+        console.error(`Ceiling generation error (attempt ${attempt}):`, err);
+        if (attempt >= CEILING_MAX_ATTEMPTS) break;
+      }
+    }
+
+    // Add ceiling as the 5th element
+    wallResults.push({
+      id: crypto.randomUUID(),
+      wall_type: "ceiling",
+      label: "Ceiling",
+      description: "Top-down view of the ceiling showing light fixtures, moldings, and decorative elements",
+      imageUrl: ceilingImageUrl,
+    });
+
     console.log(
-      `Completed: ${wallResults.filter((w) => w.imageUrl).length}/${walls.length} wall images generated`
+      `Completed: ${wallResults.filter((w) => w.imageUrl).length}/${wallResults.length} wall/ceiling images generated`
     );
 
     return new Response(
