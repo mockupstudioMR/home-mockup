@@ -2,7 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Sparkles, Palette, Home, Upload, Package, LogOut, User, ArrowRight } from "lucide-react";
+import { Sparkles, Palette, Home, Upload, Package, LogOut, User, ArrowRight, Store, PenTool, Building2, Code2 } from "lucide-react";
 import Logo from "@/components/Logo";
 
 const Index = () => {
@@ -154,7 +154,69 @@ const Index = () => {
           ))}
         </div>
       </main>
-      {/* Footer */}
+
+      {/* B2B Solutions */}
+      <section className="relative z-10 px-4 py-16 md:py-24 bg-secondary/10">
+        <div className="max-w-5xl mx-auto">
+          <div className="text-center space-y-3 mb-12">
+            <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-foreground">
+              B2B Solutions
+            </h2>
+            <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
+              Grow your business with AI-powered interior design tools built for professionals
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {[
+              {
+                icon: <Store className="w-6 h-6" />,
+                title: "Furniture Shops",
+                description: "Showcase products to matched users, manage inventory, and send targeted offers",
+              },
+              {
+                icon: <PenTool className="w-6 h-6" />,
+                title: "Interior Designers",
+                description: "Reach clients with personalized design proposals through a credit-based lead system",
+              },
+              {
+                icon: <Building2 className="w-6 h-6" />,
+                title: "Real Estate & Staging",
+                description: "Virtual staging, property visualization, and bulk room redesigns at scale",
+              },
+              {
+                icon: <Code2 className="w-6 h-6" />,
+                title: "API & White-label",
+                description: "Embed HomeMockUp's AI design engine directly into your own platform",
+              },
+            ].map((item, index) => (
+              <Card
+                key={index}
+                className="border-border/50 bg-card/80 backdrop-blur-sm hover:bg-card hover:shadow-lg transition-all duration-300"
+              >
+                <CardContent className="p-6 text-center">
+                  <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mx-auto mb-4 text-primary">
+                    {item.icon}
+                  </div>
+                  <h3 className="font-semibold mb-2 text-foreground">{item.title}</h3>
+                  <p className="text-sm text-muted-foreground">{item.description}</p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
+          <div className="text-center mt-10">
+            <Button
+              size="lg"
+              onClick={() => navigate("/auth")}
+              className="text-lg px-8 bg-primary hover:bg-primary/90"
+            >
+              Sign Up as Business
+              <ArrowRight className="w-5 h-5 ml-2" />
+            </Button>
+          </div>
+        </div>
+      </section>
       <footer className="relative z-10 text-center py-8 text-sm text-muted-foreground">
         <p>Powered by AI • Create beautiful spaces effortlessly</p>
       </footer>
