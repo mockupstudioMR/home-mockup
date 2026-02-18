@@ -238,7 +238,7 @@ const Gallery = () => {
             >
               <Home className="w-4 h-4" />
             </button>
-            <h1 className="text-2xl font-bold">My Gallery</h1>
+            <h1 className="text-2xl font-bold">My HomeMockUps</h1>
           </div>
           <Button onClick={() => navigate("/quiz")}>
             <Plus className="w-4 h-4 mr-2" />

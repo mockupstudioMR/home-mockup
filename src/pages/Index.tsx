@@ -68,7 +68,7 @@ const Index = () => {
             <>
               <Button variant="ghost" size="sm" onClick={() => navigate("/gallery")}>
                 <User className="w-4 h-4 mr-2" />
-                My Gallery
+                My HomeMockUps
               </Button>
               <Button variant="ghost" size="sm" onClick={handleSignOut}>
                 <LogOut className="w-4 h-4 mr-2" />
@@ -112,7 +112,7 @@ const Index = () => {
                 onClick={() => navigate("/gallery")}
                 className="text-lg px-8 border-secondary bg-secondary/20 hover:bg-secondary/40"
               >
-                View My Designs
+                View My HomeMockUps
               </Button>
             )}
           </div>
