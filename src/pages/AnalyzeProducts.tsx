@@ -85,6 +85,11 @@ const AnalyzeProducts = () => {
   const [roomConfigs, setRoomConfigs] = useState<RoomConfig[]>([]);
   const [selectedRoom, setSelectedRoom] = useState<string>("");
 
+  // Scene preview state
+  const [scenePreviews, setScenePreviews] = useState<Array<{ styleId: string; imageUrl: string | null; description?: string; error?: string }>>([]);
+  const [generatingPreviews, setGeneratingPreviews] = useState(false);
+  const [selectedScene, setSelectedScene] = useState<number | null>(null);
+
   // Fetch room configs on mount
   useEffect(() => {
     const fetchRooms = async () => {
@@ -210,16 +215,66 @@ const AnalyzeProducts = () => {
     autoAnalyze(uploadedImages);
   };
 
-  // ── Continue to generate ─────────────────────────────
-  const handleContinue = () => {
+  // ── Generate scene previews ──────────────────────────
+  const generateScenePreviews = async () => {
     if (!analysisResult || !selectedRoom) return;
 
-    const topStyle = analysisResult.styles?.[0];
-    const styleId = topStyle
-      ? topStyle.styleName.toLowerCase().replace(/\s+/g, "-")
-      : analysisResult.recommendedStyle.toLowerCase().replace(/\s+/g, "-");
-    const styleTitle = topStyle ? topStyle.styleName : analysisResult.recommendedStyle;
-    const styleDesc = topStyle ? topStyle.description : analysisResult.styleDescription;
+    setGeneratingPreviews(true);
+    setScenePreviews([]);
+    setSelectedScene(null);
+
+    // Pick top 3 styles from analysis, fallback to defaults
+    const ALL_STYLES = ["modern-minimal", "bohemian-eclectic", "glam-luxe", "rustic-nature", "mediterranean", "classic-historical"];
+    const detectedStyles = (analysisResult.styles || [])
+      .map((s) => s.styleName.toLowerCase().replace(/[\s&]+/g, "-"))
+      .filter((id) => ALL_STYLES.includes(id));
+
+    // Fill up to 3 with styles not already in the list
+    const stylesToGenerate = [...new Set(detectedStyles)].slice(0, 3);
+    for (const s of ALL_STYLES) {
+      if (stylesToGenerate.length >= 3) break;
+      if (!stylesToGenerate.includes(s)) stylesToGenerate.push(s);
+    }
+
+    const productDescs = analysisResult.products.map((p) => `${p.productName} (${p.category})`);
+
+    try {
+      const { data, error } = await supabase.functions.invoke("generate-scene-previews", {
+        body: {
+          roomType: selectedRoom,
+          productImages: uploadedImages,
+          productDescriptions: productDescs,
+          styles: stylesToGenerate.slice(0, 3),
+        },
+      });
+
+      if (error) throw error;
+      setScenePreviews(data.scenes || []);
+    } catch (error) {
+      console.error("Scene preview error:", error);
+      toast({ title: "Preview generation failed", description: "Please try again", variant: "destructive" });
+    } finally {
+      setGeneratingPreviews(false);
+    }
+  };
+
+  // ── Continue to generate ─────────────────────────────
+  const handleContinue = () => {
+    if (!analysisResult || !selectedRoom || selectedScene === null) return;
+
+    const chosen = scenePreviews[selectedScene];
+    if (!chosen || !chosen.imageUrl) return;
+
+    const styleId = chosen.styleId;
+    const STYLE_LABELS: Record<string, string> = {
+      "modern-minimal": "Modern & Minimal",
+      "bohemian-eclectic": "Bohemian Eclectic",
+      "glam-luxe": "Glam & Luxe",
+      "rustic-nature": "Rustic Nature",
+      "mediterranean": "Mediterranean",
+      "classic-historical": "Classic Historical",
+    };
+    const styleTitle = STYLE_LABELS[styleId] || styleId;
 
     updateQuizData({
       stylePreference: styleId,
@@ -229,7 +284,7 @@ const AnalyzeProducts = () => {
 
     navigate("/generate", {
       state: {
-        selectedStyle: { id: styleId, title: styleTitle, description: styleDesc },
+        selectedStyle: { id: styleId, title: styleTitle, description: chosen.description || "" },
         analysisResult: analysisResult.styles
           ? { styles: analysisResult.styles, dominantColors: editableColors, moodboardDescription: analysisResult.moodboardSuggestion }
           : undefined,
@@ -505,6 +560,94 @@ const AnalyzeProducts = () => {
                 );
               })()}
 
+              {/* ── STEP 3: Scene Previews ──────────────────── */}
+              {selectedRoom && !scenePreviews.length && !generatingPreviews && (
+                <div className="text-center">
+                  <Button size="lg" onClick={generateScenePreviews} className="px-8">
+                    <Sparkles className="w-5 h-5 mr-2" />
+                    Show me 3 design setups
+                  </Button>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    We'll generate 3 different styles featuring your exact products
+                  </p>
+                </div>
+              )}
+
+              {generatingPreviews && (
+                <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
+                  <CardContent className="p-8">
+                    <div className="flex flex-col items-center justify-center gap-4 py-8">
+                      <div className="relative">
+                        <Loader2 className="w-10 h-10 animate-spin text-primary" />
+                        <Sparkles className="w-4 h-4 text-primary absolute -top-1 -right-1 animate-pulse" />
+                      </div>
+                      <div className="text-center space-y-1">
+                        <p className="font-semibold text-lg">Creating 3 scene previews…</p>
+                        <p className="text-sm text-muted-foreground">
+                          Each one features your exact products in a different style
+                        </p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {scenePreviews.length > 0 && (
+                <div className="space-y-4">
+                  <div className="text-center space-y-2">
+                    <h2 className="text-2xl font-bold">Pick your favorite setup</h2>
+                    <p className="text-muted-foreground">
+                      3 designs featuring your exact products — select one to refine
+                    </p>
+                  </div>
+                  <div className="grid gap-4">
+                    {scenePreviews.map((scene, index) => {
+                      const STYLE_LABELS: Record<string, string> = {
+                        "modern-minimal": "Modern & Minimal",
+                        "bohemian-eclectic": "Bohemian Eclectic",
+                        "glam-luxe": "Glam & Luxe",
+                        "rustic-nature": "Rustic Nature",
+                        "mediterranean": "Mediterranean",
+                        "classic-historical": "Classic Historical",
+                      };
+                      const label = STYLE_LABELS[scene.styleId] || scene.styleId;
+
+                      if (!scene.imageUrl) return null;
+
+                      return (
+                        <button
+                          key={index}
+                          onClick={() => setSelectedScene(index)}
+                          className={`relative rounded-2xl overflow-hidden border-2 transition-all text-left ${
+                            selectedScene === index
+                              ? "border-primary ring-2 ring-primary/30 scale-[1.01]"
+                              : "border-border/50 hover:border-primary/40"
+                          }`}
+                        >
+                          <div className="aspect-video">
+                            <img
+                              src={scene.imageUrl}
+                              alt={`${label} setup`}
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                          <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-4">
+                            <div className="flex items-center justify-between">
+                              <span className="text-white font-bold text-lg">{label}</span>
+                              {selectedScene === index && (
+                                <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center">
+                                  <Check className="w-5 h-5 text-primary-foreground" />
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
               {/* Missing products */}
               {analysisResult.missingProducts && analysisResult.missingProducts.length > 0 && (
                 <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
@@ -549,15 +692,13 @@ const AnalyzeProducts = () => {
         </div>
       </main>
 
-      {/* Sticky bottom CTA */}
-      {analysisResult && (
+      {/* Sticky bottom CTA - only show when a scene is selected */}
+      {analysisResult && scenePreviews.length > 0 && selectedScene !== null && (
         <div className="fixed bottom-0 left-0 right-0 z-20 bg-background/80 backdrop-blur-md border-t border-border p-4">
           <div className="max-w-3xl mx-auto">
-            <Button size="lg" className="w-full" onClick={handleContinue} disabled={!selectedRoom}>
+            <Button size="lg" className="w-full" onClick={handleContinue}>
               <Sparkles className="w-5 h-5 mr-2" />
-              {selectedRoom
-                ? `Generate ${roomConfigs.find((r) => r.room_type === selectedRoom)?.room_label || "Room"} Scenes`
-                : "Select a room type to continue"}
+              Continue with this design
             </Button>
           </div>
         </div>
