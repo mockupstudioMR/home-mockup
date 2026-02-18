@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ExternalLink, MapPin, Store, Search, Image, Clipboard } from "lucide-react";
@@ -61,7 +62,7 @@ const isWallItem = (itemType: string): boolean => {
 
 const DesignItemCard = ({ item, designImageUrl, onOrderCustomMade }: DesignItemCardProps) => {
   const [imageError, setImageError] = useState(false);
-  
+  const [showPreview, setShowPreview] = useState(false);
   const hasMatchedProduct = !!item.matchedProduct;
   const matchedImage = item.matchedProduct?.image_urls?.[0];
   const displayName = hasMatchedProduct ? item.matchedProduct!.name : item.item_name;
@@ -108,7 +109,11 @@ const DesignItemCard = ({ item, designImageUrl, onOrderCustomMade }: DesignItemC
   return (
     <div className="flex items-start gap-3 p-3 rounded-lg bg-background/80 border border-border/50 hover:border-primary/30 transition-colors">
       {/* Item thumbnail - prefer matched product image */}
-      <div className="flex-shrink-0 w-16 h-16 rounded-md overflow-hidden bg-muted border border-border/50 relative group/thumb cursor-pointer">
+      <div
+        className="flex-shrink-0 w-16 h-16 rounded-md overflow-hidden bg-muted border border-border/50 relative cursor-pointer"
+        onMouseEnter={() => setShowPreview(true)}
+        onMouseLeave={() => setShowPreview(false)}
+      >
         {isFloorItem ? (
           <div className="w-full h-full relative overflow-hidden bg-muted/50">
             <div
@@ -170,40 +175,41 @@ const DesignItemCard = ({ item, designImageUrl, onOrderCustomMade }: DesignItemC
             onError={() => setImageError(true)}
           />
         )}
-        
-        {/* Expanded preview on hover */}
-        {(item.product_photo_url || matchedImage || hasBoundingBox || !showColorSwatch) && (
-          <div className="fixed left-1/2 top-4 -translate-x-1/2 w-80 h-80 md:w-96 md:h-96 rounded-xl overflow-hidden bg-background border-2 border-primary/30 shadow-2xl z-[100] opacity-0 scale-90 pointer-events-none group-hover/thumb:opacity-100 group-hover/thumb:scale-100 group-hover/thumb:pointer-events-auto transition-all duration-300">
-            {item.product_photo_url && !imageError ? (
-              <img 
-                src={item.product_photo_url} 
-                alt={displayName}
-                className="w-full h-full object-contain bg-white p-4"
-              />
-            ) : matchedImage && !imageError ? (
-              <img 
-                src={matchedImage} 
-                alt={displayName}
-                className="w-full h-full object-cover"
-              />
-            ) : hasBoundingBox ? (
-              <div 
-                className="w-full h-full"
-                style={getCropBackgroundStyles()}
-              />
-            ) : (
-              <img 
-                src={bingThumbnailUrl} 
-                alt={item.item_name}
-                className="w-full h-full object-cover"
-              />
-            )}
-            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-3">
-              <p className="text-white text-sm font-medium truncate">{displayName}</p>
-            </div>
-          </div>
-        )}
       </div>
+
+      {/* Expanded preview via portal */}
+      {showPreview && (item.product_photo_url || matchedImage || hasBoundingBox || !showColorSwatch) && createPortal(
+        <div className="fixed left-1/2 top-4 -translate-x-1/2 w-80 h-80 md:w-96 md:h-96 rounded-xl overflow-hidden bg-background border-2 border-primary/30 shadow-2xl z-[100] animate-fade-in pointer-events-none">
+          {item.product_photo_url && !imageError ? (
+            <img 
+              src={item.product_photo_url} 
+              alt={displayName}
+              className="w-full h-full object-contain bg-white p-4"
+            />
+          ) : matchedImage && !imageError ? (
+            <img 
+              src={matchedImage} 
+              alt={displayName}
+              className="w-full h-full object-cover"
+            />
+          ) : hasBoundingBox ? (
+            <div 
+              className="w-full h-full"
+              style={getCropBackgroundStyles()}
+            />
+          ) : (
+            <img 
+              src={bingThumbnailUrl} 
+              alt={item.item_name}
+              className="w-full h-full object-cover"
+            />
+          )}
+          <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-3">
+            <p className="text-white text-sm font-medium truncate">{displayName}</p>
+          </div>
+        </div>,
+        document.body
+      )}
 
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 flex-wrap">
