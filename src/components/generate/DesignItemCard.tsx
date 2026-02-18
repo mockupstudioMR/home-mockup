@@ -81,6 +81,7 @@ const DesignItemCard = ({ item, designImageUrl, onOrderCustomMade }: DesignItemC
   // For wall items with hex color, show a color swatch
   const hexColor = item.hex_code || (isHexColor(item.color || "") ? item.color : null);
   const showColorSwatch = isWallItem(item.item_type) && hexColor;
+  const isFloorItem = item.item_type === "floor_material";
 
   // Calculate background styles to show the entire bounding box region
   const getCropBackgroundStyles = (): React.CSSProperties => {
@@ -108,7 +109,32 @@ const DesignItemCard = ({ item, designImageUrl, onOrderCustomMade }: DesignItemC
     <div className="flex items-start gap-3 p-3 rounded-lg bg-background/80 border border-border/50 hover:border-primary/30 transition-colors">
       {/* Item thumbnail - prefer matched product image */}
       <div className="flex-shrink-0 w-16 h-16 rounded-md overflow-hidden bg-muted border border-border/50 relative group/thumb cursor-pointer">
-        {showColorSwatch ? (
+        {isFloorItem ? (
+          <div className="w-full h-full relative overflow-hidden bg-muted/50">
+            <div
+              className="absolute inset-0"
+              style={{
+                background: hexColor
+                  ? `linear-gradient(180deg, hsl(var(--muted)) 0%, ${hexColor} 35%, ${hexColor} 100%)`
+                  : `linear-gradient(180deg, hsl(var(--muted)) 0%, hsl(var(--accent)) 100%)`,
+                clipPath: "polygon(10% 0%, 90% 0%, 100% 100%, 0% 100%)",
+              }}
+            />
+            <div
+              className="absolute inset-0 opacity-15"
+              style={{
+                backgroundImage: `repeating-linear-gradient(90deg, transparent, transparent 12px, rgba(0,0,0,0.1) 12px, rgba(0,0,0,0.1) 13px),
+                  repeating-linear-gradient(0deg, transparent, transparent 24px, rgba(0,0,0,0.08) 24px, rgba(0,0,0,0.08) 25px)`,
+                clipPath: "polygon(10% 0%, 90% 0%, 100% 100%, 0% 100%)",
+              }}
+            />
+            {hexColor && (
+              <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 text-[8px] font-mono text-white drop-shadow-md bg-black/30 px-1 rounded">
+                {hexColor.toUpperCase()}
+              </span>
+            )}
+          </div>
+        ) : showColorSwatch ? (
           <div 
             className="w-full h-full flex items-center justify-center"
             style={{ backgroundColor: hexColor }}
