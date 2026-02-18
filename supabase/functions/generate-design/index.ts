@@ -306,32 +306,22 @@ serve(async (req) => {
     // Prepare messages for image generation
     const contentParts: any[] = [{ type: "text", text: prompt }];
     
-    // Add existing room images first (highest priority reference)
-    if (enrichedRequestData.existingRoomImages && enrichedRequestData.existingRoomImages.length > 0) {
-      for (const imgUrl of enrichedRequestData.existingRoomImages.slice(0, 4)) {
-        contentParts.push({ type: "image_url", image_url: { url: imgUrl } });
-      }
-      addDebug("Existing room images", `Added ${Math.min(enrichedRequestData.existingRoomImages.length, 4)} existing room photos to request`);
-    }
-
-    if (enrichedRequestData.sourceImageUrl) {
-      contentParts.push({ type: "image_url", image_url: { url: enrichedRequestData.sourceImageUrl } });
-      addDebug("Source image", "Added source image to request");
-    }
+    // For scene previews: send product images FIRST so the AI sees the exact products,
+    // then the scene image as layout reference
+    const isScenePreviewMode = enrichedRequestData.isScenePreview && enrichedRequestData.existingRoomImages?.length;
     
-    // Validate and limit product images to avoid 400 errors
+    // Validate and collect product images
     const maxProductImages = 4;
+    let validProductImageUrls: string[] = [];
     if (enrichedRequestData.productImageUrls && enrichedRequestData.productImageUrls.length > 0) {
-      const candidateUrls = enrichedRequestData.productImageUrls.slice(0, maxProductImages + 2); // check extras in case some fail
-      const validImageUrls: string[] = [];
+      const candidateUrls = enrichedRequestData.productImageUrls.slice(0, maxProductImages + 2);
       
-      // Validate each image URL with a HEAD request
       for (const imageUrl of candidateUrls) {
-        if (validImageUrls.length >= maxProductImages) break;
+        if (validProductImageUrls.length >= maxProductImages) break;
         try {
           const headResp = await fetch(imageUrl, { method: "HEAD", redirect: "follow" });
           if (headResp.ok) {
-            validImageUrls.push(imageUrl);
+            validProductImageUrls.push(imageUrl);
           } else {
             addDebug("Image validation", `Skipping broken image (HTTP ${headResp.status}): ${imageUrl.slice(0, 100)}`);
           }
@@ -339,11 +329,40 @@ serve(async (req) => {
           addDebug("Image validation", `Skipping unreachable image: ${imageUrl.slice(0, 100)}`);
         }
       }
-      
-      for (const imageUrl of validImageUrls) {
+    }
+
+    if (isScenePreviewMode) {
+      // Scene preview mode: product images first, then scene layout image
+      for (const imageUrl of validProductImageUrls) {
         contentParts.push({ type: "image_url", image_url: { url: imageUrl } });
       }
-      addDebug("Product images", `Added ${validImageUrls.length}/${enrichedRequestData.productImageUrls.length} product images to request (max ${maxProductImages}, ${candidateUrls.length - validImageUrls.length} skipped)`);
+      if (validProductImageUrls.length > 0) {
+        addDebug("Product images (scene mode)", `Added ${validProductImageUrls.length} product reference images BEFORE scene layout`);
+      }
+      for (const imgUrl of enrichedRequestData.existingRoomImages!.slice(0, 4)) {
+        contentParts.push({ type: "image_url", image_url: { url: imgUrl } });
+      }
+      addDebug("Scene layout image", `Added scene reference after product images`);
+    } else {
+      // Normal mode: existing room images first, then products
+      if (enrichedRequestData.existingRoomImages && enrichedRequestData.existingRoomImages.length > 0) {
+        for (const imgUrl of enrichedRequestData.existingRoomImages.slice(0, 4)) {
+          contentParts.push({ type: "image_url", image_url: { url: imgUrl } });
+        }
+        addDebug("Existing room images", `Added ${Math.min(enrichedRequestData.existingRoomImages.length, 4)} existing room photos to request`);
+      }
+
+      if (enrichedRequestData.sourceImageUrl) {
+        contentParts.push({ type: "image_url", image_url: { url: enrichedRequestData.sourceImageUrl } });
+        addDebug("Source image", "Added source image to request");
+      }
+      
+      for (const imageUrl of validProductImageUrls) {
+        contentParts.push({ type: "image_url", image_url: { url: imageUrl } });
+      }
+      if (validProductImageUrls.length > 0) {
+        addDebug("Product images", `Added ${validProductImageUrls.length}/${enrichedRequestData.productImageUrls!.length} product images to request`);
+      }
     }
 
     const messages: any[] = [
@@ -639,10 +658,15 @@ function buildImagePrompt(
     return furnitureContext + fillTemplate(tpl);
   }
 
-  // Scene preview refinement - keep the exact same scene, only enhance quality
+  // Scene preview refinement - reproduce the exact scene with the exact same products
   if (data.isScenePreview && data.existingRoomImages && data.existingRoomImages.length > 0) {
+    // Build explicit product appearance descriptions from the uploaded product images
+    const productAppearanceInstructions = data.selectedProducts && data.selectedProducts.length > 0
+      ? `PRODUCT FIDELITY REQUIREMENT: The following products are shown in the attached reference product images. You MUST include each one in the final image with EXACTLY the same appearance — same shape, same color, same texture, same material, same proportions as shown in the product reference photos: ${data.selectedProducts.map(p => `"${p.name}" (${p.category}${p.description ? ` - ${p.description}` : ""})`).join("; ")}. These products must be clearly recognizable and identical to their reference photos. Do NOT substitute, alter, or reimagine any product.`
+      : productInstructions;
+
     const tpl = templates["scene_preview_refine"] ||
-      `STRICT SCENE PRESERVATION: You are given a reference image of a fully designed ${room}. You MUST recreate this EXACT scene with pixel-perfect fidelity — same furniture placement, same layout, same colors, same composition, same camera angle, same lighting direction. Do NOT move, remove, replace, or rearrange ANY furniture or decor. Keep every single item in its exact position, size, and orientation. Your ONLY job is to enhance the photorealism and resolution of this exact scene to ultra-high quality magazine photography. ${productInstructions} ${detectedColorsContext}${detectedKeywordsContext}The result must be indistinguishable from the reference image except for improved image quality and photorealism. Ultra high resolution, photorealistic interior design photography, professional lighting, magazine quality, 16:9 aspect ratio.`;
+      `STRICT SCENE PRESERVATION WITH EXACT PRODUCTS: You are given TWO types of reference images: (1) a fully designed ${room} scene showing the layout and composition, and (2) individual product photos showing the exact furniture/items that MUST appear in the scene. REPRODUCE this exact scene layout — same camera angle, same spatial arrangement, same lighting direction, same composition. ${productAppearanceInstructions} Every product from the reference product photos must appear in the final image looking IDENTICAL to its reference — same colors, same materials, same design details, same proportions. The products must be placed in the same positions as shown in the scene reference. ${detectedColorsContext}${detectedKeywordsContext}The result must match both the scene layout AND the exact product appearances from the reference images. Ultra high resolution, photorealistic interior design photography, professional lighting, magazine quality, 16:9 aspect ratio.`;
     return furnitureContext + tpl;
   }
 
