@@ -1,10 +1,12 @@
+import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Heart, Download, Send, RefreshCw, Upload, X, Loader2 } from "lucide-react";
+import { Heart, Download, Send, RefreshCw, Upload, X, Loader2, MousePointerClick } from "lucide-react";
 import { cn } from "@/lib/utils";
 import WallExtractionPanel from "./WallExtractionPanel";
 import type { ExtractedWall } from "./WallExtractionPanel";
+import ClickToIdentifyOverlay from "./ClickToIdentifyOverlay";
 
 interface DesignImageProps {
   imageUrl: string;
@@ -59,6 +61,8 @@ const DesignImage = ({
   roomType,
   mustHaveElements,
 }: DesignImageProps) => {
+  const [identifyMode, setIdentifyMode] = useState(false);
+
   return (
     <Card className="overflow-hidden border-border/50 bg-card/80 backdrop-blur-sm group">
       {/* Image */}
@@ -66,12 +70,38 @@ const DesignImage = ({
         <img
           src={imageUrl}
           alt={title}
-          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+          className={cn(
+            "w-full h-full object-cover transition-transform duration-500",
+            !identifyMode && "group-hover:scale-105"
+          )}
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+        {!identifyMode && (
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+        )}
+
+        {/* Click to identify overlay */}
+        <ClickToIdentifyOverlay imageUrl={imageUrl} enabled={identifyMode} />
         
         {/* Quick actions overlay */}
-        <div className="absolute bottom-3 right-3 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+        <div className={cn(
+          "absolute bottom-3 right-3 flex gap-2 transition-opacity z-20",
+          identifyMode ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+        )}>
+          <Button
+            variant="secondary"
+            size="icon"
+            className={cn(
+              "w-8 h-8 bg-background/80 backdrop-blur-sm",
+              identifyMode && "ring-2 ring-primary text-primary"
+            )}
+            onClick={(e) => {
+              e.stopPropagation();
+              setIdentifyMode(!identifyMode);
+            }}
+            title={identifyMode ? "Exit identify mode" : "Click to identify items"}
+          >
+            <MousePointerClick className="w-4 h-4" />
+          </Button>
           <Button
             variant="secondary"
             size="icon"
@@ -94,7 +124,7 @@ const DesignImage = ({
         </div>
 
         {/* Design number badge */}
-        <div className="absolute top-3 left-3 w-8 h-8 rounded-full bg-primary/90 flex items-center justify-center text-primary-foreground font-semibold text-sm">
+        <div className="absolute top-3 left-3 w-8 h-8 rounded-full bg-primary/90 flex items-center justify-center text-primary-foreground font-semibold text-sm z-20">
           {index + 1}
         </div>
       </div>
