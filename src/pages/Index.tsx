@@ -96,13 +96,26 @@ const Index = () => {
             <span className="text-primary">Design Beautifully.</span>
           </h1>
 
-          <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto">
-            Start wherever you feel inspired — a quick style quiz, a product you love, saved magazine images, or photos of your own room.
-            <br /><br />
-            Whether you're refreshing a corner, redesigning a single room, or reimagining your entire home, HomeMockup transforms your ideas into interactive spaces you can explore and refine in real time. Adjust layouts, test materials, experiment with colors, compare styles — move at your own pace and shape every detail until it feels right.
-            <br /><br />
-            Your creativity leads. Your pace decides. Technology simply keeps up.
-          </p>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center pt-4">
+            <Button
+              size="lg"
+              onClick={() => handleEntryClick("/start")}
+              className="text-lg px-8 bg-primary hover:bg-primary/90"
+            >
+              <Sparkles className="w-5 h-5 mr-2" />
+              Get Started
+            </Button>
+            {user && (
+              <Button
+                variant="outline"
+                size="lg"
+                onClick={() => navigate("/gallery")}
+                className="text-lg px-8 border-secondary bg-secondary/20 hover:bg-secondary/40"
+              >
+                View My Designs
+              </Button>
+            )}
+          </div>
         </div>
 
         {/* Starting Points */}
@@ -132,21 +145,7 @@ const Index = () => {
             </Card>
           ))}
         </div>
-
-        {user && (
-          <div className="mt-8">
-            <Button
-              variant="outline"
-              size="lg"
-              onClick={() => navigate("/gallery")}
-              className="text-lg px-8 border-secondary bg-secondary/20 hover:bg-secondary/40"
-            >
-              View My Designs
-            </Button>
-          </div>
-        )}
       </main>
-
       {/* Footer */}
       <footer className="relative z-10 text-center py-8 text-sm text-muted-foreground">
         <p>Powered by AI • Create beautiful spaces effortlessly</p>
