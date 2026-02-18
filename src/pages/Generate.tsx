@@ -642,12 +642,42 @@ const Generate = () => {
     setDebugPrompt("");
 
     try {
-      // If we have a scene preview image from the product flow, use it as the
-      // existing room base so the AI refines that exact scene instead of
-      // generating from scratch.
-      const existingRoomRef = scenePreviewImage
-        ? [scenePreviewImage]
-        : existingRoomImagesFromState;
+      // If we have a scene preview image from the product flow, use it directly
+      // as the final design — no re-generation needed.
+      if (scenePreviewImage) {
+        const storedImageUrl = await uploadDesignImage(scenePreviewImage, user.id);
+
+        const { data: savedDesign } = await supabase
+          .from("generated_designs")
+          .insert({
+            user_id: user.id,
+            image_url: storedImageUrl,
+            prompt: "Scene preview selected from product analysis",
+            source_image_url: quizData.sourceImageUrl,
+            quiz_response_id: quizResponseId,
+          })
+          .select()
+          .single();
+
+        const newDesign: GeneratedDesign = {
+          id: savedDesign?.id || `design-${Date.now()}`,
+          imageUrl: storedImageUrl,
+          title: "Your Personalized Design",
+          description: "Design based on your selected scene preview",
+          isFavorite: false,
+        };
+
+        setDesign(newDesign);
+        generateHighlights(storedImageUrl);
+
+        toast({
+          title: "Design ready!",
+          description: "Your selected scene is ready for refinement",
+        });
+        return;
+      }
+
+      const existingRoomRef = existingRoomImagesFromState;
 
       const response = await supabase.functions.invoke("generate-design", {
         body: {
@@ -656,7 +686,6 @@ const Generate = () => {
           selectedProducts: includeProducts ? productAnalysis?.products : undefined,
           productImageUrls: includeProducts ? sourceImages : undefined,
           existingRoomImages: existingRoomRef,
-          isScenePreview: !!scenePreviewImage,
           selectedInspirations,
           inspirationDetails,
           detectedColors: analysisResult?.dominantColors,
