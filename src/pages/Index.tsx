@@ -45,7 +45,7 @@ const Index = () => {
 
 
   return (
-    <div className="min-h-screen bg-accent">
+    <div className="min-h-screen bg-background">
       {/* Decorative background shapes - MockupStudio inspired */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-0 right-0 w-1/2 h-full bg-secondary/30 clip-diagonal" />
@@ -82,13 +82,13 @@ const Index = () => {
       {/* Hero */}
       <main className="relative z-10 flex flex-col items-center justify-center px-4 py-12 md:py-20">
         <div className="max-w-3xl mx-auto text-center space-y-6">
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-secondary-foreground text-sm font-medium bg-[#e5d5c3]">Where Your Style Leads & Technology Follows
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-secondary/40 text-secondary-foreground text-sm font-medium">Where Your Style Leads & Technology Follows
             <Sparkles className="w-4 h-4" />
             AI-Powered Interior Design
           </div>
 
-          <h1 className="text-4xl md:text-6xl font-bold tracking-tight text-foreground">Live Individually.
-Room in Seconds
+          <h1 className="text-4xl md:text-6xl font-bold tracking-tight text-foreground">
+            Design Your Dream
             <span className="block text-primary">Room in Seconds</span>
           </h1>
 
