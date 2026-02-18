@@ -132,6 +132,19 @@ const Generate = () => {
     } catch { return undefined; }
   })();
 
+  const inspirationDetails = (() => {
+    type Detail = { label: string; description: string; type: string };
+    const fromState = location.state?.inspirationDetails as Detail[] | undefined;
+    if (fromState) {
+      sessionStorage.setItem('generate_inspiration_details_cache', JSON.stringify(fromState));
+      return fromState;
+    }
+    try {
+      const cached = sessionStorage.getItem('generate_inspiration_details_cache');
+      return cached ? JSON.parse(cached) as Detail[] : undefined;
+    } catch { return undefined; }
+  })();
+
   const analysisResult = (() => {
     type AnalysisData = { styles?: Array<{ styleName: string; keywords: string[] }>; dominantColors?: string[]; moodboardDescription?: string };
     const fromState = location.state?.analysisResult as AnalysisData | undefined;
@@ -637,6 +650,7 @@ const Generate = () => {
           productImageUrls: includeProducts ? sourceImages : undefined,
           existingRoomImages: existingRoomImagesFromState,
           selectedInspirations,
+          inspirationDetails,
           detectedColors: analysisResult?.dominantColors,
           detectedKeywords: analysisResult?.styles
             ?.filter(s => s.styleName.toLowerCase().replace(/[&\s]+/g, '-').replace(/-+/g, '-') === quizData.stylePreference.replace(/_/g, '-'))
@@ -726,6 +740,7 @@ const Generate = () => {
             sourceImageUrl: overriddenQuiz.sourceImageUrl,
             existingRoomImages: existingRoomImagesFromState,
             selectedInspirations,
+            inspirationDetails,
             detectedColors: analysisResult?.dominantColors,
             detectedKeywords: analysisResult?.styles
               ?.filter(s => s.styleName.toLowerCase().replace(/[&\s]+/g, '-').replace(/-+/g, '-') === overriddenQuiz.stylePreference.replace(/_/g, '-'))

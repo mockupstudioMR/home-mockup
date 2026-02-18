@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Home, ArrowLeft, Upload, X, Loader2, Sparkles, Plus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import StyleInspirationCards from "@/components/analyze/StyleInspirationCards";
+import StyleInspirationCards, { type InspirationDetail } from "@/components/analyze/StyleInspirationCards";
 
 interface AnalyzedStyle {
   styleName: string;
@@ -49,6 +49,7 @@ const AnalyzeRoom = () => {
 const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(() => getInitialState().result);
   const [selectedStyleIndex, setSelectedStyleIndex] = useState<number | null>(null);
   const [selectedInspirations, setSelectedInspirations] = useState<string[]>([]);
+  const [inspirationDetailsMap, setInspirationDetailsMap] = useState<Record<string, { label: string; description: string; type: string }>>({});
   const [editableColors, setEditableColors] = useState<string[]>(() => getInitialState().result?.dominantColors || []);
 
   // Persist state to sessionStorage - URLs are small so they fit
@@ -186,6 +187,7 @@ const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(() =
           analysisResult: { ...analysisResult, dominantColors: editableColors },
           sourceImages: uploadedImages,
           selectedInspirations,
+          inspirationDetails: selectedInspirations.map(id => inspirationDetailsMap[id]).filter(Boolean),
         } 
       });
     }
@@ -369,6 +371,15 @@ const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(() =
                             setSelectedInspirations((prev) =>
                               prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
                             );
+                          }}
+                          onItemsReady={(details) => {
+                            setInspirationDetailsMap(prev => {
+                              const next = { ...prev };
+                              for (const d of details) {
+                                next[d.id] = { label: d.label, description: d.description, type: d.type };
+                              }
+                              return next;
+                            });
                           }}
                         />
                       </button>
