@@ -92,8 +92,11 @@ const Index = () => {
           </h1>
 
           <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto">
-            Take a quick style quiz, upload your room photos, and let AI create
-            stunning personalized room designs you can refine with simple text prompts.
+            Start wherever you feel inspired — a quick style quiz, a product you love, saved magazine images, or photos of your own room.
+            <br /><br />
+            Whether you're refreshing a corner, redesigning a single room, or reimagining your entire home, HomeMockup transforms your ideas into interactive spaces you can explore and refine in real time. Adjust layouts, test materials, experiment with colors, compare styles — move at your own pace and shape every detail until it feels right.
+            <br /><br />
+            Your creativity leads. Your pace decides. Technology simply keeps up.
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center pt-4">
