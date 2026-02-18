@@ -400,8 +400,9 @@ const Generate = () => {
     // Get the last quiz hash from sessionStorage
     const storedHash = sessionStorage.getItem('generate_quiz_hash');
     
-    // Check if this is a NEW quiz (different from stored one)
-    const isNewQuiz = storedHash !== null && storedHash !== fullHash;
+    // Check if this is a NEW quiz (different from stored one) or a scene preview flow
+    const hasScenePreview = !!location.state?.scenePreviewImage;
+    const isNewQuiz = (storedHash !== null && storedHash !== fullHash) || hasScenePreview;
     
     if (isNewQuiz) {
       // Clear all caches for fresh start
