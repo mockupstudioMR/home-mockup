@@ -389,19 +389,58 @@ const AnalyzeProducts = () => {
 
               {/* ── STEP 2: Matching Room Types ──────────────── */}
               {(() => {
-                // Match detected product names/categories against room furniture_items
-                const detectedNames = analysisResult.products.map((p) =>
-                  p.productName.toLowerCase()
-                );
-                const detectedCategories = analysisResult.products.map((p) =>
-                  p.category.toLowerCase()
-                );
-                const allDetectedTerms = [...detectedNames, ...detectedCategories];
+                // Synonym map: detected word → room config terms it should match
+                const SYNONYMS: Record<string, string[]> = {
+                  sectional: ["sofa"],
+                  couch: ["sofa"],
+                  loveseat: ["sofa"],
+                  recliner: ["sofa", "armchair"],
+                  reclining: ["sofa", "armchair"],
+                  ottoman: ["sofa", "armchair"],
+                  futon: ["sofa", "bed frame"],
+                  nightstand: ["nightstand", "side table"],
+                  "side table": ["nightstand", "side table"],
+                  stool: ["bar stools"],
+                  "bar stool": ["bar stools"],
+                  chandelier: ["pendant lights"],
+                  pendant: ["pendant lights"],
+                  lamp: ["floor lamp", "desk lamp", "bedside lamp", "table lamps"],
+                  table: ["coffee table", "dining table", "desk", "side table"],
+                  chair: ["armchair", "office chair", "dining chairs", "desk chair"],
+                  shelving: ["bookshelf", "storage shelves"],
+                  shelf: ["bookshelf", "storage shelves"],
+                  cabinet: ["storage cabinet", "filing cabinet", "wardrobe"],
+                  dresser: ["dresser", "wardrobe"],
+                  vanity: ["vanity", "dresser"],
+                };
+
+                // Tokenize product names into individual words + full names
+                const allTokens = new Set<string>();
+                analysisResult.products.forEach((p) => {
+                  const name = p.productName.toLowerCase();
+                  const cat = p.category.toLowerCase();
+                  allTokens.add(name);
+                  allTokens.add(cat);
+                  // Add individual words (skip short ones like "6", "pc", "a")
+                  name.split(/[\s,.\-/]+/).forEach((w) => {
+                    if (w.length > 2) allTokens.add(w);
+                  });
+                  cat.split(/[\s,.\-/]+/).forEach((w) => {
+                    if (w.length > 2) allTokens.add(w);
+                  });
+                });
+
+                // Expand tokens with synonyms
+                const expandedTokens = new Set(allTokens);
+                allTokens.forEach((token) => {
+                  const syns = SYNONYMS[token];
+                  if (syns) syns.forEach((s) => expandedTokens.add(s.toLowerCase()));
+                });
 
                 const matchingRooms = roomConfigs.filter((room) =>
                   room.furniture_items.some((item) => {
                     const itemLower = item.toLowerCase();
-                    return allDetectedTerms.some(
+                    return Array.from(expandedTokens).some(
                       (term) => term.includes(itemLower) || itemLower.includes(term)
                     );
                   })
@@ -428,11 +467,19 @@ const AnalyzeProducts = () => {
                         {roomsToShow.map((room) => {
                           // Show which detected products match this room
                           const matchedProducts = analysisResult.products.filter((p) => {
+                            const pTokens = new Set<string>();
                             const pName = p.productName.toLowerCase();
                             const pCat = p.category.toLowerCase();
+                            pTokens.add(pName);
+                            pTokens.add(pCat);
+                            pName.split(/[\s,.\-/]+/).forEach((w) => { if (w.length > 2) pTokens.add(w); });
+                            pCat.split(/[\s,.\-/]+/).forEach((w) => { if (w.length > 2) pTokens.add(w); });
+                            // Expand with synonyms
+                            const expanded = new Set(pTokens);
+                            pTokens.forEach((t) => { const s = SYNONYMS[t]; if (s) s.forEach((v) => expanded.add(v.toLowerCase())); });
                             return room.furniture_items.some((item) => {
                               const il = item.toLowerCase();
-                              return pName.includes(il) || il.includes(pName) || pCat.includes(il) || il.includes(pCat);
+                              return Array.from(expanded).some((t) => t.includes(il) || il.includes(t));
                             });
                           });
 
