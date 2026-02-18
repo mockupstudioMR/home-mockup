@@ -128,6 +128,30 @@ const ClickToIdentifyOverlay = ({ imageUrl, enabled }: ClickToIdentifyOverlayPro
               </button>
             </div>
 
+            {/* Floor preview for floor/surface items */}
+            {item.item_type && /floor|tile|carpet|rug|surface|parquet|hardwood|laminate|vinyl/i.test(item.item_type) && item.color && (
+              <div className="relative w-full h-20 rounded-lg overflow-hidden bg-muted/50">
+                <div
+                  className="absolute inset-0"
+                  style={{
+                    background: `linear-gradient(180deg, hsl(var(--muted)) 0%, ${item.color.toLowerCase()} 40%, ${item.color.toLowerCase()} 100%)`,
+                    clipPath: "polygon(15% 0%, 85% 0%, 100% 100%, 0% 100%)",
+                  }}
+                />
+                <div
+                  className="absolute inset-0 opacity-20"
+                  style={{
+                    backgroundImage: `repeating-linear-gradient(90deg, transparent, transparent 30px, rgba(0,0,0,0.08) 30px, rgba(0,0,0,0.08) 31px),
+                      repeating-linear-gradient(0deg, transparent, transparent 60px, rgba(0,0,0,0.06) 60px, rgba(0,0,0,0.06) 61px)`,
+                    clipPath: "polygon(15% 0%, 85% 0%, 100% 100%, 0% 100%)",
+                  }}
+                />
+                <span className="absolute bottom-1.5 left-1/2 -translate-x-1/2 text-[10px] font-medium text-white/80 drop-shadow-sm">
+                  {item.item_name}
+                </span>
+              </div>
+            )}
+
             {/* Description */}
             <p className="text-xs text-muted-foreground leading-relaxed">
               {item.description}
