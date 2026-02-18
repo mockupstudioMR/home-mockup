@@ -8,12 +8,20 @@ import { Input } from "@/components/ui/input";
 import { Home, ArrowLeft, Upload, X, Loader2, Sparkles, Package, Check, ShoppingBag, ExternalLink, Link2, Plus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import StyleInspirationCards, { type InspirationDetail } from "@/components/analyze/StyleInspirationCards";
 
 interface AnalyzedProduct {
   productName: string;
   category: string;
   suggestedStyle: string;
   description: string;
+}
+
+interface AnalyzedStyle {
+  styleName: string;
+  confidence: number;
+  description: string;
+  keywords: string[];
 }
 
 interface MissingProduct {
@@ -27,6 +35,8 @@ interface MissingProduct {
 
 interface ProductAnalysisResult {
   products: AnalyzedProduct[];
+  styles?: AnalyzedStyle[];
+  dominantColors?: string[];
   missingProducts?: MissingProduct[];
   recommendedStyle: string;
   styleDescription: string;
@@ -46,6 +56,10 @@ const AnalyzeProducts = () => {
   const [productLink, setProductLink] = useState("");
   const [isSavingLink, setIsSavingLink] = useState(false);
   const [savedLinks, setSavedLinks] = useState<string[]>([]);
+  const [selectedStyleIndex, setSelectedStyleIndex] = useState<number | null>(null);
+  const [selectedInspirations, setSelectedInspirations] = useState<string[]>([]);
+  const [inspirationDetailsMap, setInspirationDetailsMap] = useState<Record<string, { label: string; description: string; type: string }>>({});
+  const [editableColors, setEditableColors] = useState<string[]>([]);
 
   const handleFileUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -89,11 +103,16 @@ const AnalyzeProducts = () => {
       if (error) throw error;
 
       setAnalysisResult(data);
+      setEditableColors(data.dominantColors || []);
       // Select all products by default
       setSelectedProducts(new Set(data.products.map((_: AnalyzedProduct, i: number) => i)));
+      // Auto-select first style if available
+      if (data.styles && data.styles.length > 0) {
+        setSelectedStyleIndex(0);
+      }
       toast({
         title: "Analysis complete!",
-        description: `Analyzed ${data.products.length} products`,
+        description: `Analyzed ${data.products.length} products${data.styles?.length ? ` · ${data.styles.length} styles detected` : ""}`,
       });
     } catch (error) {
       console.error("Analysis error:", error);
@@ -177,22 +196,39 @@ const AnalyzeProducts = () => {
       const selectedProductData = analysisResult.products.filter((_, i) => selectedProducts.has(i));
       const selectedImageData = uploadedImages.filter((_, i) => selectedProducts.has(i));
       
+      // Use the selected style if available, otherwise fall back to recommendedStyle
+      const styleSource = analysisResult.styles && selectedStyleIndex !== null
+        ? analysisResult.styles[selectedStyleIndex]
+        : null;
+      const styleId = styleSource
+        ? styleSource.styleName.toLowerCase().replace(/\s+/g, "-")
+        : analysisResult.recommendedStyle.toLowerCase().replace(/\s+/g, "-");
+      const styleTitle = styleSource ? styleSource.styleName : analysisResult.recommendedStyle;
+      const styleDesc = styleSource ? styleSource.description : analysisResult.styleDescription;
+
       updateQuizData({
-        stylePreference: analysisResult.recommendedStyle.toLowerCase().replace(/\s+/g, "-"),
+        stylePreference: styleId,
         colorPalette: "neutral",
       });
       navigate("/generate", { 
         state: { 
           selectedStyle: {
-            id: analysisResult.recommendedStyle.toLowerCase().replace(/\s+/g, "-"),
-            title: analysisResult.recommendedStyle,
-            description: analysisResult.styleDescription,
+            id: styleId,
+            title: styleTitle,
+            description: styleDesc,
           },
+          analysisResult: analysisResult.styles ? { 
+            styles: analysisResult.styles, 
+            dominantColors: editableColors, 
+            moodboardDescription: analysisResult.moodboardSuggestion 
+          } : undefined,
           productAnalysis: {
             ...analysisResult,
             products: selectedProductData,
           },
           sourceImages: selectedImageData,
+          selectedInspirations,
+          inspirationDetails: selectedInspirations.map(id => inspirationDetailsMap[id]).filter(Boolean),
           includeProducts: true,
         } 
       });
@@ -424,16 +460,121 @@ const AnalyzeProducts = () => {
                   </div>
                 </div>
 
-                {/* Recommended Style */}
-                <div className="p-4 rounded-xl bg-primary/10 border border-primary/30">
-                  <h3 className="font-semibold mb-2">Recommended Style: {analysisResult.recommendedStyle}</h3>
-                  <p className="text-sm text-muted-foreground">{analysisResult.styleDescription}</p>
-                </div>
+                {/* Style Analysis - same experience as room analysis */}
+                {analysisResult.styles && analysisResult.styles.length > 0 ? (
+                  <div>
+                    <h2 className="text-xl font-semibold mb-4">Detected Styles</h2>
+                    <div className="space-y-4">
+                      {analysisResult.styles.map((style, index) => (
+                        <button
+                          type="button"
+                          key={index}
+                          onClick={() => setSelectedStyleIndex(index)}
+                          className={`w-full text-left p-4 rounded-xl transition-all cursor-pointer ${selectedStyleIndex === index ? "bg-primary/10 border-2 border-primary ring-2 ring-primary/20" : "bg-secondary/50 border-2 border-transparent hover:border-primary/30"}`}
+                        >
+                          <div className="flex items-center justify-between mb-2">
+                            <h3 className="font-semibold">{style.styleName}</h3>
+                            <span className="text-sm text-muted-foreground">
+                              {Math.round(style.confidence * 100)}% match
+                            </span>
+                          </div>
+                          <p className="text-sm text-muted-foreground mb-3">{style.description}</p>
+                          <div className="flex flex-wrap gap-2">
+                            {style.keywords.map((keyword) => (
+                              <span
+                                key={keyword}
+                                className="text-xs px-2 py-1 rounded-full bg-background text-foreground"
+                              >
+                                {keyword}
+                              </span>
+                            ))}
+                          </div>
 
-                <div>
-                  <h3 className="font-semibold mb-2">Design Suggestion</h3>
-                  <p className="text-muted-foreground">{analysisResult.moodboardSuggestion}</p>
-                </div>
+                          {/* Inline moodboard & accent furniture */}
+                          <StyleInspirationCards
+                            styleIndex={index}
+                            styleName={style.styleName}
+                            keywords={style.keywords}
+                            selectedItems={selectedInspirations}
+                            onToggle={(id) => {
+                              setSelectedStyleIndex(index);
+                              setSelectedInspirations((prev) =>
+                                prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
+                              );
+                            }}
+                            onItemsReady={(details) => {
+                              setInspirationDetailsMap(prev => {
+                                const next = { ...prev };
+                                for (const d of details) {
+                                  next[d.id] = { label: d.label, description: d.description, type: d.type };
+                                }
+                                return next;
+                              });
+                            }}
+                          />
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    {/* Fallback: simple recommended style */}
+                    <div className="p-4 rounded-xl bg-primary/10 border border-primary/30">
+                      <h3 className="font-semibold mb-2">Recommended Style: {analysisResult.recommendedStyle}</h3>
+                      <p className="text-sm text-muted-foreground">{analysisResult.styleDescription}</p>
+                    </div>
+                    <div>
+                      <h3 className="font-semibold mb-2">Design Suggestion</h3>
+                      <p className="text-muted-foreground">{analysisResult.moodboardSuggestion}</p>
+                    </div>
+                  </>
+                )}
+
+                {/* Editable Color Palette */}
+                {editableColors.length > 0 && (
+                  <div>
+                    <h3 className="font-semibold mb-3">Dominant Colors</h3>
+                    <div className="flex flex-wrap gap-3 items-center">
+                      {editableColors.map((color, index) => (
+                        <div key={index} className="relative group">
+                          <label className="block cursor-pointer">
+                            <div
+                              className="w-12 h-12 rounded-lg border-2 border-border hover:border-primary/50 transition-colors"
+                              style={{ backgroundColor: color }}
+                              title={color}
+                            />
+                            <input
+                              type="color"
+                              value={color}
+                              onChange={(e) => {
+                                setEditableColors((prev) =>
+                                  prev.map((c, i) => (i === index ? e.target.value : c))
+                                );
+                              }}
+                              className="sr-only"
+                            />
+                          </label>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setEditableColors((prev) => prev.filter((_, i) => i !== index))
+                            }
+                            className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-xs"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </div>
+                      ))}
+                      <button
+                        type="button"
+                        onClick={() => setEditableColors((prev) => [...prev, "#808080"])}
+                        className="w-12 h-12 rounded-lg border-2 border-dashed border-border hover:border-primary/50 flex items-center justify-center transition-colors"
+                      >
+                        <Plus className="w-4 h-4 text-muted-foreground" />
+                      </button>
+                    </div>
+                  </div>
+                )}
 
                 {/* Missing Products - Shoppable Suggestions */}
                 {analysisResult.missingProducts && analysisResult.missingProducts.length > 0 && (
