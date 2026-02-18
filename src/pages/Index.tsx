@@ -88,7 +88,7 @@ const Index = () => {
           </div>
 
           <h1 className="text-4xl md:text-6xl font-bold tracking-tight text-foreground">Live individually.    
-Design Beautifully.
+<span className="text-primary">Design Beautifully.</span>
           </h1>
 
           <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto">
