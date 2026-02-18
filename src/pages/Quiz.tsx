@@ -7,11 +7,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import QuizProgress from "@/components/quiz/QuizProgress";
 import RoomStep from "@/components/quiz/steps/RoomStep";
-import ElementsStep from "@/components/quiz/steps/ElementsStep";
-import { ArrowLeft, ArrowRight, Sparkles, Home } from "lucide-react";
+import { ArrowLeft, Sparkles, Home } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
-const TOTAL_STEPS = 2;
+const TOTAL_STEPS = 1;
 
 const Quiz = () => {
   const navigate = useNavigate();
@@ -36,8 +35,6 @@ const Quiz = () => {
     switch (currentStep) {
       case 0:
         return !!quizData.roomType;
-      case 1:
-        return true; // Elements are optional
       default:
         return false;
     }
@@ -89,8 +86,6 @@ const Quiz = () => {
     switch (currentStep) {
       case 0:
         return <RoomStep />;
-      case 1:
-        return <ElementsStep />;
       default:
         return null;
     }
@@ -141,8 +136,7 @@ const Quiz = () => {
         <div className="flex gap-3">
           <Button
             variant="outline"
-            onClick={handleBack}
-            disabled={currentStep === 0}
+            onClick={() => navigate(-1)}
             className="flex-1"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
@@ -153,17 +147,8 @@ const Quiz = () => {
             disabled={!canProceed()}
             className="flex-1"
           >
-            {currentStep === TOTAL_STEPS - 1 ? (
-              <>
-                <Sparkles className="w-4 h-4 mr-2" />
-                Generate Design
-              </>
-            ) : (
-              <>
-                Next
-                <ArrowRight className="w-4 h-4 ml-2" />
-              </>
-            )}
+            <Sparkles className="w-4 h-4 mr-2" />
+            Generate Design
           </Button>
         </div>
       </div>
