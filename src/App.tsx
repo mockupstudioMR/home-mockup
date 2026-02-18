@@ -13,6 +13,7 @@ import Start from "./pages/Start";
 import StyleTree from "./pages/StyleTree";
 import AnalyzeRoom from "./pages/AnalyzeRoom";
 import AnalyzeProducts from "./pages/AnalyzeProducts";
+import B2BSolutions from "./pages/B2BSolutions";
 
 import Quiz from "./pages/Quiz";
 import Generate from "./pages/Generate";
@@ -35,6 +36,7 @@ const App = () => (
             <DevRoleSwitcher />
             <Routes>
               <Route path="/" element={<Index />} />
+              <Route path="/b2b-solutions" element={<B2BSolutions />} />
               <Route path="/auth" element={<Auth />} />
               
               {/* User routes */}
