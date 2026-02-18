@@ -3,6 +3,7 @@ import { useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent } from "@/components/ui/card";
 import { Home, Palette, Upload, Package, ArrowRight } from "lucide-react";
+import Logo from "@/components/Logo";
 
 // Style moodboard images
 import classicHistorical from "@/assets/styles/classic-historical.png";
@@ -77,12 +78,10 @@ const Start = () => {
       <header className="relative z-10 flex items-center justify-between p-4 md:p-6">
         <button
           onClick={() => navigate("/")}
-          className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
+          className="flex items-center gap-3 text-muted-foreground hover:text-foreground transition-colors"
         >
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center">
-            <Home className="w-5 h-5 text-primary-foreground" />
-          </div>
-          <span className="font-bold text-lg text-foreground">RoomCraft AI</span>
+          <Logo size={32} />
+          <span className="font-semibold text-lg tracking-tight text-foreground">HomeMockUp</span>
         </button>
       </header>
 
