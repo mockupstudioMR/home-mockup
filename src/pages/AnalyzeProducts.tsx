@@ -154,41 +154,95 @@ const AnalyzeProducts = () => {
     }
 
     const trimmedLink = productLink.trim();
+    setIsSavingLink(true);
+    setProductLink("");
+    setSavedLinks((prev) => [...prev, trimmedLink]);
 
     // Only admins save to the database
     if (role === "admin") {
-      setIsSavingLink(true);
       try {
-        const { error } = await supabase.from("shop_products").insert({
+        await supabase.from("shop_products").insert({
           shop_id: user.id,
           name: "Product from link",
           category: "uncategorized",
           source_url: trimmedLink,
           is_active: true,
         });
-
-        if (error) throw error;
-
-        toast({
-          title: "Product link saved",
-          description: "The product link has been added to the catalog.",
-        });
       } catch (error: any) {
         console.error("Save link error:", error);
-        toast({
-          title: "Failed to save link",
-          description: error.message || "Please try again",
-          variant: "destructive",
-        });
-        setIsSavingLink(false);
-        return;
-      } finally {
-        setIsSavingLink(false);
       }
     }
 
-    setSavedLinks((prev) => [...prev, trimmedLink]);
-    setProductLink("");
+    // Scrape the product page for a screenshot image
+    try {
+      toast({
+        title: "Scraping product page…",
+        description: "Capturing product image from the link",
+      });
+
+      const { data, error } = await supabase.functions.invoke("scrape-product-image", {
+        body: { url: trimmedLink },
+      });
+
+      if (error || !data?.success) {
+        throw new Error(data?.error || error?.message || "Scrape failed");
+      }
+
+      // Add the scraped image and auto-trigger analysis
+      const imageUrl = data.imageUrl;
+      setUploadedImages((prev) => {
+        const updated = [...prev, imageUrl].slice(0, 8);
+        // Auto-analyze after state update
+        setTimeout(() => autoAnalyze(updated), 100);
+        return updated;
+      });
+
+      toast({
+        title: "Product captured!",
+        description: `"${data.title}" — running style analysis…`,
+      });
+    } catch (error: any) {
+      console.error("Scrape error:", error);
+      toast({
+        title: "Couldn't scrape product",
+        description: error.message || "Try uploading an image manually instead",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSavingLink(false);
+    }
+  };
+
+  const autoAnalyze = async (images: string[]) => {
+    if (images.length === 0) return;
+    setIsAnalyzing(true);
+    setAnalysisResult(null);
+    try {
+      const { data, error } = await supabase.functions.invoke("analyze-style", {
+        body: { images, mode: "products" },
+      });
+      if (error) throw error;
+
+      setAnalysisResult(data);
+      setEditableColors(data.dominantColors || []);
+      setSelectedProducts(new Set(data.products.map((_: AnalyzedProduct, i: number) => i)));
+      if (data.styles && data.styles.length > 0) {
+        setSelectedStyleIndex(0);
+      }
+      toast({
+        title: "Analysis complete!",
+        description: `Analyzed ${data.products.length} products${data.styles?.length ? ` · ${data.styles.length} styles detected` : ""}`,
+      });
+    } catch (error) {
+      console.error("Auto-analysis error:", error);
+      toast({
+        title: "Analysis failed",
+        description: "Please try again",
+        variant: "destructive",
+      });
+    } finally {
+      setIsAnalyzing(false);
+    }
   };
 
   const handleContinue = () => {
@@ -327,6 +381,12 @@ const AnalyzeProducts = () => {
                       </a>
                     </div>
                   ))}
+                </div>
+              )}
+              {isSavingLink && (
+                <div className="mt-3 flex items-center gap-2 text-sm text-muted-foreground">
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>Scraping product page &amp; analyzing…</span>
                 </div>
               )}
             </div>
