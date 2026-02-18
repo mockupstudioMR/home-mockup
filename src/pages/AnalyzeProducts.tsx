@@ -134,34 +134,42 @@ const AnalyzeProducts = () => {
       return;
     }
 
-    setIsSavingLink(true);
-    try {
-      const { error } = await supabase.from("shop_products").insert({
-        shop_id: user.id,
-        name: "Product from link",
-        category: "uncategorized",
-        source_url: productLink.trim(),
-        is_active: true,
-      });
+    const trimmedLink = productLink.trim();
 
-      if (error) throw error;
+    // Only admins save to the database
+    if (role === "admin") {
+      setIsSavingLink(true);
+      try {
+        const { error } = await supabase.from("shop_products").insert({
+          shop_id: user.id,
+          name: "Product from link",
+          category: "uncategorized",
+          source_url: trimmedLink,
+          is_active: true,
+        });
 
-      setSavedLinks((prev) => [...prev, productLink.trim()]);
-      setProductLink("");
-      toast({
-        title: "Product link saved",
-        description: "The product link has been added to the catalog.",
-      });
-    } catch (error: any) {
-      console.error("Save link error:", error);
-      toast({
-        title: "Failed to save link",
-        description: error.message || "Please try again",
-        variant: "destructive",
-      });
-    } finally {
-      setIsSavingLink(false);
+        if (error) throw error;
+
+        toast({
+          title: "Product link saved",
+          description: "The product link has been added to the catalog.",
+        });
+      } catch (error: any) {
+        console.error("Save link error:", error);
+        toast({
+          title: "Failed to save link",
+          description: error.message || "Please try again",
+          variant: "destructive",
+        });
+        setIsSavingLink(false);
+        return;
+      } finally {
+        setIsSavingLink(false);
+      }
     }
+
+    setSavedLinks((prev) => [...prev, trimmedLink]);
+    setProductLink("");
   };
 
   const handleContinue = () => {
@@ -239,6 +247,53 @@ const AnalyzeProducts = () => {
             <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
               Upload photos of furniture or decor items you want to include, and we'll design a room around them
             </p>
+
+            {/* Product Link Input */}
+            <div className="max-w-lg mx-auto pt-2">
+              <div className="flex items-center gap-2 mb-2">
+                <Link2 className="w-4 h-4 text-muted-foreground" />
+                <span className="text-sm text-muted-foreground">Or paste a product link</span>
+              </div>
+              <div className="flex gap-2">
+                <Input
+                  placeholder="https://example.com/product..."
+                  value={productLink}
+                  onChange={(e) => setProductLink(e.target.value)}
+                  className="flex-1"
+                />
+                <Button
+                  size="sm"
+                  onClick={handleAddProductLink}
+                  disabled={!productLink.trim() || isSavingLink}
+                >
+                  {isSavingLink ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <>
+                      <Plus className="w-4 h-4 mr-1" />
+                      Add
+                    </>
+                  )}
+                </Button>
+              </div>
+              {savedLinks.length > 0 && (
+                <div className="mt-3 space-y-1">
+                  {savedLinks.map((link, i) => (
+                    <div key={i} className="flex items-center gap-2 text-sm text-primary">
+                      <Check className="w-3 h-3 shrink-0" />
+                      <a
+                        href={link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="truncate hover:underline"
+                      >
+                        {link}
+                      </a>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Upload Area */}
@@ -315,59 +370,7 @@ const AnalyzeProducts = () => {
             </CardContent>
           </Card>
 
-          {/* Add Product Link - Admin Only */}
-          {role === "admin" && (
-            <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
-              <CardContent className="p-6 space-y-4">
-                <div className="flex items-center gap-2">
-                  <Link2 className="w-5 h-5 text-primary" />
-                  <h2 className="text-lg font-semibold">Add Product Link</h2>
-                </div>
-                <p className="text-sm text-muted-foreground">
-                  Paste a product URL to save it directly to the catalog.
-                </p>
-                <div className="flex gap-3">
-                  <Input
-                    placeholder="https://example.com/product..."
-                    value={productLink}
-                    onChange={(e) => setProductLink(e.target.value)}
-                    className="flex-1"
-                  />
-                  <Button
-                    onClick={handleAddProductLink}
-                    disabled={!productLink.trim() || isSavingLink}
-                  >
-                    {isSavingLink ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <>
-                        <Plus className="w-4 h-4 mr-1" />
-                        Add
-                      </>
-                    )}
-                  </Button>
-                </div>
-                {savedLinks.length > 0 && (
-                  <div className="space-y-2">
-                    <p className="text-sm font-medium text-muted-foreground">Added this session:</p>
-                    {savedLinks.map((link, i) => (
-                      <div key={i} className="flex items-center gap-2 text-sm text-primary">
-                        <Check className="w-4 h-4 shrink-0" />
-                        <a
-                          href={link}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="truncate hover:underline"
-                        >
-                          {link}
-                        </a>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          )}
+
 
           {analysisResult && (
             <Card className="border-primary/30 bg-card/80 backdrop-blur-sm">
