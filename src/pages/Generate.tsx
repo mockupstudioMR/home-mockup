@@ -638,7 +638,9 @@ const Generate = () => {
           existingRoomImages: existingRoomImagesFromState,
           selectedInspirations,
           detectedColors: analysisResult?.dominantColors,
-          detectedKeywords: analysisResult?.styles?.flatMap(s => s.keywords),
+          detectedKeywords: analysisResult?.styles
+            ?.filter(s => s.styleName.toLowerCase().replace(/[&\s]+/g, '-').replace(/-+/g, '-') === quizData.stylePreference.replace(/_/g, '-'))
+            ?.flatMap(s => s.keywords) || [],
           moodboardDescription: analysisResult?.moodboardDescription,
         },
       });
@@ -725,7 +727,9 @@ const Generate = () => {
             existingRoomImages: existingRoomImagesFromState,
             selectedInspirations,
             detectedColors: analysisResult?.dominantColors,
-            detectedKeywords: analysisResult?.styles?.flatMap(s => s.keywords),
+            detectedKeywords: analysisResult?.styles
+              ?.filter(s => s.styleName.toLowerCase().replace(/[&\s]+/g, '-').replace(/-+/g, '-') === overriddenQuiz.stylePreference.replace(/_/g, '-'))
+              ?.flatMap(s => s.keywords) || [],
             moodboardDescription: analysisResult?.moodboardDescription,
           },
         });
