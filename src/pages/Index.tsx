@@ -22,30 +22,30 @@ const Index = () => {
   };
 
   const features = [
-    {
-      icon: <Palette className="w-6 h-6" />,
-      title: "Style Quiz",
-      description: "Answer quick questions about your design preferences",
-    },
-    {
-      icon: <ImageIcon className="w-6 h-6" />,
-      title: "Upload Photos",
-      description: "Share your room photos or choose from inspiration",
-    },
-    {
-      icon: <Wand2 className="w-6 h-6" />,
-      title: "AI Generation",
-      description: "Get stunning AI-generated room designs",
-    },
-    {
-      icon: <Sparkles className="w-6 h-6" />,
-      title: "Refine & Share",
-      description: "Modify designs with text prompts and save your favorites",
-    },
-  ];
+  {
+    icon: <Palette className="w-6 h-6" />,
+    title: "Style Quiz",
+    description: "Answer quick questions about your design preferences"
+  },
+  {
+    icon: <ImageIcon className="w-6 h-6" />,
+    title: "Upload Photos",
+    description: "Share your room photos or choose from inspiration"
+  },
+  {
+    icon: <Wand2 className="w-6 h-6" />,
+    title: "AI Generation",
+    description: "Get stunning AI-generated room designs"
+  },
+  {
+    icon: <Sparkles className="w-6 h-6" />,
+    title: "Refine & Share",
+    description: "Modify designs with text prompts and save your favorites"
+  }];
+
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-accent">
       {/* Decorative background shapes - MockupStudio inspired */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-0 right-0 w-1/2 h-full bg-secondary/30 clip-diagonal" />
@@ -60,8 +60,8 @@ const Index = () => {
           <span className="font-semibold text-lg tracking-tight">HomeMockUp</span>
         </div>
         <div className="flex items-center gap-2">
-          {user ? (
-            <>
+          {user ?
+          <>
               <Button variant="ghost" size="sm" onClick={() => navigate("/gallery")}>
                 <User className="w-4 h-4 mr-2" />
                 My Gallery
@@ -70,25 +70,25 @@ const Index = () => {
                 <LogOut className="w-4 h-4 mr-2" />
                 Sign Out
               </Button>
-            </>
-          ) : (
-            <Button variant="ghost" size="sm" onClick={() => navigate("/auth")}>
+            </> :
+
+          <Button variant="ghost" size="sm" onClick={() => navigate("/auth")}>
               Sign In
             </Button>
-          )}
+          }
         </div>
       </header>
 
       {/* Hero */}
       <main className="relative z-10 flex flex-col items-center justify-center px-4 py-12 md:py-20">
         <div className="max-w-3xl mx-auto text-center space-y-6">
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-secondary/40 text-secondary-foreground text-sm font-medium">
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-secondary-foreground text-sm font-medium bg-[#e5d5c3]">Where Your Style Leads & Technology Follows
             <Sparkles className="w-4 h-4" />
             AI-Powered Interior Design
           </div>
 
-          <h1 className="text-4xl md:text-6xl font-bold tracking-tight text-foreground">
-            Design Your Dream
+          <h1 className="text-4xl md:text-6xl font-bold tracking-tight text-foreground">Live Individually.
+Room in Seconds
             <span className="block text-primary">Room in Seconds</span>
           </h1>
 
@@ -98,34 +98,34 @@ const Index = () => {
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center pt-4">
-            <Button 
-              size="lg" 
-              onClick={handleGetStarted} 
-              className="text-lg px-8 bg-primary hover:bg-primary/90"
-            >
+            <Button
+              size="lg"
+              onClick={handleGetStarted}
+              className="text-lg px-8 bg-primary hover:bg-primary/90">
+
               <Sparkles className="w-5 h-5 mr-2" />
               Get Started
             </Button>
-            {user && (
-              <Button
-                variant="outline"
-                size="lg"
-                onClick={() => navigate("/gallery")}
-                className="text-lg px-8 border-secondary bg-secondary/20 hover:bg-secondary/40"
-              >
+            {user &&
+            <Button
+              variant="outline"
+              size="lg"
+              onClick={() => navigate("/gallery")}
+              className="text-lg px-8 border-secondary bg-secondary/20 hover:bg-secondary/40">
+
                 View My Designs
               </Button>
-            )}
+            }
           </div>
         </div>
 
         {/* Features */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-16 max-w-5xl mx-auto w-full px-4">
-          {features.map((feature, index) => (
-            <Card
-              key={index}
-              className="border-border/50 bg-card/80 backdrop-blur-sm hover:bg-card hover:shadow-lg transition-all duration-300"
-            >
+          {features.map((feature, index) =>
+          <Card
+            key={index}
+            className="border-border/50 bg-card/80 backdrop-blur-sm hover:bg-card hover:shadow-lg transition-all duration-300">
+
               <CardContent className="p-6 text-center">
                 <div className="w-12 h-12 rounded-xl bg-secondary/40 flex items-center justify-center mx-auto mb-4 text-secondary-foreground">
                   {feature.icon}
@@ -134,7 +134,7 @@ const Index = () => {
                 <p className="text-sm text-muted-foreground">{feature.description}</p>
               </CardContent>
             </Card>
-          ))}
+          )}
         </div>
       </main>
 
@@ -148,8 +148,8 @@ const Index = () => {
           clip-path: polygon(30% 0, 100% 0, 100% 100%, 0% 100%);
         }
       `}</style>
-    </div>
-  );
+    </div>);
+
 };
 
 export default Index;
