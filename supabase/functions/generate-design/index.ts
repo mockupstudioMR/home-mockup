@@ -29,6 +29,7 @@ interface GenerateRequest {
   selectedProducts?: ProductInfo[];
   productImageUrls?: string[];
   existingRoomImages?: string[];
+  isScenePreview?: boolean;
   selectedInspirations?: string[];
   inspirationDetails?: { label: string; description: string; type: string }[];
   detectedColors?: string[];
@@ -636,6 +637,13 @@ function buildImagePrompt(
     const tpl = templates["modification"] || 
       `STRICT POSITIONAL CONSTRAINT: You MUST keep every single piece of furniture, decor item, and object in the EXACT SAME position, size, angle, and arrangement as the original image. Do NOT move, remove, add, rearrange, or resize any element. The spatial layout, composition, and placement of all items must remain pixel-perfect identical. ONLY change the visual styling as requested: {{modification_prompt}}. Apply {{style}} style with {{colors}}. {{product_instructions}} The result must look like the exact same photo with only the surface styling/textures/colors changed — every object stays precisely where it is. Ultra high resolution, photorealistic interior design photography.`;
     return furnitureContext + fillTemplate(tpl);
+  }
+
+  // Scene preview refinement - keep the exact same scene, only enhance quality
+  if (data.isScenePreview && data.existingRoomImages && data.existingRoomImages.length > 0) {
+    const tpl = templates["scene_preview_refine"] ||
+      `STRICT SCENE PRESERVATION: You are given a reference image of a fully designed ${room}. You MUST recreate this EXACT scene with pixel-perfect fidelity — same furniture placement, same layout, same colors, same composition, same camera angle, same lighting direction. Do NOT move, remove, replace, or rearrange ANY furniture or decor. Keep every single item in its exact position, size, and orientation. Your ONLY job is to enhance the photorealism and resolution of this exact scene to ultra-high quality magazine photography. ${productInstructions} ${detectedColorsContext}${detectedKeywordsContext}The result must be indistinguishable from the reference image except for improved image quality and photorealism. Ultra high resolution, photorealistic interior design photography, professional lighting, magazine quality, 16:9 aspect ratio.`;
+    return furnitureContext + tpl;
   }
 
   // Existing room redesign - allow layout/furniture rearrangement to match new style

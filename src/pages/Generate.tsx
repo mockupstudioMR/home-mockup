@@ -656,6 +656,7 @@ const Generate = () => {
           selectedProducts: includeProducts ? productAnalysis?.products : undefined,
           productImageUrls: includeProducts ? sourceImages : undefined,
           existingRoomImages: existingRoomRef,
+          isScenePreview: !!scenePreviewImage,
           selectedInspirations,
           inspirationDetails,
           detectedColors: analysisResult?.dominantColors,
