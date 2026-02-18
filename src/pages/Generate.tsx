@@ -1479,7 +1479,7 @@ const Generate = () => {
               onClick={() => navigate("/gallery")}
               className="text-sm text-primary hover:underline"
             >
-              My Gallery
+              My HomeMockUps
             </button>
           </div>
         </div>
