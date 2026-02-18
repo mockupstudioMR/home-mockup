@@ -96,6 +96,14 @@ const Index = () => {
             <span className="text-primary">Design Beautifully.</span>
           </h1>
 
+          <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto">
+            Start with inspiration — a quiz, a piece you love, or your own space.
+            <br /><br />
+            Whether you're updating a room or reimagining your home, explore and refine interactive designs in real time — at your pace, down to every detail.
+            <br /><br />
+            Your creativity leads. Technology keeps up.
+          </p>
+
           <div className="flex flex-col sm:flex-row gap-4 justify-center pt-4">
             <Button
               size="lg"
