@@ -364,98 +364,99 @@ const AnalyzeProducts = () => {
             </CardContent>
           </Card>
 
-          {/* ── STEP 1: Product Style Wall ─────────────────── */}
+          {/* ── STEP 1: Detected Products ─────────────────── */}
           {analysisResult && (
             <div className="space-y-8">
-              {/* Product cards with style banners */}
-              <div>
-                <h2 className="text-xl font-bold mb-4">Your Products</h2>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                  {analysisResult.products.map((product, index) => {
-                    const detectedStyle = analysisResult.styles?.find((s) => s.styleName === product.suggestedStyle);
-                    return (
-                      <div key={index} className="relative rounded-2xl overflow-hidden ring-1 ring-border/50">
-                        <div className="aspect-[4/3] bg-secondary">
-                          <img src={uploadedImages[index]} alt={product.productName} className="w-full h-full object-cover" />
-                        </div>
-                        <div className="absolute inset-x-0 top-0 bg-gradient-to-b from-black/70 via-black/40 to-transparent p-4 pt-3">
-                          <p className="text-lg font-bold text-white tracking-tight leading-tight">{product.suggestedStyle}</p>
-                          {detectedStyle && (
-                            <span className="inline-block mt-1 text-xs font-medium px-2 py-0.5 rounded-full bg-white/20 text-white/90 backdrop-blur-sm">
-                              {Math.round(detectedStyle.confidence * 100)}% match
-                            </span>
-                          )}
-                        </div>
-                        <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent p-4 pt-8">
-                          <p className="text-sm font-medium text-white truncate">{product.productName}</p>
-                          <p className="text-xs text-white/70">{product.category}</p>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Detected styles summary */}
-              {analysisResult.styles && analysisResult.styles.length > 0 && (
-                <div className="space-y-3">
-                  <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Detected Styles</h3>
-                  <div className="flex flex-wrap gap-2">
-                    {analysisResult.styles.map((style, idx) => (
-                      <span key={idx} className="px-4 py-2 rounded-full text-sm font-medium bg-secondary text-secondary-foreground">
-                        {style.styleName}
-                        <span className="ml-1.5 opacity-70">{Math.round(style.confidence * 100)}%</span>
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Colors */}
-              {editableColors.length > 0 && (
-                <div>
-                  <h3 className="font-semibold mb-3">Dominant Colors</h3>
-                  <div className="flex flex-wrap gap-3 items-center">
-                    {editableColors.map((color, index) => (
-                      <div key={index} className="relative group">
-                        <label className="block cursor-pointer">
-                          <div className="w-12 h-12 rounded-lg border-2 border-border hover:border-primary/50 transition-colors" style={{ backgroundColor: color }} title={color} />
-                          <input type="color" value={color} onChange={(e) => setEditableColors((prev) => prev.map((c, i) => (i === index ? e.target.value : c)))} className="sr-only" />
-                        </label>
-                        <button type="button" onClick={() => setEditableColors((prev) => prev.filter((_, i) => i !== index))} className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-xs">
-                          <X className="w-3 h-3" />
-                        </button>
-                      </div>
-                    ))}
-                    <button type="button" onClick={() => setEditableColors((prev) => [...prev, "#808080"])} className="w-12 h-12 rounded-lg border-2 border-dashed border-border hover:border-primary/50 flex items-center justify-center transition-colors">
-                      <Plus className="w-4 h-4 text-muted-foreground" />
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {/* ── STEP 2: Room Type Selection ──────────────── */}
+              {/* "We detected" summary */}
               <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
                 <CardContent className="p-6 space-y-4">
-                  <div className="text-center space-y-2">
-                    <h2 className="text-2xl font-bold">Which room are we designing?</h2>
-                    <p className="text-muted-foreground">Select the space for your products</p>
-                  </div>
-                  <div className="grid gap-3">
-                    {roomConfigs.map((room) => (
-                      <QuizOption
-                        key={room.room_type}
-                        value={room.room_type}
-                        label={room.room_label}
-                        description={room.description || `Includes: ${room.furniture_items.slice(0, 4).join(", ")}…`}
-                        icon={ROOM_ICONS[room.room_type] || <Sofa className="w-6 h-6" />}
-                        selected={selectedRoom === room.room_type}
-                        onClick={() => setSelectedRoom(room.room_type)}
-                      />
+                  <h2 className="text-2xl font-bold">We detected</h2>
+                  <div className="flex flex-wrap gap-3">
+                    {analysisResult.products.map((product, index) => (
+                      <div key={index} className="flex items-center gap-3 px-4 py-3 rounded-xl bg-secondary/70 border border-border/50">
+                        <div className="w-12 h-12 rounded-lg overflow-hidden shrink-0">
+                          <img src={uploadedImages[index]} alt={product.productName} className="w-full h-full object-cover" />
+                        </div>
+                        <div>
+                          <p className="font-semibold text-sm">{product.productName}</p>
+                          <p className="text-xs text-muted-foreground">{product.category}</p>
+                        </div>
+                      </div>
                     ))}
                   </div>
                 </CardContent>
               </Card>
+
+              {/* ── STEP 2: Matching Room Types ──────────────── */}
+              {(() => {
+                // Match detected product names/categories against room furniture_items
+                const detectedNames = analysisResult.products.map((p) =>
+                  p.productName.toLowerCase()
+                );
+                const detectedCategories = analysisResult.products.map((p) =>
+                  p.category.toLowerCase()
+                );
+                const allDetectedTerms = [...detectedNames, ...detectedCategories];
+
+                const matchingRooms = roomConfigs.filter((room) =>
+                  room.furniture_items.some((item) => {
+                    const itemLower = item.toLowerCase();
+                    return allDetectedTerms.some(
+                      (term) => term.includes(itemLower) || itemLower.includes(term)
+                    );
+                  })
+                );
+
+                const roomsToShow = matchingRooms.length > 0 ? matchingRooms : roomConfigs;
+
+                return (
+                  <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
+                    <CardContent className="p-6 space-y-4">
+                      <div className="text-center space-y-2">
+                        <h2 className="text-2xl font-bold">
+                          {matchingRooms.length > 0
+                            ? "These rooms need your products"
+                            : "Which room are we designing?"}
+                        </h2>
+                        <p className="text-muted-foreground">
+                          {matchingRooms.length > 0
+                            ? "Based on what we detected, these rooms are a perfect match"
+                            : "Select the space for your products"}
+                        </p>
+                      </div>
+                      <div className="grid gap-3">
+                        {roomsToShow.map((room) => {
+                          // Show which detected products match this room
+                          const matchedProducts = analysisResult.products.filter((p) => {
+                            const pName = p.productName.toLowerCase();
+                            const pCat = p.category.toLowerCase();
+                            return room.furniture_items.some((item) => {
+                              const il = item.toLowerCase();
+                              return pName.includes(il) || il.includes(pName) || pCat.includes(il) || il.includes(pCat);
+                            });
+                          });
+
+                          return (
+                            <QuizOption
+                              key={room.room_type}
+                              value={room.room_type}
+                              label={room.room_label}
+                              description={
+                                matchedProducts.length > 0
+                                  ? `Your ${matchedProducts.map((p) => p.productName).join(", ")} ${matchedProducts.length === 1 ? "is" : "are"} essential here`
+                                  : room.description || `Includes: ${room.furniture_items.slice(0, 4).join(", ")}…`
+                              }
+                              icon={ROOM_ICONS[room.room_type] || <Sofa className="w-6 h-6" />}
+                              selected={selectedRoom === room.room_type}
+                              onClick={() => setSelectedRoom(room.room_type)}
+                            />
+                          );
+                        })}
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })()}
 
               {/* Missing products */}
               {analysisResult.missingProducts && analysisResult.missingProducts.length > 0 && (
