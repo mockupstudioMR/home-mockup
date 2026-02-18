@@ -82,9 +82,14 @@ const AnalyzeProducts = () => {
       }
     }
 
-    setUploadedImages(prev => [...prev, ...newImages].slice(0, 8));
+    const updated = [...uploadedImages, ...newImages].slice(0, 8);
+    setUploadedImages(updated);
     setAnalysisResult(null);
-  }, []);
+    // Auto-trigger analysis
+    if (updated.length > 0) {
+      setTimeout(() => autoAnalyze(updated), 100);
+    }
+  }, [uploadedImages]);
 
   const removeImage = (index: number) => {
     setUploadedImages(prev => prev.filter((_, i) => i !== index));
@@ -441,25 +446,23 @@ const AnalyzeProducts = () => {
                     )}
                   </div>
 
-                  {!analysisResult && (
+                  {!analysisResult && !isAnalyzing && (
                     <Button
                       size="lg"
                       className="w-full"
                       onClick={analyzeProducts}
                       disabled={isAnalyzing}
                     >
-                      {isAnalyzing ? (
-                        <>
-                          <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                          Analyzing products...
-                        </>
-                      ) : (
-                        <>
-                          <Sparkles className="w-5 h-5 mr-2" />
-                          Analyze Products
-                        </>
-                      )}
+                      <Sparkles className="w-5 h-5 mr-2" />
+                      Analyze Products
                     </Button>
+                  )}
+
+                  {isAnalyzing && (
+                    <div className="flex items-center justify-center gap-3 py-4">
+                      <Loader2 className="w-5 h-5 animate-spin text-primary" />
+                      <span className="text-sm text-muted-foreground">Analyzing your products…</span>
+                    </div>
                   )}
                 </div>
               )}
@@ -468,141 +471,138 @@ const AnalyzeProducts = () => {
 
 
 
-          {/* Style Wall — products grouped by detected style */}
           {analysisResult && (
-            <div className="space-y-10">
-              {/* Style sections */}
-              {(() => {
-                // Group products by their suggestedStyle
-                const styleGroups = new Map<string, { products: AnalyzedProduct[]; indices: number[] }>();
-                analysisResult.products.forEach((product, index) => {
-                  const key = product.suggestedStyle || "Uncategorized";
-                  if (!styleGroups.has(key)) {
-                    styleGroups.set(key, { products: [], indices: [] });
-                  }
-                  styleGroups.get(key)!.products.push(product);
-                  styleGroups.get(key)!.indices.push(index);
-                });
-
-                // Order by detected style confidence if available
-                const orderedStyles = analysisResult.styles
-                  ? [...styleGroups.entries()].sort((a, b) => {
-                      const aStyle = analysisResult.styles!.find(s => s.styleName === a[0]);
-                      const bStyle = analysisResult.styles!.find(s => s.styleName === b[0]);
-                      return (bStyle?.confidence || 0) - (aStyle?.confidence || 0);
-                    })
-                  : [...styleGroups.entries()];
-
-                return orderedStyles.map(([styleName, group]) => {
-                  const detectedStyle = analysisResult.styles?.find(s => s.styleName === styleName);
-                  const styleIdx = analysisResult.styles?.findIndex(s => s.styleName === styleName) ?? -1;
-                  const isSelected = selectedStyleIndex === styleIdx && styleIdx >= 0;
+            <div className="space-y-6">
+              {/* Product Style Wall — each product shown with its style */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                {analysisResult.products.map((product, index) => {
+                  const productSelected = selectedProducts.has(index);
+                  const detectedStyle = analysisResult.styles?.find(
+                    (s) => s.styleName === product.suggestedStyle
+                  );
 
                   return (
-                    <div key={styleName} className="space-y-4">
-                      {/* Style header — clickable to select */}
-                      <button
-                        type="button"
-                        onClick={() => styleIdx >= 0 && setSelectedStyleIndex(styleIdx)}
-                        className={`w-full text-left px-5 py-4 rounded-2xl transition-all ${
-                          isSelected
-                            ? "bg-primary/15 border-2 border-primary ring-2 ring-primary/20"
-                            : "bg-card/80 backdrop-blur-sm border-2 border-border/50 hover:border-primary/40"
-                        }`}
-                      >
-                        <div className="flex items-center justify-between mb-1">
-                          <h2 className="text-2xl font-bold tracking-tight">{styleName}</h2>
-                          {detectedStyle && (
-                            <span className="text-sm font-medium px-3 py-1 rounded-full bg-primary/10 text-primary">
-                              {Math.round(detectedStyle.confidence * 100)}% match
-                            </span>
-                          )}
-                        </div>
-                        {detectedStyle && (
-                          <>
-                            <p className="text-sm text-muted-foreground mb-2">{detectedStyle.description}</p>
-                            <div className="flex flex-wrap gap-1.5">
-                              {detectedStyle.keywords.map((kw) => (
-                                <span key={kw} className="text-xs px-2 py-0.5 rounded-full bg-secondary text-secondary-foreground">
-                                  {kw}
-                                </span>
-                              ))}
-                            </div>
-                          </>
-                        )}
-                      </button>
-
-                      {/* Product image wall for this style */}
-                      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                        {group.products.map((product, pi) => {
-                          const originalIndex = group.indices[pi];
-                          const productSelected = selectedProducts.has(originalIndex);
-                          return (
-                            <button
-                              key={originalIndex}
-                              type="button"
-                              onClick={() => toggleProductSelection(originalIndex)}
-                              className={`relative rounded-xl overflow-hidden transition-all group ${
-                                productSelected
-                                  ? "ring-2 ring-primary shadow-lg shadow-primary/20"
-                                  : "ring-1 ring-border/50 hover:ring-primary/40"
-                              }`}
-                            >
-                              <div className="aspect-square">
-                                <img
-                                  src={uploadedImages[originalIndex]}
-                                  alt={product.productName}
-                                  className="w-full h-full object-cover"
-                                />
-                              </div>
-                              {/* Overlay with product info */}
-                              <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-3 pt-8">
-                                <p className="text-sm font-medium text-white truncate">{product.productName}</p>
-                                <p className="text-xs text-white/70">{product.category}</p>
-                              </div>
-                              {/* Selection indicator */}
-                              {productSelected && (
-                                <div className="absolute top-2 right-2 w-7 h-7 rounded-full bg-primary flex items-center justify-center">
-                                  <Check className="w-4 h-4 text-primary-foreground" />
-                                </div>
-                              )}
-                            </button>
-                          );
-                        })}
+                    <button
+                      key={index}
+                      type="button"
+                      onClick={() => toggleProductSelection(index)}
+                      className={`relative text-left rounded-2xl overflow-hidden transition-all ${
+                        productSelected
+                          ? "ring-2 ring-primary shadow-lg shadow-primary/20"
+                          : "ring-1 ring-border/50 hover:ring-primary/40"
+                      }`}
+                    >
+                      {/* Product image */}
+                      <div className="aspect-[4/3] bg-secondary">
+                        <img
+                          src={uploadedImages[index]}
+                          alt={product.productName}
+                          className="w-full h-full object-cover"
+                        />
                       </div>
 
-                      {/* Inspiration cards when this style is selected */}
-                      {isSelected && detectedStyle && (
-                        <div className="px-1">
-                          <StyleInspirationCards
-                            styleIndex={styleIdx}
-                            styleName={detectedStyle.styleName}
-                            keywords={detectedStyle.keywords}
-                            selectedItems={selectedInspirations}
-                            onToggle={(id) => {
-                              setSelectedStyleIndex(styleIdx);
-                              setSelectedInspirations((prev) =>
-                                prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
-                              );
-                            }}
-                            onItemsReady={(details) => {
-                              setInspirationDetailsMap(prev => {
-                                const next = { ...prev };
-                                for (const d of details) {
-                                  next[d.id] = { label: d.label, description: d.description, type: d.type };
-                                }
-                                return next;
-                              });
-                            }}
-                          />
+                      {/* Style title banner */}
+                      <div className="absolute inset-x-0 top-0 bg-gradient-to-b from-black/70 via-black/40 to-transparent p-4 pt-3">
+                        <p className="text-lg font-bold text-white tracking-tight leading-tight">
+                          {product.suggestedStyle}
+                        </p>
+                        {detectedStyle && (
+                          <span className="inline-block mt-1 text-xs font-medium px-2 py-0.5 rounded-full bg-white/20 text-white/90 backdrop-blur-sm">
+                            {Math.round(detectedStyle.confidence * 100)}% match
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Product info at bottom */}
+                      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent p-4 pt-8">
+                        <p className="text-sm font-medium text-white truncate">
+                          {product.productName}
+                        </p>
+                        <p className="text-xs text-white/70">{product.category}</p>
+                      </div>
+
+                      {/* Selection indicator */}
+                      {productSelected && (
+                        <div className="absolute top-3 right-3 w-7 h-7 rounded-full bg-primary flex items-center justify-center shadow-md">
+                          <Check className="w-4 h-4 text-primary-foreground" />
                         </div>
                       )}
-                    </div>
+                    </button>
                   );
-                });
-              })()}
+                })}
+              </div>
 
-              {/* Selection summary + color palette */}
+              {/* Style Summary Chips */}
+              {analysisResult.styles && analysisResult.styles.length > 0 && (
+                <div className="space-y-3">
+                  <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+                    Detected Styles
+                  </h3>
+                  <div className="flex flex-wrap gap-2">
+                    {analysisResult.styles.map((style, idx) => {
+                      const isActive = selectedStyleIndex === idx;
+                      return (
+                        <button
+                          key={idx}
+                          type="button"
+                          onClick={() => setSelectedStyleIndex(isActive ? null : idx)}
+                          className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                            isActive
+                              ? "bg-primary text-primary-foreground shadow-md"
+                              : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                          }`}
+                        >
+                          {style.styleName}
+                          <span className="ml-1.5 opacity-70">
+                            {Math.round(style.confidence * 100)}%
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Expanded style detail */}
+                  {selectedStyleIndex !== null && analysisResult.styles[selectedStyleIndex] && (
+                    <div className="p-4 rounded-xl bg-card/80 backdrop-blur-sm border border-border/50 space-y-3">
+                      <p className="text-sm text-muted-foreground">
+                        {analysisResult.styles[selectedStyleIndex].description}
+                      </p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {analysisResult.styles[selectedStyleIndex].keywords.map((kw) => (
+                          <span
+                            key={kw}
+                            className="text-xs px-2 py-0.5 rounded-full bg-secondary text-secondary-foreground"
+                          >
+                            {kw}
+                          </span>
+                        ))}
+                      </div>
+                      <StyleInspirationCards
+                        styleIndex={selectedStyleIndex}
+                        styleName={analysisResult.styles[selectedStyleIndex].styleName}
+                        keywords={analysisResult.styles[selectedStyleIndex].keywords}
+                        selectedItems={selectedInspirations}
+                        onToggle={(id) => {
+                          setSelectedInspirations((prev) =>
+                            prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
+                          );
+                        }}
+                        onItemsReady={(details) => {
+                          setInspirationDetailsMap((prev) => {
+                            const next = { ...prev };
+                            for (const d of details) {
+                              next[d.id] = { label: d.label, description: d.description, type: d.type };
+                            }
+                            return next;
+                          });
+                        }}
+                      />
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Colors + Missing Products */}
               <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
                 <CardContent className="p-5 space-y-5">
                   <div className="flex items-center justify-between">
@@ -611,7 +611,6 @@ const AnalyzeProducts = () => {
                     </h3>
                   </div>
 
-                  {/* Editable Color Palette */}
                   {editableColors.length > 0 && (
                     <div>
                       <h3 className="font-semibold mb-3">Dominant Colors</h3>
@@ -657,7 +656,6 @@ const AnalyzeProducts = () => {
                     </div>
                   )}
 
-                  {/* Missing Products */}
                   {analysisResult.missingProducts && analysisResult.missingProducts.length > 0 && (
                     <div className="space-y-3">
                       <div className="flex items-center gap-2">
@@ -680,13 +678,15 @@ const AnalyzeProducts = () => {
                                   <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary">
                                     {product.category}
                                   </span>
-                                  <span className={`text-xs px-2 py-0.5 rounded-full ${
-                                    product.priority === "essential" 
-                                      ? "bg-destructive/10 text-destructive" 
-                                      : product.priority === "recommended"
-                                      ? "bg-accent/10 text-accent-foreground"
-                                      : "bg-muted text-muted-foreground"
-                                  }`}>
+                                  <span
+                                    className={`text-xs px-2 py-0.5 rounded-full ${
+                                      product.priority === "essential"
+                                        ? "bg-destructive/10 text-destructive"
+                                        : product.priority === "recommended"
+                                        ? "bg-accent/10 text-accent-foreground"
+                                        : "bg-muted text-muted-foreground"
+                                    }`}
+                                  >
                                     {product.priority}
                                   </span>
                                 </div>
