@@ -87,7 +87,7 @@ const Index = () => {
             AI-Powered Interior Design
           </div>
 
-          <h1 className="text-4xl md:text-6xl font-bold tracking-tight text-foreground">Live individually.   
+          <h1 className="text-4xl md:text-6xl font-bold tracking-tight text-foreground">Live individually.    
 Design Beautifully.
             <span className="block text-primary">Room in Seconds</span>
           </h1>
