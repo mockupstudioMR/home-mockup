@@ -33,8 +33,8 @@
     --muted: 30 20% 92%;
     --muted-foreground: 260 12% 50%;
 
-    /* Accent - Soft coral/peach (furniture accent color) */
-    --accent: 15 55% 75%;
+    /* Accent - Sage green (hover accent color) */
+    --accent: 85 18% 65%;
     --accent-foreground: 260 18% 25%;
 
     /* Destructive remains for errors */
@@ -81,8 +81,8 @@
     --muted: 260 12% 18%;
     --muted-foreground: 30 15% 65%;
 
-    /* Accent - Soft coral */
-    --accent: 15 40% 35%;
+    /* Accent - Sage green (dark mode) */
+    --accent: 85 15% 30%;
     --accent-foreground: 30 20% 92%;
 
     --destructive: 0 55% 40%;
