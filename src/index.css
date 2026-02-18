@@ -25,8 +25,8 @@
     --primary: 260 20% 45%;
     --primary-foreground: 30 25% 98%;
 
-    /* Secondary - Sage green (key accent from MockupStudio) */
-    --secondary: 85 18% 65%;
+    /* Secondary - Soft coral/peach */
+    --secondary: 15 55% 75%;
     --secondary-foreground: 260 18% 25%;
 
     /* Muted - Soft beige for subtle backgrounds */
@@ -74,8 +74,8 @@
     --primary: 260 25% 70%;
     --primary-foreground: 260 15% 10%;
 
-    /* Secondary - Muted sage */
-    --secondary: 85 15% 25%;
+    /* Secondary - Muted coral */
+    --secondary: 15 40% 25%;
     --secondary-foreground: 30 20% 92%;
 
     --muted: 260 12% 18%;
