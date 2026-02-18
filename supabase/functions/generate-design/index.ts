@@ -401,7 +401,29 @@ serve(async (req) => {
         throw new Error(`AI gateway error: ${response.status}`);
       }
 
-      const data = await response.json();
+      let data: any;
+      try {
+        const rawText = await response.text();
+        if (!rawText || rawText.trim().length === 0) {
+          addDebug("Empty response body", `Attempt ${attempt} returned empty body`);
+          if (attempt < maxRetries) {
+            await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+            continue;
+          }
+          throw new Error("AI gateway returned empty response after all attempts");
+        }
+        data = JSON.parse(rawText);
+      } catch (parseErr) {
+        if (parseErr instanceof SyntaxError) {
+          addDebug("JSON parse error", `Attempt ${attempt}: ${parseErr.message}`);
+          if (attempt < maxRetries) {
+            await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+            continue;
+          }
+          throw new Error("AI gateway returned invalid JSON after all attempts");
+        }
+        throw parseErr;
+      }
 
       imageUrl = data.choices?.[0]?.message?.images?.[0]?.image_url?.url;
       textContent = data.choices?.[0]?.message?.content || "";
