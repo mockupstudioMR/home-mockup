@@ -84,7 +84,7 @@ const Index = () => {
         <div className="max-w-3xl mx-auto text-center space-y-6">
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-secondary/40 text-secondary-foreground text-sm font-medium">
             <Sparkles className="w-4 h-4" />
-            Where Your Style Leads — Start Anywhere. Design Your Way.
+            Where You Lead. Technology Supports.
           </div>
 
           <h1 className="text-4xl md:text-6xl font-bold tracking-tight text-foreground">Live individually.    
