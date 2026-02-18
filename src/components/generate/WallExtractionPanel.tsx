@@ -302,7 +302,7 @@ const WallExtractionPanel = ({
                       Design
                     </span>
                     {activeWall.imageUrl ? (
-                      <div className={`${isCeiling ? "aspect-square" : "aspect-[4/3]"} rounded-lg overflow-hidden border border-border/50`}>
+                      <div className={`${isCeiling ? "aspect-square" : "aspect-[4/3]"} rounded-lg overflow-hidden border border-border/50 transition-transform duration-200 hover:scale-150 hover:z-30 hover:shadow-xl relative cursor-zoom-in`}>
                         <img
                           src={activeWall.imageUrl}
                           alt={activeWall.label}
@@ -322,7 +322,7 @@ const WallExtractionPanel = ({
                       {isCeiling ? "Your Ceiling" : "Your Wall"}
                     </span>
                     {activeWall.realWallImageUrl ? (
-                      <div className={`relative ${isCeiling ? "aspect-square" : "aspect-[4/3]"} rounded-lg overflow-hidden border border-border/50`}>
+                      <div className={`relative ${isCeiling ? "aspect-square" : "aspect-[4/3]"} rounded-lg overflow-hidden border border-border/50 transition-transform duration-200 hover:scale-150 hover:z-30 hover:shadow-xl cursor-zoom-in`}>
                         <img
                           src={activeWall.realWallImageUrl}
                           alt={isCeiling ? "Your ceiling" : "Your wall"}
@@ -368,7 +368,7 @@ const WallExtractionPanel = ({
                         <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
                       </div>
                     ) : activeWall.resultImageUrl ? (
-                      <div className={`${isCeiling ? "aspect-square" : "aspect-[4/3]"} rounded-lg overflow-hidden border-2 border-primary/50`}>
+                      <div className={`${isCeiling ? "aspect-square" : "aspect-[4/3]"} rounded-lg overflow-hidden border-2 border-primary/50 transition-transform duration-200 hover:scale-150 hover:z-30 hover:shadow-xl cursor-zoom-in`}>
                         <img
                           src={activeWall.resultImageUrl}
                           alt="Result"
