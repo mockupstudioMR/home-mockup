@@ -30,6 +30,7 @@ interface GenerateRequest {
   productImageUrls?: string[];
   existingRoomImages?: string[];
   selectedInspirations?: string[];
+  inspirationDetails?: { label: string; description: string; type: string }[];
   detectedColors?: string[];
   detectedKeywords?: string[];
   moodboardDescription?: string;
@@ -541,45 +542,42 @@ function buildImagePrompt(
   if (data.selectedInspirations && data.selectedInspirations.length > 0) {
     const furnitureDescriptions: string[] = [];
     const moodboardDescriptions: string[] = [];
-    
-    const furnitureForStyleMap: Record<string, { name: string; desc: string }> = {
-      "modern-minimal": { name: "Sculptural Lounge Chair", desc: "sleek sculptural accent chair with clean lines and minimal form" },
-      "classic-historical": { name: "Antique Armoire", desc: "ornate period armoire with rich wood tones and carved details" },
-      "bohemian-eclectic": { name: "Rattan Peacock Chair", desc: "statement rattan peacock chair with bohemian flair" },
-      "rustic-nature": { name: "Live Edge Wood Table", desc: "raw live-edge wood table showcasing natural grain patterns" },
-      "mediterranean": { name: "Wrought Iron Daybed", desc: "Mediterranean wrought iron daybed with flowing fabric drapes" },
-      "glam-luxe": { name: "Velvet Statement Sofa", desc: "luxurious tufted velvet sofa with gold accents" },
-    };
 
-    // Map style slug from the style preference
-    const styleSlug = data.stylePreference || style.toLowerCase().replace(/\s+/g, "-");
+    // Use actual details passed from the frontend when available
+    const detailsById: Record<string, { label: string; description: string; type: string }> = {};
+    if (data.inspirationDetails) {
+      for (const d of data.inspirationDetails) {
+        // Match by type since IDs may differ
+        detailsById[d.type] = d;
+      }
+    }
 
     for (const id of data.selectedInspirations) {
       if (id.startsWith("furniture-")) {
-        const idx = parseInt(id.replace("furniture-", ""), 10);
-        // Try to match via analysisResult styles if available
-        const matchedStyle = data.detectedKeywords ? styleSlug : null;
-        const furnitureMatch = furnitureForStyleMap[matchedStyle || styleSlug];
-        if (furnitureMatch) {
-          furnitureDescriptions.push(`a ${furnitureMatch.desc}`);
+        const detail = detailsById["accentFurniture"];
+        if (detail) {
+          furnitureDescriptions.push(`a ${detail.label}: ${detail.description}`);
         } else {
           furnitureDescriptions.push("a designer accent furniture piece matching the chosen style");
         }
       } else if (id.startsWith("moodboard-")) {
-        const idx = parseInt(id.replace("moodboard-", ""), 10);
-        // Use detected keywords for this style's moodboard context
-        const keywordSubset = data.detectedKeywords?.slice(0, 6) || [];
-        if (keywordSubset.length > 0) {
-          moodboardDescriptions.push(`moodboard featuring ${keywordSubset.join(", ")}`);
+        const detail = detailsById["moodboard"];
+        if (detail) {
+          moodboardDescriptions.push(`${detail.label}: ${detail.description}`);
         } else {
-          moodboardDescriptions.push("curated moodboard matching the selected style aesthetic");
+          const keywordSubset = data.detectedKeywords?.slice(0, 6) || [];
+          if (keywordSubset.length > 0) {
+            moodboardDescriptions.push(`moodboard featuring ${keywordSubset.join(", ")}`);
+          } else {
+            moodboardDescriptions.push("curated moodboard matching the selected style aesthetic");
+          }
         }
       }
     }
     
     const parts: string[] = [];
     if (furnitureDescriptions.length > 0) {
-      parts.push(`ACCENT FURNITURE DIRECTIVE: Include these specific accent pieces: ${furnitureDescriptions.join("; ")}`);
+      parts.push(`ACCENT FURNITURE DIRECTIVE: You MUST include these specific accent pieces exactly as described: ${furnitureDescriptions.join("; ")}`);
     }
     if (moodboardDescriptions.length > 0) {
       parts.push(`MOODBOARD AESTHETIC DIRECTIVE: Follow the aesthetic of: ${moodboardDescriptions.join("; ")} — use these as guides for textures, materials, patterns, and overall visual language`);

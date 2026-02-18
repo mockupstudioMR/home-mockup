@@ -110,6 +110,8 @@ export const QuizProvider = ({ children }: { children: React.ReactNode }) => {
       'generate_debug_prompt_cache',
       'generate_quiz_hash',
       'generate_quiz_nonce',
+      'generate_inspirations_cache',
+      'generate_inspiration_details_cache',
     ];
     generateKeys.forEach((key) => sessionStorage.removeItem(key));
   }, []);

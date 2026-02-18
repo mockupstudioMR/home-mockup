@@ -13,6 +13,13 @@ interface InspirationItem {
   loading: boolean;
 }
 
+export interface InspirationDetail {
+  id: string;
+  label: string;
+  description: string;
+  type: "accentFurniture" | "moodboard";
+}
+
 interface StyleInspirationCardsProps {
   styleIndex: number;
   styleName: string;
@@ -20,6 +27,7 @@ interface StyleInspirationCardsProps {
   roomType?: string;
   selectedItems: string[];
   onToggle: (id: string) => void;
+  onItemsReady?: (items: InspirationDetail[]) => void;
 }
 
 const styleSlugMap: Record<string, string> = {
@@ -47,6 +55,7 @@ const StyleInspirationCards = ({
   roomType = "living room",
   selectedItems,
   onToggle,
+  onItemsReady,
 }: StyleInspirationCardsProps) => {
   const [items, setItems] = useState<InspirationItem[]>([]);
 
@@ -71,6 +80,9 @@ const StyleInspirationCards = ({
       },
     ];
     setItems(newItems);
+    
+    // Notify parent of item details so they can be passed downstream
+    onItemsReady?.(newItems.map(i => ({ id: i.id, label: i.label, description: i.description, type: i.type })));
 
     // Generate visuals
     newItems.forEach((item) => {
