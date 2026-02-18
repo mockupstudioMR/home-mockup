@@ -291,6 +291,7 @@ const AnalyzeProducts = () => {
         productAnalysis: analysisResult,
         sourceImages: uploadedImages,
         includeProducts: true,
+        scenePreviewImage: chosen.imageUrl,
       },
     });
   };

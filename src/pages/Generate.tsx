@@ -629,7 +629,7 @@ const Generate = () => {
   const generateDesign = async (quizResponseId?: string) => {
     if (!quizData || !user) return;
 
-    const { productAnalysis, sourceImages, includeProducts } = location.state || {};
+    const { productAnalysis, sourceImages, includeProducts, scenePreviewImage } = location.state || {};
 
     setGenerating(true);
     setDesign(null);
@@ -642,13 +642,20 @@ const Generate = () => {
     setDebugPrompt("");
 
     try {
+      // If we have a scene preview image from the product flow, use it as the
+      // existing room base so the AI refines that exact scene instead of
+      // generating from scratch.
+      const existingRoomRef = scenePreviewImage
+        ? [scenePreviewImage]
+        : existingRoomImagesFromState;
+
       const response = await supabase.functions.invoke("generate-design", {
         body: {
           ...quizData,
           sourceImageUrl: quizData.sourceImageUrl,
           selectedProducts: includeProducts ? productAnalysis?.products : undefined,
           productImageUrls: includeProducts ? sourceImages : undefined,
-          existingRoomImages: existingRoomImagesFromState,
+          existingRoomImages: existingRoomRef,
           selectedInspirations,
           inspirationDetails,
           detectedColors: analysisResult?.dominantColors,
