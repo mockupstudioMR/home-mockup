@@ -1696,38 +1696,7 @@ const Generate = () => {
 
 
 
-        {/* Generated Angles Gallery */}
-        {angleImages.length > 0 && (
-          <div className="space-y-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
-                <Sparkles className="w-5 h-5 text-primary" />
-              </div>
-              <div>
-                <h2 className="text-xl font-bold">Other Angles</h2>
-                <p className="text-sm text-muted-foreground">
-                  Alternative perspectives of your room design
-                </p>
-              </div>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {angleImages.map((angle, i) => (
-                <Card key={i} className="overflow-hidden">
-                  <div className="aspect-[4/3] overflow-hidden">
-                    <img
-                      src={angle.imageUrl}
-                      alt={angle.label}
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                  <CardContent className="p-3">
-                    <p className="text-sm font-medium">{angle.label}</p>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </div>
-        )}
+
           </div>
 
           <div className={activeTab === "history" ? "space-y-6" : "hidden"}>
