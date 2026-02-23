@@ -45,7 +45,7 @@ const computeMatchReasons = (
   const reasons: string[] = [];
   let score = 0;
 
-  // Category match
+  // Type match
   const itemType = item.item_type.toLowerCase();
   const prodCat = (product.category || "").toLowerCase();
   if (
@@ -56,7 +56,7 @@ const computeMatchReasons = (
     (itemType === "textile" && prodCat === "textile") ||
     (itemType === "decor" && ["decor", "other"].includes(prodCat))
   ) {
-    reasons.push(`Category match: ${product.category}`);
+    reasons.push(`Type match: ${item.item_type.replace("_", " ")}`);
     score += 30;
   }
 
@@ -215,7 +215,7 @@ const ShopExistingProducts = ({ item, onClose }: ShopExistingProductsProps) => {
                 <div className="flex flex-wrap gap-1 mt-1">
                   {product.matchReasons.map((reason, idx) => {
                     const reasonLower = reason.toLowerCase();
-                    const colorClass = reasonLower.includes("category")
+                    const colorClass = reasonLower.includes("type")
                       ? "bg-blue-500/10 text-blue-700 border-blue-500/20"
                       : reasonLower.includes("style")
                       ? "bg-purple-500/10 text-purple-700 border-purple-500/20"
