@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Sparkles, Palette, Home, Upload, Package, LogOut, User, ArrowRight } from "lucide-react";
 import Logo from "@/components/Logo";
+import heroBg from "@/assets/hero-bg.jpg";
 
 const Index = () => {
   const navigate = useNavigate();
@@ -49,13 +50,13 @@ const Index = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Decorative background shapes */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-0 right-0 w-1/2 h-full bg-secondary/30 clip-diagonal" />
-        <div className="absolute top-20 left-10 w-64 h-64 bg-secondary/20 rounded-full blur-3xl" />
-        <div className="absolute bottom-20 right-20 w-80 h-80 bg-accent/20 rounded-full blur-3xl" />
-      </div>
+    <div className="min-h-screen bg-background relative">
+      {/* Hero background image */}
+      <div
+        className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+        style={{ backgroundImage: `url(${heroBg})` }}
+      />
+      <div className="absolute inset-0 bg-background/70 backdrop-blur-[2px]" />
 
       {/* Header */}
       <header className="relative z-10 flex items-center justify-between p-4 md:p-6">
@@ -188,11 +189,6 @@ const Index = () => {
         <p>Powered by AI • Create beautiful spaces effortlessly</p>
       </footer>
 
-      <style>{`
-        .clip-diagonal {
-          clip-path: polygon(30% 0, 100% 0, 100% 100%, 0% 100%);
-        }
-      `}</style>
     </div>
   );
 };
