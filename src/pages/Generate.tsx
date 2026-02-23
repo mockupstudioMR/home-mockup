@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
 import { useToast } from "@/hooks/use-toast";
 import {
   Loader2,
@@ -188,6 +188,7 @@ const Generate = () => {
     }
   };
 
+  const [activeTab, setActiveTab] = useState("current");
   const [generating, setGenerating] = useState(false);
   const [design, setDesign] = useState<GeneratedDesign | null>(getInitialDesign);
   const [angleImages, setAngleImages] = useState<AngleImage[]>(getInitialAngleImages);
@@ -1523,23 +1524,32 @@ const Generate = () => {
         </div>
 
         {/* Tabs for Current Design, History, and Likes */}
-        <Tabs defaultValue="current" className="w-full">
-          <TabsList className="grid w-full max-w-md mx-auto grid-cols-3 mb-6">
-            <TabsTrigger value="current" className="flex items-center gap-2">
+        <div className="w-full">
+          <div className="inline-flex h-10 items-center justify-center rounded-md bg-muted p-1 text-muted-foreground grid w-full max-w-md mx-auto grid-cols-3 mb-6">
+            <button
+              onClick={() => setActiveTab("current")}
+              className={`inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium transition-all gap-2 ${activeTab === "current" ? "bg-background text-foreground shadow-sm" : ""}`}
+            >
               <Sparkles className="w-4 h-4" />
               <span className="hidden sm:inline">Current</span>
-            </TabsTrigger>
-            <TabsTrigger value="history" className="flex items-center gap-2">
+            </button>
+            <button
+              onClick={() => setActiveTab("history")}
+              className={`inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium transition-all gap-2 ${activeTab === "history" ? "bg-background text-foreground shadow-sm" : ""}`}
+            >
               <Clock className="w-4 h-4" />
               <span className="hidden sm:inline">History</span>
-            </TabsTrigger>
-            <TabsTrigger value="likes" className="flex items-center gap-2">
+            </button>
+            <button
+              onClick={() => setActiveTab("likes")}
+              className={`inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium transition-all gap-2 ${activeTab === "likes" ? "bg-background text-foreground shadow-sm" : ""}`}
+            >
               <Heart className="w-4 h-4" />
               <span className="hidden sm:inline">Likes</span>
-            </TabsTrigger>
-          </TabsList>
+            </button>
+          </div>
 
-          <TabsContent value="current" className="space-y-8" forceMount>
+          <div className={activeTab === "current" ? "space-y-8" : "hidden"}>
             {/* Page Title */}
             <div className="text-center space-y-2">
               <h1 className="text-3xl md:text-4xl font-bold">Your Design Results</h1>
@@ -1718,9 +1728,9 @@ const Generate = () => {
             </div>
           </div>
         )}
-          </TabsContent>
+          </div>
 
-          <TabsContent value="history" className="space-y-6" forceMount>
+          <div className={activeTab === "history" ? "space-y-6" : "hidden"}>
             <div className="text-center space-y-2">
               <h1 className="text-3xl md:text-4xl font-bold">Design History</h1>
               <p className="text-muted-foreground">
@@ -1728,9 +1738,9 @@ const Generate = () => {
               </p>
             </div>
             <DesignHistoryTab />
-          </TabsContent>
+          </div>
 
-          <TabsContent value="likes" className="space-y-6" forceMount>
+          <div className={activeTab === "likes" ? "space-y-6" : "hidden"}>
             <div className="text-center space-y-2">
               <h1 className="text-3xl md:text-4xl font-bold">Favorites</h1>
               <p className="text-muted-foreground">
@@ -1738,8 +1748,8 @@ const Generate = () => {
               </p>
             </div>
             <DesignLikesTab />
-          </TabsContent>
-        </Tabs>
+          </div>
+        </div>
       </div>
     </div>
   );
