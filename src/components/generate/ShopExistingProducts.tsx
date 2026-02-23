@@ -213,15 +213,30 @@ const ShopExistingProducts = ({ item, onClose }: ShopExistingProductsProps) => {
 
                 {/* Match reasons */}
                 <div className="flex flex-wrap gap-1 mt-1">
-                  {product.matchReasons.map((reason, idx) => (
-                    <span
-                      key={idx}
-                      className="inline-flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 rounded-full bg-green-500/10 text-green-700 border border-green-500/20"
-                    >
-                      <CheckCircle2 className="w-2.5 h-2.5" />
-                      {reason}
-                    </span>
-                  ))}
+                  {product.matchReasons.map((reason, idx) => {
+                    const reasonLower = reason.toLowerCase();
+                    const colorClass = reasonLower.includes("category")
+                      ? "bg-blue-500/10 text-blue-700 border-blue-500/20"
+                      : reasonLower.includes("style")
+                      ? "bg-purple-500/10 text-purple-700 border-purple-500/20"
+                      : reasonLower.includes("color")
+                      ? "bg-amber-500/10 text-amber-700 border-amber-500/20"
+                      : reasonLower.includes("material")
+                      ? "bg-emerald-500/10 text-emerald-700 border-emerald-500/20"
+                      : reasonLower.includes("keyword")
+                      ? "bg-rose-500/10 text-rose-700 border-rose-500/20"
+                      : "bg-muted text-muted-foreground border-border";
+
+                    return (
+                      <span
+                        key={idx}
+                        className={`inline-flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 rounded-full border ${colorClass}`}
+                      >
+                        <CheckCircle2 className="w-2.5 h-2.5" />
+                        {reason}
+                      </span>
+                    );
+                  })}
                   <span className="text-[10px] text-muted-foreground flex items-center gap-0.5">
                     <Sparkles className="w-2.5 h-2.5" />
                     Score: {product.matchScore}%
