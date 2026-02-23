@@ -2,8 +2,13 @@ import { useState, useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ExternalLink, Store, X, CheckCircle2, Sparkles } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { ExternalLink, Store, X, CheckCircle2, Sparkles, Plus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface DesignItem {
   id: string;
@@ -38,6 +43,19 @@ interface ShopExistingProductsProps {
   onClose: () => void;
 }
 
+const categoryFromItemType = (itemType: string): string => {
+  const map: Record<string, string> = {
+    furniture: "furniture",
+    lighting: "lighting",
+    textile: "textile",
+    decor: "decor",
+    wall_color: "decor",
+    floor_material: "furniture",
+    architectural: "other",
+  };
+  return map[itemType] || "other";
+};
+
 const computeMatchReasons = (
   product: any,
   item: DesignItem
@@ -45,19 +63,14 @@ const computeMatchReasons = (
   const reasons: string[] = [];
   let score = 0;
 
-  // Type match - exact item type matching (e.g., "curtain" matches "curtain", not broad categories)
-  const itemType = item.item_type.toLowerCase().replace(/_/g, " ");
   const itemName = item.item_name.toLowerCase();
   const prodCat = (product.category || "").toLowerCase();
   const prodName = (product.name || "").toLowerCase();
   const prodDesc = (product.description || "").toLowerCase();
   const prodAiDesc = (product.ai_image_description || "").toLowerCase();
 
-  // Extract the specific item type from item_name (e.g., "curtain", "sofa", "lamp")
   const itemKeywords = itemName.split(/\s+/).filter(w => w.length > 2);
-  
-  // Check if product name/description contains the specific item type words
-  const typeMatches = itemKeywords.filter(kw => 
+  const typeMatches = itemKeywords.filter(kw =>
     prodName.includes(kw) || prodCat.includes(kw) || prodDesc.includes(kw) || prodAiDesc.includes(kw)
   );
 
@@ -66,7 +79,6 @@ const computeMatchReasons = (
     score += 30 + (typeMatches.length * 5);
   }
 
-  // Style match
   const itemStyle = (item.style || "").toLowerCase();
   const prodStyle = (product.style || "").toLowerCase();
   const prodTags = (product.ai_style_tags || []).map((t: string) => t.toLowerCase());
@@ -79,9 +91,7 @@ const computeMatchReasons = (
     score += 20;
   }
 
-  // Color match
   const itemColor = (item.color || "").toLowerCase();
-
   if (itemColor) {
     if (prodName.includes(itemColor) || prodDesc.includes(itemColor) || prodAiDesc.includes(itemColor)) {
       reasons.push(`Color match: ${item.color}`);
@@ -89,7 +99,6 @@ const computeMatchReasons = (
     }
   }
 
-  // Material match
   const itemMaterial = (item.material || "").toLowerCase();
   if (itemMaterial) {
     if (prodName.includes(itemMaterial) || prodDesc.includes(itemMaterial) || prodAiDesc.includes(itemMaterial)) {
@@ -98,7 +107,6 @@ const computeMatchReasons = (
     }
   }
 
-  // Name/keyword overlap
   const itemWords = item.item_name.toLowerCase().split(/\s+/).filter(w => w.length > 3);
   const nameMatches = itemWords.filter(w => prodName.includes(w) || prodDesc.includes(w));
   if (nameMatches.length > 0) {
@@ -106,7 +114,6 @@ const computeMatchReasons = (
     score += 10 * nameMatches.length;
   }
 
-  // Minimum relevance - if no specific matches, note general availability
   if (reasons.length === 0) {
     reasons.push("Available in catalog");
     score += 5;
@@ -115,15 +122,166 @@ const computeMatchReasons = (
   return { reasons, score };
 };
 
+const AddProductDialog = ({ item, onProductAdded }: { item: DesignItem; onProductAdded: () => void }) => {
+  const [open, setOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [form, setForm] = useState({
+    name: item.item_name,
+    description: item.item_description,
+    category: categoryFromItemType(item.item_type),
+    style: item.style || "",
+    price: "",
+    currency: "EUR",
+    source_url: "",
+    image_url: "",
+  });
+
+  const handleSave = async () => {
+    if (!form.name.trim()) {
+      toast.error("Product name is required");
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast.error("You must be logged in");
+        return;
+      }
+
+      const { error } = await supabase.from("shop_products").insert({
+        name: form.name.trim(),
+        description: form.description.trim() || null,
+        category: form.category,
+        style: form.style || null,
+        price: form.price ? parseFloat(form.price) : null,
+        currency: form.currency,
+        source_url: form.source_url || null,
+        image_urls: form.image_url ? [form.image_url] : [],
+        shop_id: user.id,
+        is_active: true,
+      });
+
+      if (error) throw error;
+
+      toast.success("Product added to catalog!");
+      setOpen(false);
+      onProductAdded();
+    } catch (err: any) {
+      console.error("Error adding product:", err);
+      toast.error(err.message || "Failed to add product");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button size="sm" variant="outline" className="h-7 text-xs gap-1">
+          <Plus className="w-3 h-3" />
+          Add Product
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Plus className="w-4 h-4" />
+            Add Product to Catalog
+          </DialogTitle>
+        </DialogHeader>
+        <div className="space-y-3 mt-2">
+          <div>
+            <Label className="text-xs">Name *</Label>
+            <Input
+              value={form.name}
+              onChange={(e) => setForm({ ...form, name: e.target.value })}
+              className="h-8 text-sm"
+            />
+          </div>
+          <div>
+            <Label className="text-xs">Description</Label>
+            <Textarea
+              value={form.description}
+              onChange={(e) => setForm({ ...form, description: e.target.value })}
+              className="text-sm min-h-[60px]"
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label className="text-xs">Category</Label>
+              <Input
+                value={form.category}
+                onChange={(e) => setForm({ ...form, category: e.target.value })}
+                className="h-8 text-sm"
+              />
+            </div>
+            <div>
+              <Label className="text-xs">Style</Label>
+              <Input
+                value={form.style}
+                onChange={(e) => setForm({ ...form, style: e.target.value })}
+                className="h-8 text-sm"
+              />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label className="text-xs">Price</Label>
+              <Input
+                type="number"
+                value={form.price}
+                onChange={(e) => setForm({ ...form, price: e.target.value })}
+                placeholder="0.00"
+                className="h-8 text-sm"
+              />
+            </div>
+            <div>
+              <Label className="text-xs">Currency</Label>
+              <Input
+                value={form.currency}
+                onChange={(e) => setForm({ ...form, currency: e.target.value })}
+                className="h-8 text-sm"
+              />
+            </div>
+          </div>
+          <div>
+            <Label className="text-xs">Product URL</Label>
+            <Input
+              value={form.source_url}
+              onChange={(e) => setForm({ ...form, source_url: e.target.value })}
+              placeholder="https://..."
+              className="h-8 text-sm"
+            />
+          </div>
+          <div>
+            <Label className="text-xs">Image URL</Label>
+            <Input
+              value={form.image_url}
+              onChange={(e) => setForm({ ...form, image_url: e.target.value })}
+              placeholder="https://..."
+              className="h-8 text-sm"
+            />
+          </div>
+          <Button onClick={handleSave} disabled={saving} className="w-full">
+            {saving ? "Saving..." : "Add to Catalog"}
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
 const ShopExistingProducts = ({ item, onClose }: ShopExistingProductsProps) => {
   const [products, setProducts] = useState<MatchedProduct[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
     const fetchMatchingProducts = async () => {
       setLoading(true);
       try {
-        // Build a broad query and filter/rank client-side
         const { data, error } = await supabase
           .from("shop_products")
           .select("*")
@@ -132,7 +290,6 @@ const ShopExistingProducts = ({ item, onClose }: ShopExistingProductsProps) => {
 
         if (error) throw error;
 
-        // Compute match scores and reasons
         const scored = (data || [])
           .map((p) => {
             const { reasons, score } = computeMatchReasons(p, item);
@@ -151,7 +308,7 @@ const ShopExistingProducts = ({ item, onClose }: ShopExistingProductsProps) => {
     };
 
     fetchMatchingProducts();
-  }, [item]);
+  }, [item, refreshKey]);
 
   return (
     <div className="mt-2 p-3 rounded-lg border border-primary/20 bg-primary/5 space-y-3 animate-fade-in">
@@ -165,9 +322,12 @@ const ShopExistingProducts = ({ item, onClose }: ShopExistingProductsProps) => {
             </Badge>
           )}
         </div>
-        <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={onClose}>
-          <X className="w-3.5 h-3.5" />
-        </Button>
+        <div className="flex items-center gap-1">
+          <AddProductDialog item={item} onProductAdded={() => setRefreshKey(k => k + 1)} />
+          <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={onClose}>
+            <X className="w-3.5 h-3.5" />
+          </Button>
+        </div>
       </div>
 
       {loading ? (
@@ -177,9 +337,14 @@ const ShopExistingProducts = ({ item, onClose }: ShopExistingProductsProps) => {
           ))}
         </div>
       ) : products.length === 0 ? (
-        <p className="text-xs text-muted-foreground py-2">
-          No matching products found in the catalog for this item.
-        </p>
+        <div className="text-center py-3 space-y-2">
+          <p className="text-xs text-muted-foreground">
+            No matching products found in the catalog for this item.
+          </p>
+          <p className="text-[10px] text-muted-foreground">
+            Use the "Add Product" button above to add one.
+          </p>
+        </div>
       ) : (
         <div className="space-y-2 max-h-[300px] overflow-y-auto">
           {products.map((product) => (
@@ -187,7 +352,6 @@ const ShopExistingProducts = ({ item, onClose }: ShopExistingProductsProps) => {
               key={product.id}
               className="flex gap-3 p-2 rounded-md bg-background border border-border/50 hover:border-primary/30 transition-colors"
             >
-              {/* Product image */}
               <div className="flex-shrink-0 w-14 h-14 rounded overflow-hidden bg-muted">
                 {product.image_urls?.[0] ? (
                   <img
@@ -202,7 +366,6 @@ const ShopExistingProducts = ({ item, onClose }: ShopExistingProductsProps) => {
                 )}
               </div>
 
-              {/* Product info */}
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-1.5">
                   <span className="text-xs font-medium truncate">{product.name}</span>
@@ -214,7 +377,6 @@ const ShopExistingProducts = ({ item, onClose }: ShopExistingProductsProps) => {
                   )}
                 </div>
 
-                {/* Match reasons */}
                 <div className="flex flex-wrap gap-1 mt-1">
                   {product.matchReasons.map((reason, idx) => {
                     const reasonLower = reason.toLowerCase();
@@ -246,7 +408,6 @@ const ShopExistingProducts = ({ item, onClose }: ShopExistingProductsProps) => {
                   </span>
                 </div>
 
-                {/* AI style tags */}
                 {product.ai_style_tags && product.ai_style_tags.length > 0 && (
                   <div className="flex gap-1 mt-1 flex-wrap">
                     {product.ai_style_tags.slice(0, 3).map((tag, idx) => (
@@ -258,7 +419,6 @@ const ShopExistingProducts = ({ item, onClose }: ShopExistingProductsProps) => {
                 )}
               </div>
 
-              {/* View button */}
               {product.source_url && product.source_url !== "#" && (
                 <Button
                   variant="outline"
