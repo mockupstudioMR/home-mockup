@@ -45,19 +45,25 @@ const computeMatchReasons = (
   const reasons: string[] = [];
   let score = 0;
 
-  // Type match
-  const itemType = item.item_type.toLowerCase();
+  // Type match - exact item type matching (e.g., "curtain" matches "curtain", not broad categories)
+  const itemType = item.item_type.toLowerCase().replace(/_/g, " ");
+  const itemName = item.item_name.toLowerCase();
   const prodCat = (product.category || "").toLowerCase();
-  if (
-    prodCat.includes(itemType) ||
-    itemType.includes(prodCat) ||
-    (itemType === "furniture" && ["furniture", "sofa", "bed", "storage"].includes(prodCat)) ||
-    (itemType === "lighting" && prodCat === "lighting") ||
-    (itemType === "textile" && prodCat === "textile") ||
-    (itemType === "decor" && ["decor", "other"].includes(prodCat))
-  ) {
-    reasons.push(`Type match: ${item.item_type.replace("_", " ")}`);
-    score += 30;
+  const prodName = (product.name || "").toLowerCase();
+  const prodDesc = (product.description || "").toLowerCase();
+  const prodAiDesc = (product.ai_image_description || "").toLowerCase();
+
+  // Extract the specific item type from item_name (e.g., "curtain", "sofa", "lamp")
+  const itemKeywords = itemName.split(/\s+/).filter(w => w.length > 2);
+  
+  // Check if product name/description contains the specific item type words
+  const typeMatches = itemKeywords.filter(kw => 
+    prodName.includes(kw) || prodCat.includes(kw) || prodDesc.includes(kw) || prodAiDesc.includes(kw)
+  );
+
+  if (typeMatches.length > 0) {
+    reasons.push(`Type match: ${typeMatches.join(", ")}`);
+    score += 30 + (typeMatches.length * 5);
   }
 
   // Style match
@@ -75,9 +81,6 @@ const computeMatchReasons = (
 
   // Color match
   const itemColor = (item.color || "").toLowerCase();
-  const prodDesc = (product.description || "").toLowerCase();
-  const prodName = (product.name || "").toLowerCase();
-  const prodAiDesc = (product.ai_image_description || "").toLowerCase();
 
   if (itemColor) {
     if (prodName.includes(itemColor) || prodDesc.includes(itemColor) || prodAiDesc.includes(itemColor)) {
