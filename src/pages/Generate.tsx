@@ -1539,7 +1539,7 @@ const Generate = () => {
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="current" className="space-y-8">
+          <TabsContent value="current" className="space-y-8" forceMount>
             {/* Page Title */}
             <div className="text-center space-y-2">
               <h1 className="text-3xl md:text-4xl font-bold">Your Design Results</h1>
@@ -1720,7 +1720,7 @@ const Generate = () => {
         )}
           </TabsContent>
 
-          <TabsContent value="history" className="space-y-6">
+          <TabsContent value="history" className="space-y-6" forceMount>
             <div className="text-center space-y-2">
               <h1 className="text-3xl md:text-4xl font-bold">Design History</h1>
               <p className="text-muted-foreground">
@@ -1730,7 +1730,7 @@ const Generate = () => {
             <DesignHistoryTab />
           </TabsContent>
 
-          <TabsContent value="likes" className="space-y-6">
+          <TabsContent value="likes" className="space-y-6" forceMount>
             <div className="text-center space-y-2">
               <h1 className="text-3xl md:text-4xl font-bold">Favorites</h1>
               <p className="text-muted-foreground">
