@@ -18,7 +18,8 @@ import {
   ExternalLink,
   Trash2,
   Pencil,
-  Check
+  Check,
+  Palette
 } from "lucide-react";
 import EditableTagList from "./EditableTagList";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -175,6 +176,29 @@ const AdminProductManagement = () => {
     },
     onError: () => {
       toast({ title: "Error", description: "Failed to update tags.", variant: "destructive" });
+    },
+  });
+
+  // Extract colors mutation
+  const [extractingColorFor, setExtractingColorFor] = useState<string | null>(null);
+  const extractColorsMutation = useMutation({
+    mutationFn: async ({ productId, imageUrl }: { productId: string; imageUrl: string }) => {
+      setExtractingColorFor(productId);
+      const response = await supabase.functions.invoke("extract-product-colors", {
+        body: { productId, imageUrl },
+      });
+      if (response.error) throw new Error(response.error.message);
+      if (!response.data?.success) throw new Error(response.data?.error || "Failed");
+      return response.data.colors;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-all-products"] });
+      toast({ title: "Colors extracted!" });
+      setExtractingColorFor(null);
+    },
+    onError: (err) => {
+      toast({ title: "Error", description: err instanceof Error ? err.message : "Failed to extract colors.", variant: "destructive" });
+      setExtractingColorFor(null);
     },
   });
 
@@ -603,6 +627,53 @@ const AdminProductManagement = () => {
                           </p>
                         </div>
                       )}
+
+                      {/* Extracted Colors */}
+                      <div className="mt-3 pt-3 border-t border-border">
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center gap-1">
+                            <Palette className="w-3 h-3 text-primary" />
+                            <span className="text-xs text-muted-foreground font-medium">Furniture Colors</span>
+                          </div>
+                          {product.image_urls && product.image_urls.length > 0 && (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-6 px-2 text-[10px]"
+                              disabled={extractingColorFor === product.id}
+                              onClick={() => extractColorsMutation.mutate({
+                                productId: product.id,
+                                imageUrl: product.image_urls![0],
+                              })}
+                            >
+                              {extractingColorFor === product.id ? (
+                                <Loader2 className="w-3 h-3 animate-spin" />
+                              ) : (
+                                <>
+                                  <Sparkles className="w-3 h-3 mr-1" />
+                                  {(product.metadata as any)?.extracted_colors ? "Re-extract" : "Extract"}
+                                </>
+                              )}
+                            </Button>
+                          )}
+                        </div>
+                        {(product.metadata as any)?.extracted_colors ? (
+                          <div className="flex flex-wrap gap-1.5">
+                            {((product.metadata as any).extracted_colors as Array<{name: string; hex: string; percentage: number}>).map((color, idx) => (
+                              <div key={idx} className="flex items-center gap-1 px-2 py-1 rounded-full bg-muted/50 border border-border text-[10px]">
+                                <span
+                                  className="w-3 h-3 rounded-full border border-border/50 shrink-0"
+                                  style={{ backgroundColor: color.hex }}
+                                />
+                                <span className="font-medium">{color.name}</span>
+                                <span className="text-muted-foreground">{color.percentage}%</span>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="text-[10px] text-muted-foreground">No colors extracted yet</p>
+                        )}
+                      </div>
                     </CardContent>
                   </Card>
                 ))}
