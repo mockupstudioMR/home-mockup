@@ -130,8 +130,8 @@ const Index = () => {
           </div>
         </div>
 
-        {/* Starting Points */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-16 max-w-3xl mx-auto w-full px-4">
+        {/* Starting Points (hidden for now) */}
+        <div className="hidden grid-cols-1 sm:grid-cols-2 gap-4 mt-16 max-w-3xl mx-auto w-full px-4">
           {entryPoints.map((entry, index) => (
             <Card
               key={index}
