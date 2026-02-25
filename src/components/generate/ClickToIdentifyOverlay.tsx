@@ -1,9 +1,10 @@
 import { useState, useRef, useCallback } from "react";
-import { X, Loader2, ShoppingBag, Image, ExternalLink } from "lucide-react";
+import { X, Loader2, ShoppingBag, Image, ExternalLink, Store } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import ShopExistingProducts from "./ShopExistingProducts";
 
 interface IdentifiedItem {
   item_name: string;
@@ -28,6 +29,7 @@ const ClickToIdentifyOverlay = ({ imageUrl, enabled }: ClickToIdentifyOverlayPro
   const [identifying, setIdentifying] = useState(false);
   const [item, setItem] = useState<IdentifiedItem | null>(null);
   const [clickPos, setClickPos] = useState<{ x: number; y: number } | null>(null);
+  const [showShopExisting, setShowShopExisting] = useState(false);
 
   const handleClick = useCallback(
     async (e: React.MouseEvent<HTMLDivElement>) => {
@@ -67,6 +69,7 @@ const ClickToIdentifyOverlay = ({ imageUrl, enabled }: ClickToIdentifyOverlayPro
   const handleDismiss = () => {
     setItem(null);
     setClickPos(null);
+    setShowShopExisting(false);
   };
 
   if (!enabled) return null;
@@ -111,7 +114,7 @@ const ClickToIdentifyOverlay = ({ imageUrl, enabled }: ClickToIdentifyOverlayPro
           }}
           onClick={(e) => e.stopPropagation()}
         >
-          <div className="bg-background/95 backdrop-blur-md rounded-xl shadow-xl border border-border/50 p-4 w-64 space-y-3">
+          <div className={`bg-background/95 backdrop-blur-md rounded-xl shadow-xl border border-border/50 p-4 space-y-3 transition-all ${showShopExisting ? "w-80" : "w-64"}`}>
             {/* Header */}
             <div className="flex items-start justify-between gap-2">
               <div className="flex-1 min-w-0">
@@ -204,6 +207,33 @@ const ClickToIdentifyOverlay = ({ imageUrl, enabled }: ClickToIdentifyOverlayPro
                 </Button>
               )}
             </div>
+
+            {/* Shop Existing Products */}
+            {!showShopExisting ? (
+              <Button
+                size="sm"
+                variant="outline"
+                className="w-full h-8 text-xs gap-1.5 border-primary/30 text-primary hover:bg-primary/10"
+                onClick={() => setShowShopExisting(true)}
+              >
+                <Store className="w-3.5 h-3.5" />
+                Shop Existing Products
+              </Button>
+            ) : (
+              <ShopExistingProducts
+                item={{
+                  id: "identify-" + Date.now(),
+                  item_type: item.item_type,
+                  item_name: item.item_name,
+                  item_description: item.description,
+                  color: item.color,
+                  material: item.material,
+                  style: item.style,
+                  priority: "recommended",
+                }}
+                onClose={() => setShowShopExisting(false)}
+              />
+            )}
           </div>
         </div>
       )}
