@@ -39,21 +39,13 @@ Deno.serve(async (req) => {
               content: [
                 {
                   type: "text",
-                  text: `You are an expert interior designer analyzing a room image. The user clicked at EXACTLY position (${clickX}%, ${clickY}%) of the image.
+                  text: `Look at this interior design image. The user clicked at position (${clickX}%, ${clickY}%) of the image, where (0%,0%) is the top-left corner and (100%,100%) is the bottom-right corner.
 
-COORDINATE SYSTEM:
-- (0%, 0%) = top-left corner
-- (100%, 0%) = top-right corner  
-- (0%, 100%) = bottom-left corner
-- (100%, 100%) = bottom-right corner
-
-CRITICAL: You MUST identify the SINGLE object that is physically located at exactly (${clickX}%, ${clickY}%) in the image. Do NOT identify nearby objects. Focus precisely on what occupies that exact pixel position.
-
-For example, if the click is at (30%, 60%), look at what is at 30% from the left edge and 60% from the top edge of the image.
+Identify the SPECIFIC furniture item, decor piece, or design element at that exact click position.
 
 Return a JSON object with:
 - "item_name": The specific product name (e.g. "Velvet Tufted Armchair", "Brass Arc Floor Lamp")
-- "item_type": Category (e.g. "chair", "sofa", "lamp", "rug", "table", "artwork", "curtain", "vase", "cushion", "cabinet", "bookshelf")
+- "item_type": Category (e.g. "chair", "lamp", "rug", "table", "artwork", "curtain", "vase", "cushion")
 - "description": A detailed 1-2 sentence description including color, material, style
 - "color": Primary color
 - "material": Primary material
