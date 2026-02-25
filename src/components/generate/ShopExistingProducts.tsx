@@ -378,7 +378,7 @@ const ShopExistingProducts = ({ item, onClose }: ShopExistingProductsProps) => {
                 </div>
 
                 <div className="flex flex-wrap gap-1 mt-1">
-                  {product.matchReasons.map((reason, idx) => {
+                  {product.matchReasons.filter(r => r.toLowerCase().startsWith("type match")).map((reason, idx) => {
                     const reasonLower = reason.toLowerCase();
                     const colorClass = reasonLower.includes("type")
                       ? "bg-blue-500/10 text-blue-700 border-blue-500/20"
