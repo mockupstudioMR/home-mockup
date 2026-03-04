@@ -1,8 +1,7 @@
 import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Heart, Download, Send, RefreshCw, Upload, X, Loader2, MousePointerClick } from "lucide-react";
+import { Heart, Download, MousePointerClick } from "lucide-react";
 import { cn } from "@/lib/utils";
 import WallExtractionPanel from "./WallExtractionPanel";
 import type { ExtractedWall } from "./WallExtractionPanel";
