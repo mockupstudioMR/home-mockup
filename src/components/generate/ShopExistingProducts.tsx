@@ -83,7 +83,7 @@ const computeMatchReasons = (
   //    Extract meaningful type keywords (>3 chars, not filler/color words)
   const typeKeywords = itemName
     .split(/\s+/)
-    .filter(w => w.length > 3 && !FILLER_WORDS.has(w));
+    .filter(w => w.length > 2 && !FILLER_WORDS.has(w));
 
   // Check for full item name match first (strongest signal)
   if (allProdText.includes(itemName)) {
@@ -300,11 +300,46 @@ const ShopExistingProducts = ({ item, onClose }: ShopExistingProductsProps) => {
     const fetchMatchingProducts = async () => {
       setLoading(true);
       try {
-        const { data, error } = await supabase
-          .from("shop_products")
-          .select("*")
-          .eq("is_active", true)
-          .limit(50);
+        // Build a targeted query using item name keywords for server-side filtering
+        const itemNameLower = item.item_name.toLowerCase();
+        const searchKeywords = itemNameLower
+          .split(/\s+/)
+          .filter(w => w.length > 2 && !FILLER_WORDS.has(w));
+
+        // First try: search by keywords in name/category/description
+        let data: any[] = [];
+        let error: any = null;
+
+        if (searchKeywords.length > 0) {
+          // Build OR filter to find products matching any keyword
+          const orFilter = searchKeywords
+            .map(kw => `name.ilike.%${kw}%,category.ilike.%${kw}%,description.ilike.%${kw}%,ai_image_description.ilike.%${kw}%`)
+            .join(",");
+
+          const result = await supabase
+            .from("shop_products")
+            .select("*")
+            .eq("is_active", true)
+            .or(orFilter)
+            .limit(50);
+
+          data = result.data || [];
+          error = result.error;
+        }
+
+        // Fallback: if no targeted results, fetch by category
+        if (data.length === 0) {
+          const expectedCategory = categoryFromItemType(item.item_type);
+          const result = await supabase
+            .from("shop_products")
+            .select("*")
+            .eq("is_active", true)
+            .eq("category", expectedCategory)
+            .limit(50);
+
+          data = result.data || [];
+          error = result.error;
+        }
 
         if (error) throw error;
 
