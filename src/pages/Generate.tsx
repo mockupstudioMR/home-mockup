@@ -358,6 +358,12 @@ const Generate = () => {
     }
   }, [modificationHistory, safeSessionStorage]);
 
+  useEffect(() => {
+    if (imageHistoryStack.length > 0) {
+      safeSessionStorage('generate_image_history_stack', JSON.stringify(imageHistoryStack));
+    }
+  }, [imageHistoryStack, safeSessionStorage]);
+
   // Cache extracting state to persist across tab switches
   useEffect(() => {
     safeSessionStorage('generate_extracting_cache', extractingItems ? 'true' : 'false');
