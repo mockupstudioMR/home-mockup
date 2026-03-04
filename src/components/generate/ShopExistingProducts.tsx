@@ -64,6 +64,53 @@ const FILLER_WORDS = new Set([
   "green", "red", "yellow", "pink", "orange", "gold", "silver",
 ]);
 
+// Synonym groups for cross-language and variant matching
+// Each group contains words that should match each other
+const SYNONYM_GROUPS: string[][] = [
+  ["sideboard", "kommode", "chest", "dresser", "credenza", "buffet", "cabinet"],
+  ["vitrine", "display cabinet", "showcase", "glass cabinet"],
+  ["sofa", "couch", "settee"],
+  ["chair", "stuhl", "sessel", "armchair", "fauteuil"],
+  ["table", "tisch", "desk", "schreibtisch"],
+  ["lamp", "lampe", "leuchte", "light fixture", "floor lamp", "stehlampe"],
+  ["shelf", "regal", "shelving", "bookshelf", "bücherregal"],
+  ["bed", "bett"],
+  ["mirror", "spiegel"],
+  ["rug", "teppich", "carpet"],
+  ["curtain", "vorhang", "drape", "gardine"],
+  ["cushion", "kissen", "pillow"],
+  ["wardrobe", "kleiderschrank", "closet", "schrank"],
+  ["stool", "hocker"],
+  ["bench", "bank", "sitzbank"],
+  ["fluted", "geriffelt", "gerillt", "ribbed"],
+  ["vase", "planter", "übertopf", "blumentopf"],
+];
+
+// Build a lookup: word → set of synonyms
+const SYNONYM_MAP = new Map<string, Set<string>>();
+for (const group of SYNONYM_GROUPS) {
+  const groupSet = new Set(group);
+  for (const word of group) {
+    const existing = SYNONYM_MAP.get(word);
+    if (existing) {
+      for (const w of groupSet) existing.add(w);
+    } else {
+      SYNONYM_MAP.set(word, new Set(groupSet));
+    }
+  }
+}
+
+const getExpandedKeywords = (keywords: string[]): string[] => {
+  const expanded = new Set(keywords);
+  for (const kw of keywords) {
+    const synonyms = SYNONYM_MAP.get(kw);
+    if (synonyms) {
+      for (const syn of synonyms) expanded.add(syn);
+    }
+  }
+  return Array.from(expanded);
+};
+
 const computeMatchReasons = (
   product: any,
   item: DesignItem
