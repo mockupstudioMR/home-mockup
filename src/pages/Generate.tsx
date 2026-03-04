@@ -1145,7 +1145,7 @@ const Generate = () => {
     [user, toast]
   );
 
-  const handleModify = async () => {
+  const handleModify = async (modificationType?: string) => {
     if (!modificationInput.trim() || !quizData || !design) return;
     if (design.isLocked) {
       toast({
@@ -1162,6 +1162,7 @@ const Generate = () => {
         body: {
           ...quizData,
           modificationPrompt: modificationInput,
+          modificationType: modificationType || "color_material",
           sourceImageUrl: design.imageUrl,
           referenceImageUrl: referenceImageUrl,
           existingRoomImages: existingRoomImages.length > 0 ? existingRoomImages : undefined,

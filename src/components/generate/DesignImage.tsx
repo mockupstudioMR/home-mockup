@@ -1,12 +1,13 @@
 import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Heart, Download, Send, RefreshCw, Upload, X, Loader2, MousePointerClick } from "lucide-react";
+import { Heart, Download, MousePointerClick } from "lucide-react";
 import { cn } from "@/lib/utils";
 import WallExtractionPanel from "./WallExtractionPanel";
 import type { ExtractedWall } from "./WallExtractionPanel";
 import ClickToIdentifyOverlay from "./ClickToIdentifyOverlay";
+import RefinementPanel from "./RefinementPanel";
+import type { ModificationType } from "./RefinementPanel";
 
 interface DesignImageProps {
   imageUrl: string;
@@ -20,7 +21,7 @@ interface DesignImageProps {
   showRefine?: boolean;
   modificationInput?: string;
   onModificationInputChange?: (value: string) => void;
-  onModify?: () => void;
+  onModify?: (type: ModificationType) => void;
   onRegenerate?: () => void;
   generating?: boolean;
   referenceImageUrl?: string | null;
@@ -137,62 +138,17 @@ const DesignImage = ({
 
         {/* Refine your design section */}
         {showRefine && (
-          <div className="space-y-4 pt-3 border-t border-border/50">
-            <p className="text-sm font-medium">Refine your design</p>
-            
-            {/* Reference Image Upload */}
-            <div className="flex items-center gap-3">
-              {referenceImageUrl ? (
-                <div className="relative">
-                  <img 
-                    src={referenceImageUrl} 
-                    alt="Reference" 
-                    className="w-16 h-16 object-cover rounded-lg border border-border"
-                  />
-                  <button
-                    onClick={onRemoveReference}
-                    className="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center hover:bg-destructive/90"
-                  >
-                    <X className="w-3 h-3" />
-                  </button>
-                </div>
-              ) : (
-                <label className="flex items-center gap-2 px-3 py-2 rounded-lg border border-dashed border-border cursor-pointer hover:border-primary/50 hover:bg-accent/50 transition-colors">
-                  {uploadingReference ? (
-                    <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
-                  ) : (
-                    <Upload className="w-4 h-4 text-muted-foreground" />
-                  )}
-                  <span className="text-sm text-muted-foreground">Add reference</span>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={onReferenceUpload}
-                    className="hidden"
-                    disabled={uploadingReference}
-                  />
-                </label>
-              )}
-              {referenceImageUrl && (
-                <span className="text-xs text-muted-foreground">Reference image added</span>
-              )}
-            </div>
-
-            <div className="flex gap-2">
-              <Input
-                placeholder="Add plants, change wall color to blue, add more lighting..."
-                value={modificationInput}
-                onChange={(e) => onModificationInputChange?.(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && onModify?.()}
-              />
-              <Button onClick={onModify} disabled={!modificationInput.trim() || generating}>
-                <Send className="w-4 h-4" />
-              </Button>
-              <Button variant="outline" onClick={onRegenerate} disabled={generating}>
-                <RefreshCw className="w-4 h-4" />
-              </Button>
-            </div>
-          </div>
+          <RefinementPanel
+            modificationInput={modificationInput}
+            onModificationInputChange={(v) => onModificationInputChange?.(v)}
+            onModify={(type) => onModify?.(type)}
+            onRegenerate={() => onRegenerate?.()}
+            generating={generating}
+            referenceImageUrl={referenceImageUrl}
+            onReferenceUpload={onReferenceUpload}
+            onRemoveReference={onRemoveReference}
+            uploadingReference={uploadingReference}
+          />
         )}
 
         {/* Wall Extraction Panel */}

@@ -26,6 +26,7 @@ interface GenerateRequest {
   furnitureSource?: "shop_only" | "open";
   sourceImageUrl?: string;
   modificationPrompt?: string;
+  modificationType?: "color_material" | "swap_item" | "add_remove" | "layout";
   selectedProducts?: ProductInfo[];
   productImageUrls?: string[];
   existingRoomImages?: string[];
@@ -653,8 +654,20 @@ function buildImagePrompt(
 
   // Determine which template to use
   if (data.modificationPrompt) {
-    const tpl = templates["modification"] || 
-      `STRICT POSITIONAL CONSTRAINT: You MUST keep every single piece of furniture, decor item, and object in the EXACT SAME position, size, angle, and arrangement as the original image. Do NOT move, remove, add, rearrange, or resize any element. The spatial layout, composition, and placement of all items must remain pixel-perfect identical. ONLY change the visual styling as requested: {{modification_prompt}}. Apply {{style}} style with {{colors}}. {{product_instructions}} The result must look like the exact same photo with only the surface styling/textures/colors changed — every object stays precisely where it is. Ultra high resolution, photorealistic interior design photography.`;
+    const modType = data.modificationType || "color_material";
+
+    const modTemplates: Record<string, string> = {
+      color_material:
+        `ABSOLUTE PRESERVATION CONSTRAINT: You MUST keep every single piece of furniture, decor item, object, and architectural element in the EXACT SAME position, size, angle, proportion, and arrangement as the original image. The spatial layout, composition, perspective, camera angle, lighting direction, and placement of ALL items must remain pixel-perfect identical. Do NOT move, remove, add, rearrange, resize, or alter the shape of any element. ONLY change the following visual property as requested: {{modification_prompt}}. The result must look like the exact same photograph with ONLY the specified color, fabric, texture, or material changed on the mentioned item(s) — every other object and surface stays precisely as-is with zero changes. Ultra high resolution, photorealistic interior design photography.`,
+      swap_item:
+        `STRICT LAYOUT PRESERVATION: Keep the EXACT same room layout, camera angle, lighting, and all furniture positions identical to the original image. Every item that is NOT mentioned in the swap request must remain pixel-perfect unchanged in position, size, color, material, and appearance. ONLY replace the specifically mentioned item: {{modification_prompt}}. The replacement item must occupy the same spatial footprint and position as the original. All other furniture, decor, walls, floors, and architectural elements must be absolutely identical. Ultra high resolution, photorealistic interior design photography.`,
+      add_remove:
+        `STRICT SCENE PRESERVATION: Keep the EXACT same room layout, camera angle, perspective, lighting direction, and ALL existing furniture positions, sizes, colors, and materials pixel-perfect identical to the original image. Do NOT move, resize, recolor, or alter ANY existing element. ONLY perform this addition or removal: {{modification_prompt}}. If adding, place the new item naturally without disturbing anything else. If removing, fill the space naturally with the background (wall, floor) that would logically be behind it. Every other object stays precisely where it is with zero changes. Ultra high resolution, photorealistic interior design photography.`,
+      layout:
+        `ROOM SHELL PRESERVATION: Keep the architectural shell — walls, ceiling, floor, windows, doors, and room dimensions — identical to the original image. You ARE allowed to rearrange, reposition, and move furniture as requested: {{modification_prompt}}. Apply {{style}} style with {{colors}}. {{product_instructions}} Maintain the same camera perspective and lighting quality. Ultra high resolution, photorealistic interior design photography.`,
+    };
+
+    const tpl = templates[`modification_${modType}`] || modTemplates[modType] || modTemplates["color_material"];
     return furnitureContext + fillTemplate(tpl);
   }
 
