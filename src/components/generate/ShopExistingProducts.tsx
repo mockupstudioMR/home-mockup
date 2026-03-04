@@ -313,7 +313,7 @@ const ShopExistingProducts = ({ item, onClose }: ShopExistingProductsProps) => {
             const { reasons, score } = computeMatchReasons(p, item);
             return { ...p, matchReasons: reasons, matchScore: score } as MatchedProduct;
           })
-          .filter((p) => p.matchReasons.some(r => r.toLowerCase().startsWith("type match")))
+          .filter((p) => p.matchReasons.some(r => r.toLowerCase().startsWith("type match")) && p.matchScore >= 25)
           .sort((a, b) => b.matchScore - a.matchScore)
           .slice(0, 8);
 
