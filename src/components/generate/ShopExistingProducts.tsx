@@ -449,17 +449,8 @@ const ShopExistingProducts = ({ item, onClose }: ShopExistingProductsProps) => {
           .filter((p) => p.matchReasons.some(r => r.toLowerCase().startsWith("type match")) && p.matchScore >= 25)
           .sort((a, b) => b.matchScore - a.matchScore);
 
-        // Deduplicate by product name — keep highest-scored version
-        const seen = new Set<string>();
-        const deduped: MatchedProduct[] = [];
-        for (const p of scored) {
-          const key = p.name.toLowerCase().trim();
-          if (!seen.has(key)) {
-            seen.add(key);
-            deduped.push(p);
-          }
-        }
-
+        // Deduplicate by normalized product identity (name + source URL)
+        const deduped = dedupeProducts(scored);
         setProducts(deduped.slice(0, 8));
       } catch (err) {
         console.error("Error fetching matching products:", err);
@@ -470,6 +461,9 @@ const ShopExistingProducts = ({ item, onClose }: ShopExistingProductsProps) => {
 
     fetchMatchingProducts();
   }, [item, refreshKey]);
+
+  // Defensive dedupe at render time too (protects against transient duplicate states)
+  const visibleProducts = dedupeProducts(products);
 
   return (
     <div className="mt-2 p-3 rounded-lg border border-primary/20 bg-primary/5 space-y-3 animate-fade-in">
