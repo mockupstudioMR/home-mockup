@@ -473,7 +473,7 @@ const ShopExistingProducts = ({ item, onClose }: ShopExistingProductsProps) => {
           <span className="text-sm font-semibold">Matching Products from Catalog</span>
           {!loading && (
             <Badge variant="secondary" className="text-xs">
-              {products.length} found
+              {visibleProducts.length} found
             </Badge>
           )}
         </div>
@@ -491,7 +491,7 @@ const ShopExistingProducts = ({ item, onClose }: ShopExistingProductsProps) => {
             <Skeleton key={i} className="h-16 w-full rounded-md" />
           ))}
         </div>
-      ) : products.length === 0 ? (
+      ) : visibleProducts.length === 0 ? (
         <div className="text-center py-3 space-y-2">
           <p className="text-xs text-muted-foreground">
             No matching products found in the catalog for this item.
@@ -502,7 +502,7 @@ const ShopExistingProducts = ({ item, onClose }: ShopExistingProductsProps) => {
         </div>
       ) : (
         <div className="space-y-2 max-h-[300px] overflow-y-auto">
-          {products.map((product) => (
+          {visibleProducts.map((product) => (
             <div
               key={product.id}
               className="flex gap-3 p-2 rounded-md bg-background border border-border/50 hover:border-primary/30 transition-colors"
