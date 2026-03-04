@@ -426,6 +426,7 @@ const Generate = () => {
       sessionStorage.removeItem('generate_items_cache');
       sessionStorage.removeItem('generate_description_cache');
       sessionStorage.removeItem('generate_history_cache');
+      sessionStorage.removeItem('generate_image_history_stack');
       sessionStorage.removeItem('generate_extracting_cache');
       sessionStorage.removeItem('generate_quiz_response_id');
       sessionStorage.removeItem('generate_debug_steps_cache');
