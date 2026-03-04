@@ -64,6 +64,53 @@ const FILLER_WORDS = new Set([
   "green", "red", "yellow", "pink", "orange", "gold", "silver",
 ]);
 
+// Synonym groups for cross-language and variant matching
+// Each group contains words that should match each other
+const SYNONYM_GROUPS: string[][] = [
+  ["sideboard", "kommode", "chest", "dresser", "credenza", "buffet", "cabinet"],
+  ["vitrine", "display cabinet", "showcase", "glass cabinet"],
+  ["sofa", "couch", "settee"],
+  ["chair", "stuhl", "sessel", "armchair", "fauteuil"],
+  ["table", "tisch", "desk", "schreibtisch"],
+  ["lamp", "lampe", "leuchte", "light fixture", "floor lamp", "stehlampe"],
+  ["shelf", "regal", "shelving", "bookshelf", "bücherregal"],
+  ["bed", "bett"],
+  ["mirror", "spiegel"],
+  ["rug", "teppich", "carpet"],
+  ["curtain", "vorhang", "drape", "gardine"],
+  ["cushion", "kissen", "pillow"],
+  ["wardrobe", "kleiderschrank", "closet", "schrank"],
+  ["stool", "hocker"],
+  ["bench", "bank", "sitzbank"],
+  ["fluted", "geriffelt", "gerillt", "ribbed"],
+  ["vase", "planter", "übertopf", "blumentopf"],
+];
+
+// Build a lookup: word → set of synonyms
+const SYNONYM_MAP = new Map<string, Set<string>>();
+for (const group of SYNONYM_GROUPS) {
+  const groupSet = new Set(group);
+  for (const word of group) {
+    const existing = SYNONYM_MAP.get(word);
+    if (existing) {
+      for (const w of groupSet) existing.add(w);
+    } else {
+      SYNONYM_MAP.set(word, new Set(groupSet));
+    }
+  }
+}
+
+const getExpandedKeywords = (keywords: string[]): string[] => {
+  const expanded = new Set(keywords);
+  for (const kw of keywords) {
+    const synonyms = SYNONYM_MAP.get(kw);
+    if (synonyms) {
+      for (const syn of synonyms) expanded.add(syn);
+    }
+  }
+  return Array.from(expanded);
+};
+
 const computeMatchReasons = (
   product: any,
   item: DesignItem
@@ -85,15 +132,25 @@ const computeMatchReasons = (
     .split(/\s+/)
     .filter(w => w.length > 2 && !FILLER_WORDS.has(w));
 
+  // Expand keywords with synonyms for cross-language matching
+  const expandedKeywords = getExpandedKeywords(typeKeywords);
+
   // Check for full item name match first (strongest signal)
   if (allProdText.includes(itemName)) {
     reasons.push(`Type match: ${item.item_name}`);
     score += 50;
   } else {
-    // Check for meaningful keyword matches — require the most specific word
-    const matchedKeywords = typeKeywords.filter(kw => allProdText.includes(kw));
+    // Check for meaningful keyword matches (including synonyms)
+    const matchedKeywords = expandedKeywords.filter(kw => allProdText.includes(kw));
+    // Also track which original keywords led to matches
+    const matchedOriginals = typeKeywords.filter(kw => {
+      if (allProdText.includes(kw)) return true;
+      const syns = SYNONYM_MAP.get(kw);
+      return syns && Array.from(syns).some(s => allProdText.includes(s));
+    });
     if (matchedKeywords.length > 0) {
-      reasons.push(`Type match: ${matchedKeywords.join(", ")}`);
+      const displayTerms = matchedOriginals.length > 0 ? matchedOriginals : matchedKeywords.slice(0, 3);
+      reasons.push(`Type match: ${displayTerms.join(", ")}`);
       score += 20 + (matchedKeywords.length * 10);
     }
   }
@@ -300,19 +357,22 @@ const ShopExistingProducts = ({ item, onClose }: ShopExistingProductsProps) => {
     const fetchMatchingProducts = async () => {
       setLoading(true);
       try {
-        // Build a targeted query using item name keywords for server-side filtering
+        // Build a targeted query using item name keywords + synonyms for server-side filtering
         const itemNameLower = item.item_name.toLowerCase();
         const searchKeywords = itemNameLower
           .split(/\s+/)
           .filter(w => w.length > 2 && !FILLER_WORDS.has(w));
 
-        // First try: search by keywords in name/category/description
+        // Expand with synonyms for cross-language matching
+        const expandedSearchKeywords = getExpandedKeywords(searchKeywords);
+
+        // First try: search by keywords (including synonyms) in name/category/description
         let data: any[] = [];
         let error: any = null;
 
-        if (searchKeywords.length > 0) {
-          // Build OR filter to find products matching any keyword
-          const orFilter = searchKeywords
+        if (expandedSearchKeywords.length > 0) {
+          // Build OR filter to find products matching any keyword or synonym
+          const orFilter = expandedSearchKeywords
             .map(kw => `name.ilike.%${kw}%,category.ilike.%${kw}%,description.ilike.%${kw}%,ai_image_description.ilike.%${kw}%`)
             .join(",");
 
@@ -349,10 +409,20 @@ const ShopExistingProducts = ({ item, onClose }: ShopExistingProductsProps) => {
             return { ...p, matchReasons: reasons, matchScore: score } as MatchedProduct;
           })
           .filter((p) => p.matchReasons.some(r => r.toLowerCase().startsWith("type match")) && p.matchScore >= 25)
-          .sort((a, b) => b.matchScore - a.matchScore)
-          .slice(0, 8);
+          .sort((a, b) => b.matchScore - a.matchScore);
 
-        setProducts(scored);
+        // Deduplicate by product name — keep highest-scored version
+        const seen = new Set<string>();
+        const deduped: MatchedProduct[] = [];
+        for (const p of scored) {
+          const key = p.name.toLowerCase().trim();
+          if (!seen.has(key)) {
+            seen.add(key);
+            deduped.push(p);
+          }
+        }
+
+        setProducts(deduped.slice(0, 8));
       } catch (err) {
         console.error("Error fetching matching products:", err);
       } finally {
