@@ -357,19 +357,22 @@ const ShopExistingProducts = ({ item, onClose }: ShopExistingProductsProps) => {
     const fetchMatchingProducts = async () => {
       setLoading(true);
       try {
-        // Build a targeted query using item name keywords for server-side filtering
+        // Build a targeted query using item name keywords + synonyms for server-side filtering
         const itemNameLower = item.item_name.toLowerCase();
         const searchKeywords = itemNameLower
           .split(/\s+/)
           .filter(w => w.length > 2 && !FILLER_WORDS.has(w));
 
-        // First try: search by keywords in name/category/description
+        // Expand with synonyms for cross-language matching
+        const expandedSearchKeywords = getExpandedKeywords(searchKeywords);
+
+        // First try: search by keywords (including synonyms) in name/category/description
         let data: any[] = [];
         let error: any = null;
 
-        if (searchKeywords.length > 0) {
-          // Build OR filter to find products matching any keyword
-          const orFilter = searchKeywords
+        if (expandedSearchKeywords.length > 0) {
+          // Build OR filter to find products matching any keyword or synonym
+          const orFilter = expandedSearchKeywords
             .map(kw => `name.ilike.%${kw}%,category.ilike.%${kw}%,description.ilike.%${kw}%,ai_image_description.ilike.%${kw}%`)
             .join(",");
 
@@ -406,10 +409,20 @@ const ShopExistingProducts = ({ item, onClose }: ShopExistingProductsProps) => {
             return { ...p, matchReasons: reasons, matchScore: score } as MatchedProduct;
           })
           .filter((p) => p.matchReasons.some(r => r.toLowerCase().startsWith("type match")) && p.matchScore >= 25)
-          .sort((a, b) => b.matchScore - a.matchScore)
-          .slice(0, 8);
+          .sort((a, b) => b.matchScore - a.matchScore);
 
-        setProducts(scored);
+        // Deduplicate by product name — keep highest-scored version
+        const seen = new Set<string>();
+        const deduped: MatchedProduct[] = [];
+        for (const p of scored) {
+          const key = p.name.toLowerCase().trim();
+          if (!seen.has(key)) {
+            seen.add(key);
+            deduped.push(p);
+          }
+        }
+
+        setProducts(deduped.slice(0, 8));
       } catch (err) {
         console.error("Error fetching matching products:", err);
       } finally {
