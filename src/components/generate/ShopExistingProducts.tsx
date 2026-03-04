@@ -111,6 +111,44 @@ const getExpandedKeywords = (keywords: string[]): string[] => {
   return Array.from(expanded);
 };
 
+const normalizeText = (value: string): string =>
+  value
+    .toLowerCase()
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim()
+    .replace(/\s+/g, " ");
+
+const normalizeUrl = (value: string): string =>
+  value
+    .toLowerCase()
+    .replace(/^https?:\/\//, "")
+    .replace(/^www\./, "")
+    .replace(/[?#].*$/, "")
+    .replace(/\/+$/, "")
+    .trim();
+
+const getProductDedupKey = (product: Pick<MatchedProduct, "name" | "source_url">): string => {
+  const normalizedName = normalizeText(product.name || "");
+  const normalizedSource = product.source_url ? normalizeUrl(product.source_url) : "no-source";
+  return `${normalizedName}|${normalizedSource}`;
+};
+
+const dedupeProducts = (items: MatchedProduct[]): MatchedProduct[] => {
+  const seen = new Set<string>();
+  const deduped: MatchedProduct[] = [];
+
+  for (const item of items) {
+    const key = getProductDedupKey(item);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    deduped.push(item);
+  }
+
+  return deduped;
+};
+
 const computeMatchReasons = (
   product: any,
   item: DesignItem
@@ -411,17 +449,8 @@ const ShopExistingProducts = ({ item, onClose }: ShopExistingProductsProps) => {
           .filter((p) => p.matchReasons.some(r => r.toLowerCase().startsWith("type match")) && p.matchScore >= 25)
           .sort((a, b) => b.matchScore - a.matchScore);
 
-        // Deduplicate by product name — keep highest-scored version
-        const seen = new Set<string>();
-        const deduped: MatchedProduct[] = [];
-        for (const p of scored) {
-          const key = p.name.toLowerCase().trim();
-          if (!seen.has(key)) {
-            seen.add(key);
-            deduped.push(p);
-          }
-        }
-
+        // Deduplicate by normalized product identity (name + source URL)
+        const deduped = dedupeProducts(scored);
         setProducts(deduped.slice(0, 8));
       } catch (err) {
         console.error("Error fetching matching products:", err);
@@ -433,6 +462,9 @@ const ShopExistingProducts = ({ item, onClose }: ShopExistingProductsProps) => {
     fetchMatchingProducts();
   }, [item, refreshKey]);
 
+  // Defensive dedupe at render time too (protects against transient duplicate states)
+  const visibleProducts = dedupeProducts(products);
+
   return (
     <div className="mt-2 p-3 rounded-lg border border-primary/20 bg-primary/5 space-y-3 animate-fade-in">
       <div className="flex items-center justify-between">
@@ -441,7 +473,7 @@ const ShopExistingProducts = ({ item, onClose }: ShopExistingProductsProps) => {
           <span className="text-sm font-semibold">Matching Products from Catalog</span>
           {!loading && (
             <Badge variant="secondary" className="text-xs">
-              {products.length} found
+              {visibleProducts.length} found
             </Badge>
           )}
         </div>
@@ -459,7 +491,7 @@ const ShopExistingProducts = ({ item, onClose }: ShopExistingProductsProps) => {
             <Skeleton key={i} className="h-16 w-full rounded-md" />
           ))}
         </div>
-      ) : products.length === 0 ? (
+      ) : visibleProducts.length === 0 ? (
         <div className="text-center py-3 space-y-2">
           <p className="text-xs text-muted-foreground">
             No matching products found in the catalog for this item.
@@ -470,7 +502,7 @@ const ShopExistingProducts = ({ item, onClose }: ShopExistingProductsProps) => {
         </div>
       ) : (
         <div className="space-y-2 max-h-[300px] overflow-y-auto">
-          {products.map((product) => (
+          {visibleProducts.map((product) => (
             <div
               key={product.id}
               className="flex gap-3 p-2 rounded-md bg-background border border-border/50 hover:border-primary/30 transition-colors"
