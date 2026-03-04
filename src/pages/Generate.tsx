@@ -1634,8 +1634,8 @@ const Generate = () => {
           </div>
         )}
 
-        {/* Try Another Style */}
-        {design && !generating && !design.isLocked && quizData && (
+        {/* Try Another Style - hidden for now */}
+        {/* {design && !generating && !design.isLocked && quizData && (
           <div className="max-w-3xl mx-auto">
             <TryAnotherStyle
               currentStyle={quizData.stylePreference}
@@ -1644,7 +1644,7 @@ const Generate = () => {
               disabled={generating || extractingItems}
             />
           </div>
-        )}
+        )} */}
 
         {/* Design Items List - Show when items exist or extracting */}
         {design && (designItems.length > 0 || extractingItems) && (
