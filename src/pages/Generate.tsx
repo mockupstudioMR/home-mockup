@@ -1233,6 +1233,36 @@ const Generate = () => {
       setGenerating(false);
     }
   };
+  const handleUndoDesign = async () => {
+    if (!design || imageHistoryStack.length === 0) return;
+
+    const previousImageUrl = imageHistoryStack[imageHistoryStack.length - 1];
+    const newStack = imageHistoryStack.slice(0, -1);
+    setImageHistoryStack(newStack);
+
+    // Pop last modification from history
+    const newHistory = modificationHistory.slice(0, -1);
+    setModificationHistory(newHistory);
+
+    // Update DB
+    if (!design.id.startsWith("design-")) {
+      await supabase
+        .from("generated_designs")
+        .update({
+          modification_history: newHistory,
+          image_url: previousImageUrl,
+        })
+        .eq("id", design.id);
+    }
+
+    setDesign({ ...design, imageUrl: previousImageUrl });
+    generateHighlights(previousImageUrl);
+
+    toast({
+      title: "Reverted",
+      description: "Went back to previous design version",
+    });
+  };
 
   const handleAdjustToRoom = async () => {
     if (!quizData || !design || !user || existingRoomImages.length === 0) {
