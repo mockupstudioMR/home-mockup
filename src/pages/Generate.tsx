@@ -232,6 +232,12 @@ const Generate = () => {
     }
   });
   const [referenceImageUrl, setReferenceImageUrl] = useState<string | null>(null);
+  const [imageHistoryStack, setImageHistoryStack] = useState<string[]>(() => {
+    try {
+      const cached = sessionStorage.getItem('generate_image_history_stack');
+      return cached ? JSON.parse(cached) : [];
+    } catch { return []; }
+  });
   const [isolatingPhotos, setIsolatingPhotos] = useState(false);
   const [existingRoomImages, setExistingRoomImages] = useState<string[]>([]);
   const [uploadingReference, setUploadingReference] = useState(false);
