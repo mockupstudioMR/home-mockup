@@ -440,6 +440,7 @@ const Generate = () => {
       setDesignItems([]);
       setFullDescription("");
       setModificationHistory([]);
+      setImageHistoryStack([]);
       setExtractingItems(false);
       setDebugSteps([]);
       setDebugPrompt("");
