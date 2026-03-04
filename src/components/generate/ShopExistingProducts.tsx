@@ -111,6 +111,44 @@ const getExpandedKeywords = (keywords: string[]): string[] => {
   return Array.from(expanded);
 };
 
+const normalizeText = (value: string): string =>
+  value
+    .toLowerCase()
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim()
+    .replace(/\s+/g, " ");
+
+const normalizeUrl = (value: string): string =>
+  value
+    .toLowerCase()
+    .replace(/^https?:\/\//, "")
+    .replace(/^www\./, "")
+    .replace(/[?#].*$/, "")
+    .replace(/\/+$/, "")
+    .trim();
+
+const getProductDedupKey = (product: Pick<MatchedProduct, "name" | "source_url">): string => {
+  const normalizedName = normalizeText(product.name || "");
+  const normalizedSource = product.source_url ? normalizeUrl(product.source_url) : "no-source";
+  return `${normalizedName}|${normalizedSource}`;
+};
+
+const dedupeProducts = (items: MatchedProduct[]): MatchedProduct[] => {
+  const seen = new Set<string>();
+  const deduped: MatchedProduct[] = [];
+
+  for (const item of items) {
+    const key = getProductDedupKey(item);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    deduped.push(item);
+  }
+
+  return deduped;
+};
+
 const computeMatchReasons = (
   product: any,
   item: DesignItem
