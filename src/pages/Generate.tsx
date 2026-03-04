@@ -232,6 +232,12 @@ const Generate = () => {
     }
   });
   const [referenceImageUrl, setReferenceImageUrl] = useState<string | null>(null);
+  const [imageHistoryStack, setImageHistoryStack] = useState<string[]>(() => {
+    try {
+      const cached = sessionStorage.getItem('generate_image_history_stack');
+      return cached ? JSON.parse(cached) : [];
+    } catch { return []; }
+  });
   const [isolatingPhotos, setIsolatingPhotos] = useState(false);
   const [existingRoomImages, setExistingRoomImages] = useState<string[]>([]);
   const [uploadingReference, setUploadingReference] = useState(false);
@@ -352,6 +358,12 @@ const Generate = () => {
     }
   }, [modificationHistory, safeSessionStorage]);
 
+  useEffect(() => {
+    if (imageHistoryStack.length > 0) {
+      safeSessionStorage('generate_image_history_stack', JSON.stringify(imageHistoryStack));
+    }
+  }, [imageHistoryStack, safeSessionStorage]);
+
   // Cache extracting state to persist across tab switches
   useEffect(() => {
     safeSessionStorage('generate_extracting_cache', extractingItems ? 'true' : 'false');
@@ -414,6 +426,7 @@ const Generate = () => {
       sessionStorage.removeItem('generate_items_cache');
       sessionStorage.removeItem('generate_description_cache');
       sessionStorage.removeItem('generate_history_cache');
+      sessionStorage.removeItem('generate_image_history_stack');
       sessionStorage.removeItem('generate_extracting_cache');
       sessionStorage.removeItem('generate_quiz_response_id');
       sessionStorage.removeItem('generate_debug_steps_cache');
@@ -427,6 +440,7 @@ const Generate = () => {
       setDesignItems([]);
       setFullDescription("");
       setModificationHistory([]);
+      setImageHistoryStack([]);
       setExtractingItems(false);
       setDebugSteps([]);
       setDebugPrompt("");
@@ -1175,6 +1189,9 @@ const Generate = () => {
       if (steps) setDebugSteps(steps);
       if (usedPrompt) setDebugPrompt(usedPrompt);
 
+      // Push current image to undo stack before replacing
+      setImageHistoryStack((prev) => [...prev, design.imageUrl]);
+
       // Track modification in history
       const newHistory = [...modificationHistory, modificationInput];
       setModificationHistory(newHistory);
@@ -1215,6 +1232,36 @@ const Generate = () => {
     } finally {
       setGenerating(false);
     }
+  };
+  const handleUndoDesign = async () => {
+    if (!design || imageHistoryStack.length === 0) return;
+
+    const previousImageUrl = imageHistoryStack[imageHistoryStack.length - 1];
+    const newStack = imageHistoryStack.slice(0, -1);
+    setImageHistoryStack(newStack);
+
+    // Pop last modification from history
+    const newHistory = modificationHistory.slice(0, -1);
+    setModificationHistory(newHistory);
+
+    // Update DB
+    if (!design.id.startsWith("design-")) {
+      await supabase
+        .from("generated_designs")
+        .update({
+          modification_history: newHistory,
+          image_url: previousImageUrl,
+        })
+        .eq("id", design.id);
+    }
+
+    setDesign({ ...design, imageUrl: previousImageUrl });
+    generateHighlights(previousImageUrl);
+
+    toast({
+      title: "Reverted",
+      description: "Went back to previous design version",
+    });
   };
 
   const handleAdjustToRoom = async () => {
@@ -1587,6 +1634,8 @@ const Generate = () => {
               onModificationInputChange={setModificationInput}
               onModify={handleModify}
               onRegenerate={() => generateDesign()}
+              onUndo={handleUndoDesign}
+              canUndo={imageHistoryStack.length > 0}
               generating={generating}
               referenceImageUrl={referenceImageUrl}
               onReferenceUpload={handleReferenceUpload}

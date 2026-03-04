@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Send, RefreshCw, Upload, X, Loader2, Palette, ArrowLeftRight, Plus, LayoutGrid } from "lucide-react";
+import { Send, RefreshCw, Upload, X, Loader2, Palette, ArrowLeftRight, Plus, LayoutGrid, Undo2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export type ModificationType = "color_material" | "swap_item" | "add_remove" | "layout";
@@ -11,6 +11,8 @@ interface RefinementPanelProps {
   onModificationInputChange: (value: string) => void;
   onModify: (type: ModificationType) => void;
   onRegenerate: () => void;
+  onUndo?: () => void;
+  canUndo?: boolean;
   generating: boolean;
   referenceImageUrl?: string | null;
   onReferenceUpload?: (e: React.ChangeEvent<HTMLInputElement>) => void;
@@ -54,6 +56,8 @@ const RefinementPanel = ({
   onModificationInputChange,
   onModify,
   onRegenerate,
+  onUndo,
+  canUndo = false,
   generating,
   referenceImageUrl,
   onReferenceUpload,
@@ -148,6 +152,11 @@ const RefinementPanel = ({
         <Button variant="outline" onClick={onRegenerate} disabled={generating}>
           <RefreshCw className="w-4 h-4" />
         </Button>
+        {canUndo && (
+          <Button variant="outline" onClick={onUndo} disabled={generating} title="Go back to previous design">
+            <Undo2 className="w-4 h-4" />
+          </Button>
+        )}
       </div>
     </div>
   );
