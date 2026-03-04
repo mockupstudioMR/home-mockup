@@ -69,8 +69,8 @@ const FILLER_WORDS = new Set([
 const SYNONYM_GROUPS: string[][] = [
   ["sideboard", "kommode", "chest", "dresser", "credenza", "buffet", "cabinet"],
   ["vitrine", "display cabinet", "showcase", "glass cabinet"],
-  ["sofa", "couch", "settee"],
-  ["chair", "stuhl", "sessel", "armchair", "fauteuil"],
+  ["sofa", "couch", "settee", "modulsofa", "sofaserie"],
+  ["chair", "stuhl", "sessel", "armchair", "fauteuil", "lounge chair"],
   ["table", "tisch", "desk", "schreibtisch"],
   ["lamp", "lampe", "leuchte", "light fixture", "floor lamp", "stehlampe"],
   ["shelf", "regal", "shelving", "bookshelf", "bücherregal"],
