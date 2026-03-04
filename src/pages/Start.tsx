@@ -35,8 +35,8 @@ const Start = () => {
     {
       id: "style-tree",
       icon: <Palette className="w-8 h-8" />,
-      title: "Browse Style Tree",
-      description: "Explore curated interior styles and find your perfect aesthetic",
+      title: "Explore Design Styles",
+      description: "Discover curated interior styles and find the perfect look for your space",
       preview: [modernMinimal, rusticNature, glamLuxe],
       path: "/style-tree",
     },
