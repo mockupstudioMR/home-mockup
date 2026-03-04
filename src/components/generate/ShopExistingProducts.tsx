@@ -177,6 +177,10 @@ const computeMatchReasons = (
   if (allProdText.includes(itemName)) {
     reasons.push(`Type match: ${item.item_name}`);
     score += 50;
+    // Extra boost if the match is in the product NAME specifically (exact product match)
+    if (prodName.includes(itemName)) {
+      score += 30;
+    }
   } else {
     // Check for meaningful keyword matches (including synonyms)
     const matchedKeywords = expandedKeywords.filter(kw => allProdText.includes(kw));
@@ -190,6 +194,11 @@ const computeMatchReasons = (
       const displayTerms = matchedOriginals.length > 0 ? matchedOriginals : matchedKeywords.slice(0, 3);
       reasons.push(`Type match: ${displayTerms.join(", ")}`);
       score += 20 + (matchedKeywords.length * 10);
+      // Boost if keywords match directly in product name (not just description)
+      const nameMatchCount = expandedKeywords.filter(kw => prodName.includes(kw)).length;
+      if (nameMatchCount > 0) {
+        score += 15 + (nameMatchCount * 5);
+      }
     }
   }
 
