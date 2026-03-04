@@ -132,15 +132,25 @@ const computeMatchReasons = (
     .split(/\s+/)
     .filter(w => w.length > 2 && !FILLER_WORDS.has(w));
 
+  // Expand keywords with synonyms for cross-language matching
+  const expandedKeywords = getExpandedKeywords(typeKeywords);
+
   // Check for full item name match first (strongest signal)
   if (allProdText.includes(itemName)) {
     reasons.push(`Type match: ${item.item_name}`);
     score += 50;
   } else {
-    // Check for meaningful keyword matches — require the most specific word
-    const matchedKeywords = typeKeywords.filter(kw => allProdText.includes(kw));
+    // Check for meaningful keyword matches (including synonyms)
+    const matchedKeywords = expandedKeywords.filter(kw => allProdText.includes(kw));
+    // Also track which original keywords led to matches
+    const matchedOriginals = typeKeywords.filter(kw => {
+      if (allProdText.includes(kw)) return true;
+      const syns = SYNONYM_MAP.get(kw);
+      return syns && Array.from(syns).some(s => allProdText.includes(s));
+    });
     if (matchedKeywords.length > 0) {
-      reasons.push(`Type match: ${matchedKeywords.join(", ")}`);
+      const displayTerms = matchedOriginals.length > 0 ? matchedOriginals : matchedKeywords.slice(0, 3);
+      reasons.push(`Type match: ${displayTerms.join(", ")}`);
       score += 20 + (matchedKeywords.length * 10);
     }
   }
