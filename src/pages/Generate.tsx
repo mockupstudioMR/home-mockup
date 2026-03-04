@@ -1189,6 +1189,9 @@ const Generate = () => {
       if (steps) setDebugSteps(steps);
       if (usedPrompt) setDebugPrompt(usedPrompt);
 
+      // Push current image to undo stack before replacing
+      setImageHistoryStack((prev) => [...prev, design.imageUrl]);
+
       // Track modification in history
       const newHistory = [...modificationHistory, modificationInput];
       setModificationHistory(newHistory);
