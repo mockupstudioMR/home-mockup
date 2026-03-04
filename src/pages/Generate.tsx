@@ -1634,6 +1634,8 @@ const Generate = () => {
               onModificationInputChange={setModificationInput}
               onModify={handleModify}
               onRegenerate={() => generateDesign()}
+              onUndo={handleUndoDesign}
+              canUndo={imageHistoryStack.length > 0}
               generating={generating}
               referenceImageUrl={referenceImageUrl}
               onReferenceUpload={handleReferenceUpload}
