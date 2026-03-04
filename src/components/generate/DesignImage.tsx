@@ -147,6 +147,8 @@ const DesignImage = ({
             onModificationInputChange={(v) => onModificationInputChange?.(v)}
             onModify={(type) => onModify?.(type)}
             onRegenerate={() => onRegenerate?.()}
+            onUndo={onUndo}
+            canUndo={canUndo}
             generating={generating}
             referenceImageUrl={referenceImageUrl}
             onReferenceUpload={onReferenceUpload}
