@@ -31,8 +31,8 @@ const Index = () => {
     },
     {
       icon: <Palette className="w-6 h-6" />,
-      title: "Browse Style Tree",
-      description: "Explore curated interior styles and find your perfect aesthetic",
+      title: "Explore Design Styles",
+      description: "Discover curated interior styles and find the perfect look for your space",
       path: "/style-tree",
     },
     {
