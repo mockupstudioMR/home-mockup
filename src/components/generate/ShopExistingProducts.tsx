@@ -56,6 +56,14 @@ const categoryFromItemType = (itemType: string): string => {
   return map[itemType] || "other";
 };
 
+// Common filler words to exclude from matching
+const FILLER_WORDS = new Set([
+  "a", "an", "the", "and", "or", "of", "in", "on", "for", "to", "with",
+  "light", "dark", "small", "large", "big", "new", "old", "set",
+  "white", "black", "brown", "grey", "gray", "beige", "cream", "blue",
+  "green", "red", "yellow", "pink", "orange", "gold", "silver",
+]);
+
 const computeMatchReasons = (
   product: any,
   item: DesignItem
@@ -64,21 +72,41 @@ const computeMatchReasons = (
   let score = 0;
 
   const itemName = item.item_name.toLowerCase();
+  const itemType = (item.item_type || "").toLowerCase();
   const prodCat = (product.category || "").toLowerCase();
   const prodName = (product.name || "").toLowerCase();
   const prodDesc = (product.description || "").toLowerCase();
   const prodAiDesc = (product.ai_image_description || "").toLowerCase();
+  const allProdText = `${prodName} ${prodCat} ${prodDesc} ${prodAiDesc}`;
 
-  const itemKeywords = itemName.split(/\s+/).filter(w => w.length > 2);
-  const typeMatches = itemKeywords.filter(kw =>
-    prodName.includes(kw) || prodCat.includes(kw) || prodDesc.includes(kw) || prodAiDesc.includes(kw)
-  );
+  // 1. Primary: match the core product type (e.g., "sideboard", "chair", "lamp")
+  //    Extract meaningful type keywords (>3 chars, not filler/color words)
+  const typeKeywords = itemName
+    .split(/\s+/)
+    .filter(w => w.length > 3 && !FILLER_WORDS.has(w));
 
-  if (typeMatches.length > 0) {
-    reasons.push(`Type match: ${typeMatches.join(", ")}`);
-    score += 30 + (typeMatches.length * 5);
+  // Check for full item name match first (strongest signal)
+  if (allProdText.includes(itemName)) {
+    reasons.push(`Type match: ${item.item_name}`);
+    score += 50;
+  } else {
+    // Check for meaningful keyword matches — require the most specific word
+    const matchedKeywords = typeKeywords.filter(kw => allProdText.includes(kw));
+    if (matchedKeywords.length > 0) {
+      reasons.push(`Type match: ${matchedKeywords.join(", ")}`);
+      score += 20 + (matchedKeywords.length * 10);
+    }
   }
 
+  // 2. Also check item_type against product category
+  if (itemType && (prodCat.includes(itemType) || itemType.includes(prodCat))) {
+    if (!reasons.some(r => r.startsWith("Type match"))) {
+      reasons.push(`Type match: ${itemType}`);
+      score += 15;
+    }
+  }
+
+  // 3. Style matching
   const itemStyle = (item.style || "").toLowerCase();
   const prodStyle = (product.style || "").toLowerCase();
   const prodTags = (product.ai_style_tags || []).map((t: string) => t.toLowerCase());
@@ -91,32 +119,22 @@ const computeMatchReasons = (
     score += 20;
   }
 
+  // 4. Color matching
   const itemColor = (item.color || "").toLowerCase();
-  if (itemColor) {
-    if (prodName.includes(itemColor) || prodDesc.includes(itemColor) || prodAiDesc.includes(itemColor)) {
+  if (itemColor && itemColor.length > 2) {
+    if (allProdText.includes(itemColor)) {
       reasons.push(`Color match: ${item.color}`);
-      score += 20;
-    }
-  }
-
-  const itemMaterial = (item.material || "").toLowerCase();
-  if (itemMaterial) {
-    if (prodName.includes(itemMaterial) || prodDesc.includes(itemMaterial) || prodAiDesc.includes(itemMaterial)) {
-      reasons.push(`Material match: ${item.material}`);
       score += 15;
     }
   }
 
-  const itemWords = item.item_name.toLowerCase().split(/\s+/).filter(w => w.length > 3);
-  const nameMatches = itemWords.filter(w => prodName.includes(w) || prodDesc.includes(w));
-  if (nameMatches.length > 0) {
-    reasons.push(`Keyword match: ${nameMatches.join(", ")}`);
-    score += 10 * nameMatches.length;
-  }
-
-  if (reasons.length === 0) {
-    reasons.push("Available in catalog");
-    score += 5;
+  // 5. Material matching
+  const itemMaterial = (item.material || "").toLowerCase();
+  if (itemMaterial && itemMaterial.length > 2) {
+    if (allProdText.includes(itemMaterial)) {
+      reasons.push(`Material match: ${item.material}`);
+      score += 15;
+    }
   }
 
   return { reasons, score };
@@ -295,7 +313,7 @@ const ShopExistingProducts = ({ item, onClose }: ShopExistingProductsProps) => {
             const { reasons, score } = computeMatchReasons(p, item);
             return { ...p, matchReasons: reasons, matchScore: score } as MatchedProduct;
           })
-          .filter((p) => p.matchReasons.some(r => r.toLowerCase().startsWith("type match")))
+          .filter((p) => p.matchReasons.some(r => r.toLowerCase().startsWith("type match")) && p.matchScore >= 25)
           .sort((a, b) => b.matchScore - a.matchScore)
           .slice(0, 8);
 
