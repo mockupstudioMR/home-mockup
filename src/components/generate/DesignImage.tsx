@@ -23,6 +23,8 @@ interface DesignImageProps {
   onModificationInputChange?: (value: string) => void;
   onModify?: (type: ModificationType) => void;
   onRegenerate?: () => void;
+  onUndo?: () => void;
+  canUndo?: boolean;
   generating?: boolean;
   referenceImageUrl?: string | null;
   onReferenceUpload?: (e: React.ChangeEvent<HTMLInputElement>) => void;
@@ -50,6 +52,8 @@ const DesignImage = ({
   onModificationInputChange,
   onModify,
   onRegenerate,
+  onUndo,
+  canUndo = false,
   generating = false,
   referenceImageUrl,
   onReferenceUpload,
