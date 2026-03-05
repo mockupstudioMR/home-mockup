@@ -392,6 +392,14 @@ const Generate = () => {
       return;
     }
 
+    // If resuming a design by ID (no quiz data needed)
+    if (resumeDesignId && !quizData) {
+      if (hasInitializedRef.current) return;
+      hasInitializedRef.current = true;
+      loadDesignById(resumeDesignId);
+      return;
+    }
+
     if (!quizData) {
       navigate("/quiz");
       return;
@@ -478,7 +486,7 @@ const Generate = () => {
 
     // Check for existing design first, only generate if none exists
     loadExistingOrGenerate();
-  }, [user, loading, navigate, quizData]);
+  }, [user, loading, navigate, quizData, resumeDesignId]);
 
   const loadExistingOrGenerate = async () => {
     if (!user || !quizData) return;
