@@ -488,6 +488,57 @@ const Generate = () => {
     loadExistingOrGenerate();
   }, [user, loading, navigate, quizData, resumeDesignId]);
 
+  const loadDesignById = async (designId: string) => {
+    if (!user) return;
+    setGenerating(true);
+    try {
+      const { data: existingDesign, error } = await supabase
+        .from("generated_designs")
+        .select("*")
+        .eq("id", designId)
+        .eq("user_id", user.id)
+        .single();
+
+      if (error || !existingDesign) {
+        toast({ title: "Error", description: "Design not found", variant: "destructive" });
+        navigate("/gallery");
+        return;
+      }
+
+      setDesign({
+        id: existingDesign.id,
+        imageUrl: existingDesign.image_url,
+        title: "Your Personalized Design",
+        description: existingDesign.full_description || "Custom room design based on your style preferences",
+        isFavorite: existingDesign.is_favorite || false,
+        isLocked: existingDesign.is_locked || false,
+      });
+
+      if (existingDesign.modification_history) {
+        setModificationHistory(existingDesign.modification_history as string[]);
+      }
+      if (existingDesign.full_description) {
+        setFullDescription(existingDesign.full_description);
+      }
+      if (existingDesign.prompt && !debugPrompt) {
+        setDebugPrompt(existingDesign.prompt);
+      }
+      if (existingDesign.is_locked) {
+        loadDesignItems(existingDesign.id);
+        setExtractingItems(false);
+      }
+      if (!highlightsData) {
+        generateHighlights(existingDesign.image_url);
+      }
+    } catch (err) {
+      console.error("Error loading design by ID:", err);
+      toast({ title: "Error", description: "Failed to load design", variant: "destructive" });
+      navigate("/gallery");
+    } finally {
+      setGenerating(false);
+    }
+  };
+
   const loadExistingOrGenerate = async () => {
     if (!user || !quizData) return;
 
