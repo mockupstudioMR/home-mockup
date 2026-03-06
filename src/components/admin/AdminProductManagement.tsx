@@ -809,7 +809,35 @@ const AdminProductManagement = () => {
                           )}
                           
                           <div className="flex items-center gap-2 flex-wrap mb-3">
-                            <Badge variant="secondary">{product.category}</Badge>
+                            {editingField?.productId === product.id && editingField?.field === "category" ? (
+                              <form
+                                className="flex items-center gap-1"
+                                onSubmit={(e) => {
+                                  e.preventDefault();
+                                  updateProductMutation.mutate({ productId: product.id, updates: { category: editingFieldValue } }, {
+                                    onSuccess: () => setEditingField(null),
+                                  });
+                                }}
+                              >
+                                <Input
+                                  autoFocus
+                                  value={editingFieldValue}
+                                  onChange={(e) => setEditingFieldValue(e.target.value)}
+                                  className="h-6 w-24 text-xs px-2"
+                                  onBlur={() => setEditingField(null)}
+                                  onKeyDown={(e) => e.key === "Escape" && setEditingField(null)}
+                                />
+                              </form>
+                            ) : (
+                              <Badge
+                                variant="secondary"
+                                className="cursor-pointer hover:bg-secondary/80"
+                                onClick={() => { setEditingField({ productId: product.id, field: "category" }); setEditingFieldValue(product.category); }}
+                              >
+                                {product.category}
+                                <Pencil className="w-2.5 h-2.5 ml-1 opacity-50" />
+                              </Badge>
+                            )}
                             {product.style && (
                               <Badge variant="outline">{product.style}</Badge>
                             )}
