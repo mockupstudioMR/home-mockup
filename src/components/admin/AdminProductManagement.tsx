@@ -427,7 +427,7 @@ const AdminProductManagement = () => {
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="category">Category *</Label>
+                  <Label htmlFor="category">Type *</Label>
                   <Select
                     value={newProduct.category}
                     onValueChange={(v) => setNewProduct({ ...newProduct, category: v })}
