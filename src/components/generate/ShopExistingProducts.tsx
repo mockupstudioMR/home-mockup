@@ -191,11 +191,10 @@ const computeMatchReasons = (
   const prodAiDesc = (product.ai_image_description || "").toLowerCase();
   const allProdText = `${prodName} ${prodCat} ${prodDesc} ${prodAiDesc}`;
 
-  // 1. Primary: match the core product type (e.g., "sideboard", "chair", "lamp")
-  //    Extract meaningful type keywords (>3 chars, not filler/color words)
+  // 1. Primary: match the core product type using only known item type keywords
   const typeKeywords = itemName
     .split(/\s+/)
-    .filter(w => w.length > 2 && !FILLER_WORDS.has(w));
+    .filter(w => w.length > 2 && VALID_TYPE_KEYWORDS.has(w));
 
   // Expand keywords with synonyms for cross-language matching
   const expandedKeywords = getExpandedKeywords(typeKeywords);
@@ -449,7 +448,7 @@ const ShopExistingProducts = ({ item, onClose }: ShopExistingProductsProps) => {
         const itemNameLower = item.item_name.toLowerCase();
         const searchKeywords = itemNameLower
           .split(/\s+/)
-          .filter(w => w.length > 2 && !FILLER_WORDS.has(w));
+          .filter(w => w.length > 2 && VALID_TYPE_KEYWORDS.has(w));
 
         // Expand with synonyms for cross-language matching
         const expandedSearchKeywords = getExpandedKeywords(searchKeywords);
