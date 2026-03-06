@@ -4,6 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Pencil, Check } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -110,6 +111,30 @@ interface DesignItem {
   };
 }
 
+// Generate a suggested design name from style & room type
+const generateDesignTitle = (style?: string, roomType?: string): string => {
+  const styleTitles: Record<string, string[]> = {
+    "modern-minimal": ["Clean Lines Retreat", "Minimal Serenity", "Modern Calm"],
+    "bohemian-eclectic": ["Bohemian Dream", "Eclectic Oasis", "Free Spirit Haven"],
+    "glam-luxe": ["Luxe Elegance", "Golden Hour Suite", "Glamorous Escape"],
+    "rustic-nature": ["Nature's Embrace", "Rustic Warmth", "Woodland Comfort"],
+    "mediterranean": ["Mediterranean Breeze", "Coastal Warmth", "Sun-Kissed Villa"],
+    "classic-historical": ["Timeless Grandeur", "Heritage Charm", "Classic Revival"],
+  };
+  const roomLabels: Record<string, string> = {
+    "living-room": "Living Room",
+    bedroom: "Bedroom",
+    kitchen: "Kitchen",
+    bathroom: "Bathroom",
+    office: "Home Office",
+  };
+  const styleKey = style?.replace(/_/g, "-") || "";
+  const options = styleTitles[styleKey] || ["Inspired Design"];
+  const pick = options[Math.floor(Math.random() * options.length)];
+  const room = roomLabels[roomType || ""] || "Room";
+  return `${pick} – ${room}`;
+};
+
 const Generate = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -198,6 +223,8 @@ const Generate = () => {
   const [highlightsData, setHighlightsData] = useState<DesignHighlightsData | null>(getInitialHighlights);
   const [generatingHighlights, setGeneratingHighlights] = useState(false);
   const [applyingHighlight, setApplyingHighlight] = useState<string | null>(null);
+  const [editingTitle, setEditingTitle] = useState(false);
+  const [titleDraft, setTitleDraft] = useState("");
   const [styleProfile, setStyleProfile] = useState<{
     matches: StyleMatch[];
     name: string;
@@ -508,7 +535,7 @@ const Generate = () => {
       setDesign({
         id: existingDesign.id,
         imageUrl: existingDesign.image_url,
-        title: "Your Personalized Design",
+        title: existingDesign.title || generateDesignTitle(quizData?.stylePreference, quizData?.roomType),
         description: existingDesign.full_description || "Custom room design based on your style preferences",
         isFavorite: existingDesign.is_favorite || false,
         isLocked: existingDesign.is_locked || false,
@@ -590,7 +617,7 @@ const Generate = () => {
       setDesign({
         id: existingDesign.id,
         imageUrl: existingDesign.image_url,
-        title: "Your Personalized Design",
+        title: existingDesign.title || generateDesignTitle(quizData?.stylePreference, quizData?.roomType),
         description: existingDesign.full_description || "Custom room design based on your style preferences",
         isFavorite: existingDesign.is_favorite || false,
         isLocked: existingDesign.is_locked || false,
@@ -723,6 +750,7 @@ const Generate = () => {
       if (scenePreviewImage) {
         const storedImageUrl = await uploadDesignImage(scenePreviewImage, user.id);
 
+        const designTitle = generateDesignTitle(quizData.stylePreference, quizData.roomType);
         const { data: savedDesign } = await supabase
           .from("generated_designs")
           .insert({
@@ -731,6 +759,7 @@ const Generate = () => {
             prompt: "Scene preview selected from product analysis",
             source_image_url: quizData.sourceImageUrl,
             quiz_response_id: quizResponseId,
+            title: designTitle,
           })
           .select()
           .single();
@@ -738,7 +767,7 @@ const Generate = () => {
         const newDesign: GeneratedDesign = {
           id: savedDesign?.id || `design-${Date.now()}`,
           imageUrl: storedImageUrl,
-          title: "Your Personalized Design",
+          title: designTitle,
           description: "Design based on your selected scene preview",
           isFavorite: false,
         };
@@ -784,6 +813,7 @@ const Generate = () => {
       const storedImageUrl = await uploadDesignImage(imageUrl, user.id);
 
       // Save to database with quiz_response_id link
+      const designTitle = generateDesignTitle(quizData.stylePreference, quizData.roomType);
       const { data: savedDesign } = await supabase
         .from("generated_designs")
         .insert({
@@ -792,6 +822,7 @@ const Generate = () => {
           prompt: usedPrompt,
           source_image_url: quizData.sourceImageUrl,
           quiz_response_id: quizResponseId,
+          title: designTitle,
         })
         .select()
         .single();
@@ -799,7 +830,7 @@ const Generate = () => {
       const newDesign: GeneratedDesign = {
         id: savedDesign?.id || `design-${Date.now()}`,
         imageUrl,
-        title: "Your Personalized Design",
+        title: designTitle,
         description: "Custom room design based on your style preferences",
         isFavorite: false,
       };
@@ -868,6 +899,7 @@ const Generate = () => {
 
         const storedImageUrl = await uploadDesignImage(imageUrl, user.id);
 
+        const styleTitle = generateDesignTitle(newStyle, quizData.roomType);
         const { data: savedDesign } = await supabase
           .from("generated_designs")
           .insert({
@@ -875,6 +907,7 @@ const Generate = () => {
             image_url: storedImageUrl,
             prompt: usedPrompt,
             source_image_url: overriddenQuiz.sourceImageUrl,
+            title: styleTitle,
           })
           .select()
           .single();
@@ -882,7 +915,7 @@ const Generate = () => {
         const newDesign: GeneratedDesign = {
           id: savedDesign?.id || `design-${Date.now()}`,
           imageUrl,
-          title: "Your Personalized Design",
+          title: styleTitle,
           description: "Custom room design based on your style preferences",
           isFavorite: false,
         };
@@ -1658,9 +1691,55 @@ const Generate = () => {
           </div>
 
           <div className={activeTab === "current" ? "space-y-8" : "hidden"}>
-            {/* Page Title */}
+            {/* Page Title – editable design name */}
             <div className="text-center space-y-2">
-              <h1 className="text-3xl md:text-4xl font-bold">Your Design Results</h1>
+              {design && !editingTitle ? (
+                <button
+                  onClick={() => { setTitleDraft(design.title); setEditingTitle(true); }}
+                  className="inline-flex items-center gap-2 group"
+                >
+                  <h1 className="text-3xl md:text-4xl font-bold">{design.title}</h1>
+                  <Pencil className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                </button>
+              ) : design && editingTitle ? (
+                <div className="inline-flex items-center gap-2 max-w-md mx-auto">
+                  <Input
+                    value={titleDraft}
+                    onChange={(e) => setTitleDraft(e.target.value)}
+                    className="text-center text-2xl font-bold h-12"
+                    autoFocus
+                    onKeyDown={async (e) => {
+                      if (e.key === "Enter") {
+                        const newTitle = titleDraft.trim() || design.title;
+                        setDesign({ ...design, title: newTitle });
+                        setEditingTitle(false);
+                        if (!design.id.startsWith("design-")) {
+                          await supabase.from("generated_designs").update({ title: newTitle }).eq("id", design.id);
+                        }
+                      } else if (e.key === "Escape") {
+                        setEditingTitle(false);
+                      }
+                    }}
+                  />
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-8 w-8 p-0"
+                    onClick={async () => {
+                      const newTitle = titleDraft.trim() || design.title;
+                      setDesign({ ...design, title: newTitle });
+                      setEditingTitle(false);
+                      if (!design.id.startsWith("design-")) {
+                        await supabase.from("generated_designs").update({ title: newTitle }).eq("id", design.id);
+                      }
+                    }}
+                  >
+                    <Check className="w-4 h-4" />
+                  </Button>
+                </div>
+              ) : (
+                <h1 className="text-3xl md:text-4xl font-bold">Your Design Results</h1>
+              )}
               <p className="text-muted-foreground">
                 Your personalized room design with key highlights
               </p>
