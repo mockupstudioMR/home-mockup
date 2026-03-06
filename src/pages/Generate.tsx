@@ -1691,9 +1691,55 @@ const Generate = () => {
           </div>
 
           <div className={activeTab === "current" ? "space-y-8" : "hidden"}>
-            {/* Page Title */}
+            {/* Page Title – editable design name */}
             <div className="text-center space-y-2">
-              <h1 className="text-3xl md:text-4xl font-bold">Your Design Results</h1>
+              {design && !editingTitle ? (
+                <button
+                  onClick={() => { setTitleDraft(design.title); setEditingTitle(true); }}
+                  className="inline-flex items-center gap-2 group"
+                >
+                  <h1 className="text-3xl md:text-4xl font-bold">{design.title}</h1>
+                  <Pencil className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                </button>
+              ) : design && editingTitle ? (
+                <div className="inline-flex items-center gap-2 max-w-md mx-auto">
+                  <Input
+                    value={titleDraft}
+                    onChange={(e) => setTitleDraft(e.target.value)}
+                    className="text-center text-2xl font-bold h-12"
+                    autoFocus
+                    onKeyDown={async (e) => {
+                      if (e.key === "Enter") {
+                        const newTitle = titleDraft.trim() || design.title;
+                        setDesign({ ...design, title: newTitle });
+                        setEditingTitle(false);
+                        if (!design.id.startsWith("design-")) {
+                          await supabase.from("generated_designs").update({ title: newTitle }).eq("id", design.id);
+                        }
+                      } else if (e.key === "Escape") {
+                        setEditingTitle(false);
+                      }
+                    }}
+                  />
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-8 w-8 p-0"
+                    onClick={async () => {
+                      const newTitle = titleDraft.trim() || design.title;
+                      setDesign({ ...design, title: newTitle });
+                      setEditingTitle(false);
+                      if (!design.id.startsWith("design-")) {
+                        await supabase.from("generated_designs").update({ title: newTitle }).eq("id", design.id);
+                      }
+                    }}
+                  >
+                    <Check className="w-4 h-4" />
+                  </Button>
+                </div>
+              ) : (
+                <h1 className="text-3xl md:text-4xl font-bold">Your Design Results</h1>
+              )}
               <p className="text-muted-foreground">
                 Your personalized room design with key highlights
               </p>
