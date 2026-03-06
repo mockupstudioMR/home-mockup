@@ -154,10 +154,10 @@ const AnalyzeProducts = () => {
         await supabase.from("shop_products").insert({
           shop_id: user.id,
           name: "Product from link",
-          category: "uncategorized",
+          type: "uncategorized",
           source_url: trimmedLink,
           is_active: true,
-        });
+        } as any);
       } catch (error: any) {
         console.error("Save link error:", error);
       }

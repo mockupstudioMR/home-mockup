@@ -44,7 +44,7 @@ const ShopDashboard = () => {
   const [newProduct, setNewProduct] = useState({
     name: "",
     description: "",
-    category: "",
+    type: "",
     style: "",
     price: "",
     source_url: "",
@@ -114,11 +114,11 @@ const ShopDashboard = () => {
           shop_id: user?.id,
           name: product.name,
           description: product.description,
-          category: product.category,
+          type: product.type,
           style: product.style,
           price: product.price ? parseFloat(product.price) : null,
           source_url: product.source_url || null,
-        })
+        } as any)
         .select()
         .single();
       
@@ -134,7 +134,7 @@ const ShopDashboard = () => {
       setNewProduct({
         name: "",
         description: "",
-        category: "",
+        type: "",
         style: "",
         price: "",
         source_url: "",
@@ -156,10 +156,10 @@ const ShopDashboard = () => {
 
   const handleAddProduct = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newProduct.name || !newProduct.category) {
+    if (!newProduct.name || !newProduct.type) {
       toast({
         title: "Missing fields",
-        description: "Please fill in product name and category.",
+        description: "Please fill in product name and type.",
         variant: "destructive",
       });
       return;
@@ -296,7 +296,7 @@ const ShopDashboard = () => {
                       )}
                       
                       <div className="flex items-center gap-2 flex-wrap">
-                        <Badge variant="secondary">{product.category}</Badge>
+                        <Badge variant="secondary">{(product as any).type}</Badge>
                         {product.price && (
                           <Badge variant="outline">
                             €{product.price}
@@ -500,10 +500,10 @@ const ShopDashboard = () => {
 
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <Label>Category *</Label>
+                        <Label>Type *</Label>
                         <Select
-                          value={newProduct.category}
-                          onValueChange={(v) => setNewProduct({ ...newProduct, category: v })}
+                          value={newProduct.type}
+                          onValueChange={(v) => setNewProduct({ ...newProduct, type: v })}
                         >
                           <SelectTrigger>
                             <SelectValue placeholder="Select..." />
