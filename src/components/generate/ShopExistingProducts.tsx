@@ -404,6 +404,22 @@ const ShopExistingProducts = ({ item, onClose }: ShopExistingProductsProps) => {
     const fetchMatchingProducts = async () => {
       setLoading(true);
       try {
+        // Fetch dynamic weights from cms_content
+        let weights = DEFAULT_WEIGHTS;
+        try {
+          const { data: weightsData } = await supabase
+            .from("cms_content")
+            .select("value")
+            .eq("key", "product_matching_weights")
+            .eq("content_type", "config")
+            .maybeSingle();
+          if (weightsData?.value) {
+            weights = { ...DEFAULT_WEIGHTS, ...JSON.parse(weightsData.value) };
+          }
+        } catch (e) {
+          console.warn("Could not load matching weights, using defaults");
+        }
+
         // Build a targeted query using item name keywords + synonyms for server-side filtering
         const itemNameLower = item.item_name.toLowerCase();
         const searchKeywords = itemNameLower
@@ -418,7 +434,6 @@ const ShopExistingProducts = ({ item, onClose }: ShopExistingProductsProps) => {
         let error: any = null;
 
         if (expandedSearchKeywords.length > 0) {
-          // Build OR filter to find products matching any keyword or synonym
           const orFilter = expandedSearchKeywords
             .map(kw => `name.ilike.%${kw}%,category.ilike.%${kw}%,description.ilike.%${kw}%,ai_image_description.ilike.%${kw}%`)
             .join(",");
@@ -452,13 +467,12 @@ const ShopExistingProducts = ({ item, onClose }: ShopExistingProductsProps) => {
 
         const scored = (data || [])
           .map((p) => {
-            const { reasons, score } = computeMatchReasons(p, item);
+            const { reasons, score } = computeMatchReasons(p, item, weights);
             return { ...p, matchReasons: reasons, matchScore: score } as MatchedProduct;
           })
-          .filter((p) => p.matchReasons.some(r => r.toLowerCase().startsWith("type match")) && p.matchScore >= 25)
+          .filter((p) => p.matchReasons.some(r => r.toLowerCase().startsWith("type match")) && p.matchScore >= weights.minimumScore)
           .sort((a, b) => b.matchScore - a.matchScore);
 
-        // Deduplicate by normalized product identity (name + source URL)
         const deduped = dedupeProducts(scored);
         setProducts(deduped.slice(0, 8));
       } catch (err) {
