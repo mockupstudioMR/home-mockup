@@ -335,7 +335,7 @@ ${productsToExtract}`;
           shop_id: userId,
           name: product.name,
           description: product.description || null,
-          category: product.category,
+          type: product.category,
           style: product.style || null,
           price: product.price || null,
           source_url: product.source_url || null,
