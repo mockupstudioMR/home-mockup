@@ -94,7 +94,19 @@ serve(async (req) => {
         throw new Error(`AI gateway error: ${response.status}`);
       }
 
-      const result = await response.json();
+      // Read response as text first to avoid connection body read errors with large payloads
+      const responseText = await response.text();
+      let result;
+      try {
+        result = JSON.parse(responseText);
+      } catch (parseErr) {
+        console.error(`Failed to parse response (length: ${responseText.length}):`, parseErr);
+        if (attempt < maxRetries) {
+          await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+          continue;
+        }
+        throw new Error("Failed to parse AI response");
+      }
       imageUrl = result.choices?.[0]?.message?.images?.[0]?.image_url?.url;
 
       if (imageUrl) {
