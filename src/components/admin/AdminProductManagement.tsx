@@ -66,6 +66,16 @@ const AdminProductManagement = () => {
     price: "",
     source_url: "",
   });
+
+  // Inline editing state
+  const [editingProduct, setEditingProduct] = useState<string | null>(null);
+  const [editFields, setEditFields] = useState<{
+    name: string;
+    category: string;
+    style: string;
+    price: string;
+    source_url: string;
+  }>({ name: "", category: "", style: "", price: "", source_url: "" });
   const [shopUrl, setShopUrl] = useState("");
   const [isScraping, setIsScraping] = useState(false);
   const [scrapeProgress, setScrapeProgress] = useState("");
