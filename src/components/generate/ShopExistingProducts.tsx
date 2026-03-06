@@ -185,11 +185,11 @@ const computeMatchReasons = (
 
   const itemName = item.item_name.toLowerCase();
   const itemType = (item.item_type || "").toLowerCase();
-  const prodType = ((product as any).type || product.type || "").toLowerCase();
+  const prodType = ((product as any).type || "").toLowerCase();
   const prodName = (product.name || "").toLowerCase();
   const prodDesc = (product.description || "").toLowerCase();
   const prodAiDesc = (product.ai_image_description || "").toLowerCase();
-  const allProdText = `${prodName} ${prodCat} ${prodDesc} ${prodAiDesc}`;
+  const allProdText = `${prodName} ${prodType} ${prodDesc} ${prodAiDesc}`;
 
   // 1. Primary: match the core product type using only known item type keywords
   const typeKeywords = itemName
@@ -226,10 +226,10 @@ const computeMatchReasons = (
     }
   }
 
-  // 2. Also check item_type against product category (only for specific categories, not broad ones like "furniture")
+  // 2. Also check item_type against product type (only for specific types, not broad ones like "furniture")
   const BROAD_CATEGORIES = new Set(["furniture", "other", "decor"]);
-  if (itemType && !BROAD_CATEGORIES.has(itemType) && !BROAD_CATEGORIES.has(prodCat)) {
-    if (prodCat.includes(itemType) || itemType.includes(prodCat)) {
+  if (itemType && !BROAD_CATEGORIES.has(itemType) && !BROAD_CATEGORIES.has(prodType)) {
+    if (prodType.includes(itemType) || itemType.includes(prodType)) {
       if (!reasons.some(r => r.startsWith("Type match"))) {
         reasons.push(`Type match: ${itemType}`);
         score += w.typeMatch;
@@ -277,7 +277,7 @@ const AddProductDialog = ({ item, onProductAdded }: { item: DesignItem; onProduc
   const [form, setForm] = useState({
     name: item.item_name,
     description: item.item_description,
-    category: categoryFromItemType(item.item_type),
+    type: typeFromItemType(item.item_type),
     style: item.style || "",
     price: "",
     currency: "EUR",
@@ -302,7 +302,7 @@ const AddProductDialog = ({ item, onProductAdded }: { item: DesignItem; onProduc
       const { error } = await supabase.from("shop_products").insert({
         name: form.name.trim(),
         description: form.description.trim() || null,
-        category: form.category,
+        type: form.type,
         style: form.style || null,
         price: form.price ? parseFloat(form.price) : null,
         currency: form.currency,
@@ -310,7 +310,7 @@ const AddProductDialog = ({ item, onProductAdded }: { item: DesignItem; onProduc
         image_urls: form.image_url ? [form.image_url] : [],
         shop_id: user.id,
         is_active: true,
-      });
+      } as any);
 
       if (error) throw error;
 
@@ -359,10 +359,10 @@ const AddProductDialog = ({ item, onProductAdded }: { item: DesignItem; onProduc
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <Label className="text-xs">Category</Label>
+              <Label className="text-xs">Type</Label>
               <Input
-                value={form.category}
-                onChange={(e) => setForm({ ...form, category: e.target.value })}
+                value={form.type}
+                onChange={(e) => setForm({ ...form, type: e.target.value })}
                 className="h-8 text-sm"
               />
             </div>
@@ -456,13 +456,13 @@ const ShopExistingProducts = ({ item, onClose }: ShopExistingProductsProps) => {
         // Expand with synonyms for cross-language matching
         const expandedSearchKeywords = getExpandedKeywords(searchKeywords);
 
-        // First try: search by keywords (including synonyms) in name/category/description
+        // First try: search by keywords (including synonyms) in name/type/description
         let data: any[] = [];
         let error: any = null;
 
         if (expandedSearchKeywords.length > 0) {
           const orFilter = expandedSearchKeywords
-            .map(kw => `name.ilike.%${kw}%,category.ilike.%${kw}%,description.ilike.%${kw}%,ai_image_description.ilike.%${kw}%`)
+            .map(kw => `name.ilike.%${kw}%,type.ilike.%${kw}%,description.ilike.%${kw}%,ai_image_description.ilike.%${kw}%`)
             .join(",");
 
           const result = await supabase
@@ -476,14 +476,14 @@ const ShopExistingProducts = ({ item, onClose }: ShopExistingProductsProps) => {
           error = result.error;
         }
 
-        // Fallback: if no targeted results, fetch by category
+        // Fallback: if no targeted results, fetch by type
         if (data.length === 0) {
-          const expectedCategory = categoryFromItemType(item.item_type);
+          const expectedType = typeFromItemType(item.item_type);
           const result = await supabase
             .from("shop_products")
             .select("*")
             .eq("is_active", true)
-            .eq("category", expectedCategory)
+            .eq("type" as any, expectedType)
             .limit(50);
 
           data = result.data || [];
