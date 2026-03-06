@@ -596,13 +596,13 @@ const AdminProductManagement = () => {
           {/* Filters */}
           <div className="flex flex-wrap gap-3 mb-6">
             <div className="space-y-1">
-              <Label className="text-xs text-muted-foreground">Category</Label>
+              <Label className="text-xs text-muted-foreground">Type</Label>
               <Select value={filterCategory} onValueChange={(v) => { setFilterCategory(v); pagination.goToPage(1); }}>
                 <SelectTrigger className="w-[150px] h-8 text-sm">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Categories</SelectItem>
+                  <SelectItem value="all">All Types</SelectItem>
                   {categories.map((cat) => (
                     <SelectItem key={cat} value={cat}>
                       {cat.charAt(0).toUpperCase() + cat.slice(1)}
