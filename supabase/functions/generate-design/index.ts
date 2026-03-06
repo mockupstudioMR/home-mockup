@@ -11,7 +11,7 @@ const corsHeaders = {
 
 interface ProductInfo {
   name: string;
-  category: string;
+  type: string;
   style?: string;
   description?: string;
   image_urls?: string[];
@@ -163,21 +163,21 @@ serve(async (req) => {
       if (matchedStyles.length > 0) {
         const { data: styleProducts } = await supabase
           .from("shop_products")
-          .select("id, name, category, style, description, image_urls")
+          .select("id, name, type, style, description, image_urls")
           .eq("is_active", true)
           .in("style", matchedStyles)
           .limit(30);
         
         let rawStyleProducts = styleProducts || [];
         addDebug("Style-matched products (raw)", `Found ${rawStyleProducts.length} before furniture filter`, 
-          rawStyleProducts.map(p => ({ name: p.name, category: p.category, style: p.style }))
+          rawStyleProducts.map(p => ({ name: p.name, type: p.type, style: p.style }))
         );
 
         // Filter style-matched products against the approved furniture list
         if (roomFurnitureItems.length > 0) {
           const approvedLower = roomFurnitureItems.map(f => f.toLowerCase());
           rawStyleProducts = rawStyleProducts.filter(p => {
-            const catLower = (p.category || "").toLowerCase();
+            const catLower = (p.type || "").toLowerCase();
             const nameLower = (p.name || "").toLowerCase();
             return approvedLower.some(approved => 
               catLower.includes(approved) || approved.includes(catLower) ||
@@ -186,7 +186,7 @@ serve(async (req) => {
           });
           addDebug("Style-matched products (filtered)", `${rawStyleProducts.length} products match approved furniture list`, {
             approvedFurniture: roomFurnitureItems,
-            filtered: rawStyleProducts.map(p => ({ name: p.name, category: p.category })),
+            filtered: rawStyleProducts.map(p => ({ name: p.name, type: p.type })),
           });
         }
 
@@ -194,7 +194,7 @@ serve(async (req) => {
       }
       
       addDebug("Style-matched products", `Final ${products.length} products after style+furniture filter`, 
-        products.map(p => ({ name: p.name, category: p.category, style: p.style }))
+        products.map(p => ({ name: p.name, type: p.type, style: p.style }))
       );
       
       if (products.length < 5) {
@@ -208,7 +208,7 @@ serve(async (req) => {
           const excludeStyles = matchedStyles.length > 0 ? matchedStyles : ["__none__"];
           const { data: candidates } = await supabase
             .from("shop_products")
-            .select("id, name, category, style, description, image_urls")
+            .select("id, name, type, style, description, image_urls")
             .eq("is_active", true)
             .not("style", "in", `(${excludeStyles.join(",")})`)
             .limit(30);
@@ -216,7 +216,7 @@ serve(async (req) => {
           // Filter candidates to only include products whose category matches approved furniture items
           const approvedLower = roomFurnitureItems.map(f => f.toLowerCase());
           additionalProducts = (candidates || []).filter(p => {
-            const catLower = (p.category || "").toLowerCase();
+            const catLower = (p.type || "").toLowerCase();
             const nameLower = (p.name || "").toLowerCase();
             return approvedLower.some(approved => 
               catLower.includes(approved) || approved.includes(catLower) ||
@@ -226,14 +226,14 @@ serve(async (req) => {
           
           addDebug("Furniture-filtered additional products", `${additionalProducts.length} products match approved furniture list`, {
             approvedFurniture: roomFurnitureItems,
-            matchedProducts: additionalProducts.map(p => ({ name: p.name, category: p.category })),
+            matchedProducts: additionalProducts.map(p => ({ name: p.name, type: p.type })),
           });
         } else {
           // No furniture config - fetch any additional products
           const excludeStyles = matchedStyles.length > 0 ? matchedStyles : ["__none__"];
           const { data: fallbackProducts } = await supabase
             .from("shop_products")
-            .select("id, name, category, style, description, image_urls")
+            .select("id, name, type, style, description, image_urls")
             .eq("is_active", true)
             .not("style", "in", `(${excludeStyles.join(",")})`)
             .limit(10);
@@ -242,7 +242,7 @@ serve(async (req) => {
         }
         
         addDebug("Additional products", `Found ${additionalProducts.length} additional products`,
-          additionalProducts.map(p => ({ name: p.name, category: p.category, style: p.style }))
+          additionalProducts.map(p => ({ name: p.name, type: p.type, style: p.style }))
         );
         
         products = [...products, ...additionalProducts];

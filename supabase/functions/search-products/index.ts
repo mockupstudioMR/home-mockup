@@ -125,7 +125,7 @@ Return your response as JSON:
       if (roomFurnitureItems.length === 0) return products;
       const approvedLower = roomFurnitureItems.map(f => f.toLowerCase());
       return products.filter(p => {
-        const catLower = (p.category || "").toLowerCase();
+        const catLower = (p.type || "").toLowerCase();
         const nameLower = (p.name || "").toLowerCase();
         return approvedLower.some(approved =>
           catLower.includes(approved) || approved.includes(catLower) ||
@@ -173,7 +173,7 @@ Return your response as JSON:
         .or(`style.ilike.%${normalizedStyle}%,style.ilike.%${styleVariant}%,name.ilike.%${normalizedStyle}%`);
 
       if (expandedCategories.length > 0) {
-        styleQuery = styleQuery.in("category", expandedCategories);
+        styleQuery = styleQuery.in("type", expandedCategories);
       }
 
       const styleResult = await styleQuery.limit(50);
@@ -192,7 +192,7 @@ Return your response as JSON:
         .eq("is_active", true);
 
       if (expandedCategories.length > 0) {
-        fallbackQuery = fallbackQuery.in("category", expandedCategories);
+        fallbackQuery = fallbackQuery.in("type", expandedCategories);
       }
 
       const fallbackResult = await fallbackQuery.limit(50);
@@ -258,13 +258,13 @@ Return your response as JSON:
       return {
         id: p.id,
         title: p.name,
-        description: p.description || `${p.category} - ${p.style || "Various styles"}`,
+        description: p.description || `${p.type} - ${p.style || "Various styles"}`,
         url: p.source_url || "#",
         source: isLocalShop ? `${shopName} (Local)` : shopName,
         price: p.price,
         currency: p.currency || "EUR",
         imageUrl: p.image_urls?.[0] || null,
-        category: p.category,
+        type: p.type,
         style: p.style,
         isLocal: isLocalShop,
       };
