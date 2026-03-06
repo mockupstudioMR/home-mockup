@@ -813,6 +813,7 @@ const Generate = () => {
       const storedImageUrl = await uploadDesignImage(imageUrl, user.id);
 
       // Save to database with quiz_response_id link
+      const designTitle = generateDesignTitle(quizData.stylePreference, quizData.roomType);
       const { data: savedDesign } = await supabase
         .from("generated_designs")
         .insert({
@@ -821,6 +822,7 @@ const Generate = () => {
           prompt: usedPrompt,
           source_image_url: quizData.sourceImageUrl,
           quiz_response_id: quizResponseId,
+          title: designTitle,
         })
         .select()
         .single();
@@ -828,7 +830,7 @@ const Generate = () => {
       const newDesign: GeneratedDesign = {
         id: savedDesign?.id || `design-${Date.now()}`,
         imageUrl,
-        title: "Your Personalized Design",
+        title: designTitle,
         description: "Custom room design based on your style preferences",
         isFavorite: false,
       };
@@ -897,6 +899,7 @@ const Generate = () => {
 
         const storedImageUrl = await uploadDesignImage(imageUrl, user.id);
 
+        const styleTitle = generateDesignTitle(newStyle, quizData.roomType);
         const { data: savedDesign } = await supabase
           .from("generated_designs")
           .insert({
@@ -904,6 +907,7 @@ const Generate = () => {
             image_url: storedImageUrl,
             prompt: usedPrompt,
             source_image_url: overriddenQuiz.sourceImageUrl,
+            title: styleTitle,
           })
           .select()
           .single();
@@ -911,7 +915,7 @@ const Generate = () => {
         const newDesign: GeneratedDesign = {
           id: savedDesign?.id || `design-${Date.now()}`,
           imageUrl,
-          title: "Your Personalized Design",
+          title: styleTitle,
           description: "Custom room design based on your style preferences",
           isFavorite: false,
         };
