@@ -626,10 +626,15 @@ const Generate = () => {
       }
 
       // Load existing design (same quiz session, returning user)
+      let designTitle = existingDesign.title;
+      if (!designTitle) {
+        designTitle = generateDesignTitle(quizData?.stylePreference, quizData?.roomType);
+        await supabase.from("generated_designs").update({ title: designTitle }).eq("id", existingDesign.id);
+      }
       setDesign({
         id: existingDesign.id,
         imageUrl: existingDesign.image_url,
-        title: existingDesign.title || generateDesignTitle(quizData?.stylePreference, quizData?.roomType),
+        title: designTitle,
         description: existingDesign.full_description || "Custom room design based on your style preferences",
         isFavorite: existingDesign.is_favorite || false,
         isLocked: existingDesign.is_locked || false,
