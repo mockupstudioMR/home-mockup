@@ -160,7 +160,7 @@ const VisualSearchLinks = ({
                 <IconComponent className="w-3.5 h-3.5 mr-2 flex-shrink-0 text-muted-foreground" />
                 <div className="flex-1 min-w-0">
                   <div className="text-xs font-medium truncate">{item.name}</div>
-                  <div className="text-[10px] text-muted-foreground">{item.category}</div>
+                  <div className="text-[10px] text-muted-foreground">{(item as any).type || item.category}</div>
                 </div>
                 <ExternalLink className="w-3 h-3 ml-1 flex-shrink-0 opacity-50" />
               </Button>
