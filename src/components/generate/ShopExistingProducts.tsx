@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { ExternalLink, Store, X, CheckCircle2, Sparkles, Plus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { DEFAULT_WEIGHTS, type MatchingWeights } from "@/components/admin/ProductMatchingWeights";
 
 interface DesignItem {
   id: string;
@@ -151,7 +152,8 @@ const dedupeProducts = (items: MatchedProduct[]): MatchedProduct[] => {
 
 const computeMatchReasons = (
   product: any,
-  item: DesignItem
+  item: DesignItem,
+  w: MatchingWeights = DEFAULT_WEIGHTS
 ): { reasons: string[]; score: number } => {
   const reasons: string[] = [];
   let score = 0;
@@ -176,10 +178,9 @@ const computeMatchReasons = (
   // Check for full item name match first (strongest signal)
   if (allProdText.includes(itemName)) {
     reasons.push(`Type match: ${item.item_name}`);
-    score += 50;
-    // Extra boost if the match is in the product NAME specifically (exact product match)
+    score += w.fullNameMatch;
     if (prodName.includes(itemName)) {
-      score += 30;
+      score += w.nameFieldBonus;
     }
   } else {
     // Check for meaningful keyword matches (including synonyms)
@@ -193,11 +194,10 @@ const computeMatchReasons = (
     if (matchedKeywords.length > 0) {
       const displayTerms = matchedOriginals.length > 0 ? matchedOriginals : matchedKeywords.slice(0, 3);
       reasons.push(`Type match: ${displayTerms.join(", ")}`);
-      score += 20 + (matchedKeywords.length * 10);
-      // Boost if keywords match directly in product name (not just description)
+      score += w.keywordBase + (matchedKeywords.length * w.keywordPerMatch);
       const nameMatchCount = expandedKeywords.filter(kw => prodName.includes(kw)).length;
       if (nameMatchCount > 0) {
-        score += 15 + (nameMatchCount * 5);
+        score += w.keywordInNameBase + (nameMatchCount * w.keywordInNamePer);
       }
     }
   }
@@ -206,7 +206,7 @@ const computeMatchReasons = (
   if (itemType && (prodCat.includes(itemType) || itemType.includes(prodCat))) {
     if (!reasons.some(r => r.startsWith("Type match"))) {
       reasons.push(`Type match: ${itemType}`);
-      score += 15;
+      score += w.categoryMatch;
     }
   }
 
@@ -217,10 +217,10 @@ const computeMatchReasons = (
 
   if (itemStyle && prodStyle && (prodStyle.includes(itemStyle) || itemStyle.includes(prodStyle))) {
     reasons.push(`Style match: ${product.style}`);
-    score += 25;
+    score += w.styleMatchDirect;
   } else if (itemStyle && prodTags.some((t: string) => t.includes(itemStyle) || itemStyle.includes(t))) {
     reasons.push(`Style tag match: ${prodTags.find((t: string) => t.includes(itemStyle) || itemStyle.includes(t))}`);
-    score += 20;
+    score += w.styleMatchTag;
   }
 
   // 4. Color matching
@@ -228,7 +228,7 @@ const computeMatchReasons = (
   if (itemColor && itemColor.length > 2) {
     if (allProdText.includes(itemColor)) {
       reasons.push(`Color match: ${item.color}`);
-      score += 15;
+      score += w.colorMatch;
     }
   }
 
@@ -237,7 +237,7 @@ const computeMatchReasons = (
   if (itemMaterial && itemMaterial.length > 2) {
     if (allProdText.includes(itemMaterial)) {
       reasons.push(`Material match: ${item.material}`);
-      score += 15;
+      score += w.materialMatch;
     }
   }
 
