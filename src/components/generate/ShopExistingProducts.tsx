@@ -57,12 +57,37 @@ const categoryFromItemType = (itemType: string): string => {
   return map[itemType] || "other";
 };
 
-// Common filler words to exclude from matching
-const FILLER_WORDS = new Set([
-  "a", "an", "the", "and", "or", "of", "in", "on", "for", "to", "with",
-  "light", "dark", "small", "large", "big", "new", "old", "set",
-  "white", "black", "brown", "grey", "gray", "beige", "cream", "blue",
-  "green", "red", "yellow", "pink", "orange", "gold", "silver",
+// Valid item type keywords for type matching – derived from prompt templates & room furniture config
+// Item types: wall_color, floor_material, furniture, lighting, textile, decor, architectural
+// Product categories: sofa, chair, table, bed, storage, lighting, decor, rug, outdoor, other
+const VALID_TYPE_KEYWORDS = new Set([
+  // Furniture
+  "sofa", "couch", "settee", "armchair", "chair", "stool", "bench", "ottoman",
+  "table", "desk", "nightstand", "sideboard", "dresser", "wardrobe", "closet",
+  "bookshelf", "shelf", "shelving", "cabinet", "credenza", "buffet", "vitrine",
+  "bed", "mattress", "headboard", "footboard",
+  "tv stand", "media console",
+  // Seating detail
+  "bar stool", "dining chair", "office chair", "lounge chair", "rocking chair",
+  // Lighting
+  "lamp", "chandelier", "sconce", "pendant", "lantern", "spotlight",
+  "floor lamp", "desk lamp", "table lamp", "bedside lamp", "wall light",
+  // Textiles
+  "rug", "carpet", "curtain", "curtains", "drape", "cushion", "pillow", "throw", "blanket",
+  // Decor
+  "mirror", "vase", "planter", "artwork", "painting", "sculpture", "candle",
+  "clock", "plant", "plants", "basket", "tray", "bowl", "frame",
+  // Bathroom
+  "toilet", "sink", "vanity", "bathtub", "shower", "towel rack",
+  // Architectural
+  "fireplace", "molding", "door", "window",
+  // Surfaces (as item types, not materials)
+  "backsplash", "countertop",
+  // German equivalents (from synonym groups)
+  "kommode", "stuhl", "sessel", "tisch", "schreibtisch", "lampe", "leuchte", "stehlampe",
+  "regal", "bücherregal", "bett", "spiegel", "teppich", "vorhang", "gardine",
+  "kissen", "kleiderschrank", "schrank", "hocker", "bank", "sitzbank",
+  "übertopf", "blumentopf", "modulsofa", "sofaserie", "fauteuil",
 ]);
 
 // Synonym groups for cross-language and variant matching
