@@ -521,7 +521,7 @@ const Generate = () => {
     try {
       const { data: existingDesign, error } = await supabase
         .from("generated_designs")
-        .select("*")
+        .select("*, quiz_responses(style_preference, room_type)")
         .eq("id", designId)
         .eq("user_id", user.id)
         .single();
@@ -532,10 +532,22 @@ const Generate = () => {
         return;
       }
 
+      // Generate and persist a title if missing
+      const quizResp = existingDesign.quiz_responses as any;
+      let designTitle = existingDesign.title;
+      if (!designTitle) {
+        designTitle = generateDesignTitle(
+          quizResp?.style_preference || quizData?.stylePreference,
+          quizResp?.room_type || quizData?.roomType
+        );
+        // Save it so it persists
+        await supabase.from("generated_designs").update({ title: designTitle }).eq("id", designId);
+      }
+
       setDesign({
         id: existingDesign.id,
         imageUrl: existingDesign.image_url,
-        title: existingDesign.title || generateDesignTitle(quizData?.stylePreference, quizData?.roomType),
+        title: designTitle,
         description: existingDesign.full_description || "Custom room design based on your style preferences",
         isFavorite: existingDesign.is_favorite || false,
         isLocked: existingDesign.is_locked || false,
