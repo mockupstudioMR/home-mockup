@@ -27,7 +27,7 @@ interface MatchedProduct {
   id: string;
   name: string;
   description: string | null;
-  category: string;
+  type: string;
   style: string | null;
   price: number | null;
   currency: string | null;
@@ -44,7 +44,7 @@ interface ShopExistingProductsProps {
   onClose: () => void;
 }
 
-const categoryFromItemType = (itemType: string): string => {
+const typeFromItemType = (itemType: string): string => {
   const map: Record<string, string> = {
     furniture: "furniture",
     lighting: "lighting",
@@ -185,7 +185,7 @@ const computeMatchReasons = (
 
   const itemName = item.item_name.toLowerCase();
   const itemType = (item.item_type || "").toLowerCase();
-  const prodCat = (product.category || "").toLowerCase();
+  const prodType = ((product as any).type || product.type || "").toLowerCase();
   const prodName = (product.name || "").toLowerCase();
   const prodDesc = (product.description || "").toLowerCase();
   const prodAiDesc = (product.ai_image_description || "").toLowerCase();
