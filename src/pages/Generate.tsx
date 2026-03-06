@@ -535,7 +535,7 @@ const Generate = () => {
       setDesign({
         id: existingDesign.id,
         imageUrl: existingDesign.image_url,
-        title: "Your Personalized Design",
+        title: existingDesign.title || generateDesignTitle(quizData?.stylePreference, quizData?.roomType),
         description: existingDesign.full_description || "Custom room design based on your style preferences",
         isFavorite: existingDesign.is_favorite || false,
         isLocked: existingDesign.is_locked || false,
@@ -617,7 +617,7 @@ const Generate = () => {
       setDesign({
         id: existingDesign.id,
         imageUrl: existingDesign.image_url,
-        title: "Your Personalized Design",
+        title: existingDesign.title || generateDesignTitle(quizData?.stylePreference, quizData?.roomType),
         description: existingDesign.full_description || "Custom room design based on your style preferences",
         isFavorite: existingDesign.is_favorite || false,
         isLocked: existingDesign.is_locked || false,
@@ -750,6 +750,7 @@ const Generate = () => {
       if (scenePreviewImage) {
         const storedImageUrl = await uploadDesignImage(scenePreviewImage, user.id);
 
+        const designTitle = generateDesignTitle(quizData.stylePreference, quizData.roomType);
         const { data: savedDesign } = await supabase
           .from("generated_designs")
           .insert({
@@ -758,6 +759,7 @@ const Generate = () => {
             prompt: "Scene preview selected from product analysis",
             source_image_url: quizData.sourceImageUrl,
             quiz_response_id: quizResponseId,
+            title: designTitle,
           })
           .select()
           .single();
@@ -765,7 +767,7 @@ const Generate = () => {
         const newDesign: GeneratedDesign = {
           id: savedDesign?.id || `design-${Date.now()}`,
           imageUrl: storedImageUrl,
-          title: "Your Personalized Design",
+          title: designTitle,
           description: "Design based on your selected scene preview",
           isFavorite: false,
         };
