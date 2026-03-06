@@ -70,6 +70,11 @@ const AdminProductManagement = () => {
   const [isScraping, setIsScraping] = useState(false);
   const [scrapeProgress, setScrapeProgress] = useState("");
 
+  // Filters
+  const [filterCategory, setFilterCategory] = useState<string>("all");
+  const [filterStyle, setFilterStyle] = useState<string>("all");
+  const [filterColor, setFilterColor] = useState<string>("all");
+
   // Fetch all products
   const { data: allProducts, isLoading: productsLoading } = useQuery({
     queryKey: ["admin-all-products"],
@@ -284,12 +289,33 @@ const AdminProductManagement = () => {
     return profile?.business_name || "Unknown Shop";
   };
 
+  // Collect unique colors from all products for the filter dropdown
+  const availableColors = Array.from(
+    new Set(
+      (allProducts || []).flatMap((p) => {
+        const colors = (p.metadata as any)?.extracted_colors as Array<{ name: string }> | undefined;
+        return colors?.map((c) => c.name) || [];
+      })
+    )
+  ).sort();
+
+  // Apply filters
+  const filteredProducts = (allProducts || []).filter((p) => {
+    if (filterCategory !== "all" && p.category !== filterCategory) return false;
+    if (filterStyle !== "all" && p.style !== filterStyle) return false;
+    if (filterColor !== "all") {
+      const colors = (p.metadata as any)?.extracted_colors as Array<{ name: string }> | undefined;
+      if (!colors?.some((c) => c.name === filterColor)) return false;
+    }
+    return true;
+  });
+
   const pagination = usePagination({
-    totalItems: allProducts?.length || 0,
+    totalItems: filteredProducts.length,
     itemsPerPage: 12,
   });
 
-  const paginatedProducts = allProducts?.slice(pagination.startIndex, pagination.endIndex);
+  const paginatedProducts = filteredProducts.slice(pagination.startIndex, pagination.endIndex);
 
   return (
     <div className="space-y-6">
@@ -510,10 +536,72 @@ const AdminProductManagement = () => {
             All Products
           </CardTitle>
           <CardDescription>
-            View and manage all products across all shops ({allProducts?.length || 0} total)
+            View and manage all products across all shops ({filteredProducts.length} of {allProducts?.length || 0} total)
           </CardDescription>
         </CardHeader>
         <CardContent>
+          {/* Filters */}
+          <div className="flex flex-wrap gap-3 mb-6">
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">Category</Label>
+              <Select value={filterCategory} onValueChange={(v) => { setFilterCategory(v); pagination.goToPage(1); }}>
+                <SelectTrigger className="w-[150px] h-8 text-sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Categories</SelectItem>
+                  {categories.map((cat) => (
+                    <SelectItem key={cat} value={cat}>
+                      {cat.charAt(0).toUpperCase() + cat.slice(1)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">Style</Label>
+              <Select value={filterStyle} onValueChange={(v) => { setFilterStyle(v); pagination.goToPage(1); }}>
+                <SelectTrigger className="w-[180px] h-8 text-sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Styles</SelectItem>
+                  {styles.map((s) => (
+                    <SelectItem key={s} value={s}>
+                      {s.split("-").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ")}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">Color</Label>
+              <Select value={filterColor} onValueChange={(v) => { setFilterColor(v); pagination.goToPage(1); }}>
+                <SelectTrigger className="w-[150px] h-8 text-sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Colors</SelectItem>
+                  {availableColors.map((color) => (
+                    <SelectItem key={color} value={color}>{color}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            {(filterCategory !== "all" || filterStyle !== "all" || filterColor !== "all") && (
+              <div className="flex items-end">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 text-xs"
+                  onClick={() => { setFilterCategory("all"); setFilterStyle("all"); setFilterColor("all"); pagination.goToPage(1); }}
+                >
+                  Clear filters
+                </Button>
+              </div>
+            )}
+          </div>
+
           {productsLoading ? (
             <div className="flex items-center justify-center py-12">
               <Loader2 className="w-8 h-8 animate-spin text-primary" />
