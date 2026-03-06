@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -34,37 +34,72 @@ const Gallery = () => {
   const [filter, setFilter] = useState<"all" | "favorites">("all");
   const [resumingId, setResumingId] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (user) {
-      fetchDesigns();
-    }
-  }, [user]);
+  const fetchDesigns = useCallback(async () => {
+    if (!user) return;
 
-  const fetchDesigns = async (retries = 2) => {
+    setLoadingDesigns(true);
+    const maxAttempts = 4;
+    let attempt = 0;
+    let delayMs = 700;
+    let lastError: unknown = null;
+
     try {
-      const { data, error } = await supabase
-        .from("generated_designs")
-        .select("id, image_url, prompt, is_favorite, created_at, quiz_response_id")
-        .eq("user_id", user!.id)
-        .order("created_at", { ascending: false })
-        .limit(50);
+      while (attempt < maxAttempts) {
+        attempt += 1;
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 8000);
 
-      if (error) throw error;
-      setDesigns(data || []);
-    } catch (error) {
-      if (retries > 0) {
-        await new Promise(r => setTimeout(r, 1500));
-        return fetchDesigns(retries - 1);
+        try {
+          const { data, error } = await supabase
+            .from("generated_designs")
+            .select("id, image_url, prompt, is_favorite, created_at, quiz_response_id")
+            .eq("user_id", user.id)
+            .order("created_at", { ascending: false })
+            .limit(50)
+            .abortSignal(controller.signal);
+
+          clearTimeout(timeoutId);
+          if (error) throw error;
+          setDesigns(data || []);
+          return;
+        } catch (error) {
+          clearTimeout(timeoutId);
+          lastError = error;
+
+          if (attempt < maxAttempts) {
+            await new Promise((resolve) => setTimeout(resolve, delayMs));
+            delayMs *= 2;
+          }
+        }
       }
+
+      console.error("Failed to load designs:", lastError);
       toast({
         title: "Error",
-        description: "Failed to load designs",
+        description: "Failed to load designs. Please try again.",
         variant: "destructive",
       });
     } finally {
       setLoadingDesigns(false);
     }
-  };
+  }, [user, toast]);
+
+  useEffect(() => {
+    if (user) {
+      void fetchDesigns();
+    }
+  }, [user, fetchDesigns]);
+
+  useEffect(() => {
+    if (!user) return;
+
+    const handleOnline = () => {
+      void fetchDesigns();
+    };
+
+    window.addEventListener("online", handleOnline);
+    return () => window.removeEventListener("online", handleOnline);
+  }, [user, fetchDesigns]);
 
   const handleDelete = async (id: string) => {
     try {

@@ -28,19 +28,40 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const fetchUserRole = async (userId: string) => {
     setRoleLoading(true);
-    try {
-      const { data, error } = await supabase.rpc("get_user_role", {
-        _user_id: userId,
-      });
+    const maxAttempts = 3;
+    let attempt = 0;
+    let delayMs = 600;
+    let lastError: unknown = null;
 
-      if (error) {
-        console.error("Error fetching role:", error);
-        setRole("user");
-      } else {
-        setRole((data as AppRole) || "user");
+    try {
+      while (attempt < maxAttempts) {
+        attempt += 1;
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+        try {
+          const { data, error } = await supabase
+            .rpc("get_user_role", { _user_id: userId })
+            .abortSignal(controller.signal);
+
+          clearTimeout(timeoutId);
+
+          if (error) throw error;
+
+          setRole((data as AppRole) || "user");
+          return;
+        } catch (err) {
+          clearTimeout(timeoutId);
+          lastError = err;
+
+          if (attempt < maxAttempts) {
+            await new Promise((resolve) => setTimeout(resolve, delayMs));
+            delayMs *= 2;
+          }
+        }
       }
-    } catch (err) {
-      console.error("Role fetch error:", err);
+
+      console.error("Error fetching role:", lastError);
       setRole("user");
     } finally {
       setRoleLoading(false);
