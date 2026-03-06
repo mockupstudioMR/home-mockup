@@ -14,6 +14,7 @@ import AddUserDialog from "@/components/admin/AddUserDialog";
 import AdminProductManagement from "@/components/admin/AdminProductManagement";
 import RoomFurnitureManager from "@/components/admin/RoomFurnitureManager";
 import PromptTemplateManager from "@/components/admin/PromptTemplateManager";
+import ProductMatchingWeights from "@/components/admin/ProductMatchingWeights";
 import { 
   Shield, 
   Users, 
@@ -200,6 +201,7 @@ const AdminDashboard = () => {
           <TabsContent value="design-config" className="space-y-8">
             <RoomFurnitureManager />
             <PromptTemplateManager />
+            <ProductMatchingWeights />
           </TabsContent>
 
           {/* Invites Tab */}
