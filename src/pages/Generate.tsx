@@ -541,7 +541,7 @@ const Generate = () => {
           quizResp?.room_type || quizData?.roomType
         );
         // Save it so it persists
-        await supabase.from("generated_designs").update({ title: designTitle }).eq("id", designId);
+        await supabase.from("generated_designs").update({ title: designTitle } as any).eq("id", designId);
       }
 
       setDesign({
@@ -629,7 +629,7 @@ const Generate = () => {
       let designTitle = (existingDesign as any).title as string | null;
       if (!designTitle) {
         designTitle = generateDesignTitle(quizData?.stylePreference, quizData?.roomType);
-        await supabase.from("generated_designs").update({ title: designTitle }).eq("id", existingDesign.id);
+        await supabase.from("generated_designs").update({ title: designTitle } as any).eq("id", existingDesign.id);
       }
       setDesign({
         id: existingDesign.id,
@@ -1731,7 +1731,7 @@ const Generate = () => {
                         setDesign({ ...design, title: newTitle });
                         setEditingTitle(false);
                         if (!design.id.startsWith("design-")) {
-                          await supabase.from("generated_designs").update({ title: newTitle }).eq("id", design.id);
+                          await supabase.from("generated_designs").update({ title: newTitle } as any).eq("id", design.id);
                         }
                       } else if (e.key === "Escape") {
                         setEditingTitle(false);
@@ -1747,7 +1747,7 @@ const Generate = () => {
                       setDesign({ ...design, title: newTitle });
                       setEditingTitle(false);
                       if (!design.id.startsWith("design-")) {
-                        await supabase.from("generated_designs").update({ title: newTitle }).eq("id", design.id);
+                        await supabase.from("generated_designs").update({ title: newTitle } as any).eq("id", design.id);
                       }
                     }}
                   >
