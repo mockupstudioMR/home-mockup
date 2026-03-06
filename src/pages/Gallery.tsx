@@ -35,15 +35,10 @@ const Gallery = () => {
   const [resumingId, setResumingId] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!loading && !user) {
-      navigate("/auth");
-      return;
-    }
-
     if (user) {
       fetchDesigns();
     }
-  }, [user, loading, navigate]);
+  }, [user]);
 
   const fetchDesigns = async () => {
     try {
