@@ -223,6 +223,8 @@ const Generate = () => {
   const [highlightsData, setHighlightsData] = useState<DesignHighlightsData | null>(getInitialHighlights);
   const [generatingHighlights, setGeneratingHighlights] = useState(false);
   const [applyingHighlight, setApplyingHighlight] = useState<string | null>(null);
+  const [editingTitle, setEditingTitle] = useState(false);
+  const [titleDraft, setTitleDraft] = useState("");
   const [styleProfile, setStyleProfile] = useState<{
     matches: StyleMatch[];
     name: string;
