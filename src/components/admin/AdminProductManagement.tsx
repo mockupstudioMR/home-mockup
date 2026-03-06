@@ -289,12 +289,33 @@ const AdminProductManagement = () => {
     return profile?.business_name || "Unknown Shop";
   };
 
+  // Collect unique colors from all products for the filter dropdown
+  const availableColors = Array.from(
+    new Set(
+      (allProducts || []).flatMap((p) => {
+        const colors = (p.metadata as any)?.extracted_colors as Array<{ name: string }> | undefined;
+        return colors?.map((c) => c.name) || [];
+      })
+    )
+  ).sort();
+
+  // Apply filters
+  const filteredProducts = (allProducts || []).filter((p) => {
+    if (filterCategory !== "all" && p.category !== filterCategory) return false;
+    if (filterStyle !== "all" && p.style !== filterStyle) return false;
+    if (filterColor !== "all") {
+      const colors = (p.metadata as any)?.extracted_colors as Array<{ name: string }> | undefined;
+      if (!colors?.some((c) => c.name === filterColor)) return false;
+    }
+    return true;
+  });
+
   const pagination = usePagination({
-    totalItems: allProducts?.length || 0,
+    totalItems: filteredProducts.length,
     itemsPerPage: 12,
   });
 
-  const paginatedProducts = allProducts?.slice(pagination.startIndex, pagination.endIndex);
+  const paginatedProducts = filteredProducts.slice(pagination.startIndex, pagination.endIndex);
 
   return (
     <div className="space-y-6">
