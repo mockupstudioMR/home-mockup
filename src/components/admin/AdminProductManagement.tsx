@@ -70,6 +70,11 @@ const AdminProductManagement = () => {
   const [isScraping, setIsScraping] = useState(false);
   const [scrapeProgress, setScrapeProgress] = useState("");
 
+  // Filters
+  const [filterCategory, setFilterCategory] = useState<string>("all");
+  const [filterStyle, setFilterStyle] = useState<string>("all");
+  const [filterColor, setFilterColor] = useState<string>("all");
+
   // Fetch all products
   const { data: allProducts, isLoading: productsLoading } = useQuery({
     queryKey: ["admin-all-products"],
