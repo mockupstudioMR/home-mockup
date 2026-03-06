@@ -76,7 +76,9 @@ const AdminProductManagement = () => {
     price: string;
     source_url: string;
   }>({ name: "", category: "", style: "", price: "", source_url: "" });
-  const [shopUrl, setShopUrl] = useState("");
+  // Inline single-field editing (e.g. clicking the type badge)
+  const [editingField, setEditingField] = useState<{ productId: string; field: string } | null>(null);
+  const [editingFieldValue, setEditingFieldValue] = useState("");
   const [isScraping, setIsScraping] = useState(false);
   const [scrapeProgress, setScrapeProgress] = useState("");
 
