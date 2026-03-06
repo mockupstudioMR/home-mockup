@@ -136,7 +136,6 @@ const DesignImage = ({
 
       <CardContent className="p-4 space-y-3">
         <div>
-          <h3 className="font-semibold text-lg">{title}</h3>
           <p className="text-sm text-muted-foreground line-clamp-2">{description}</p>
         </div>
 
