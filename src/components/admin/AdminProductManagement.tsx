@@ -45,7 +45,7 @@ import {
 } from "@/components/ui/alert-dialog";
 
 const categories = [
-  "sofa", "chair", "table", "bed", "storage", "lighting", "decor", "rug", "outdoor"
+  "sofa", "chair", "table", "bed", "sideboard", "lighting", "decor", "rug", "outdoor"
 ];
 
 const styles = [
