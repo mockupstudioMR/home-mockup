@@ -626,7 +626,7 @@ const Generate = () => {
       }
 
       // Load existing design (same quiz session, returning user)
-      let designTitle = existingDesign.title;
+      let designTitle = (existingDesign as any).title as string | null;
       if (!designTitle) {
         designTitle = generateDesignTitle(quizData?.stylePreference, quizData?.roomType);
         await supabase.from("generated_designs").update({ title: designTitle }).eq("id", existingDesign.id);
