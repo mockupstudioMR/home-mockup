@@ -534,14 +534,14 @@ const Generate = () => {
 
       // Generate and persist a title if missing
       const quizResp = existingDesign.quiz_responses as any;
-      let designTitle = existingDesign.title;
+      let designTitle = (existingDesign as any).title as string | null;
       if (!designTitle) {
         designTitle = generateDesignTitle(
           quizResp?.style_preference || quizData?.stylePreference,
           quizResp?.room_type || quizData?.roomType
         );
         // Save it so it persists
-        await supabase.from("generated_designs").update({ title: designTitle }).eq("id", designId);
+        await supabase.from("generated_designs").update({ title: designTitle } as any).eq("id", designId);
       }
 
       setDesign({
@@ -626,10 +626,10 @@ const Generate = () => {
       }
 
       // Load existing design (same quiz session, returning user)
-      let designTitle = existingDesign.title;
+      let designTitle = (existingDesign as any).title as string | null;
       if (!designTitle) {
         designTitle = generateDesignTitle(quizData?.stylePreference, quizData?.roomType);
-        await supabase.from("generated_designs").update({ title: designTitle }).eq("id", existingDesign.id);
+        await supabase.from("generated_designs").update({ title: designTitle } as any).eq("id", existingDesign.id);
       }
       setDesign({
         id: existingDesign.id,
@@ -777,7 +777,7 @@ const Generate = () => {
             source_image_url: quizData.sourceImageUrl,
             quiz_response_id: quizResponseId,
             title: designTitle,
-          })
+          } as any)
           .select()
           .single();
 
@@ -840,7 +840,7 @@ const Generate = () => {
           source_image_url: quizData.sourceImageUrl,
           quiz_response_id: quizResponseId,
           title: designTitle,
-        })
+        } as any)
         .select()
         .single();
 
@@ -925,7 +925,7 @@ const Generate = () => {
             prompt: usedPrompt,
             source_image_url: overriddenQuiz.sourceImageUrl,
             title: styleTitle,
-          })
+          } as any)
           .select()
           .single();
 
@@ -1731,7 +1731,7 @@ const Generate = () => {
                         setDesign({ ...design, title: newTitle });
                         setEditingTitle(false);
                         if (!design.id.startsWith("design-")) {
-                          await supabase.from("generated_designs").update({ title: newTitle }).eq("id", design.id);
+                          await supabase.from("generated_designs").update({ title: newTitle } as any).eq("id", design.id);
                         }
                       } else if (e.key === "Escape") {
                         setEditingTitle(false);
@@ -1747,7 +1747,7 @@ const Generate = () => {
                       setDesign({ ...design, title: newTitle });
                       setEditingTitle(false);
                       if (!design.id.startsWith("design-")) {
-                        await supabase.from("generated_designs").update({ title: newTitle }).eq("id", design.id);
+                        await supabase.from("generated_designs").update({ title: newTitle } as any).eq("id", design.id);
                       }
                     }}
                   >
