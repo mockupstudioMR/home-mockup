@@ -1,0 +1,1 @@
+ALTER TABLE public.shop_products RENAME COLUMN category TO type;

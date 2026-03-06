@@ -61,7 +61,7 @@ const AdminProductManagement = () => {
   const [newProduct, setNewProduct] = useState({
     name: "",
     description: "",
-    category: "",
+    type: "",
     style: "",
     price: "",
     source_url: "",
@@ -71,11 +71,11 @@ const AdminProductManagement = () => {
   const [editingProduct, setEditingProduct] = useState<string | null>(null);
   const [editFields, setEditFields] = useState<{
     name: string;
-    category: string;
+    type: string;
     style: string;
     price: string;
     source_url: string;
-  }>({ name: "", category: "", style: "", price: "", source_url: "" });
+  }>({ name: "", type: "", style: "", price: "", source_url: "" });
   const [shopUrl, setShopUrl] = useState("");
   const [isScraping, setIsScraping] = useState(false);
   const [scrapeProgress, setScrapeProgress] = useState("");
@@ -121,11 +121,11 @@ const AdminProductManagement = () => {
           shop_id: product.shop_id,
           name: product.name,
           description: product.description,
-          category: product.category,
+          type: product.type,
           style: product.style,
           price: product.price ? parseFloat(product.price) : null,
           source_url: product.source_url || null,
-        })
+        } as any)
         .select()
         .single();
       
@@ -141,7 +141,7 @@ const AdminProductManagement = () => {
       setNewProduct({
         name: "",
         description: "",
-        category: "",
+        type: "",
         style: "",
         price: "",
         source_url: "",
@@ -261,7 +261,7 @@ const AdminProductManagement = () => {
     setEditingProduct(product.id);
     setEditFields({
       name: product.name || "",
-      category: product.category || "",
+      type: (product as any).type || "",
       style: product.style || "",
       price: product.price ? String(product.price) : "",
       source_url: product.source_url || "",
@@ -273,20 +273,20 @@ const AdminProductManagement = () => {
       productId,
       updates: {
         name: editFields.name,
-        category: editFields.category,
+        type: editFields.type,
         style: editFields.style || null,
         price: editFields.price ? parseFloat(editFields.price) : null,
         source_url: editFields.source_url || null,
-      },
+      } as any,
     });
   };
 
   const handleAddProduct = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newProduct.name || !newProduct.category) {
+    if (!newProduct.name || !newProduct.type) {
       toast({
         title: "Missing fields",
-        description: "Please fill in product name and category.",
+        description: "Please fill in product name and type.",
         variant: "destructive",
       });
       return;
@@ -375,7 +375,7 @@ const AdminProductManagement = () => {
 
   // Apply filters
   const filteredProducts = (allProducts || []).filter((p) => {
-    if (filterCategory !== "all" && p.category !== filterCategory) return false;
+    if (filterCategory !== "all" && (p as any).type !== filterCategory) return false;
     if (filterStyle !== "all" && p.style !== filterStyle) return false;
     if (filterColor !== "all") {
       const colors = (p.metadata as any)?.extracted_colors as Array<{ name: string }> | undefined;
@@ -450,8 +450,8 @@ const AdminProductManagement = () => {
                 <div className="space-y-2">
                   <Label htmlFor="category">Type *</Label>
                   <Select
-                    value={newProduct.category}
-                    onValueChange={(v) => setNewProduct({ ...newProduct, category: v })}
+                    value={newProduct.type}
+                    onValueChange={(v) => setNewProduct({ ...newProduct, type: v })}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select" />
@@ -755,8 +755,8 @@ const AdminProductManagement = () => {
                             <div>
                               <Label className="text-[10px] text-muted-foreground">Type</Label>
                               <Input
-                                value={editFields.category}
-                                onChange={(e) => setEditFields({ ...editFields, category: e.target.value })}
+                                value={editFields.type}
+                                onChange={(e) => setEditFields({ ...editFields, type: e.target.value })}
                                 placeholder="e.g., sofa"
                                 className="h-7 text-xs"
                               />
@@ -844,11 +844,11 @@ const AdminProductManagement = () => {
                           <span className="text-xs text-muted-foreground font-medium">Type</span>
                         </div>
                         <EditableTagList
-                          tags={product.category ? product.category.split(",").map(t => t.trim()).filter(Boolean) : []}
+                          tags={(product as any).type ? (product as any).type.split(",").map((t: string) => t.trim()).filter(Boolean) : []}
                           onUpdate={(tags) => {
-                            const newCategory = tags.join(", ");
-                            if (newCategory) {
-                              updateProductMutation.mutate({ productId: product.id, updates: { category: newCategory } });
+                            const newType = tags.join(", ");
+                            if (newType) {
+                              updateProductMutation.mutate({ productId: product.id, updates: { type: newType } as any });
                             }
                           }}
                           isPending={updateProductMutation.isPending}
