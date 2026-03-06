@@ -236,6 +236,27 @@ const AdminProductManagement = () => {
     },
   });
 
+  // Update colors mutation
+  const updateColorsMutation = useMutation({
+    mutationFn: async ({ productId, colors }: { productId: string; colors: Array<{ name: string; hex: string; percentage: number }> }) => {
+      // Get current metadata first
+      const { data: current } = await supabase.from("shop_products").select("metadata").eq("id", productId).single();
+      const currentMeta = (current?.metadata as any) || {};
+      const { error } = await supabase
+        .from("shop_products")
+        .update({ metadata: { ...currentMeta, extracted_colors: colors } })
+        .eq("id", productId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-all-products"] });
+      toast({ title: "Colors updated" });
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to update colors.", variant: "destructive" });
+    },
+  });
+
   const startEditing = (product: any) => {
     setEditingProduct(product.id);
     setEditFields({
