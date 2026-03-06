@@ -35,21 +35,16 @@ const Gallery = () => {
   const [resumingId, setResumingId] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!loading && !user) {
-      navigate("/auth");
-      return;
-    }
-
     if (user) {
       fetchDesigns();
     }
-  }, [user, loading, navigate]);
+  }, [user]);
 
-  const fetchDesigns = async () => {
+  const fetchDesigns = async (retries = 2) => {
     try {
       const { data, error } = await supabase
         .from("generated_designs")
-        .select("id, image_url, prompt, is_favorite, is_locked, created_at, quiz_response_id")
+        .select("id, image_url, prompt, is_favorite, created_at, quiz_response_id")
         .eq("user_id", user!.id)
         .order("created_at", { ascending: false })
         .limit(50);
@@ -57,6 +52,10 @@ const Gallery = () => {
       if (error) throw error;
       setDesigns(data || []);
     } catch (error) {
+      if (retries > 0) {
+        await new Promise(r => setTimeout(r, 1500));
+        return fetchDesigns(retries - 1);
+      }
       toast({
         title: "Error",
         description: "Failed to load designs",
