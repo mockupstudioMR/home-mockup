@@ -809,35 +809,6 @@ const AdminProductManagement = () => {
                           )}
                           
                           <div className="flex items-center gap-2 flex-wrap mb-3">
-                            {editingField?.productId === product.id && editingField?.field === "category" ? (
-                              <form
-                                className="flex items-center gap-1"
-                                onSubmit={(e) => {
-                                  e.preventDefault();
-                                  updateProductMutation.mutate({ productId: product.id, updates: { category: editingFieldValue } }, {
-                                    onSuccess: () => setEditingField(null),
-                                  });
-                                }}
-                              >
-                                <Input
-                                  autoFocus
-                                  value={editingFieldValue}
-                                  onChange={(e) => setEditingFieldValue(e.target.value)}
-                                  className="h-6 w-24 text-xs px-2"
-                                  onBlur={() => setEditingField(null)}
-                                  onKeyDown={(e) => e.key === "Escape" && setEditingField(null)}
-                                />
-                              </form>
-                            ) : (
-                              <Badge
-                                variant="secondary"
-                                className="cursor-pointer hover:bg-secondary/80"
-                                onClick={() => { setEditingField({ productId: product.id, field: "category" }); setEditingFieldValue(product.category); }}
-                              >
-                                {product.category}
-                                <Pencil className="w-2.5 h-2.5 ml-1 opacity-50" />
-                              </Badge>
-                            )}
                             {product.style && (
                               <Badge variant="outline">{product.style}</Badge>
                             )}
@@ -848,8 +819,26 @@ const AdminProductManagement = () => {
                         </>
                       )}
 
-                      {/* Editable AI Style Tags */}
+                      {/* Editable Type Tags */}
                       <div className="pt-3 border-t border-border">
+                        <div className="flex items-center gap-1 mb-2">
+                          <Package className="w-3 h-3 text-primary" />
+                          <span className="text-xs text-muted-foreground font-medium">Type</span>
+                        </div>
+                        <EditableTagList
+                          tags={product.category ? product.category.split(",").map(t => t.trim()).filter(Boolean) : []}
+                          onUpdate={(tags) => {
+                            const newCategory = tags.join(", ");
+                            if (newCategory) {
+                              updateProductMutation.mutate({ productId: product.id, updates: { category: newCategory } });
+                            }
+                          }}
+                          isPending={updateProductMutation.isPending}
+                        />
+                      </div>
+
+                      {/* Editable AI Style Tags */}
+                      <div className="mt-3 pt-3 border-t border-border">
                         <div className="flex items-center gap-1 mb-2">
                           <Sparkles className="w-3 h-3 text-primary" />
                           <span className="text-xs text-muted-foreground font-medium">AI Style Tags</span>
