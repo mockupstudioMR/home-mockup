@@ -777,7 +777,7 @@ const Generate = () => {
             source_image_url: quizData.sourceImageUrl,
             quiz_response_id: quizResponseId,
             title: designTitle,
-          })
+          } as any)
           .select()
           .single();
 
@@ -840,7 +840,7 @@ const Generate = () => {
           source_image_url: quizData.sourceImageUrl,
           quiz_response_id: quizResponseId,
           title: designTitle,
-        })
+        } as any)
         .select()
         .single();
 
@@ -925,7 +925,7 @@ const Generate = () => {
             prompt: usedPrompt,
             source_image_url: overriddenQuiz.sourceImageUrl,
             title: styleTitle,
-          })
+          } as any)
           .select()
           .single();
 
