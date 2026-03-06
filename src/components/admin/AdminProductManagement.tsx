@@ -536,10 +536,72 @@ const AdminProductManagement = () => {
             All Products
           </CardTitle>
           <CardDescription>
-            View and manage all products across all shops ({allProducts?.length || 0} total)
+            View and manage all products across all shops ({filteredProducts.length} of {allProducts?.length || 0} total)
           </CardDescription>
         </CardHeader>
         <CardContent>
+          {/* Filters */}
+          <div className="flex flex-wrap gap-3 mb-6">
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">Category</Label>
+              <Select value={filterCategory} onValueChange={(v) => { setFilterCategory(v); pagination.goToPage(1); }}>
+                <SelectTrigger className="w-[150px] h-8 text-sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Categories</SelectItem>
+                  {categories.map((cat) => (
+                    <SelectItem key={cat} value={cat}>
+                      {cat.charAt(0).toUpperCase() + cat.slice(1)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">Style</Label>
+              <Select value={filterStyle} onValueChange={(v) => { setFilterStyle(v); pagination.goToPage(1); }}>
+                <SelectTrigger className="w-[180px] h-8 text-sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Styles</SelectItem>
+                  {styles.map((s) => (
+                    <SelectItem key={s} value={s}>
+                      {s.split("-").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ")}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">Color</Label>
+              <Select value={filterColor} onValueChange={(v) => { setFilterColor(v); pagination.goToPage(1); }}>
+                <SelectTrigger className="w-[150px] h-8 text-sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Colors</SelectItem>
+                  {availableColors.map((color) => (
+                    <SelectItem key={color} value={color}>{color}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            {(filterCategory !== "all" || filterStyle !== "all" || filterColor !== "all") && (
+              <div className="flex items-end">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 text-xs"
+                  onClick={() => { setFilterCategory("all"); setFilterStyle("all"); setFilterColor("all"); pagination.goToPage(1); }}
+                >
+                  Clear filters
+                </Button>
+              </div>
+            )}
+          </div>
+
           {productsLoading ? (
             <div className="flex items-center justify-center py-12">
               <Loader2 className="w-8 h-8 animate-spin text-primary" />
