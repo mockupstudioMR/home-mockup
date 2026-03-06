@@ -688,8 +688,13 @@ const AdminProductManagement = () => {
                           {getShopName(product.shop_id)}
                         </Badge>
                       </div>
-                      {/* Delete button */}
-                      <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                      {/* Edit & Delete buttons */}
+                      <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
+                        {editingProduct !== product.id && (
+                          <Button size="icon" variant="secondary" className="h-8 w-8" onClick={() => startEditing(product)}>
+                            <Pencil className="w-4 h-4" />
+                          </Button>
+                        )}
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
                             <Button size="icon" variant="destructive" className="h-8 w-8">
@@ -717,31 +722,100 @@ const AdminProductManagement = () => {
                       </div>
                     </div>
                     <CardContent className="pt-4">
-                      <h3 className="font-semibold line-clamp-1 mb-2">{product.name}</h3>
-                      
-                      {product.source_url ? (
-                        <a
-                          href={product.source_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-sm text-primary hover:underline flex items-center gap-1 mb-3"
-                        >
-                          <ExternalLink className="w-3 h-3" />
-                          View product
-                        </a>
+                      {editingProduct === product.id ? (
+                        <div className="space-y-3">
+                          <Input
+                            value={editFields.name}
+                            onChange={(e) => setEditFields({ ...editFields, name: e.target.value })}
+                            placeholder="Product name"
+                            className="h-8 text-sm font-semibold"
+                          />
+                          <div className="grid grid-cols-2 gap-2">
+                            <div>
+                              <Label className="text-[10px] text-muted-foreground">Type</Label>
+                              <Input
+                                value={editFields.category}
+                                onChange={(e) => setEditFields({ ...editFields, category: e.target.value })}
+                                placeholder="e.g., sofa"
+                                className="h-7 text-xs"
+                              />
+                            </div>
+                            <div>
+                              <Label className="text-[10px] text-muted-foreground">Style</Label>
+                              <Input
+                                value={editFields.style}
+                                onChange={(e) => setEditFields({ ...editFields, style: e.target.value })}
+                                placeholder="e.g., modern"
+                                className="h-7 text-xs"
+                              />
+                            </div>
+                          </div>
+                          <div className="grid grid-cols-2 gap-2">
+                            <div>
+                              <Label className="text-[10px] text-muted-foreground">Price (€)</Label>
+                              <Input
+                                type="number"
+                                step="0.01"
+                                value={editFields.price}
+                                onChange={(e) => setEditFields({ ...editFields, price: e.target.value })}
+                                placeholder="0.00"
+                                className="h-7 text-xs"
+                              />
+                            </div>
+                            <div>
+                              <Label className="text-[10px] text-muted-foreground">URL</Label>
+                              <Input
+                                value={editFields.source_url}
+                                onChange={(e) => setEditFields({ ...editFields, source_url: e.target.value })}
+                                placeholder="https://..."
+                                className="h-7 text-xs"
+                              />
+                            </div>
+                          </div>
+                          <div className="flex gap-2">
+                            <Button
+                              size="sm"
+                              className="flex-1 h-7 text-xs"
+                              onClick={() => saveEditing(product.id)}
+                              disabled={updateProductMutation.isPending}
+                            >
+                              {updateProductMutation.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3 mr-1" />}
+                              Save
+                            </Button>
+                            <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setEditingProduct(null)}>
+                              Cancel
+                            </Button>
+                          </div>
+                        </div>
                       ) : (
-                        <p className="text-sm text-muted-foreground mb-3">No link</p>
+                        <>
+                          <h3 className="font-semibold line-clamp-1 mb-2">{product.name}</h3>
+                          
+                          {product.source_url ? (
+                            <a
+                              href={product.source_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-sm text-primary hover:underline flex items-center gap-1 mb-3"
+                            >
+                              <ExternalLink className="w-3 h-3" />
+                              View product
+                            </a>
+                          ) : (
+                            <p className="text-sm text-muted-foreground mb-3">No link</p>
+                          )}
+                          
+                          <div className="flex items-center gap-2 flex-wrap mb-3">
+                            <Badge variant="secondary">{product.category}</Badge>
+                            {product.style && (
+                              <Badge variant="outline">{product.style}</Badge>
+                            )}
+                            {product.price && (
+                              <Badge variant="outline">€{product.price}</Badge>
+                            )}
+                          </div>
+                        </>
                       )}
-                      
-                      <div className="flex items-center gap-2 flex-wrap mb-3">
-                        <Badge variant="secondary">{product.category}</Badge>
-                        {product.style && (
-                          <Badge variant="outline">{product.style}</Badge>
-                        )}
-                        {product.price && (
-                          <Badge variant="outline">€{product.price}</Badge>
-                        )}
-                      </div>
 
                       {/* Editable AI Style Tags */}
                       <div className="pt-3 border-t border-border">
