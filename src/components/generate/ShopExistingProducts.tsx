@@ -232,7 +232,7 @@ const computeMatchReasons = (
     if (prodCat.includes(itemType) || itemType.includes(prodCat)) {
       if (!reasons.some(r => r.startsWith("Type match"))) {
         reasons.push(`Type match: ${itemType}`);
-        score += w.categoryMatch;
+        score += w.typeMatch;
       }
     }
   }
