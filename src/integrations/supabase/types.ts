@@ -215,6 +215,7 @@ export type Database = {
           prompt: string
           quiz_response_id: string | null
           source_image_url: string | null
+          title: string | null
           user_id: string
         }
         Insert: {
@@ -231,6 +232,7 @@ export type Database = {
           prompt: string
           quiz_response_id?: string | null
           source_image_url?: string | null
+          title?: string | null
           user_id: string
         }
         Update: {
@@ -247,6 +249,7 @@ export type Database = {
           prompt?: string
           quiz_response_id?: string | null
           source_image_url?: string | null
+          title?: string | null
           user_id?: string
         }
         Relationships: [
