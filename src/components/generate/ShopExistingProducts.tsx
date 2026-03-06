@@ -479,11 +479,11 @@ const ShopExistingProducts = ({ item, onClose }: ShopExistingProductsProps) => {
         // Fallback: if no targeted results, fetch by type
         if (data.length === 0) {
           const expectedType = typeFromItemType(item.item_type);
-          const result = await supabase
+          const result = await (supabase
             .from("shop_products")
             .select("*")
-            .eq("is_active", true)
-            .eq("type" as any, expectedType)
+            .eq("is_active", true) as any)
+            .eq("type", expectedType)
             .limit(50);
 
           data = result.data || [];

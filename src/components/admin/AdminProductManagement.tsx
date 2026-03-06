@@ -755,8 +755,8 @@ const AdminProductManagement = () => {
                             <div>
                               <Label className="text-[10px] text-muted-foreground">Type</Label>
                               <Input
-                                value={editFields.category}
-                                onChange={(e) => setEditFields({ ...editFields, category: e.target.value })}
+                                value={editFields.type}
+                                onChange={(e) => setEditFields({ ...editFields, type: e.target.value })}
                                 placeholder="e.g., sofa"
                                 className="h-7 text-xs"
                               />
@@ -844,7 +844,7 @@ const AdminProductManagement = () => {
                           <span className="text-xs text-muted-foreground font-medium">Type</span>
                         </div>
                         <EditableTagList
-                          tags={(p as any).type ? (p as any).type.split(",").map((t: string) => t.trim()).filter(Boolean) : []}
+                          tags={(product as any).type ? (product as any).type.split(",").map((t: string) => t.trim()).filter(Boolean) : []}
                           onUpdate={(tags) => {
                             const newType = tags.join(", ");
                             if (newType) {
