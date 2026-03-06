@@ -16,7 +16,7 @@ export interface MatchingWeights {
   keywordPerMatch: number;
   keywordInNameBase: number;
   keywordInNamePer: number;
-  categoryMatch: number;
+  typeMatch: number;
   styleMatchDirect: number;
   styleMatchTag: number;
   colorMatch: number;
@@ -31,7 +31,7 @@ export const DEFAULT_WEIGHTS: MatchingWeights = {
   keywordPerMatch: 10,
   keywordInNameBase: 15,
   keywordInNamePer: 5,
-  categoryMatch: 15,
+  typeMatch: 15,
   styleMatchDirect: 25,
   styleMatchTag: 20,
   colorMatch: 15,
@@ -48,7 +48,7 @@ const WEIGHT_LABELS: Record<keyof MatchingWeights, { label: string; description:
   keywordPerMatch: { label: "Keyword Per Match", description: "Additional points per matched keyword", max: 30 },
   keywordInNameBase: { label: "Keyword in Name Base", description: "Base bonus when keywords match in product name", max: 50 },
   keywordInNamePer: { label: "Keyword in Name (per)", description: "Per-keyword bonus in product name", max: 20 },
-  categoryMatch: { label: "Category Match", description: "Item type matches product category", max: 50 },
+  typeMatch: { label: "Type Match", description: "Item type matches product type (strict keyword matching)", max: 50 },
   styleMatchDirect: { label: "Style Match (direct)", description: "Direct style string overlap", max: 60 },
   styleMatchTag: { label: "Style Match (tag)", description: "Style found in AI style tags", max: 50 },
   colorMatch: { label: "Color Match", description: "Item color found in product text", max: 50 },
