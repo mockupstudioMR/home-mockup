@@ -194,6 +194,25 @@ const AdminProductManagement = () => {
     },
   });
 
+  // Update product mutation
+  const updateProductMutation = useMutation({
+    mutationFn: async ({ productId, updates }: { productId: string; updates: { name?: string; category?: string; style?: string; price?: number | null; source_url?: string | null } }) => {
+      const { error } = await supabase
+        .from("shop_products")
+        .update(updates)
+        .eq("id", productId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-all-products"] });
+      toast({ title: "Product updated" });
+      setEditingProduct(null);
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to update product.", variant: "destructive" });
+    },
+  });
+
   // Extract colors mutation
   const [extractingColorFor, setExtractingColorFor] = useState<string | null>(null);
   const extractColorsMutation = useMutation({
@@ -216,6 +235,30 @@ const AdminProductManagement = () => {
       setExtractingColorFor(null);
     },
   });
+
+  const startEditing = (product: any) => {
+    setEditingProduct(product.id);
+    setEditFields({
+      name: product.name || "",
+      category: product.category || "",
+      style: product.style || "",
+      price: product.price ? String(product.price) : "",
+      source_url: product.source_url || "",
+    });
+  };
+
+  const saveEditing = (productId: string) => {
+    updateProductMutation.mutate({
+      productId,
+      updates: {
+        name: editFields.name,
+        category: editFields.category,
+        style: editFields.style || null,
+        price: editFields.price ? parseFloat(editFields.price) : null,
+        source_url: editFields.source_url || null,
+      },
+    });
+  };
 
   const handleAddProduct = async (e: React.FormEvent) => {
     e.preventDefault();
