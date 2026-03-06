@@ -226,11 +226,14 @@ const computeMatchReasons = (
     }
   }
 
-  // 2. Also check item_type against product category
-  if (itemType && (prodCat.includes(itemType) || itemType.includes(prodCat))) {
-    if (!reasons.some(r => r.startsWith("Type match"))) {
-      reasons.push(`Type match: ${itemType}`);
-      score += w.categoryMatch;
+  // 2. Also check item_type against product category (only for specific categories, not broad ones like "furniture")
+  const BROAD_CATEGORIES = new Set(["furniture", "other", "decor"]);
+  if (itemType && !BROAD_CATEGORIES.has(itemType) && !BROAD_CATEGORIES.has(prodCat)) {
+    if (prodCat.includes(itemType) || itemType.includes(prodCat)) {
+      if (!reasons.some(r => r.startsWith("Type match"))) {
+        reasons.push(`Type match: ${itemType}`);
+        score += w.categoryMatch;
+      }
     }
   }
 
