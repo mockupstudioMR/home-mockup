@@ -236,6 +236,27 @@ const AdminProductManagement = () => {
     },
   });
 
+  // Update colors mutation
+  const updateColorsMutation = useMutation({
+    mutationFn: async ({ productId, colors }: { productId: string; colors: Array<{ name: string; hex: string; percentage: number }> }) => {
+      // Get current metadata first
+      const { data: current } = await supabase.from("shop_products").select("metadata").eq("id", productId).single();
+      const currentMeta = (current?.metadata as any) || {};
+      const { error } = await supabase
+        .from("shop_products")
+        .update({ metadata: { ...currentMeta, extracted_colors: colors } })
+        .eq("id", productId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-all-products"] });
+      toast({ title: "Colors updated" });
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to update colors.", variant: "destructive" });
+    },
+  });
+
   const startEditing = (product: any) => {
     setEditingProduct(product.id);
     setEditFields({
@@ -860,7 +881,7 @@ const AdminProductManagement = () => {
                         </div>
                       )}
 
-                      {/* Extracted Colors */}
+                      {/* Editable Furniture Colors */}
                       <div className="mt-3 pt-3 border-t border-border">
                         <div className="flex items-center justify-between mb-2">
                           <div className="flex items-center gap-1">
@@ -889,22 +910,19 @@ const AdminProductManagement = () => {
                             </Button>
                           )}
                         </div>
-                        {(product.metadata as any)?.extracted_colors ? (
-                          <div className="flex flex-wrap gap-1.5">
-                            {((product.metadata as any).extracted_colors as Array<{name: string; hex: string; percentage: number}>).map((color, idx) => (
-                              <div key={idx} className="flex items-center gap-1 px-2 py-1 rounded-full bg-muted/50 border border-border text-[10px]">
-                                <span
-                                  className="w-3 h-3 rounded-full border border-border/50 shrink-0"
-                                  style={{ backgroundColor: color.hex }}
-                                />
-                                <span className="font-medium">{color.name}</span>
-                                <span className="text-muted-foreground">{color.percentage}%</span>
-                              </div>
-                            ))}
-                          </div>
-                        ) : (
-                          <p className="text-[10px] text-muted-foreground">No colors extracted yet</p>
-                        )}
+                        <EditableTagList
+                          tags={((product.metadata as any)?.extracted_colors as Array<{ name: string }> || []).map(c => c.name)}
+                          onUpdate={(colorNames) => {
+                            const existingColors = ((product.metadata as any)?.extracted_colors || []) as Array<{ name: string; hex: string; percentage: number }>;
+                            // Keep existing colors that are still in the list, add new ones with defaults
+                            const updatedColors = colorNames.map(name => {
+                              const existing = existingColors.find(c => c.name === name);
+                              return existing || { name, hex: "#888888", percentage: 0 };
+                            });
+                            updateColorsMutation.mutate({ productId: product.id, colors: updatedColors });
+                          }}
+                          isPending={updateColorsMutation.isPending}
+                        />
                       </div>
                     </CardContent>
                   </Card>
