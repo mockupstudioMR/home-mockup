@@ -534,7 +534,7 @@ const Generate = () => {
 
       // Generate and persist a title if missing
       const quizResp = existingDesign.quiz_responses as any;
-      let designTitle = existingDesign.title;
+      let designTitle = (existingDesign as any).title as string | null;
       if (!designTitle) {
         designTitle = generateDesignTitle(
           quizResp?.style_preference || quizData?.stylePreference,
