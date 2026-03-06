@@ -54,6 +54,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   useEffect(() => {
+    let initialSessionHandled = false;
+
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event, session) => {
@@ -62,8 +64,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setLoading(false);
 
         if (session?.user) {
-          // Use setTimeout to avoid blocking the auth state change
-          setTimeout(() => fetchUserRole(session.user.id), 0);
+          // Skip if getSession already handled this
+          if (!initialSessionHandled) {
+            initialSessionHandled = true;
+            setTimeout(() => fetchUserRole(session.user.id), 0);
+          }
         } else {
           setRole(null);
           setRoleLoading(false);
@@ -77,9 +82,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setUser(session?.user ?? null);
       setLoading(false);
 
-      if (session?.user) {
+      if (session?.user && !initialSessionHandled) {
+        initialSessionHandled = true;
         fetchUserRole(session.user.id);
-      } else {
+      } else if (!session?.user) {
         setRoleLoading(false);
       }
     });
