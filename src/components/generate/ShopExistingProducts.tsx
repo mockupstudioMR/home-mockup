@@ -161,6 +161,41 @@ const normalizeUrl = (value: string): string =>
     .replace(/\/+$/, "")
     .trim();
 
+const STRICT_TYPE_KEYWORDS: Record<string, string[]> = {
+  sofa: ["sofa", "couch", "settee", "modulsofa", "sofaserie"],
+  bed: ["bed", "bett", "mattress", "headboard", "footboard"],
+  table: ["table", "tisch", "desk", "schreibtisch", "nightstand"],
+  chair: ["chair", "stuhl", "sessel", "armchair", "fauteuil", "stool", "bench"],
+  storage: ["wardrobe", "closet", "schrank", "cabinet", "sideboard", "kommode", "dresser", "bookshelf", "shelf", "regal"],
+  lighting: ["lamp", "lampe", "leuchte", "chandelier", "sconce", "pendant", "light"],
+  rug: ["rug", "teppich", "carpet"],
+  textile: ["curtain", "vorhang", "drape", "cushion", "pillow", "blanket", "throw"],
+  decor: ["mirror", "spiegel", "vase", "planter", "artwork", "painting", "sculpture", "clock", "tray", "bowl", "frame"],
+};
+
+const getStrictExpectedProductTypes = (item: DesignItem): string[] => {
+  const text = normalizeText(`${item.item_name} ${item.item_description || ""}`);
+  const expected = new Set<string>();
+
+  for (const [type, keywords] of Object.entries(STRICT_TYPE_KEYWORDS)) {
+    if (keywords.some((kw) => includesWholeWord(text, kw))) {
+      expected.add(type);
+    }
+  }
+
+  if (expected.size > 0) return Array.from(expected);
+
+  // Fallback by broad extracted item type when no strict clue is present
+  const broadFallback: Record<string, string[]> = {
+    furniture: ["sofa", "chair", "table", "bed", "storage", "outdoor"],
+    lighting: ["lighting"],
+    textile: ["textile", "rug"],
+    decor: ["decor", "other"],
+  };
+
+  return broadFallback[item.item_type?.toLowerCase()] || [];
+};
+
 const getProductDedupKey = (product: Pick<MatchedProduct, "name" | "source_url">): string => {
   const normalizedName = normalizeText(product.name || "");
   const normalizedSource = product.source_url ? normalizeUrl(product.source_url) : "no-source";
@@ -232,10 +267,10 @@ const computeMatchReasons = (
     }
   }
 
-  // 2. Also check item_type against product type (only for specific types, not broad ones like "furniture")
+  // 2. Also check item_type against product type (strict whole-word only)
   const BROAD_CATEGORIES = new Set(["furniture", "other", "decor"]);
   if (itemType && !BROAD_CATEGORIES.has(itemType) && !BROAD_CATEGORIES.has(prodType)) {
-    if (prodType.includes(itemType) || itemType.includes(prodType)) {
+    if (includesWholeWord(prodType, itemType) || includesWholeWord(itemType, prodType)) {
       if (!reasons.some(r => r.startsWith("Type match"))) {
         reasons.push(`Type match: ${itemType}`);
         score += w.typeMatch;
@@ -498,7 +533,12 @@ const ShopExistingProducts = ({ item, onClose }: ShopExistingProductsProps) => {
 
         if (error) throw error;
 
-        const scored = (data || [])
+        const strictExpectedTypes = getStrictExpectedProductTypes(item);
+        const strictFilteredData = strictExpectedTypes.length > 0
+          ? (data || []).filter((p) => strictExpectedTypes.includes((p.type || "").toLowerCase()))
+          : (data || []);
+
+        const scored = strictFilteredData
           .map((p) => {
             const { reasons, score } = computeMatchReasons(p, item, weights);
             return { ...p, matchReasons: reasons, matchScore: score } as MatchedProduct;
