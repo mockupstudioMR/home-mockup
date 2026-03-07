@@ -161,6 +161,41 @@ const normalizeUrl = (value: string): string =>
     .replace(/\/+$/, "")
     .trim();
 
+const STRICT_TYPE_KEYWORDS: Record<string, string[]> = {
+  sofa: ["sofa", "couch", "settee", "modulsofa", "sofaserie"],
+  bed: ["bed", "bett", "mattress", "headboard", "footboard"],
+  table: ["table", "tisch", "desk", "schreibtisch", "nightstand"],
+  chair: ["chair", "stuhl", "sessel", "armchair", "fauteuil", "stool", "bench"],
+  storage: ["wardrobe", "closet", "schrank", "cabinet", "sideboard", "kommode", "dresser", "bookshelf", "shelf", "regal"],
+  lighting: ["lamp", "lampe", "leuchte", "chandelier", "sconce", "pendant", "light"],
+  rug: ["rug", "teppich", "carpet"],
+  textile: ["curtain", "vorhang", "drape", "cushion", "pillow", "blanket", "throw"],
+  decor: ["mirror", "spiegel", "vase", "planter", "artwork", "painting", "sculpture", "clock", "tray", "bowl", "frame"],
+};
+
+const getStrictExpectedProductTypes = (item: DesignItem): string[] => {
+  const text = normalizeText(`${item.item_name} ${item.item_description || ""}`);
+  const expected = new Set<string>();
+
+  for (const [type, keywords] of Object.entries(STRICT_TYPE_KEYWORDS)) {
+    if (keywords.some((kw) => includesWholeWord(text, kw))) {
+      expected.add(type);
+    }
+  }
+
+  if (expected.size > 0) return Array.from(expected);
+
+  // Fallback by broad extracted item type when no strict clue is present
+  const broadFallback: Record<string, string[]> = {
+    furniture: ["sofa", "chair", "table", "bed", "storage", "outdoor"],
+    lighting: ["lighting"],
+    textile: ["textile", "rug"],
+    decor: ["decor", "other"],
+  };
+
+  return broadFallback[item.item_type?.toLowerCase()] || [];
+};
+
 const getProductDedupKey = (product: Pick<MatchedProduct, "name" | "source_url">): string => {
   const normalizedName = normalizeText(product.name || "");
   const normalizedSource = product.source_url ? normalizeUrl(product.source_url) : "no-source";
