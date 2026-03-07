@@ -28,8 +28,9 @@ interface ExtractRequest {
   userCity?: string;
 }
 
-const DEFAULT_EXTRACT_PROMPT = `Analyze this interior design image comprehensively. Extract EVERY visible design element including:
+const DEFAULT_EXTRACT_PROMPT = `Analyze this interior design image comprehensively. Extract ONLY items that are CLEARLY VISIBLE in the image. Do NOT hallucinate, invent, or assume items that are not visually present. If you cannot see an item, do not include it.
 
+Categories to look for (only if visible):
 1. **Wall Elements**: wall color(s), paint finish, wallpaper patterns, wall textures
 2. **Floor Elements**: flooring type (hardwood, tile, carpet, etc.), color, material
 3. **Ceiling Elements**: ceiling type, color, any fixtures
@@ -38,6 +39,13 @@ const DEFAULT_EXTRACT_PROMPT = `Analyze this interior design image comprehensive
 6. **Textiles**: rugs, curtains, cushions, throws, upholstery
 7. **Decor**: artwork, mirrors, plants, vases, books, decorative objects
 8. **Architectural Details**: moldings, doors, windows, fireplace
+
+CRITICAL RULES:
+- ONLY extract items you can actually SEE in the image. Every item must correspond to a specific visible object.
+- Do NOT add generic filler items (e.g., "decorative objects", "accent pieces") unless you can point to a specific one.
+- Do NOT guess what might be behind furniture or outside the frame.
+- If an item is partially visible or unclear, note that in the description but still include it.
+- Count items accurately: if there are 2 cushions, list 2. Do not invent a 3rd.
 
 For EACH item, provide:
 - itemType: Use a SPECIFIC type from this list: sofa, chair, table, bed, sideboard, shelf, wardrobe, lamp, rug, curtain, cushion, mirror, vase, plant, artwork, clock, stool, bench, desk, nightstand, dresser, chandelier, sconce, pendant, blanket, throw, planter, frame, fireplace, door, window, molding, backsplash, countertop, wall_color, floor_material, ceiling. Do NOT use broad categories like "furniture", "lighting", "textile", or "decor" — always pick the most specific type.
