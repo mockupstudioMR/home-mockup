@@ -464,14 +464,41 @@ const AddProductDialog = ({ item, onProductAdded }: { item: DesignItem; onProduc
   );
 };
 
+interface DebugInfo {
+  extractedKeywords: string[];
+  expandedKeywords: string[];
+  strictExpectedTypes: string[];
+  dbResultsCount: number;
+  afterStrictFilterCount: number;
+  afterScoringCount: number;
+  afterDedupCount: number;
+  weights: MatchingWeights;
+  rejectedProducts: { name: string; type: string; reason: string }[];
+  scoredProducts: { name: string; type: string; score: number; reasons: string[] }[];
+}
+
 const ShopExistingProducts = ({ item, onClose }: ShopExistingProductsProps) => {
   const [products, setProducts] = useState<MatchedProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [debugInfo, setDebugInfo] = useState<DebugInfo | null>(null);
 
   useEffect(() => {
     const fetchMatchingProducts = async () => {
       setLoading(true);
+      const debug: DebugInfo = {
+        extractedKeywords: [],
+        expandedKeywords: [],
+        strictExpectedTypes: [],
+        dbResultsCount: 0,
+        afterStrictFilterCount: 0,
+        afterScoringCount: 0,
+        afterDedupCount: 0,
+        weights: DEFAULT_WEIGHTS,
+        rejectedProducts: [],
+        scoredProducts: [],
+      };
+
       try {
         // Fetch dynamic weights from cms_content
         let weights = DEFAULT_WEIGHTS;
@@ -488,15 +515,18 @@ const ShopExistingProducts = ({ item, onClose }: ShopExistingProductsProps) => {
         } catch (e) {
           console.warn("Could not load matching weights, using defaults");
         }
+        debug.weights = weights;
 
         // Build a targeted query using item name keywords + synonyms for server-side filtering
         const itemNameLower = item.item_name.toLowerCase();
         const searchKeywords = itemNameLower
           .split(/\s+/)
           .filter(w => w.length > 2 && VALID_TYPE_KEYWORDS.has(w));
+        debug.extractedKeywords = [...searchKeywords];
 
         // Expand with synonyms for cross-language matching
         const expandedSearchKeywords = getExpandedKeywords(searchKeywords);
+        debug.expandedKeywords = [...expandedSearchKeywords];
 
         // First try: search by keywords (including synonyms) in name/type/description
         let data: any[] = [];
@@ -533,25 +563,51 @@ const ShopExistingProducts = ({ item, onClose }: ShopExistingProductsProps) => {
         }
 
         if (error) throw error;
+        debug.dbResultsCount = data.length;
 
         const strictExpectedTypes = getStrictExpectedProductTypes(item);
+        debug.strictExpectedTypes = [...strictExpectedTypes];
+
         const strictFilteredData = strictExpectedTypes.length > 0
-          ? (data || []).filter((p) => strictExpectedTypes.includes((p.type || "").toLowerCase()))
+          ? (data || []).filter((p) => {
+              const pType = (p.type || "").toLowerCase();
+              const pass = strictExpectedTypes.includes(pType);
+              if (!pass) {
+                debug.rejectedProducts.push({ name: p.name, type: pType, reason: `type "${pType}" not in [${strictExpectedTypes.join(", ")}]` });
+              }
+              return pass;
+            })
           : (data || []);
+        debug.afterStrictFilterCount = strictFilteredData.length;
 
         const scored = strictFilteredData
           .map((p) => {
             const { reasons, score } = computeMatchReasons(p, item, weights);
+            debug.scoredProducts.push({ name: p.name, type: (p.type || ""), score, reasons: [...reasons] });
             return { ...p, matchReasons: reasons, matchScore: score } as MatchedProduct;
           })
-          .filter((p) => p.matchReasons.some(r => r.toLowerCase().startsWith("type match")) && p.matchScore >= weights.minimumScore)
+          .filter((p) => {
+            const hasTypeMatch = p.matchReasons.some(r => r.toLowerCase().startsWith("type match"));
+            const meetsMin = p.matchScore >= weights.minimumScore;
+            if (!hasTypeMatch || !meetsMin) {
+              debug.rejectedProducts.push({
+                name: p.name,
+                type: p.type,
+                reason: !hasTypeMatch ? `no "Type match" reason` : `score ${p.matchScore} < min ${weights.minimumScore}`
+              });
+            }
+            return hasTypeMatch && meetsMin;
+          })
           .sort((a, b) => b.matchScore - a.matchScore);
 
         const deduped = dedupeProducts(scored);
+        debug.afterScoringCount = scored.length;
+        debug.afterDedupCount = deduped.length;
         setProducts(deduped.slice(0, 8));
       } catch (err) {
         console.error("Error fetching matching products:", err);
       } finally {
+        setDebugInfo(debug);
         setLoading(false);
       }
     };
