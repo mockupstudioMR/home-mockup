@@ -146,6 +146,12 @@ const normalizeText = (value: string): string =>
     .trim()
     .replace(/\s+/g, " ");
 
+/** Check if a keyword appears as a whole word (not a substring) in text */
+const includesWholeWord = (text: string, keyword: string): boolean => {
+  const regex = new RegExp(`(?:^|\\s|[^a-z])${keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?:$|\\s|[^a-z])`, "i");
+  return regex.test(` ${text} `);
+};
+
 const normalizeUrl = (value: string): string =>
   value
     .toLowerCase()
