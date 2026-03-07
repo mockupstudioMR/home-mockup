@@ -146,6 +146,12 @@ const normalizeText = (value: string): string =>
     .trim()
     .replace(/\s+/g, " ");
 
+/** Check if a keyword appears as a whole word (not a substring) in text */
+const includesWholeWord = (text: string, keyword: string): boolean => {
+  const regex = new RegExp(`(?:^|\\s|[^a-z])${keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?:$|\\s|[^a-z])`, "i");
+  return regex.test(` ${text} `);
+};
+
 const normalizeUrl = (value: string): string =>
   value
     .toLowerCase()
@@ -200,26 +206,26 @@ const computeMatchReasons = (
   const expandedKeywords = getExpandedKeywords(typeKeywords);
 
   // Check for full item name match first (strongest signal)
-  if (allProdText.includes(itemName)) {
+  if (includesWholeWord(allProdText, itemName)) {
     reasons.push(`Type match: ${item.item_name}`);
     score += w.fullNameMatch;
-    if (prodName.includes(itemName)) {
+    if (includesWholeWord(prodName, itemName)) {
       score += w.nameFieldBonus;
     }
   } else {
     // Check for meaningful keyword matches (including synonyms)
-    const matchedKeywords = expandedKeywords.filter(kw => allProdText.includes(kw));
+    const matchedKeywords = expandedKeywords.filter(kw => includesWholeWord(allProdText, kw));
     // Also track which original keywords led to matches
     const matchedOriginals = typeKeywords.filter(kw => {
-      if (allProdText.includes(kw)) return true;
+      if (includesWholeWord(allProdText, kw)) return true;
       const syns = SYNONYM_MAP.get(kw);
-      return syns && Array.from(syns).some(s => allProdText.includes(s));
+      return syns && Array.from(syns).some(s => includesWholeWord(allProdText, s));
     });
     if (matchedKeywords.length > 0) {
       const displayTerms = matchedOriginals.length > 0 ? matchedOriginals : matchedKeywords.slice(0, 3);
       reasons.push(`Type match: ${displayTerms.join(", ")}`);
       score += w.keywordBase + (matchedKeywords.length * w.keywordPerMatch);
-      const nameMatchCount = expandedKeywords.filter(kw => prodName.includes(kw)).length;
+      const nameMatchCount = expandedKeywords.filter(kw => includesWholeWord(prodName, kw)).length;
       if (nameMatchCount > 0) {
         score += w.keywordInNameBase + (nameMatchCount * w.keywordInNamePer);
       }
@@ -253,7 +259,7 @@ const computeMatchReasons = (
   // 4. Color matching
   const itemColor = (item.color || "").toLowerCase();
   if (itemColor && itemColor.length > 2) {
-    if (allProdText.includes(itemColor)) {
+    if (includesWholeWord(allProdText, itemColor)) {
       reasons.push(`Color match: ${item.color}`);
       score += w.colorMatch;
     }
@@ -262,7 +268,7 @@ const computeMatchReasons = (
   // 5. Material matching
   const itemMaterial = (item.material || "").toLowerCase();
   if (itemMaterial && itemMaterial.length > 2) {
-    if (allProdText.includes(itemMaterial)) {
+    if (includesWholeWord(allProdText, itemMaterial)) {
       reasons.push(`Material match: ${item.material}`);
       score += w.materialMatch;
     }
