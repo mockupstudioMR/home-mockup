@@ -292,10 +292,25 @@ const computeMatchReasons = (
     score += w.styleMatchTag;
   }
 
-  // 4. Color matching
+  // 4. Color matching (text fields + extracted color names from metadata)
   const itemColor = (item.color || "").toLowerCase();
   if (itemColor && itemColor.length > 2) {
+    let colorMatched = false;
+    // Check product text fields
     if (includesWholeWord(allProdText, itemColor)) {
+      colorMatched = true;
+    }
+    // Also check AI-extracted color names from product metadata
+    if (!colorMatched) {
+      const extractedColors = (product.metadata as any)?.extracted_colors as Array<{ name: string }> | undefined;
+      if (extractedColors?.length) {
+        const extractedColorNames = extractedColors.map(c => c.name.toLowerCase());
+        if (extractedColorNames.some(cn => cn.includes(itemColor) || itemColor.includes(cn))) {
+          colorMatched = true;
+        }
+      }
+    }
+    if (colorMatched) {
       reasons.push(`Color match: ${item.color}`);
       score += w.colorMatch;
     }
