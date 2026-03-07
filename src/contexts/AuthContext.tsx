@@ -91,6 +91,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             setTimeout(() => fetchUserRole(session.user.id), 0);
           }
         } else {
+          // Reset flag so next login triggers role fetch
+          initialSessionHandled = false;
           setRole(null);
           setRoleLoading(false);
         }
