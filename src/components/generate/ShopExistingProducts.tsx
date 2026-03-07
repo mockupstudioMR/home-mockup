@@ -259,7 +259,7 @@ const computeMatchReasons = (
   // 4. Color matching
   const itemColor = (item.color || "").toLowerCase();
   if (itemColor && itemColor.length > 2) {
-    if (allProdText.includes(itemColor)) {
+    if (includesWholeWord(allProdText, itemColor)) {
       reasons.push(`Color match: ${item.color}`);
       score += w.colorMatch;
     }
