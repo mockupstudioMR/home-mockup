@@ -267,10 +267,10 @@ const computeMatchReasons = (
     }
   }
 
-  // 2. Also check item_type against product type (only for specific types, not broad ones like "furniture")
+  // 2. Also check item_type against product type (strict whole-word only)
   const BROAD_CATEGORIES = new Set(["furniture", "other", "decor"]);
   if (itemType && !BROAD_CATEGORIES.has(itemType) && !BROAD_CATEGORIES.has(prodType)) {
-    if (prodType.includes(itemType) || itemType.includes(prodType)) {
+    if (includesWholeWord(prodType, itemType) || includesWholeWord(itemType, prodType)) {
       if (!reasons.some(r => r.startsWith("Type match"))) {
         reasons.push(`Type match: ${itemType}`);
         score += w.typeMatch;
