@@ -533,7 +533,12 @@ const ShopExistingProducts = ({ item, onClose }: ShopExistingProductsProps) => {
 
         if (error) throw error;
 
-        const scored = (data || [])
+        const strictExpectedTypes = getStrictExpectedProductTypes(item);
+        const strictFilteredData = strictExpectedTypes.length > 0
+          ? (data || []).filter((p) => strictExpectedTypes.includes((p.type || "").toLowerCase()))
+          : (data || []);
+
+        const scored = strictFilteredData
           .map((p) => {
             const { reasons, score } = computeMatchReasons(p, item, weights);
             return { ...p, matchReasons: reasons, matchScore: score } as MatchedProduct;
