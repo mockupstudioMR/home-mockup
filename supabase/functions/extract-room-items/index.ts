@@ -232,13 +232,54 @@ Deno.serve(async (req) => {
 
     // Type mapping: design item_type -> compatible product types
     const TYPE_COMPATIBILITY: Record<string, string[]> = {
-      furniture: ["sofa", "chair", "table", "bed", "storage", "furniture", "outdoor"],
+      // Specific types map to themselves + close variants
+      sofa: ["sofa"],
+      chair: ["chair"],
+      table: ["table"],
+      bed: ["bed"],
+      sideboard: ["sideboard"],
+      shelf: ["shelf"],
+      wardrobe: ["wardrobe"],
+      desk: ["desk", "table"],
+      nightstand: ["nightstand", "table"],
+      dresser: ["dresser", "sideboard"],
+      stool: ["stool", "chair"],
+      bench: ["bench", "chair"],
+      // Lighting
+      lamp: ["lighting", "lamp"],
+      chandelier: ["lighting"],
+      sconce: ["lighting"],
+      pendant: ["lighting"],
+      // Textiles
+      rug: ["rug", "textile"],
+      curtain: ["curtain", "textile"],
+      cushion: ["cushion", "textile"],
+      blanket: ["textile"],
+      throw: ["textile"],
+      // Decor
+      mirror: ["decor", "mirror"],
+      vase: ["decor", "vase"],
+      plant: ["decor", "plant"],
+      planter: ["decor", "planter"],
+      artwork: ["decor", "artwork"],
+      clock: ["decor"],
+      frame: ["decor"],
+      // Broad fallbacks (in case AI still uses them)
+      furniture: ["sofa", "chair", "table", "bed", "sideboard", "shelf", "wardrobe"],
       lighting: ["lighting"],
-      textile: ["textile", "rug"],
-      decor: ["decor", "other"],
+      textile: ["textile", "rug", "curtain", "cushion"],
+      decor: ["decor"],
+      // Non-shoppable
       wall_color: [],
       floor_material: [],
+      ceiling: [],
       architectural: [],
+      fireplace: [],
+      door: [],
+      window: [],
+      molding: [],
+      backsplash: [],
+      countertop: [],
     };
 
     // Whole-word match helper to avoid substring false positives
