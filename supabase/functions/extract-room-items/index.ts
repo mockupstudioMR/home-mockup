@@ -218,7 +218,7 @@ Deno.serve(async (req) => {
     // Get all shop products for matching
     const { data: shopProducts } = await supabase
       .from("shop_products")
-      .select("id, name, category, style, shop_id")
+      .select("id, name, type, style, shop_id")
       .eq("is_active", true);
 
     const { data: businessProfiles } = await supabase
@@ -230,6 +230,24 @@ Deno.serve(async (req) => {
     );
     const userCityLower = userCity?.toLowerCase();
 
+    // Type mapping: design item_type -> compatible product types
+    const TYPE_COMPATIBILITY: Record<string, string[]> = {
+      furniture: ["sofa", "chair", "table", "bed", "storage", "furniture", "outdoor"],
+      lighting: ["lighting"],
+      textile: ["textile", "rug"],
+      decor: ["decor", "other"],
+      wall_color: [],
+      floor_material: [],
+      architectural: [],
+    };
+
+    // Whole-word match helper to avoid substring false positives
+    const matchesWholeWord = (text: string, keyword: string): boolean => {
+      if (!keyword || keyword.length < 3) return false;
+      const escaped = keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      return new RegExp(`(?:^|\\s|[^a-z])${escaped}(?:$|\\s|[^a-z])`, "i").test(` ${text} `);
+    };
+
     // Process each item and find matches
     const usedProductIds = new Set<string>();
     const itemsWithMatches = analysis.items.map((item) => {
@@ -237,13 +255,31 @@ Deno.serve(async (req) => {
       let googleShoppingUrl: string | null = null;
       let googleImagesUrl: string | null = null;
 
+      const compatibleTypes = TYPE_COMPATIBILITY[item.itemType] || [];
+      const itemNameLower = item.itemName.toLowerCase();
+
       const matchingProducts = shopProducts?.filter((p) => {
         if (usedProductIds.has(p.id)) return false;
-        const categoryMatch = p.category?.toLowerCase().includes(item.itemType.replace("_", " ")) ||
-          item.itemName.toLowerCase().includes(p.category?.toLowerCase() || "");
+        const prodType = (p.type || "").toLowerCase();
+        const prodName = (p.name || "").toLowerCase();
+
+        // 1. Product type must be compatible with design item type
+        const typeCompatible = compatibleTypes.length > 0 && compatibleTypes.includes(prodType);
+        if (!typeCompatible) return false;
+
+        // 2. Specific type match: product type should relate to item name
+        //    e.g., "Ribbed Fabric Sofa" should match "sofa" products, not "bed"
+        const specificTypeMatch =
+          matchesWholeWord(itemNameLower, prodType) ||
+          matchesWholeWord(prodName, itemNameLower.split(" ").pop() || "") ||
+          prodType === "furniture"; // broad furniture type always compatible
+
+        if (!specificTypeMatch) return false;
+
+        // 3. Style match (loose)
         const styleMatch = !item.style || !p.style || 
           p.style?.toLowerCase().includes(item.style.toLowerCase());
-        return categoryMatch && styleMatch;
+        return styleMatch;
       }) || [];
 
       if (userCityLower && matchingProducts.length > 0) {
