@@ -40,8 +40,8 @@ const DEFAULT_EXTRACT_PROMPT = `Analyze this interior design image comprehensive
 8. **Architectural Details**: moldings, doors, windows, fireplace
 
 For EACH item, provide:
-- itemType: category (wall_color, floor_material, furniture, lighting, textile, decor, architectural)
-- itemName: specific name (e.g., "Cream White Wall Paint", "Oak Herringbone Floor")
+- itemType: Use a SPECIFIC type from this list: sofa, chair, table, bed, sideboard, shelf, wardrobe, lamp, rug, curtain, cushion, mirror, vase, plant, artwork, clock, stool, bench, desk, nightstand, dresser, chandelier, sconce, pendant, blanket, throw, planter, frame, fireplace, door, window, molding, backsplash, countertop, wall_color, floor_material, ceiling. Do NOT use broad categories like "furniture", "lighting", "textile", or "decor" — always pick the most specific type.
+- itemName: specific name (e.g., "Cream White Wall Paint", "Oak Herringbone Floor", "Cord-Sofa Melva")
 - itemDescription: detailed description for shopping
 - color: descriptive color name (e.g., "warm taupe", "sage green")
 - hexCode: REQUIRED for wall_color items - the exact hex color code (e.g., "#E8DFD1", "#B8C5B0"). Must be accurate.
@@ -60,8 +60,8 @@ Return JSON:
   "colorPalette": ["#hexcode1", "#hexcode2", ...]
 }`;
 
-const DEFAULT_RETRY_PROMPT = `Look at this room image and list the main items you see. Return ONLY valid JSON (no markdown):
-{"items":[{"itemType":"furniture","itemName":"item name","itemDescription":"brief description","color":"color name","material":"material","style":"style","priority":"essential","boundingBox":{"x":10,"y":10,"width":20,"height":20}}],"fullDescription":"room description","dominantStyle":"modern","colorPalette":["#FFFFFF"]}`;
+const DEFAULT_RETRY_PROMPT = `Look at this room image and list the main items you see. For itemType, use specific types like: sofa, chair, table, bed, sideboard, shelf, lamp, rug, curtain, cushion, mirror, vase, plant, artwork, wall_color, floor_material. Do NOT use broad types like "furniture" or "decor". Return ONLY valid JSON (no markdown):
+{"items":[{"itemType":"sofa","itemName":"item name","itemDescription":"brief description","color":"color name","material":"material","style":"style","priority":"essential","boundingBox":{"x":10,"y":10,"width":20,"height":20}}],"fullDescription":"room description","dominantStyle":"modern","colorPalette":["#FFFFFF"]}`;
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -232,13 +232,54 @@ Deno.serve(async (req) => {
 
     // Type mapping: design item_type -> compatible product types
     const TYPE_COMPATIBILITY: Record<string, string[]> = {
-      furniture: ["sofa", "chair", "table", "bed", "storage", "furniture", "outdoor"],
+      // Specific types map to themselves + close variants
+      sofa: ["sofa"],
+      chair: ["chair"],
+      table: ["table"],
+      bed: ["bed"],
+      sideboard: ["sideboard"],
+      shelf: ["shelf"],
+      wardrobe: ["wardrobe"],
+      desk: ["desk", "table"],
+      nightstand: ["nightstand", "table"],
+      dresser: ["dresser", "sideboard"],
+      stool: ["stool", "chair"],
+      bench: ["bench", "chair"],
+      // Lighting
+      lamp: ["lighting", "lamp"],
+      chandelier: ["lighting"],
+      sconce: ["lighting"],
+      pendant: ["lighting"],
+      // Textiles
+      rug: ["rug", "textile"],
+      curtain: ["curtain", "textile"],
+      cushion: ["cushion", "textile"],
+      blanket: ["textile"],
+      throw: ["textile"],
+      // Decor
+      mirror: ["decor", "mirror"],
+      vase: ["decor", "vase"],
+      plant: ["decor", "plant"],
+      planter: ["decor", "planter"],
+      artwork: ["decor", "artwork"],
+      clock: ["decor"],
+      frame: ["decor"],
+      // Broad fallbacks (in case AI still uses them)
+      furniture: ["sofa", "chair", "table", "bed", "sideboard", "shelf", "wardrobe"],
       lighting: ["lighting"],
-      textile: ["textile", "rug"],
-      decor: ["decor", "other"],
+      textile: ["textile", "rug", "curtain", "cushion"],
+      decor: ["decor"],
+      // Non-shoppable
       wall_color: [],
       floor_material: [],
+      ceiling: [],
       architectural: [],
+      fireplace: [],
+      door: [],
+      window: [],
+      molding: [],
+      backsplash: [],
+      countertop: [],
     };
 
     // Whole-word match helper to avoid substring false positives
