@@ -165,18 +165,18 @@ const DesignItemCard = ({ item, designImageUrl, onOrderCustomMade }: DesignItemC
                 {hexColor?.toUpperCase()}
               </span>
             </div>
-          ) : item.product_photo_url && !imageError ? (
-            <img 
-              src={item.product_photo_url} 
-              alt={displayName}
-              className="w-full h-full object-contain bg-white"
-              onError={() => setImageError(true)}
-            />
           ) : matchedImage && !imageError ? (
             <img 
               src={matchedImage} 
               alt={displayName}
               className="w-full h-full object-cover"
+              onError={() => setImageError(true)}
+            />
+          ) : item.product_photo_url && !imageError ? (
+            <img 
+              src={item.product_photo_url} 
+              alt={displayName}
+              className="w-full h-full object-contain bg-white"
               onError={() => setImageError(true)}
             />
           ) : hasBoundingBox ? (
