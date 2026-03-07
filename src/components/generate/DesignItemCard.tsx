@@ -197,17 +197,17 @@ const DesignItemCard = ({ item, designImageUrl, onOrderCustomMade }: DesignItemC
         {/* Expanded preview via portal */}
         {showPreview && portalContainerRef.current && (item.product_photo_url || matchedImage || hasBoundingBox || !showColorSwatch) && createPortal(
           <div className="fixed left-1/2 top-4 -translate-x-1/2 w-80 h-80 md:w-96 md:h-96 rounded-xl overflow-hidden bg-background border-2 border-primary/30 shadow-2xl z-[100] animate-fade-in pointer-events-none">
-            {item.product_photo_url && !imageError ? (
-              <img 
-                src={item.product_photo_url} 
-                alt={displayName}
-                className="w-full h-full object-contain bg-white p-4"
-              />
-            ) : matchedImage && !imageError ? (
+            {matchedImage && !imageError ? (
               <img 
                 src={matchedImage} 
                 alt={displayName}
                 className="w-full h-full object-cover"
+              />
+            ) : item.product_photo_url && !imageError ? (
+              <img 
+                src={item.product_photo_url} 
+                alt={displayName}
+                className="w-full h-full object-contain bg-white p-4"
               />
             ) : hasBoundingBox ? (
               <div 
