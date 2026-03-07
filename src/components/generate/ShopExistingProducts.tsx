@@ -268,7 +268,7 @@ const computeMatchReasons = (
   // 5. Material matching
   const itemMaterial = (item.material || "").toLowerCase();
   if (itemMaterial && itemMaterial.length > 2) {
-    if (allProdText.includes(itemMaterial)) {
+    if (includesWholeWord(allProdText, itemMaterial)) {
       reasons.push(`Material match: ${item.material}`);
       score += w.materialMatch;
     }
