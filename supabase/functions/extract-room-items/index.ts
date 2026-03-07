@@ -40,8 +40,8 @@ const DEFAULT_EXTRACT_PROMPT = `Analyze this interior design image comprehensive
 8. **Architectural Details**: moldings, doors, windows, fireplace
 
 For EACH item, provide:
-- itemType: category (wall_color, floor_material, furniture, lighting, textile, decor, architectural)
-- itemName: specific name (e.g., "Cream White Wall Paint", "Oak Herringbone Floor")
+- itemType: Use a SPECIFIC type from this list: sofa, chair, table, bed, sideboard, shelf, wardrobe, lamp, rug, curtain, cushion, mirror, vase, plant, artwork, clock, stool, bench, desk, nightstand, dresser, chandelier, sconce, pendant, blanket, throw, planter, frame, fireplace, door, window, molding, backsplash, countertop, wall_color, floor_material, ceiling. Do NOT use broad categories like "furniture", "lighting", "textile", or "decor" — always pick the most specific type.
+- itemName: specific name (e.g., "Cream White Wall Paint", "Oak Herringbone Floor", "Cord-Sofa Melva")
 - itemDescription: detailed description for shopping
 - color: descriptive color name (e.g., "warm taupe", "sage green")
 - hexCode: REQUIRED for wall_color items - the exact hex color code (e.g., "#E8DFD1", "#B8C5B0"). Must be accurate.
