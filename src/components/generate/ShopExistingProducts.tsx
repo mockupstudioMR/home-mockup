@@ -742,7 +742,137 @@ const ShopExistingProducts = ({ item, onClose }: ShopExistingProductsProps) => {
           ))}
         </div>
       )}
+
+      {/* Debug Panel */}
+      {debugInfo && !loading && (
+        <MatchDebugPanel debug={debugInfo} item={item} />
+      )}
     </div>
+  );
+};
+
+const MatchDebugPanel = ({ debug, item }: { debug: DebugInfo; item: DesignItem }) => {
+  const [open, setOpen] = useState(false);
+  const [showRejected, setShowRejected] = useState(false);
+  const [showScored, setShowScored] = useState(false);
+
+  return (
+    <Collapsible open={open} onOpenChange={setOpen}>
+      <CollapsibleTrigger asChild>
+        <button className="w-full flex items-center gap-2 p-2 rounded-md border border-dashed border-muted-foreground/30 bg-muted/20 hover:bg-muted/40 transition-colors text-xs text-muted-foreground">
+          <Bug className="w-3.5 h-3.5" />
+          <span className="font-medium">Match Debug</span>
+          <span className="ml-auto">{open ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}</span>
+        </button>
+      </CollapsibleTrigger>
+      <CollapsibleContent>
+        <div className="mt-2 p-3 rounded-md border border-dashed border-muted-foreground/20 bg-muted/10 space-y-3 text-xs font-mono">
+          {/* Step 1: Input */}
+          <div>
+            <p className="font-semibold text-muted-foreground mb-1">① Input</p>
+            <p>item_name: <span className="text-foreground">"{item.item_name}"</span></p>
+            <p>item_type: <span className="text-foreground">"{item.item_type}"</span></p>
+            <p>style: <span className="text-foreground">"{item.style || "—"}"</span> | color: <span className="text-foreground">"{item.color || "—"}"</span> | material: <span className="text-foreground">"{item.material || "—"}"</span></p>
+          </div>
+
+          {/* Step 2: Keyword extraction */}
+          <div>
+            <p className="font-semibold text-muted-foreground mb-1">② Extracted Keywords (from VALID_TYPE_KEYWORDS)</p>
+            {debug.extractedKeywords.length > 0 ? (
+              <div className="flex flex-wrap gap-1">
+                {debug.extractedKeywords.map((kw, i) => (
+                  <span key={i} className="px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-700 border border-blue-500/20">{kw}</span>
+                ))}
+              </div>
+            ) : (
+              <p className="text-amber-600">⚠ No keywords matched VALID_TYPE_KEYWORDS — fallback query will be used</p>
+            )}
+          </div>
+
+          {/* Step 3: Synonym expansion */}
+          <div>
+            <p className="font-semibold text-muted-foreground mb-1">③ Expanded Keywords (with synonyms)</p>
+            <div className="flex flex-wrap gap-1">
+              {debug.expandedKeywords.map((kw, i) => (
+                <span key={i} className={`px-1.5 py-0.5 rounded border ${debug.extractedKeywords.includes(kw) ? "bg-blue-500/10 text-blue-700 border-blue-500/20" : "bg-green-500/10 text-green-700 border-green-500/20"}`}>{kw}</span>
+              ))}
+            </div>
+            <p className="text-muted-foreground mt-1">Blue = original, Green = synonym</p>
+          </div>
+
+          {/* Step 4: DB results */}
+          <div>
+            <p className="font-semibold text-muted-foreground mb-1">④ DB Query Results: <span className="text-foreground">{debug.dbResultsCount}</span> products</p>
+          </div>
+
+          {/* Step 5: Strict type filter */}
+          <div>
+            <p className="font-semibold text-muted-foreground mb-1">⑤ Strict Type Filter</p>
+            <p>Expected types: <span className="text-foreground">[{debug.strictExpectedTypes.join(", ") || "none (no filter)"}]</span></p>
+            <p>After filter: <span className="text-foreground">{debug.afterStrictFilterCount}</span> products (removed {debug.dbResultsCount - debug.afterStrictFilterCount})</p>
+          </div>
+
+          {/* Step 6: Scoring */}
+          <div>
+            <p className="font-semibold text-muted-foreground mb-1">⑥ Scoring (min: {debug.weights.minimumScore})</p>
+            <p>Passed: <span className="text-foreground">{debug.afterScoringCount}</span> | After dedup: <span className="text-foreground">{debug.afterDedupCount}</span></p>
+          </div>
+
+          {/* Scored products detail */}
+          {debug.scoredProducts.length > 0 && (
+            <Collapsible open={showScored} onOpenChange={setShowScored}>
+              <CollapsibleTrigger asChild>
+                <button className="flex items-center gap-1 text-muted-foreground hover:text-foreground">
+                  {showScored ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
+                  Show scored products ({debug.scoredProducts.length})
+                </button>
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <div className="mt-1 space-y-1 max-h-40 overflow-y-auto">
+                  {debug.scoredProducts.sort((a, b) => b.score - a.score).map((p, i) => (
+                    <div key={i} className="p-1.5 rounded bg-background/50 border border-border/30">
+                      <span className="font-medium text-foreground">{p.name}</span>
+                      <span className="text-muted-foreground"> (type: {p.type}) → score: </span>
+                      <span className={p.score >= debug.weights.minimumScore ? "text-green-600" : "text-red-500"}>{p.score}</span>
+                      {p.reasons.length > 0 && <span className="text-muted-foreground"> [{p.reasons.join(" | ")}]</span>}
+                    </div>
+                  ))}
+                </div>
+              </CollapsibleContent>
+            </Collapsible>
+          )}
+
+          {/* Rejected products */}
+          {debug.rejectedProducts.length > 0 && (
+            <Collapsible open={showRejected} onOpenChange={setShowRejected}>
+              <CollapsibleTrigger asChild>
+                <button className="flex items-center gap-1 text-muted-foreground hover:text-foreground">
+                  {showRejected ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
+                  Show rejected products ({debug.rejectedProducts.length})
+                </button>
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <div className="mt-1 space-y-1 max-h-40 overflow-y-auto">
+                  {debug.rejectedProducts.map((p, i) => (
+                    <div key={i} className="p-1.5 rounded bg-red-500/5 border border-red-500/10">
+                      <span className="text-foreground">{p.name}</span>
+                      <span className="text-muted-foreground"> (type: {p.type}) → </span>
+                      <span className="text-red-500">{p.reason}</span>
+                    </div>
+                  ))}
+                </div>
+              </CollapsibleContent>
+            </Collapsible>
+          )}
+
+          {/* Weights */}
+          <div>
+            <p className="font-semibold text-muted-foreground mb-1">Weights</p>
+            <pre className="text-[10px] text-muted-foreground whitespace-pre-wrap">{JSON.stringify(debug.weights, null, 2)}</pre>
+          </div>
+        </div>
+      </CollapsibleContent>
+    </Collapsible>
   );
 };
 
