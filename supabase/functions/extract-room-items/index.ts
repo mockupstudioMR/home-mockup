@@ -60,8 +60,8 @@ Return JSON:
   "colorPalette": ["#hexcode1", "#hexcode2", ...]
 }`;
 
-const DEFAULT_RETRY_PROMPT = `Look at this room image and list the main items you see. Return ONLY valid JSON (no markdown):
-{"items":[{"itemType":"furniture","itemName":"item name","itemDescription":"brief description","color":"color name","material":"material","style":"style","priority":"essential","boundingBox":{"x":10,"y":10,"width":20,"height":20}}],"fullDescription":"room description","dominantStyle":"modern","colorPalette":["#FFFFFF"]}`;
+const DEFAULT_RETRY_PROMPT = `Look at this room image and list the main items you see. For itemType, use specific types like: sofa, chair, table, bed, sideboard, shelf, lamp, rug, curtain, cushion, mirror, vase, plant, artwork, wall_color, floor_material. Do NOT use broad types like "furniture" or "decor". Return ONLY valid JSON (no markdown):
+{"items":[{"itemType":"sofa","itemName":"item name","itemDescription":"brief description","color":"color name","material":"material","style":"style","priority":"essential","boundingBox":{"x":10,"y":10,"width":20,"height":20}}],"fullDescription":"room description","dominantStyle":"modern","colorPalette":["#FFFFFF"]}`;
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
