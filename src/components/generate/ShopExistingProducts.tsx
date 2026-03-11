@@ -59,37 +59,81 @@ const typeFromItemType = (itemType: string): string => {
 };
 
 // Valid item type keywords for type matching – derived from prompt templates & room furniture config
+// IMPORTANT: Multi-word phrases MUST come before their single-word parts so they match first.
 // Item types: wall_color, floor_material, furniture, lighting, textile, decor, architectural
 // Product categories: sofa, chair, table, bed, storage, lighting, decor, rug, outdoor, other
-const VALID_TYPE_KEYWORDS = new Set([
+
+// Multi-word keywords that must be checked BEFORE splitting into single words
+const MULTI_WORD_KEYWORDS = [
+  // Table subtypes
+  "coffee table", "dining table", "side table", "console table", "end table",
+  "bedside table", "accent table", "cocktail table", "nesting table",
+  "couchtisch", "esstisch", "beistelltisch", "konsolentisch",
+  // Seating subtypes
+  "bar stool", "dining chair", "office chair", "lounge chair", "rocking chair",
+  // Lighting subtypes
+  "floor lamp", "desk lamp", "table lamp", "bedside lamp", "wall light",
+  "pendant light", "ceiling light",
+  "stehlampe", "tischlampe", "schreibtischlampe",
+  // Furniture subtypes
+  "tv stand", "media console", "display cabinet",
+];
+
+const SINGLE_WORD_KEYWORDS = new Set([
   // Furniture
   "sofa", "couch", "settee", "armchair", "chair", "stool", "bench", "ottoman",
   "table", "desk", "nightstand", "sideboard", "dresser", "wardrobe", "closet",
   "bookshelf", "shelf", "shelving", "cabinet", "credenza", "buffet", "vitrine",
   "bed", "mattress", "headboard", "footboard",
-  "tv stand", "media console",
-  // Seating detail
-  "bar stool", "dining chair", "office chair", "lounge chair", "rocking chair",
   // Lighting
   "lamp", "chandelier", "sconce", "pendant", "lantern", "spotlight",
-  "floor lamp", "desk lamp", "table lamp", "bedside lamp", "wall light",
   // Textiles
   "rug", "carpet", "curtain", "curtains", "drape", "cushion", "pillow", "throw", "blanket",
   // Decor
   "mirror", "vase", "planter", "artwork", "painting", "sculpture", "candle",
   "clock", "plant", "plants", "basket", "tray", "bowl", "frame",
   // Bathroom
-  "toilet", "sink", "vanity", "bathtub", "shower", "towel rack",
+  "toilet", "sink", "vanity", "bathtub", "shower",
   // Architectural
   "fireplace", "molding", "door", "window",
-  // Surfaces (as item types, not materials)
+  // Surfaces
   "backsplash", "countertop",
-  // German equivalents (from synonym groups)
-  "kommode", "stuhl", "sessel", "tisch", "schreibtisch", "lampe", "leuchte", "stehlampe",
+  // German equivalents
+  "kommode", "stuhl", "sessel", "tisch", "schreibtisch", "lampe", "leuchte",
   "regal", "bücherregal", "bett", "spiegel", "teppich", "vorhang", "gardine",
   "kissen", "kleiderschrank", "schrank", "hocker", "bank", "sitzbank",
   "übertopf", "blumentopf", "modulsofa", "sofaserie", "fauteuil",
 ]);
+
+// Combined set for backward-compat checks (includes both multi and single)
+const VALID_TYPE_KEYWORDS = new Set([...MULTI_WORD_KEYWORDS, ...SINGLE_WORD_KEYWORDS]);
+
+/** Extract type keywords from text, preferring multi-word phrases over single words */
+const extractTypeKeywords = (text: string): string[] => {
+  const normalized = text.toLowerCase().trim();
+  const found: string[] = [];
+  let remaining = normalized;
+
+  // First pass: extract multi-word phrases (longest first)
+  const sortedMulti = [...MULTI_WORD_KEYWORDS].sort((a, b) => b.length - a.length);
+  for (const phrase of sortedMulti) {
+    if (includesWholeWord(remaining, phrase)) {
+      found.push(phrase);
+      // Remove the matched phrase so its individual words don't match again
+      remaining = remaining.replace(new RegExp(phrase.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi'), ' ');
+    }
+  }
+
+  // Second pass: extract remaining single-word keywords
+  const words = remaining.split(/\s+/).filter(w => w.length > 2);
+  for (const w of words) {
+    if (SINGLE_WORD_KEYWORDS.has(w) && !found.some(f => f.includes(w))) {
+      found.push(w);
+    }
+  }
+
+  return found;
+};
 
 // Synonym groups for cross-language and variant matching
 // Each group contains words that should match each other
@@ -98,7 +142,11 @@ const SYNONYM_GROUPS: string[][] = [
   ["vitrine", "display cabinet", "showcase", "glass cabinet"],
   ["sofa", "couch", "settee", "modulsofa", "sofaserie"],
   ["chair", "stuhl", "sessel", "armchair", "fauteuil", "lounge chair"],
-  ["table", "tisch", "desk", "schreibtisch"],
+  ["coffee table", "couchtisch", "cocktail table"],
+  ["dining table", "esstisch"],
+  ["side table", "end table", "beistelltisch", "accent table"],
+  ["console table", "konsolentisch"],
+  ["desk", "schreibtisch"],
   ["lamp", "lampe", "leuchte", "light fixture", "floor lamp", "stehlampe"],
   ["shelf", "regal", "shelving", "bookshelf", "bücherregal"],
   ["bed", "bett"],
@@ -162,26 +210,74 @@ const normalizeUrl = (value: string): string =>
     .replace(/\/+$/, "")
     .trim();
 
-const STRICT_TYPE_KEYWORDS: Record<string, string[]> = {
+// Default strict type families – can be overridden from admin via cms_content key "strict_type_families"
+const DEFAULT_STRICT_TYPE_KEYWORDS: Record<string, string[]> = {
   sofa: ["sofa", "couch", "settee", "modulsofa", "sofaserie"],
   bed: ["bed", "bett", "mattress", "headboard", "footboard"],
-  table: ["table", "tisch", "desk", "schreibtisch", "nightstand"],
-  chair: ["chair", "stuhl", "sessel", "armchair", "fauteuil", "stool", "bench"],
-  storage: ["wardrobe", "closet", "schrank", "cabinet", "sideboard", "kommode", "dresser", "bookshelf", "shelf", "regal"],
-  lighting: ["lamp", "lampe", "leuchte", "chandelier", "sconce", "pendant", "light"],
+  coffee_table: ["coffee table", "couchtisch", "cocktail table"],
+  dining_table: ["dining table", "esstisch"],
+  side_table: ["side table", "end table", "beistelltisch", "accent table", "nightstand", "nesting table"],
+  console_table: ["console table", "konsolentisch"],
+  desk: ["desk", "schreibtisch"],
+  table: ["table", "tisch"],
+  chair: ["chair", "stuhl", "sessel", "armchair", "fauteuil", "stool", "bench", "dining chair", "lounge chair"],
+  storage: ["wardrobe", "closet", "schrank", "cabinet", "sideboard", "kommode", "dresser", "bookshelf", "shelf", "regal", "vitrine"],
+  lighting: ["lamp", "lampe", "leuchte", "chandelier", "sconce", "pendant", "light", "floor lamp", "table lamp", "desk lamp", "stehlampe"],
   rug: ["rug", "teppich", "carpet"],
   textile: ["curtain", "vorhang", "drape", "cushion", "pillow", "blanket", "throw"],
   decor: ["mirror", "spiegel", "vase", "planter", "artwork", "painting", "sculpture", "clock", "tray", "bowl", "frame"],
 };
 
-const getStrictExpectedProductTypes = (item: DesignItem): string[] => {
+let _cachedStrictTypes: Record<string, string[]> | null = null;
+let _strictTypesFetchedAt = 0;
+
+const fetchStrictTypeKeywords = async (): Promise<Record<string, string[]>> => {
+  // Cache for 60 seconds
+  if (_cachedStrictTypes && Date.now() - _strictTypesFetchedAt < 60000) {
+    return _cachedStrictTypes;
+  }
+  try {
+    const { data } = await supabase
+      .from("cms_content")
+      .select("value")
+      .eq("key", "strict_type_families")
+      .eq("content_type", "config")
+      .maybeSingle();
+    if (data?.value) {
+      _cachedStrictTypes = { ...DEFAULT_STRICT_TYPE_KEYWORDS, ...JSON.parse(data.value) };
+    } else {
+      _cachedStrictTypes = DEFAULT_STRICT_TYPE_KEYWORDS;
+    }
+  } catch {
+    _cachedStrictTypes = DEFAULT_STRICT_TYPE_KEYWORDS;
+  }
+  _strictTypesFetchedAt = Date.now();
+  return _cachedStrictTypes!;
+};
+
+const getStrictExpectedProductTypes = async (item: DesignItem): Promise<string[]> => {
   const text = normalizeText(`${item.item_name} ${item.item_description || ""}`);
   const expected = new Set<string>();
+  const strictTypes = await fetchStrictTypeKeywords();
 
-  for (const [type, keywords] of Object.entries(STRICT_TYPE_KEYWORDS)) {
-    if (keywords.some((kw) => includesWholeWord(text, kw))) {
+  // Check specific subtypes FIRST (coffee_table before table)
+  // Sort entries so more specific keys (with underscores) come first
+  const sortedEntries = Object.entries(strictTypes).sort((a, b) => {
+    const aSpecific = a[0].includes("_") ? 0 : 1;
+    const bSpecific = b[0].includes("_") ? 0 : 1;
+    return aSpecific - bSpecific;
+  });
+
+  for (const [type, keywords] of sortedEntries) {
+    if (keywords.some((kw: string) => includesWholeWord(text, kw))) {
       expected.add(type);
     }
+  }
+
+  // If we matched a specific table subtype, don't also match the generic "table"
+  const tableSubtypes = ["coffee_table", "dining_table", "side_table", "console_table", "desk"];
+  if (tableSubtypes.some(t => expected.has(t))) {
+    expected.delete("table");
   }
 
   if (expected.size > 0) return Array.from(expected);
@@ -234,9 +330,7 @@ const computeMatchReasons = (
   const allProdText = `${prodName} ${prodType} ${prodDesc} ${prodAiDesc}`;
 
   // 1. Primary: match the core product type using only known item type keywords
-  const typeKeywords = itemName
-    .split(/\s+/)
-    .filter(w => w.length > 2 && VALID_TYPE_KEYWORDS.has(w));
+  const typeKeywords = extractTypeKeywords(itemName);
 
   // Expand keywords with synonyms for cross-language matching
   const expandedKeywords = getExpandedKeywords(typeKeywords);
@@ -533,10 +627,7 @@ const ShopExistingProducts = ({ item, onClose }: ShopExistingProductsProps) => {
         debug.weights = weights;
 
         // Build a targeted query using item name keywords + synonyms for server-side filtering
-        const itemNameLower = item.item_name.toLowerCase();
-        const searchKeywords = itemNameLower
-          .split(/\s+/)
-          .filter(w => w.length > 2 && VALID_TYPE_KEYWORDS.has(w));
+        const searchKeywords = extractTypeKeywords(item.item_name);
         debug.extractedKeywords = [...searchKeywords];
 
         // Expand with synonyms for cross-language matching
@@ -580,7 +671,7 @@ const ShopExistingProducts = ({ item, onClose }: ShopExistingProductsProps) => {
         if (error) throw error;
         debug.dbResultsCount = data.length;
 
-        const strictExpectedTypes = getStrictExpectedProductTypes(item);
+        const strictExpectedTypes = await getStrictExpectedProductTypes(item);
         debug.strictExpectedTypes = [...strictExpectedTypes];
 
         const strictFilteredData = strictExpectedTypes.length > 0
