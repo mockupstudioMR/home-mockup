@@ -676,7 +676,7 @@ const ShopExistingProducts = ({ item, onClose }: ShopExistingProductsProps) => {
         if (error) throw error;
         debug.dbResultsCount = data.length;
 
-        const strictExpectedTypes = getStrictExpectedProductTypes(item);
+        const strictExpectedTypes = await getStrictExpectedProductTypes(item);
         debug.strictExpectedTypes = [...strictExpectedTypes];
 
         const strictFilteredData = strictExpectedTypes.length > 0
