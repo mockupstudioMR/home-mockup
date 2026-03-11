@@ -59,37 +59,81 @@ const typeFromItemType = (itemType: string): string => {
 };
 
 // Valid item type keywords for type matching – derived from prompt templates & room furniture config
+// IMPORTANT: Multi-word phrases MUST come before their single-word parts so they match first.
 // Item types: wall_color, floor_material, furniture, lighting, textile, decor, architectural
 // Product categories: sofa, chair, table, bed, storage, lighting, decor, rug, outdoor, other
-const VALID_TYPE_KEYWORDS = new Set([
+
+// Multi-word keywords that must be checked BEFORE splitting into single words
+const MULTI_WORD_KEYWORDS = [
+  // Table subtypes
+  "coffee table", "dining table", "side table", "console table", "end table",
+  "bedside table", "accent table", "cocktail table", "nesting table",
+  "couchtisch", "esstisch", "beistelltisch", "konsolentisch",
+  // Seating subtypes
+  "bar stool", "dining chair", "office chair", "lounge chair", "rocking chair",
+  // Lighting subtypes
+  "floor lamp", "desk lamp", "table lamp", "bedside lamp", "wall light",
+  "pendant light", "ceiling light",
+  "stehlampe", "tischlampe", "schreibtischlampe",
+  // Furniture subtypes
+  "tv stand", "media console", "display cabinet",
+];
+
+const SINGLE_WORD_KEYWORDS = new Set([
   // Furniture
   "sofa", "couch", "settee", "armchair", "chair", "stool", "bench", "ottoman",
   "table", "desk", "nightstand", "sideboard", "dresser", "wardrobe", "closet",
   "bookshelf", "shelf", "shelving", "cabinet", "credenza", "buffet", "vitrine",
   "bed", "mattress", "headboard", "footboard",
-  "tv stand", "media console",
-  // Seating detail
-  "bar stool", "dining chair", "office chair", "lounge chair", "rocking chair",
   // Lighting
   "lamp", "chandelier", "sconce", "pendant", "lantern", "spotlight",
-  "floor lamp", "desk lamp", "table lamp", "bedside lamp", "wall light",
   // Textiles
   "rug", "carpet", "curtain", "curtains", "drape", "cushion", "pillow", "throw", "blanket",
   // Decor
   "mirror", "vase", "planter", "artwork", "painting", "sculpture", "candle",
   "clock", "plant", "plants", "basket", "tray", "bowl", "frame",
   // Bathroom
-  "toilet", "sink", "vanity", "bathtub", "shower", "towel rack",
+  "toilet", "sink", "vanity", "bathtub", "shower",
   // Architectural
   "fireplace", "molding", "door", "window",
-  // Surfaces (as item types, not materials)
+  // Surfaces
   "backsplash", "countertop",
-  // German equivalents (from synonym groups)
-  "kommode", "stuhl", "sessel", "tisch", "schreibtisch", "lampe", "leuchte", "stehlampe",
+  // German equivalents
+  "kommode", "stuhl", "sessel", "tisch", "schreibtisch", "lampe", "leuchte",
   "regal", "bücherregal", "bett", "spiegel", "teppich", "vorhang", "gardine",
   "kissen", "kleiderschrank", "schrank", "hocker", "bank", "sitzbank",
   "übertopf", "blumentopf", "modulsofa", "sofaserie", "fauteuil",
 ]);
+
+// Combined set for backward-compat checks (includes both multi and single)
+const VALID_TYPE_KEYWORDS = new Set([...MULTI_WORD_KEYWORDS, ...SINGLE_WORD_KEYWORDS]);
+
+/** Extract type keywords from text, preferring multi-word phrases over single words */
+const extractTypeKeywords = (text: string): string[] => {
+  const normalized = text.toLowerCase().trim();
+  const found: string[] = [];
+  let remaining = normalized;
+
+  // First pass: extract multi-word phrases (longest first)
+  const sortedMulti = [...MULTI_WORD_KEYWORDS].sort((a, b) => b.length - a.length);
+  for (const phrase of sortedMulti) {
+    if (includesWholeWord(remaining, phrase)) {
+      found.push(phrase);
+      // Remove the matched phrase so its individual words don't match again
+      remaining = remaining.replace(new RegExp(phrase.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi'), ' ');
+    }
+  }
+
+  // Second pass: extract remaining single-word keywords
+  const words = remaining.split(/\s+/).filter(w => w.length > 2);
+  for (const w of words) {
+    if (SINGLE_WORD_KEYWORDS.has(w) && !found.some(f => f.includes(w))) {
+      found.push(w);
+    }
+  }
+
+  return found;
+};
 
 // Synonym groups for cross-language and variant matching
 // Each group contains words that should match each other
