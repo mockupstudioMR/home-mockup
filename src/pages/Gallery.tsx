@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -33,68 +33,44 @@ const Gallery = () => {
   const [loadingDesigns, setLoadingDesigns] = useState(true);
   const [filter, setFilter] = useState<"all" | "favorites">("all");
   const [resumingId, setResumingId] = useState<string | null>(null);
+  const fetchedRef = useRef(false);
 
-  const fetchDesigns = useCallback(async () => {
-    if (!user) return;
+  useEffect(() => {
+    if (!user || fetchedRef.current) return;
+    fetchedRef.current = true;
 
-    setLoadingDesigns(true);
-    const maxAttempts = 4;
-    let attempt = 0;
-    let delayMs = 700;
-    let lastError: unknown = null;
+    let cancelled = false;
 
-    try {
-      while (attempt < maxAttempts) {
-        attempt += 1;
+    const fetchDesigns = async () => {
+      setLoadingDesigns(true);
+      try {
+        const { data, error } = await supabase
+          .from("generated_designs")
+          .select("id, image_url, prompt, is_favorite, created_at, quiz_response_id")
+          .eq("user_id", user.id)
+          .order("created_at", { ascending: false })
+          .limit(50);
 
-        try {
-          const { data, error } = await supabase
-            .from("generated_designs")
-            .select("id, image_url, prompt, is_favorite, created_at, quiz_response_id")
-            .eq("user_id", user.id)
-            .order("created_at", { ascending: false })
-            .limit(50);
-
-          if (error) throw error;
-          setDesigns(data || []);
-          return;
-        } catch (error) {
-          lastError = error;
-
-          if (attempt < maxAttempts) {
-            await new Promise((resolve) => setTimeout(resolve, delayMs));
-            delayMs *= 2;
-          }
-        }
+        if (cancelled) return;
+        if (error) throw error;
+        setDesigns(data || []);
+      } catch (error) {
+        if (cancelled) return;
+        console.error("Failed to load designs:", error);
+        toast({
+          title: "Error",
+          description: "Failed to load designs. Please try again.",
+          variant: "destructive",
+        });
+      } finally {
+        if (!cancelled) setLoadingDesigns(false);
       }
-
-      console.error("Failed to load designs:", lastError);
-      toast({
-        title: "Error",
-        description: "Failed to load designs. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setLoadingDesigns(false);
-    }
-  }, [user, toast]);
-
-  useEffect(() => {
-    if (user) {
-      void fetchDesigns();
-    }
-  }, [user, fetchDesigns]);
-
-  useEffect(() => {
-    if (!user) return;
-
-    const handleOnline = () => {
-      void fetchDesigns();
     };
 
-    window.addEventListener("online", handleOnline);
-    return () => window.removeEventListener("online", handleOnline);
-  }, [user, fetchDesigns]);
+    fetchDesigns();
+
+    return () => { cancelled = true; };
+  }, [user]);
 
   const handleDelete = async (id: string) => {
     try {
