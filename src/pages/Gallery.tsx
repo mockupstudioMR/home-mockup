@@ -46,8 +46,6 @@ const Gallery = () => {
     try {
       while (attempt < maxAttempts) {
         attempt += 1;
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 8000);
 
         try {
           const { data, error } = await supabase
@@ -55,15 +53,12 @@ const Gallery = () => {
             .select("id, image_url, prompt, is_favorite, created_at, quiz_response_id")
             .eq("user_id", user.id)
             .order("created_at", { ascending: false })
-            .limit(50)
-            .abortSignal(controller.signal);
+            .limit(50);
 
-          clearTimeout(timeoutId);
           if (error) throw error;
           setDesigns(data || []);
           return;
         } catch (error) {
-          clearTimeout(timeoutId);
           lastError = error;
 
           if (attempt < maxAttempts) {
