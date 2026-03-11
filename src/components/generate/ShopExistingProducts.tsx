@@ -255,14 +255,29 @@ const fetchStrictTypeKeywords = async (): Promise<Record<string, string[]>> => {
   return _cachedStrictTypes!;
 };
 
-const getStrictExpectedProductTypes = (item: DesignItem): string[] => {
+const getStrictExpectedProductTypes = async (item: DesignItem): Promise<string[]> => {
   const text = normalizeText(`${item.item_name} ${item.item_description || ""}`);
   const expected = new Set<string>();
+  const strictTypes = await fetchStrictTypeKeywords();
 
-  for (const [type, keywords] of Object.entries(STRICT_TYPE_KEYWORDS)) {
-    if (keywords.some((kw) => includesWholeWord(text, kw))) {
+  // Check specific subtypes FIRST (coffee_table before table)
+  // Sort entries so more specific keys (with underscores) come first
+  const sortedEntries = Object.entries(strictTypes).sort((a, b) => {
+    const aSpecific = a[0].includes("_") ? 0 : 1;
+    const bSpecific = b[0].includes("_") ? 0 : 1;
+    return aSpecific - bSpecific;
+  });
+
+  for (const [type, keywords] of sortedEntries) {
+    if (keywords.some((kw: string) => includesWholeWord(text, kw))) {
       expected.add(type);
     }
+  }
+
+  // If we matched a specific table subtype, don't also match the generic "table"
+  const tableSubtypes = ["coffee_table", "dining_table", "side_table", "console_table", "desk"];
+  if (tableSubtypes.some(t => expected.has(t))) {
+    expected.delete("table");
   }
 
   if (expected.size > 0) return Array.from(expected);
