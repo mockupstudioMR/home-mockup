@@ -627,10 +627,7 @@ const ShopExistingProducts = ({ item, onClose }: ShopExistingProductsProps) => {
         debug.weights = weights;
 
         // Build a targeted query using item name keywords + synonyms for server-side filtering
-        const itemNameLower = item.item_name.toLowerCase();
-        const searchKeywords = itemNameLower
-          .split(/\s+/)
-          .filter(w => w.length > 2 && VALID_TYPE_KEYWORDS.has(w));
+        const searchKeywords = extractTypeKeywords(item.item_name);
         debug.extractedKeywords = [...searchKeywords];
 
         // Expand with synonyms for cross-language matching
