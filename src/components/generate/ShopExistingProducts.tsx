@@ -210,16 +210,49 @@ const normalizeUrl = (value: string): string =>
     .replace(/\/+$/, "")
     .trim();
 
-const STRICT_TYPE_KEYWORDS: Record<string, string[]> = {
+// Default strict type families – can be overridden from admin via cms_content key "strict_type_families"
+const DEFAULT_STRICT_TYPE_KEYWORDS: Record<string, string[]> = {
   sofa: ["sofa", "couch", "settee", "modulsofa", "sofaserie"],
   bed: ["bed", "bett", "mattress", "headboard", "footboard"],
-  table: ["table", "tisch", "desk", "schreibtisch", "nightstand"],
-  chair: ["chair", "stuhl", "sessel", "armchair", "fauteuil", "stool", "bench"],
-  storage: ["wardrobe", "closet", "schrank", "cabinet", "sideboard", "kommode", "dresser", "bookshelf", "shelf", "regal"],
-  lighting: ["lamp", "lampe", "leuchte", "chandelier", "sconce", "pendant", "light"],
+  coffee_table: ["coffee table", "couchtisch", "cocktail table"],
+  dining_table: ["dining table", "esstisch"],
+  side_table: ["side table", "end table", "beistelltisch", "accent table", "nightstand", "nesting table"],
+  console_table: ["console table", "konsolentisch"],
+  desk: ["desk", "schreibtisch"],
+  table: ["table", "tisch"],
+  chair: ["chair", "stuhl", "sessel", "armchair", "fauteuil", "stool", "bench", "dining chair", "lounge chair"],
+  storage: ["wardrobe", "closet", "schrank", "cabinet", "sideboard", "kommode", "dresser", "bookshelf", "shelf", "regal", "vitrine"],
+  lighting: ["lamp", "lampe", "leuchte", "chandelier", "sconce", "pendant", "light", "floor lamp", "table lamp", "desk lamp", "stehlampe"],
   rug: ["rug", "teppich", "carpet"],
   textile: ["curtain", "vorhang", "drape", "cushion", "pillow", "blanket", "throw"],
   decor: ["mirror", "spiegel", "vase", "planter", "artwork", "painting", "sculpture", "clock", "tray", "bowl", "frame"],
+};
+
+let _cachedStrictTypes: Record<string, string[]> | null = null;
+let _strictTypesFetchedAt = 0;
+
+const fetchStrictTypeKeywords = async (): Promise<Record<string, string[]>> => {
+  // Cache for 60 seconds
+  if (_cachedStrictTypes && Date.now() - _strictTypesFetchedAt < 60000) {
+    return _cachedStrictTypes;
+  }
+  try {
+    const { data } = await supabase
+      .from("cms_content")
+      .select("value")
+      .eq("key", "strict_type_families")
+      .eq("content_type", "config")
+      .maybeSingle();
+    if (data?.value) {
+      _cachedStrictTypes = { ...DEFAULT_STRICT_TYPE_KEYWORDS, ...JSON.parse(data.value) };
+    } else {
+      _cachedStrictTypes = DEFAULT_STRICT_TYPE_KEYWORDS;
+    }
+  } catch {
+    _cachedStrictTypes = DEFAULT_STRICT_TYPE_KEYWORDS;
+  }
+  _strictTypesFetchedAt = Date.now();
+  return _cachedStrictTypes!;
 };
 
 const getStrictExpectedProductTypes = (item: DesignItem): string[] => {
