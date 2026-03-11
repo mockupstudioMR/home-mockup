@@ -201,6 +201,7 @@ const AdminDashboard = () => {
           {/* Design Config Tab */}
           <TabsContent value="design-config" className="space-y-8">
             <RoomFurnitureManager />
+            <TypeFamiliesManager />
             <PromptTemplateManager />
             <ProductMatchingWeights />
           </TabsContent>
