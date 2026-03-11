@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -33,11 +33,10 @@ const Gallery = () => {
   const [loadingDesigns, setLoadingDesigns] = useState(true);
   const [filter, setFilter] = useState<"all" | "favorites">("all");
   const [resumingId, setResumingId] = useState<string | null>(null);
-  const fetchedRef = useRef(false);
+  
 
   useEffect(() => {
-    if (!user || fetchedRef.current) return;
-    fetchedRef.current = true;
+    if (!user) return;
 
     let cancelled = false;
 
@@ -70,7 +69,7 @@ const Gallery = () => {
     fetchDesigns();
 
     return () => { cancelled = true; };
-  }, [user]);
+  }, [user?.id]);
 
   const handleDelete = async (id: string) => {
     try {
