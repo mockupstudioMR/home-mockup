@@ -36,8 +36,7 @@ const Gallery = () => {
   const fetchedRef = useRef(false);
 
   useEffect(() => {
-    if (!user || fetchedRef.current) return;
-    fetchedRef.current = true;
+    if (!user) return;
 
     let cancelled = false;
 
@@ -70,7 +69,7 @@ const Gallery = () => {
     fetchDesigns();
 
     return () => { cancelled = true; };
-  }, [user]);
+  }, [user?.id]);
 
   const handleDelete = async (id: string) => {
     try {
