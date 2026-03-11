@@ -33,7 +33,7 @@ const Gallery = () => {
   const [loadingDesigns, setLoadingDesigns] = useState(true);
   const [filter, setFilter] = useState<"all" | "favorites">("all");
   const [resumingId, setResumingId] = useState<string | null>(null);
-  const fetchedRef = useRef(false);
+  
 
   useEffect(() => {
     if (!user) return;
