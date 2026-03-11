@@ -330,9 +330,7 @@ const computeMatchReasons = (
   const allProdText = `${prodName} ${prodType} ${prodDesc} ${prodAiDesc}`;
 
   // 1. Primary: match the core product type using only known item type keywords
-  const typeKeywords = itemName
-    .split(/\s+/)
-    .filter(w => w.length > 2 && VALID_TYPE_KEYWORDS.has(w));
+  const typeKeywords = extractTypeKeywords(itemName);
 
   // Expand keywords with synonyms for cross-language matching
   const expandedKeywords = getExpandedKeywords(typeKeywords);
