@@ -146,6 +146,7 @@ const Generate = () => {
   const existingRoomImagesFromState = (location.state?.quizData?.existingRoomImages || location.state?.existingRoomImages) as string[] | undefined;
   const keepElementsFromState = location.state?.keepElements as string[] | undefined;
   const changeElementsFromState = location.state?.changeElements as string[] | undefined;
+  const isExistingRoomFlow = location.state?.source === "existing-room" || !!existingRoomImagesFromState?.length;
   
   // Persist analysisResult and selectedInspirations to sessionStorage so they survive re-renders/HMR
   const selectedInspirations = (() => {
@@ -442,6 +443,10 @@ const Generate = () => {
       budgetFeel: quizData.budgetFeel,
       mustHaveElements: quizData.mustHaveElements,
       furnitureSource: quizData.furnitureSource,
+      source: location.state?.source,
+      existingRoomImages: existingRoomImagesFromState,
+      keepElements: keepElementsFromState,
+      changeElements: changeElementsFromState,
     });
 
     // Also include the nonce to detect re-submissions with same preferences
@@ -752,6 +757,7 @@ const Generate = () => {
     if (!quizData || !user) return;
 
     const { productAnalysis, sourceImages, includeProducts, scenePreviewImage } = location.state || {};
+    const shouldIncludeProducts = !!includeProducts && !isExistingRoomFlow;
 
     setGenerating(true);
     setDesign(null);
@@ -807,8 +813,8 @@ const Generate = () => {
         body: {
           ...quizData,
           sourceImageUrl: quizData.sourceImageUrl,
-          selectedProducts: includeProducts ? productAnalysis?.products : undefined,
-          productImageUrls: includeProducts ? sourceImages : undefined,
+          selectedProducts: shouldIncludeProducts ? productAnalysis?.products : undefined,
+          productImageUrls: shouldIncludeProducts ? sourceImages : undefined,
           existingRoomImages: existingRoomRef,
           keepElements: keepElementsFromState,
           changeElements: changeElementsFromState,
@@ -904,6 +910,8 @@ const Generate = () => {
             ...overriddenQuiz,
             sourceImageUrl: overriddenQuiz.sourceImageUrl,
             existingRoomImages: existingRoomImagesFromState,
+            keepElements: keepElementsFromState,
+            changeElements: changeElementsFromState,
             selectedInspirations,
             inspirationDetails,
             detectedColors: analysisResult?.dominantColors,

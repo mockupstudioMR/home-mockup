@@ -128,7 +128,7 @@ serve(async (req) => {
     let shopProducts: ProductInfo[] = [];
     let shopProductImageUrls: string[] = [];
 
-    if (requestData.furnitureSource === "shop_only" && supabase) {
+    if (requestData.furnitureSource === "shop_only" && supabase && !(requestData.existingRoomImages && requestData.existingRoomImages.length > 0)) {
       addDebug("Product fetch", "Fetching shop products (shop_only mode)");
       
       // Normalize style preference: handle underscores, hyphens, ampersands, spaces
@@ -278,7 +278,12 @@ serve(async (req) => {
         addDebug("Product images", `Collected ${shopProductImageUrls.length} product image URLs`);
       }
     } else {
-      addDebug("Product fetch", `Skipped (furnitureSource: "${requestData.furnitureSource}")`);
+      addDebug(
+        "Product fetch",
+        requestData.existingRoomImages && requestData.existingRoomImages.length > 0
+          ? "Skipped for existing-room preservation mode"
+          : `Skipped (furnitureSource: "${requestData.furnitureSource}")`
+      );
     }
 
     // Merge shop products with any explicitly selected products
@@ -610,9 +615,11 @@ function buildImagePrompt(
     }
   }
 
+  const isExistingRoomRedesign = !!(data.existingRoomImages && data.existingRoomImages.length > 0);
+
   // Build product inclusion instructions
   let productInstructions = "";
-  if (data.selectedProducts && data.selectedProducts.length > 0) {
+  if (!isExistingRoomRedesign && data.selectedProducts && data.selectedProducts.length > 0) {
     const productList = data.selectedProducts
       .map(p => `${p.name} (${p.category})${p.description ? `: ${p.description}` : ""}`)
       .join("; ");
@@ -646,7 +653,7 @@ function buildImagePrompt(
 
   // Add furniture context prefix if we have furniture items from DB
   let furnitureContext = "";
-  if (furnitureItems.length > 0) {
+  if (furnitureItems.length > 0 && !isExistingRoomRedesign) {
     if (templates["furniture_context"]) {
       furnitureContext = fillTemplate(templates["furniture_context"]) + " ";
     } else {
