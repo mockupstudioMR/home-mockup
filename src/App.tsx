@@ -42,6 +42,7 @@ const App = () => (
           <Sonner />
           <BrowserRouter>
             <DevRoleSwitcher />
+            <Suspense fallback={<PageLoader />}>
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/b2b-solutions" element={<B2BSolutions />} />
