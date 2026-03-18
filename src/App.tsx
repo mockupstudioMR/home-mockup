@@ -1,3 +1,4 @@
+import { lazy, Suspense } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -9,19 +10,26 @@ import ProtectedRoute from "@/components/ProtectedRoute";
 import DevRoleSwitcher from "@/components/DevRoleSwitcher";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
-import Start from "./pages/Start";
-import StyleTree from "./pages/StyleTree";
-import AnalyzeRoom from "./pages/AnalyzeRoom";
-import AnalyzeProducts from "./pages/AnalyzeProducts";
-import B2BSolutions from "./pages/B2BSolutions";
 
-import Quiz from "./pages/Quiz";
-import Generate from "./pages/Generate";
-import Gallery from "./pages/Gallery";
-import NotFound from "./pages/NotFound";
-import AdminDashboard from "./pages/AdminDashboard";
-import DesignerDashboard from "./pages/DesignerDashboard";
-import ShopDashboard from "./pages/ShopDashboard";
+// Lazy load heavy pages
+const Start = lazy(() => import("./pages/Start"));
+const StyleTree = lazy(() => import("./pages/StyleTree"));
+const AnalyzeRoom = lazy(() => import("./pages/AnalyzeRoom"));
+const AnalyzeProducts = lazy(() => import("./pages/AnalyzeProducts"));
+const B2BSolutions = lazy(() => import("./pages/B2BSolutions"));
+const Quiz = lazy(() => import("./pages/Quiz"));
+const Generate = lazy(() => import("./pages/Generate"));
+const Gallery = lazy(() => import("./pages/Gallery"));
+const NotFound = lazy(() => import("./pages/NotFound"));
+const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
+const DesignerDashboard = lazy(() => import("./pages/DesignerDashboard"));
+const ShopDashboard = lazy(() => import("./pages/ShopDashboard"));
+
+const PageLoader = () => (
+  <div className="min-h-screen flex items-center justify-center">
+    <div className="animate-pulse text-muted-foreground">Loading...</div>
+  </div>
+);
 
 const queryClient = new QueryClient();
 
