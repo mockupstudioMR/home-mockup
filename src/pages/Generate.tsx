@@ -146,6 +146,7 @@ const Generate = () => {
   const existingRoomImagesFromState = (location.state?.quizData?.existingRoomImages || location.state?.existingRoomImages) as string[] | undefined;
   const keepElementsFromState = location.state?.keepElements as string[] | undefined;
   const changeElementsFromState = location.state?.changeElements as string[] | undefined;
+  const isExistingRoomFlow = location.state?.source === "existing-room" || !!existingRoomImagesFromState?.length;
   
   // Persist analysisResult and selectedInspirations to sessionStorage so they survive re-renders/HMR
   const selectedInspirations = (() => {

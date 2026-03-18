@@ -128,7 +128,7 @@ serve(async (req) => {
     let shopProducts: ProductInfo[] = [];
     let shopProductImageUrls: string[] = [];
 
-    if (requestData.furnitureSource === "shop_only" && supabase) {
+    if (requestData.furnitureSource === "shop_only" && supabase && !(requestData.existingRoomImages && requestData.existingRoomImages.length > 0)) {
       addDebug("Product fetch", "Fetching shop products (shop_only mode)");
       
       // Normalize style preference: handle underscores, hyphens, ampersands, spaces
