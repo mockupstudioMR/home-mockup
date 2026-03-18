@@ -30,7 +30,7 @@ const Start = () => {
       title: "Start with Your Room",
       description: "Upload a photo of your existing room and we'll redesign it while keeping your space's layout",
       preview: null,
-      path: "/style-tree?source=existing-room",
+      path: "/existing-room",
     },
     {
       id: "style-tree",
