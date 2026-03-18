@@ -190,7 +190,7 @@ const ExistingRoomFlow = () => {
           description: style.description,
         },
         analysisResult,
-        sourceImages: images,
+        existingRoomImages: images,
         source: "existing-room",
         keepElements,
         changeElements,
