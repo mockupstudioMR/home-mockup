@@ -21,6 +21,7 @@ const DEFAULT_ROOM_PROMPT = `Analyze these interior design images and identify t
 Also identify:
 - Dominant colors (as hex codes)
 - Overall moodboard description
+- ALL visible room elements: every piece of furniture, wall treatment, flooring, lighting fixture, window treatment, rug, decorative item, and architectural feature. For each element provide a short label, a category, and a brief visual description (color, material, condition).
 
 Respond in this exact JSON format:
 {
@@ -33,7 +34,14 @@ Respond in this exact JSON format:
     }
   ],
   "dominantColors": ["#hex"],
-  "moodboardDescription": "string"
+  "moodboardDescription": "string",
+  "roomElements": [
+    {
+      "label": "string (e.g. 'Gray fabric sofa')",
+      "category": "furniture | wall | flooring | lighting | window | rug | decor | architectural",
+      "description": "string (brief visual description)"
+    }
+  ]
 }`;
 
 const DEFAULT_PRODUCTS_PROMPT = `Analyze these product/furniture images. For each product, identify:

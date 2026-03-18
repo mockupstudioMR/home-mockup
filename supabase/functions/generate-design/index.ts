@@ -36,6 +36,8 @@ interface GenerateRequest {
   detectedColors?: string[];
   detectedKeywords?: string[];
   moodboardDescription?: string;
+  keepElements?: string[];
+  changeElements?: string[];
 }
 
 interface DebugStep {
