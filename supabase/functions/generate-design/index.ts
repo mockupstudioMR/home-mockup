@@ -278,7 +278,12 @@ serve(async (req) => {
         addDebug("Product images", `Collected ${shopProductImageUrls.length} product image URLs`);
       }
     } else {
-      addDebug("Product fetch", `Skipped (furnitureSource: "${requestData.furnitureSource}")`);
+      addDebug(
+        "Product fetch",
+        requestData.existingRoomImages && requestData.existingRoomImages.length > 0
+          ? "Skipped for existing-room preservation mode"
+          : `Skipped (furnitureSource: "${requestData.furnitureSource}")`
+      );
     }
 
     // Merge shop products with any explicitly selected products
