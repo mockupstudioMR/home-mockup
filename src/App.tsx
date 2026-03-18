@@ -55,6 +55,11 @@ const App = () => (
                   <Start />
                 </ProtectedRoute>
               } />
+              <Route path="/existing-room" element={
+                <ProtectedRoute allowedRoles={["user"]}>
+                  <ExistingRoomFlow />
+                </ProtectedRoute>
+              } />
               <Route path="/style-tree" element={
                 <ProtectedRoute allowedRoles={["user"]}>
                   <StyleTree />
