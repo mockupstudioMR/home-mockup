@@ -615,9 +615,11 @@ function buildImagePrompt(
     }
   }
 
+  const isExistingRoomRedesign = !!(data.existingRoomImages && data.existingRoomImages.length > 0);
+
   // Build product inclusion instructions
   let productInstructions = "";
-  if (data.selectedProducts && data.selectedProducts.length > 0) {
+  if (!isExistingRoomRedesign && data.selectedProducts && data.selectedProducts.length > 0) {
     const productList = data.selectedProducts
       .map(p => `${p.name} (${p.category})${p.description ? `: ${p.description}` : ""}`)
       .join("; ");
