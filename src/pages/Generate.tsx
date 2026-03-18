@@ -810,6 +810,8 @@ const Generate = () => {
           selectedProducts: includeProducts ? productAnalysis?.products : undefined,
           productImageUrls: includeProducts ? sourceImages : undefined,
           existingRoomImages: existingRoomRef,
+          keepElements: keepElementsFromState,
+          changeElements: changeElementsFromState,
           selectedInspirations,
           inspirationDetails,
           detectedColors: analysisResult?.dominantColors,
