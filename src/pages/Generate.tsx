@@ -757,6 +757,7 @@ const Generate = () => {
     if (!quizData || !user) return;
 
     const { productAnalysis, sourceImages, includeProducts, scenePreviewImage } = location.state || {};
+    const shouldIncludeProducts = !!includeProducts && !isExistingRoomFlow;
 
     setGenerating(true);
     setDesign(null);
@@ -812,8 +813,8 @@ const Generate = () => {
         body: {
           ...quizData,
           sourceImageUrl: quizData.sourceImageUrl,
-          selectedProducts: includeProducts ? productAnalysis?.products : undefined,
-          productImageUrls: includeProducts ? sourceImages : undefined,
+          selectedProducts: shouldIncludeProducts ? productAnalysis?.products : undefined,
+          productImageUrls: shouldIncludeProducts ? sourceImages : undefined,
           existingRoomImages: existingRoomRef,
           keepElements: keepElementsFromState,
           changeElements: changeElementsFromState,
