@@ -283,6 +283,8 @@ const Gallery = () => {
                   <img
                     src={design.image_url}
                     alt="Room design"
+                    loading="lazy"
+                    decoding="async"
                     className="w-full h-full object-cover"
                   />
                   <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
