@@ -443,6 +443,10 @@ const Generate = () => {
       budgetFeel: quizData.budgetFeel,
       mustHaveElements: quizData.mustHaveElements,
       furnitureSource: quizData.furnitureSource,
+      source: location.state?.source,
+      existingRoomImages: existingRoomImagesFromState,
+      keepElements: keepElementsFromState,
+      changeElements: changeElementsFromState,
     });
 
     // Also include the nonce to detect re-submissions with same preferences
