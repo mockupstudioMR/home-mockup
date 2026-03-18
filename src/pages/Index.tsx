@@ -164,7 +164,7 @@ const Index = () => {
       <section className="relative z-10 px-4 py-12">
         <div className="max-w-4xl mx-auto">
           <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-primary/10 via-secondary/20 to-accent/10 border border-primary/20 p-8 md:p-10">
-            <div className="absolute top-0 right-0 w-40 h-40 bg-primary/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
+            <div className="absolute top-0 right-0 w-40 h-40 bg-primary/10 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2 hidden md:block" />
             <div className="relative flex flex-col md:flex-row items-center justify-between gap-6">
               <div className="text-center md:text-left">
                 <h3 className="text-xl md:text-2xl font-bold text-foreground mb-2">
