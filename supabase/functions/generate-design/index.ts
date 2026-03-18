@@ -36,6 +36,8 @@ interface GenerateRequest {
   detectedColors?: string[];
   detectedKeywords?: string[];
   moodboardDescription?: string;
+  keepElements?: string[];
+  changeElements?: string[];
 }
 
 interface DebugStep {
@@ -683,11 +685,25 @@ function buildImagePrompt(
     return furnitureContext + tpl;
   }
 
-  // Existing room redesign - edit the actual room in place, preserving exact layout
+  // Existing room redesign - edit the actual room in place with keep/change preferences
   if (data.existingRoomImages && data.existingRoomImages.length > 0) {
+    // Build keep/change directives from user selections
+    let keepChangeDirective = "";
+    if (data.keepElements && data.keepElements.length > 0) {
+      keepChangeDirective += `ELEMENTS TO KEEP EXACTLY AS-IS (do NOT alter these in any way — same color, material, texture, position): ${data.keepElements.join("; ")}. `;
+    }
+    if (data.changeElements && data.changeElements.length > 0) {
+      keepChangeDirective += `ELEMENTS TO RESTYLE (apply the new ${styleMap[data.stylePreference] || data.stylePreference} aesthetic to these — change their color, material, texture, or finish to match the target style): ${data.changeElements.join("; ")}. `;
+    }
+    if (!data.keepElements?.length && !data.changeElements?.length) {
+      keepChangeDirective = "Re-skin ALL surface treatments (walls, floors, fabrics, textiles) with the new style while keeping every item in place. ";
+    }
+
     const tpl = templates["existing_room_redesign"] ||
-      `ABSOLUTE ROOM PRESERVATION — IN-PLACE STYLE EDIT: Study the attached photo(s) of the existing room with extreme care. You MUST reproduce this EXACT room — same camera angle, same perspective, same spatial layout, same lighting direction, same composition. Every piece of furniture, every object, every architectural element must remain in its EXACT position, size, angle, and proportion. Do NOT move, remove, add, rearrange, or resize ANY item. Do NOT replace any furniture with different furniture. The room must be pixel-perfect identical in layout and composition to the original photo. YOUR ONLY TASK is to re-skin the existing room with a {{style}} aesthetic by changing ONLY surface treatments: wall colors/textures/wallpaper, floor finish, fabric/upholstery colors and textures on existing furniture, cushion/throw colors, curtain/drape materials, rug patterns/colors, lighting warmth, and small decorative accents (vases, books, plants) that don't alter the spatial layout. {{detected_colors}}{{detected_keywords}}{{moodboard_context}}{{inspiration_context}}Apply {{colors}} to the existing surfaces and textiles. Create a {{budget}} feel through material quality and finish choices — NOT by replacing furniture. {{elements}} {{product_instructions}} The final image must look like the EXACT SAME photograph of the EXACT SAME room with a style makeover applied to surfaces, textiles, and color palette only. Ultra high resolution, photorealistic interior design photography, same lighting quality as original, 16:9 aspect ratio.`;
-    return furnitureContext + fillTemplate(tpl);
+      `ABSOLUTE ROOM PRESERVATION — SELECTIVE STYLE EDIT: Study the attached photo(s) of the existing room with extreme care. You MUST reproduce this EXACT room — same camera angle, same perspective, same spatial layout, same lighting direction, same composition. Every piece of furniture, every object, every architectural element must remain in its EXACT position, size, angle, and proportion. Do NOT move, remove, add, rearrange, or resize ANY item. Do NOT replace any furniture with different furniture. The room must be pixel-perfect identical in layout and composition to the original photo. {{keep_change_directive}} Apply a {{style}} aesthetic ONLY to the elements marked for change. {{detected_colors}}{{detected_keywords}}{{moodboard_context}}{{inspiration_context}}Use {{colors}} for the restyled elements. Create a {{budget}} feel through material quality and finish choices — NOT by replacing furniture. {{elements}} {{product_instructions}} The final image must look like the EXACT SAME photograph of the EXACT SAME room with selective style changes applied only where specified. Ultra high resolution, photorealistic interior design photography, same lighting quality as original, 16:9 aspect ratio.`;
+    
+    const filled = fillTemplate(tpl).replace(/\{\{keep_change_directive\}\}/g, keepChangeDirective);
+    return furnitureContext + filled;
   }
 
   const hasProductImages = data.productImageUrls && data.productImageUrls.length > 0;

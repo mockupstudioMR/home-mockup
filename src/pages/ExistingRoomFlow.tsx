@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
   Home, ArrowLeft, ArrowRight, Upload, X, Loader2, Sparkles, Check,
-  Sofa, Bed, UtensilsCrossed, Monitor, Bath, Camera, Eye,
+  Sofa, Bed, UtensilsCrossed, Monitor, Bath, Camera, Eye, Lock, Paintbrush,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -30,22 +30,12 @@ const rooms = [
 ];
 
 const styleImages: Record<string, string> = {
-  "modern": modernMinimal,
-  "minimal": modernMinimal,
-  "scandinavian": modernMinimal,
-  "classic": classicHistorical,
-  "historical": classicHistorical,
-  "traditional": classicHistorical,
-  "rustic": rusticNature,
-  "nature": rusticNature,
-  "farmhouse": rusticNature,
-  "mediterranean": mediterranean,
-  "coastal": mediterranean,
-  "bohemian": bohemianEclectic,
-  "eclectic": bohemianEclectic,
-  "glam": glamLuxe,
-  "luxe": glamLuxe,
-  "luxury": glamLuxe,
+  modern: modernMinimal, minimal: modernMinimal, scandinavian: modernMinimal,
+  classic: classicHistorical, historical: classicHistorical, traditional: classicHistorical,
+  rustic: rusticNature, nature: rusticNature, farmhouse: rusticNature,
+  mediterranean: mediterranean, coastal: mediterranean,
+  bohemian: bohemianEclectic, eclectic: bohemianEclectic,
+  glam: glamLuxe, luxe: glamLuxe, luxury: glamLuxe,
 };
 
 function getStyleImage(styleName: string): string {
@@ -56,6 +46,17 @@ function getStyleImage(styleName: string): string {
   return modernMinimal;
 }
 
+const categoryIcons: Record<string, typeof Sofa> = {
+  furniture: Sofa,
+  wall: Paintbrush,
+  flooring: Paintbrush,
+  lighting: Sparkles,
+  window: Eye,
+  rug: Paintbrush,
+  decor: Sparkles,
+  architectural: Home,
+};
+
 interface DetectedStyle {
   styleName: string;
   confidence: number;
@@ -63,13 +64,20 @@ interface DetectedStyle {
   keywords: string[];
 }
 
+interface RoomElement {
+  label: string;
+  category: string;
+  description: string;
+}
+
 interface AnalysisResult {
   styles: DetectedStyle[];
   dominantColors: string[];
   moodboardDescription: string;
+  roomElements?: RoomElement[];
 }
 
-type Step = "room-type" | "upload" | "analyzing" | "results";
+type Step = "room-type" | "upload" | "analyzing" | "results" | "customize";
 
 const ExistingRoomFlow = () => {
   const navigate = useNavigate();
@@ -83,11 +91,12 @@ const ExistingRoomFlow = () => {
   const [uploading, setUploading] = useState(false);
   const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
   const [selectedStyleIndex, setSelectedStyleIndex] = useState<number | null>(null);
+  // Keep/change state: maps element label to "keep" | "change"
+  const [elementChoices, setElementChoices] = useState<Record<string, "keep" | "change">>({});
 
   const handleUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     if (!files.length || !user) return;
-
     const imageFiles = files.filter(f => f.type.startsWith("image/"));
     if (!imageFiles.length) return;
 
@@ -118,13 +127,20 @@ const ExistingRoomFlow = () => {
   const analyzeRoom = async () => {
     if (!images.length) return;
     setStep("analyzing");
-
     try {
       const { data, error } = await supabase.functions.invoke("analyze-style", {
         body: { images, mode: "room" },
       });
       if (error) throw error;
       setAnalysisResult(data);
+      // Initialize all elements as "change" by default
+      if (data.roomElements) {
+        const initial: Record<string, "keep" | "change"> = {};
+        data.roomElements.forEach((el: RoomElement) => {
+          initial[el.label] = "change";
+        });
+        setElementChoices(initial);
+      }
       setStep("results");
       toast({ title: "Analysis complete!", description: `Detected ${data.styles?.length || 0} styles` });
     } catch {
@@ -133,10 +149,32 @@ const ExistingRoomFlow = () => {
     }
   };
 
+  const toggleElement = (label: string) => {
+    setElementChoices(prev => ({
+      ...prev,
+      [label]: prev[label] === "keep" ? "change" : "keep",
+    }));
+  };
+
+  const setAllElements = (choice: "keep" | "change") => {
+    setElementChoices(prev => {
+      const updated = { ...prev };
+      Object.keys(updated).forEach(k => (updated[k] = choice));
+      return updated;
+    });
+  };
+
   const handleContinue = () => {
     if (!analysisResult || selectedStyleIndex === null) return;
     const style = analysisResult.styles[selectedStyleIndex];
     const styleId = style.styleName.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+
+    const keepElements = Object.entries(elementChoices)
+      .filter(([, v]) => v === "keep")
+      .map(([k]) => k);
+    const changeElements = Object.entries(elementChoices)
+      .filter(([, v]) => v === "change")
+      .map(([k]) => k);
 
     updateQuizData({
       stylePreference: styleId,
@@ -152,8 +190,10 @@ const ExistingRoomFlow = () => {
           description: style.description,
         },
         analysisResult,
-        sourceImages: images,
+        existingRoomImages: images,
         source: "existing-room",
+        keepElements,
+        changeElements,
       },
     });
   };
@@ -171,8 +211,13 @@ const ExistingRoomFlow = () => {
     return null;
   }
 
-  const stepNumber = step === "room-type" ? 1 : step === "upload" ? 2 : step === "analyzing" ? 3 : 3;
-  const totalSteps = 3;
+  const stepNumber =
+    step === "room-type" ? 1
+    : step === "upload" ? 2
+    : step === "analyzing" ? 3
+    : step === "results" ? 3
+    : 4;
+  const totalSteps = 4;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-secondary/20 to-primary/10">
@@ -187,6 +232,7 @@ const ExistingRoomFlow = () => {
           onClick={() => {
             if (step === "upload") setStep("room-type");
             else if (step === "results") setStep("upload");
+            else if (step === "customize") setStep("results");
             else navigate("/start");
           }}
           className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
@@ -205,7 +251,7 @@ const ExistingRoomFlow = () => {
         <div className="max-w-3xl mx-auto space-y-8">
           {/* Progress */}
           <div className="flex items-center justify-center gap-2">
-            {[1, 2, 3].map(s => (
+            {[1, 2, 3, 4].map(s => (
               <div key={s} className="flex items-center gap-2">
                 <div className={cn(
                   "w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-colors",
@@ -216,7 +262,7 @@ const ExistingRoomFlow = () => {
                   {s < stepNumber ? <Check className="w-4 h-4" /> : s}
                 </div>
                 {s < totalSteps && (
-                  <div className={cn("w-12 h-0.5", s < stepNumber ? "bg-primary" : "bg-muted")} />
+                  <div className={cn("w-8 md:w-12 h-0.5", s < stepNumber ? "bg-primary" : "bg-muted")} />
                 )}
               </div>
             ))}
@@ -233,7 +279,6 @@ const ExistingRoomFlow = () => {
                   Select the type of room you want to transform
                 </p>
               </div>
-
               <div className="grid gap-3">
                 {rooms.map(room => (
                   <Card
@@ -254,22 +299,13 @@ const ExistingRoomFlow = () => {
                         {room.icon}
                       </div>
                       <span className="text-lg font-medium">{room.label}</span>
-                      {roomType === room.value && (
-                        <Check className="w-5 h-5 text-primary ml-auto" />
-                      )}
+                      {roomType === room.value && <Check className="w-5 h-5 text-primary ml-auto" />}
                     </CardContent>
                   </Card>
                 ))}
               </div>
-
-              <Button
-                size="lg"
-                className="w-full"
-                disabled={!roomType}
-                onClick={() => setStep("upload")}
-              >
-                Continue
-                <ArrowRight className="w-5 h-5 ml-2" />
+              <Button size="lg" className="w-full" disabled={!roomType} onClick={() => setStep("upload")}>
+                Continue <ArrowRight className="w-5 h-5 ml-2" />
               </Button>
             </div>
           )}
@@ -282,10 +318,9 @@ const ExistingRoomFlow = () => {
                   Upload photos of your {rooms.find(r => r.value === roomType)?.label.toLowerCase() || "room"}
                 </h1>
                 <p className="text-muted-foreground text-lg">
-                  Show us how it looks now — we'll detect the style and suggest designs
+                  Show us how it looks now — we'll detect everything in it
                 </p>
               </div>
-
               <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
                 <CardContent className="p-6">
                   {images.length === 0 && !uploading ? (
@@ -293,13 +328,7 @@ const ExistingRoomFlow = () => {
                       <Camera className="w-12 h-12 text-muted-foreground mb-4" />
                       <p className="text-lg font-medium">Upload room photos</p>
                       <p className="text-sm text-muted-foreground mt-1">Up to 4 photos • JPG, PNG</p>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        multiple
-                        onChange={handleUpload}
-                        className="hidden"
-                      />
+                      <input type="file" accept="image/*" multiple onChange={handleUpload} className="hidden" />
                     </label>
                   ) : (
                     <div className="space-y-4">
@@ -332,10 +361,8 @@ const ExistingRoomFlow = () => {
                           </label>
                         )}
                       </div>
-
                       <Button size="lg" className="w-full" onClick={analyzeRoom} disabled={uploading}>
-                        <Sparkles className="w-5 h-5 mr-2" />
-                        Detect Style
+                        <Sparkles className="w-5 h-5 mr-2" /> Detect Style & Elements
                       </Button>
                     </div>
                   )}
@@ -355,12 +382,12 @@ const ExistingRoomFlow = () => {
               </div>
               <div className="text-center space-y-2">
                 <h2 className="text-2xl font-bold">Analyzing your room...</h2>
-                <p className="text-muted-foreground">Detecting styles, colors, and design elements</p>
+                <p className="text-muted-foreground">Detecting styles, colors, and every element</p>
               </div>
             </div>
           )}
 
-          {/* Step 3: Results */}
+          {/* Step 3: Style Results */}
           {step === "results" && analysisResult && (
             <div className="space-y-6">
               <div className="text-center space-y-3">
@@ -368,7 +395,7 @@ const ExistingRoomFlow = () => {
                   We detected these styles
                 </h1>
                 <p className="text-muted-foreground text-lg">
-                  Select a style to redesign your room
+                  Select a target style for your redesign
                 </p>
               </div>
 
@@ -380,10 +407,7 @@ const ExistingRoomFlow = () => {
                     <div className="flex gap-3">
                       {analysisResult.dominantColors.map((color, i) => (
                         <div key={i} className="flex flex-col items-center gap-1">
-                          <div
-                            className="w-10 h-10 rounded-lg border border-border"
-                            style={{ backgroundColor: color }}
-                          />
+                          <div className="w-10 h-10 rounded-lg border border-border" style={{ backgroundColor: color }} />
                           <span className="text-[10px] text-muted-foreground">{color}</span>
                         </div>
                       ))}
@@ -407,16 +431,9 @@ const ExistingRoomFlow = () => {
                   >
                     <CardContent className="p-0">
                       <div className="flex">
-                        {/* Style thumbnail */}
                         <div className="w-28 md:w-36 shrink-0">
-                          <img
-                            src={getStyleImage(style.styleName)}
-                            alt={style.styleName}
-                            className="w-full h-full object-cover"
-                            loading="lazy"
-                          />
+                          <img src={getStyleImage(style.styleName)} alt={style.styleName} className="w-full h-full object-cover" loading="lazy" />
                         </div>
-
                         <div className="flex-1 p-4 space-y-2">
                           <div className="flex items-center justify-between">
                             <h3 className="font-semibold text-lg">{style.styleName}</h3>
@@ -424,21 +441,15 @@ const ExistingRoomFlow = () => {
                               {Math.round(style.confidence * 100)}% match
                             </Badge>
                           </div>
-                          <p className="text-sm text-muted-foreground line-clamp-2">
-                            {style.description}
-                          </p>
+                          <p className="text-sm text-muted-foreground line-clamp-2">{style.description}</p>
                           <div className="flex flex-wrap gap-1.5">
                             {style.keywords?.slice(0, 4).map(kw => (
-                              <span key={kw} className="text-xs px-2 py-0.5 rounded-full bg-secondary text-secondary-foreground">
-                                {kw}
-                              </span>
+                              <span key={kw} className="text-xs px-2 py-0.5 rounded-full bg-secondary text-secondary-foreground">{kw}</span>
                             ))}
                           </div>
-
                           {selectedStyleIndex === index && (
                             <div className="flex items-center gap-2 text-primary text-sm font-medium pt-1">
-                              <Check className="w-4 h-4" />
-                              Selected
+                              <Check className="w-4 h-4" /> Selected
                             </div>
                           )}
                         </div>
@@ -448,36 +459,130 @@ const ExistingRoomFlow = () => {
                 ))}
               </div>
 
-              {/* Moodboard description */}
-              {analysisResult.moodboardDescription && (
-                <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
-                  <CardContent className="p-4">
-                    <p className="text-sm text-muted-foreground leading-relaxed">
-                      {analysisResult.moodboardDescription}
-                    </p>
-                  </CardContent>
-                </Card>
+              {/* Continue to customize */}
+              {selectedStyleIndex !== null && (
+                <Button size="lg" className="w-full" onClick={() => setStep("customize")}>
+                  Next: Choose What to Change <ArrowRight className="w-5 h-5 ml-2" />
+                </Button>
               )}
+            </div>
+          )}
+
+          {/* Step 4: Customize — Keep / Change */}
+          {step === "customize" && analysisResult && (
+            <div className="space-y-6">
+              <div className="text-center space-y-3">
+                <h1 className="text-3xl md:text-4xl font-bold tracking-tight">
+                  What do you want to change?
+                </h1>
+                <p className="text-muted-foreground text-lg">
+                  We found {analysisResult.roomElements?.length || 0} elements — tap to keep or restyle each one
+                </p>
+              </div>
+
+              {/* Quick actions */}
+              <div className="flex gap-3 justify-center">
+                <Button variant="outline" size="sm" onClick={() => setAllElements("keep")}>
+                  <Lock className="w-4 h-4 mr-1.5" /> Keep All
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => setAllElements("change")}>
+                  <Paintbrush className="w-4 h-4 mr-1.5" /> Change All
+                </Button>
+              </div>
+
+              {/* Room preview thumbnail */}
+              {images[0] && (
+                <div className="mx-auto max-w-sm rounded-xl overflow-hidden border border-border">
+                  <img src={images[0]} alt="Your room" className="w-full aspect-video object-cover" loading="lazy" />
+                </div>
+              )}
+
+              {/* Element list */}
+              <div className="space-y-2">
+                {(analysisResult.roomElements || []).map((el) => {
+                  const choice = elementChoices[el.label] || "change";
+                  const isKeep = choice === "keep";
+                  const IconComponent = categoryIcons[el.category] || Sparkles;
+
+                  return (
+                    <Card
+                      key={el.label}
+                      className={cn(
+                        "cursor-pointer transition-all duration-200",
+                        isKeep
+                          ? "border-primary/40 bg-primary/5"
+                          : "border-accent/40 bg-accent/5"
+                      )}
+                      onClick={() => toggleElement(el.label)}
+                    >
+                      <CardContent className="p-3 flex items-center gap-3">
+                        <div className={cn(
+                          "w-10 h-10 rounded-lg flex items-center justify-center shrink-0 transition-colors",
+                          isKeep ? "bg-primary/15 text-primary" : "bg-accent/15 text-accent-foreground"
+                        )}>
+                          <IconComponent className="w-5 h-5" />
+                        </div>
+
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-sm truncate">{el.label}</p>
+                          <p className="text-xs text-muted-foreground truncate">{el.description}</p>
+                        </div>
+
+                        <Badge
+                          variant={isKeep ? "default" : "secondary"}
+                          className={cn(
+                            "shrink-0 text-xs",
+                            isKeep
+                              ? "bg-primary text-primary-foreground"
+                              : "bg-accent text-accent-foreground"
+                          )}
+                        >
+                          {isKeep ? (
+                            <><Lock className="w-3 h-3 mr-1" /> Keep</>
+                          ) : (
+                            <><Paintbrush className="w-3 h-3 mr-1" /> Change</>
+                          )}
+                        </Badge>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+
+              {/* Summary */}
+              <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
+                <CardContent className="p-4">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">
+                      <Lock className="w-3.5 h-3.5 inline mr-1" />
+                      Keeping {Object.values(elementChoices).filter(v => v === "keep").length} elements
+                    </span>
+                    <span className="text-muted-foreground">
+                      <Paintbrush className="w-3.5 h-3.5 inline mr-1" />
+                      Changing {Object.values(elementChoices).filter(v => v === "change").length} elements
+                    </span>
+                  </div>
+                </CardContent>
+              </Card>
             </div>
           )}
         </div>
       </main>
 
       {/* Fixed Bottom CTA */}
-      {step === "results" && selectedStyleIndex !== null && (
+      {step === "customize" && (
         <div className="fixed bottom-0 inset-x-0 p-4 bg-background/80 backdrop-blur-lg border-t border-border z-20">
           <div className="max-w-3xl mx-auto flex items-center justify-between">
             <div>
               <p className="font-medium">
-                {analysisResult?.styles[selectedStyleIndex]?.styleName}
+                {analysisResult?.styles[selectedStyleIndex!]?.styleName}
               </p>
               <p className="text-sm text-muted-foreground">
-                Redesign your {rooms.find(r => r.value === roomType)?.label.toLowerCase()}
+                {Object.values(elementChoices).filter(v => v === "change").length} elements to restyle
               </p>
             </div>
             <Button size="lg" onClick={handleContinue}>
-              Generate Design
-              <ArrowRight className="w-5 h-5 ml-2" />
+              Generate Design <ArrowRight className="w-5 h-5 ml-2" />
             </Button>
           </div>
         </div>

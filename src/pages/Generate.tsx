@@ -144,6 +144,8 @@ const Generate = () => {
   const quizData = location.state?.quizData as QuizData | undefined;
   const resumeDesignId = location.state?.resumeDesignId as string | undefined;
   const existingRoomImagesFromState = (location.state?.quizData?.existingRoomImages || location.state?.existingRoomImages) as string[] | undefined;
+  const keepElementsFromState = location.state?.keepElements as string[] | undefined;
+  const changeElementsFromState = location.state?.changeElements as string[] | undefined;
   
   // Persist analysisResult and selectedInspirations to sessionStorage so they survive re-renders/HMR
   const selectedInspirations = (() => {
@@ -808,6 +810,8 @@ const Generate = () => {
           selectedProducts: includeProducts ? productAnalysis?.products : undefined,
           productImageUrls: includeProducts ? sourceImages : undefined,
           existingRoomImages: existingRoomRef,
+          keepElements: keepElementsFromState,
+          changeElements: changeElementsFromState,
           selectedInspirations,
           inspirationDetails,
           detectedColors: analysisResult?.dominantColors,
