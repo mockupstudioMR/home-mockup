@@ -910,6 +910,8 @@ const Generate = () => {
             ...overriddenQuiz,
             sourceImageUrl: overriddenQuiz.sourceImageUrl,
             existingRoomImages: existingRoomImagesFromState,
+            keepElements: keepElementsFromState,
+            changeElements: changeElementsFromState,
             selectedInspirations,
             inspirationDetails,
             detectedColors: analysisResult?.dominantColors,

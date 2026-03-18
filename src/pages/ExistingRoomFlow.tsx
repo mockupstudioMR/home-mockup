@@ -176,14 +176,21 @@ const ExistingRoomFlow = () => {
       .filter(([, v]) => v === "change")
       .map(([k]) => k);
 
-    updateQuizData({
+    const nextQuizData = {
       stylePreference: styleId,
       roomType: roomType || "living-room",
       colorPalette: "neutral",
-    });
+      budgetFeel: "mid-range",
+      mustHaveElements: [],
+      furnitureSource: "open" as const,
+      sourceImageUrl: undefined,
+    };
+
+    updateQuizData(nextQuizData);
 
     navigate("/generate", {
       state: {
+        quizData: nextQuizData,
         selectedStyle: {
           id: styleId,
           title: style.styleName,

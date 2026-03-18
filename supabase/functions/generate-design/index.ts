@@ -653,7 +653,7 @@ function buildImagePrompt(
 
   // Add furniture context prefix if we have furniture items from DB
   let furnitureContext = "";
-  if (furnitureItems.length > 0) {
+  if (furnitureItems.length > 0 && !isExistingRoomRedesign) {
     if (templates["furniture_context"]) {
       furnitureContext = fillTemplate(templates["furniture_context"]) + " ";
     } else {
