@@ -13,6 +13,7 @@ import Auth from "./pages/Auth";
 
 // Lazy load heavy pages
 const Start = lazy(() => import("./pages/Start"));
+const ExistingRoomFlow = lazy(() => import("./pages/ExistingRoomFlow"));
 const StyleTree = lazy(() => import("./pages/StyleTree"));
 const AnalyzeRoom = lazy(() => import("./pages/AnalyzeRoom"));
 const AnalyzeProducts = lazy(() => import("./pages/AnalyzeProducts"));
