@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Store, PenTool, Building2, Code2, ArrowRight, ArrowLeft, CheckCircle } from "lucide-react";
 import Logo from "@/components/Logo";
+import B2BOnboardingFlow from "@/components/b2b/B2BOnboardingFlow";
 
 const B2BSolutions = () => {
   const navigate = useNavigate();
