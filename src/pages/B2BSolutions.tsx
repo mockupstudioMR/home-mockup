@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Store, PenTool, Building2, Code2, ArrowRight, ArrowLeft, CheckCircle } from "lucide-react";
 import Logo from "@/components/Logo";
+import B2BOnboardingFlow from "@/components/b2b/B2BOnboardingFlow";
 
 const B2BSolutions = () => {
   const navigate = useNavigate();
@@ -89,6 +90,97 @@ const B2BSolutions = () => {
         </div>
       </section>
 
+      {/* Interactive Onboarding Demo */}
+      <section className="relative z-10 px-4 py-16 md:py-20 bg-muted/30">
+        <div className="max-w-5xl mx-auto space-y-8">
+          <div className="text-center space-y-3">
+            <h2 className="text-2xl md:text-3xl font-bold text-foreground">
+              See It In Action
+            </h2>
+            <p className="text-muted-foreground text-lg max-w-xl mx-auto">
+              Experience the exact onboarding your customers will go through — fast, visual, and zero friction
+            </p>
+          </div>
+          <Card className="p-8 md:p-12 border-border/50 bg-card/90 backdrop-blur-sm">
+            <B2BOnboardingFlow />
+          </Card>
+        </div>
+      </section>
+
+      {/* How It Works — Flow Explanation */}
+      <section className="relative z-10 px-4 py-16">
+        <div className="max-w-4xl mx-auto space-y-10">
+          <div className="text-center space-y-3">
+            <h2 className="text-2xl md:text-3xl font-bold text-foreground">
+              How the 60-Second Onboarding Works
+            </h2>
+            <p className="text-muted-foreground text-lg">TikTok speed, Apple simplicity</p>
+          </div>
+
+          <div className="grid gap-4">
+            {[
+              {
+                step: "1",
+                title: "The Hook",
+                time: "0–3 sec",
+                desc: "A bold headline grabs attention instantly — 'Create your AI showroom in 60 seconds'. One clear CTA removes decision fatigue.",
+              },
+              {
+                step: "2",
+                title: "Choose Your Path",
+                time: "1 tap",
+                desc: "Upload your own products or jump into a quick demo. Two options, zero friction — the user is always in control.",
+              },
+              {
+                step: "3",
+                title: "Add Products",
+                time: "10–20 sec",
+                desc: "Upload up to 5 images or paste product links. We handle the rest. A progress bar keeps the experience transparent.",
+              },
+              {
+                step: "4",
+                title: "Pick a Style",
+                time: "5 sec",
+                desc: "Five visual cards — tap one and auto-continue. No extra buttons, no overthinking. Pure visual selection.",
+              },
+              {
+                step: "5",
+                title: "One Smart Question",
+                time: "5 sec",
+                desc: "'What do you want more of?' — sales, presence, or engagement. Personalizes the pitch and feeds your future strategy.",
+              },
+              {
+                step: "6",
+                title: "The Magic Moment",
+                time: "loading",
+                desc: "Instead of a boring spinner, animated messages build anticipation: 'Designing your showroom…', 'Matching your products…'",
+              },
+              {
+                step: "7",
+                title: "The WOW Result",
+                time: "reveal",
+                desc: "A fully styled room with their products, a chat preview, and a shopping list. The headline says it all: 'This is how customers could shop your store'.",
+              },
+            ].map((item) => (
+              <div
+                key={item.step}
+                className="flex gap-4 p-4 rounded-xl border border-border/50 bg-card/60"
+              >
+                <div className="w-10 h-10 rounded-full bg-primary/10 text-primary font-bold flex items-center justify-center shrink-0 text-sm">
+                  {item.step}
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-baseline gap-2 flex-wrap">
+                    <h3 className="font-semibold text-foreground">{item.title}</h3>
+                    <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">{item.time}</span>
+                  </div>
+                  <p className="text-sm text-muted-foreground mt-1">{item.desc}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
       {/* Solutions Grid */}
       <section className="relative z-10 px-4 pb-16">
         <div className="max-w-5xl mx-auto grid gap-8">
