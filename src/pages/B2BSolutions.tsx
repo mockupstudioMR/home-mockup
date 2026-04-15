@@ -82,10 +82,10 @@ const B2BSolutions = () => {
       <section className="relative z-10 px-4 py-16 md:py-24 text-center">
         <div className="max-w-3xl mx-auto space-y-4">
           <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-foreground">
-            B2B Solutions
+            Design Sells. We Prove It.
           </h1>
           <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto">
-            Grow your business with AI-powered interior design tools built for professionals
+            Give your customers an experience they'll remember — and come back for
           </p>
         </div>
       </section>
@@ -95,10 +95,10 @@ const B2BSolutions = () => {
         <div className="max-w-5xl mx-auto space-y-8">
           <div className="text-center space-y-3">
             <h2 className="text-2xl md:text-3xl font-bold text-foreground">
-              See It In Action
+              Experience the Magic
             </h2>
             <p className="text-muted-foreground text-lg max-w-xl mx-auto">
-              Experience the exact onboarding your customers will go through — fast, visual, and zero friction
+              This is exactly what your customers will feel — instant, beautiful, effortless
             </p>
           </div>
           <Card className="p-8 md:p-12 border-border/50 bg-card/90 backdrop-blur-sm">
@@ -112,54 +112,54 @@ const B2BSolutions = () => {
         <div className="max-w-4xl mx-auto space-y-10">
           <div className="text-center space-y-3">
             <h2 className="text-2xl md:text-3xl font-bold text-foreground">
-              How the 60-Second Onboarding Works
+              From Zero to Showroom in 60 Seconds
             </h2>
-            <p className="text-muted-foreground text-lg">TikTok speed, Apple simplicity</p>
+            <p className="text-muted-foreground text-lg">Fast like TikTok. Polished like Apple.</p>
           </div>
 
           <div className="grid gap-4">
             {[
               {
                 step: "1",
-                title: "The Hook",
+                title: "Love at First Sight",
                 time: "0–3 sec",
-                desc: "A bold headline grabs attention instantly — 'Create your AI showroom in 60 seconds'. One clear CTA removes decision fatigue.",
+                desc: "One bold headline, one irresistible button. Your customer is hooked before they even scroll.",
               },
               {
                 step: "2",
-                title: "Choose Your Path",
+                title: "Their Way, Instantly",
                 time: "1 tap",
-                desc: "Upload your own products or jump into a quick demo. Two options, zero friction — the user is always in control.",
+                desc: "Upload products or dive into a demo — two paths, zero confusion. They're in control from the start.",
               },
               {
                 step: "3",
-                title: "Add Products",
+                title: "Drop In Your Products",
                 time: "10–20 sec",
-                desc: "Upload up to 5 images or paste product links. We handle the rest. A progress bar keeps the experience transparent.",
+                desc: "Drag photos or paste links — we do the heavy lifting. Your catalog comes alive in seconds.",
               },
               {
                 step: "4",
-                title: "Pick a Style",
+                title: "Set the Mood",
                 time: "5 sec",
-                desc: "Five visual cards — tap one and auto-continue. No extra buttons, no overthinking. Pure visual selection.",
+                desc: "Five stunning room styles. One tap. The space transforms — no buttons, no friction, pure visual storytelling.",
               },
               {
                 step: "5",
-                title: "One Smart Question",
+                title: "The One Question That Matters",
                 time: "5 sec",
-                desc: "'What do you want more of?' — sales, presence, or engagement. Personalizes the pitch and feeds your future strategy.",
+                desc: "Sales, presence, or engagement? One answer shapes the entire experience — and your pitch.",
               },
               {
                 step: "6",
-                title: "The Magic Moment",
+                title: "Watch the Magic Happen",
                 time: "loading",
-                desc: "Instead of a boring spinner, animated messages build anticipation: 'Designing your showroom…', 'Matching your products…'",
+                desc: "Not a spinner — a story. 'Designing your showroom…' 'Matching your products…' Anticipation builds with every line.",
               },
               {
                 step: "7",
-                title: "The WOW Result",
+                title: "The Reveal",
                 time: "reveal",
-                desc: "A fully styled room with their products, a chat preview, and a shopping list. The headline says it all: 'This is how customers could shop your store'.",
+                desc: "A fully styled room. Their products. A live shopping list. One look and they'll say: 'I need this on my website.'",
               },
             ].map((item) => (
               <div
@@ -219,10 +219,10 @@ const B2BSolutions = () => {
       <section className="relative z-10 px-4 py-16 bg-secondary/10">
         <div className="max-w-2xl mx-auto text-center space-y-6">
           <h2 className="text-2xl md:text-3xl font-bold text-foreground">
-            Ready to grow with HomeMockUp?
+            Ready to Make Your Store Unforgettable?
           </h2>
           <p className="text-muted-foreground text-lg">
-            Join our professional network and connect with customers looking for exactly what you offer.
+            Join the brands already transforming how customers discover and shop furniture.
           </p>
           <Button
             size="lg"
