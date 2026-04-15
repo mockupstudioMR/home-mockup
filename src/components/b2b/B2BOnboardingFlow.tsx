@@ -259,7 +259,12 @@ const B2BOnboardingFlow = () => {
         <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-400">
           <div className="text-center space-y-2">
             <h2 className="text-2xl md:text-3xl font-bold text-foreground">Pick a style</h2>
-            <p className="text-muted-foreground">Tap one to continue</p>
+            <p className="text-muted-foreground">Your products will be placed in a room that matches this aesthetic — so customers see them in context, not in isolation</p>
+          </div>
+          <div className="p-3 rounded-lg bg-primary/5 border border-primary/20 max-w-lg mx-auto">
+            <p className="text-xs text-muted-foreground text-center">
+              <span className="font-semibold text-primary">💡 Why this matters:</span> Styled product placement increases purchase intent by up to 3× — buyers need to imagine it in their space.
+            </p>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3 max-w-xl mx-auto">
             {styleOptions.map((style) => (
