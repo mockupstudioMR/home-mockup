@@ -502,7 +502,7 @@ const FloorPlan = () => {
     } finally {
       setGenerating(false);
     }
-  }, [selectedShape, dimensions, openings]);
+  }, [selectedShape, dimensions, selectedRoomType, selectedFurniture, openings]);
 
   const proceedToQuiz = useCallback(() => {
     if (selectedLayout === null || !selectedShape) return;
