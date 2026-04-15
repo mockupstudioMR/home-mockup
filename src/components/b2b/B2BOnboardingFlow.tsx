@@ -46,9 +46,9 @@ const goalResults: Record<string, {
     subtitle: "Customers who visualize products in their space are 3× more likely to purchase",
     chatMessage: "Love how that sofa looks here! I found matching throw pillows and a coffee table from your store — want me to add them to your cart?",
     shoppingList: [
-      { name: "Modern Sofa", price: "$1,299", tagPos: { top: "62%", left: "25%" } },
-      { name: "Accent Pillows (×2)", price: "$189", tagPos: { top: "56%", left: "38%" } },
-      { name: "Wooden Coffee Table", price: "$449", tagPos: { top: "72%", left: "48%" } },
+      { name: "Modern Sofa", price: "$1,299", tagPos: { top: "68%", left: "22%" } },
+      { name: "Accent Pillows (×2)", price: "$189", tagPos: { top: "62%", left: "32%" } },
+      { name: "Wooden Coffee Table", price: "$449", tagPos: { top: "74%", left: "42%" } },
     ],
     metrics: [
       { icon: <DollarSign className="w-4 h-4" />, label: "Avg. order value", value: "+40%" },
