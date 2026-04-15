@@ -627,7 +627,7 @@ const FloorPlan = () => {
                       <RotateCcw className="w-4 h-4 mr-2" /> Change Shape
                     </Button>
                     <Button onClick={() => setStep(2)} className="flex-1">
-                      Next: Openings <ArrowRight className="w-4 h-4 ml-2" />
+                      Next: Room Type <ArrowRight className="w-4 h-4 ml-2" />
                     </Button>
                   </div>
                 </div>
