@@ -17,7 +17,7 @@ import styleBoho from "@/assets/b2b/style-boho.jpg";
 import styleLuxury from "@/assets/b2b/style-luxury.jpg";
 
 
-const TOTAL_STEPS = 7;
+const TOTAL_STEPS = 9;
 
 const styleOptions = [
   { value: "modern_minimal", label: "Modern Minimal", image: styleModern },
