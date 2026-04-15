@@ -44,11 +44,11 @@ const goalResults: Record<string, {
   sales: {
     headline: "Turn browsers into buyers",
     subtitle: "Customers who visualize products in their space are 3× more likely to purchase",
-    chatMessage: "Love how that velvet sofa looks here! I found matching throw pillows and a cozy rug from your store — want me to add them to your cart?",
+    chatMessage: "Love how that sofa looks here! I found matching throw pillows and a coffee table from your store — want me to add them to your cart?",
     shoppingList: [
-      { name: "Velvet Sofa", price: "$1,299", tagPos: { top: "55%", left: "45%" } },
-      { name: "Linen Throw Pillows (×2)", price: "$189", tagPos: { top: "42%", left: "62%" } },
-      { name: "Hand-Woven Area Rug", price: "$449", tagPos: { top: "82%", left: "50%" } },
+      { name: "Modern Sofa", price: "$1,299", tagPos: { top: "62%", left: "25%" } },
+      { name: "Accent Pillows (×2)", price: "$189", tagPos: { top: "56%", left: "38%" } },
+      { name: "Wooden Coffee Table", price: "$449", tagPos: { top: "72%", left: "48%" } },
     ],
     metrics: [
       { icon: <DollarSign className="w-4 h-4" />, label: "Avg. order value", value: "+40%" },
@@ -60,11 +60,11 @@ const goalResults: Record<string, {
   presence: {
     headline: "Stand out from every competitor",
     subtitle: "An AI showroom makes your brand feel premium, modern, and unforgettable",
-    chatMessage: "Welcome to your personalized showroom! I've curated a living room around your best-selling oak dining table.",
+    chatMessage: "Welcome to your personalized showroom! I've curated this living room around your best-selling sofa and accent chair.",
     shoppingList: [
-      { name: "Oak Dining Table", price: "$1,899", tagPos: { top: "60%", left: "50%" } },
-      { name: "Upholstered Chairs (×4)", price: "$1,196", tagPos: { top: "50%", left: "30%" } },
-      { name: "Pendant Light", price: "$349", tagPos: { top: "15%", left: "50%" } },
+      { name: "Lounge Chair", price: "$899", tagPos: { top: "63%", left: "78%" } },
+      { name: "Area Rug", price: "$596", tagPos: { top: "85%", left: "50%" } },
+      { name: "Floor Lamp", price: "$349", tagPos: { top: "50%", left: "88%" } },
     ],
     metrics: [
       { icon: <Eye className="w-4 h-4" />, label: "Time on site", value: "+65%" },
@@ -76,11 +76,11 @@ const goalResults: Record<string, {
   engagement: {
     headline: "Keep customers coming back",
     subtitle: "Interactive design tools create sticky experiences that build loyalty",
-    chatMessage: "You've saved 3 rooms so far! Your marble coffee table pairs beautifully with this brass floor lamp — try it out?",
+    chatMessage: "You've saved 3 rooms so far! Your coffee table pairs beautifully with this accent chair — try it out?",
     shoppingList: [
-      { name: "Marble Coffee Table", price: "$899", tagPos: { top: "65%", left: "45%" } },
-      { name: "Brass Floor Lamp", price: "$279", tagPos: { top: "35%", left: "18%" } },
-      { name: "Ceramic Vase Set", price: "$129", tagPos: { top: "40%", left: "70%" } },
+      { name: "Coffee Table", price: "$899", tagPos: { top: "72%", left: "48%" } },
+      { name: "Accent Chair", price: "$579", tagPos: { top: "63%", left: "78%" } },
+      { name: "Decorative Vase", price: "$129", tagPos: { top: "68%", left: "55%" } },
     ],
     metrics: [
       { icon: <Heart className="w-4 h-4" />, label: "Return visits", value: "+80%" },
