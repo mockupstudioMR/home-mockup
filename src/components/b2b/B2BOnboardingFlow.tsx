@@ -101,21 +101,119 @@ const B2BOnboardingFlow = () => {
   const [loadingMsgIndex, setLoadingMsgIndex] = useState(0);
   const [uploadedCount, setUploadedCount] = useState(0);
   const [uploadedImages, setUploadedImages] = useState<string[]>([]);
+  const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   const [showLinkInput, setShowLinkInput] = useState(false);
   const [linkValue, setLinkValue] = useState("");
+  const [generatedSceneUrl, setGeneratedSceneUrl] = useState<string | null>(null);
+  const [generationError, setGenerationError] = useState<string | null>(null);
+  const generationStarted = useRef(false);
+  const { user } = useAuth();
+
+  // When entering loading step (5), trigger AI generation if user uploaded products
+  useEffect(() => {
+    if (step !== 5) {
+      generationStarted.current = false;
+      return;
+    }
+    if (generationStarted.current) return;
+    generationStarted.current = true;
+
+    const hasUploads = uploadedFiles.length > 0 && startMode === "upload";
+
+    const generateScene = async () => {
+      if (!hasUploads || !user) {
+        // Demo mode — just animate loading messages and proceed
+        runLoadingAnimation();
+        return;
+      }
+
+      setGenerationError(null);
+
+      try {
+        // 1. Upload product files to Supabase storage to get public URLs
+        const productImageUrls: string[] = [];
+        for (const file of uploadedFiles.slice(0, 4)) {
+          const ext = file.name.split(".").pop();
+          const fileName = `${user.id}/b2b-demo-${Date.now()}-${Math.random().toString(36).slice(2, 6)}.${ext}`;
+          const { error } = await supabase.storage.from("product-images").upload(fileName, file);
+          if (error) {
+            console.error("Upload error:", error);
+            continue;
+          }
+          const { data } = supabase.storage.from("product-images").getPublicUrl(fileName);
+          productImageUrls.push(data.publicUrl);
+        }
+
+        if (productImageUrls.length === 0) {
+          runLoadingAnimation();
+          return;
+        }
+
+        // 2. Call generate-design with the uploaded product images
+        const styleLabel = styleOptions.find(s => s.value === selectedStyle)?.label || "Modern Minimal";
+        const response = await supabase.functions.invoke("generate-design", {
+          body: {
+            stylePreference: selectedStyle?.replace(/_/g, "-") || "modern-minimal",
+            colorPalette: "neutral",
+            roomType: "living_room",
+            budgetFeel: "mid_range",
+            mustHaveElements: [],
+            furnitureSource: "open",
+            productImageUrls,
+            isScenePreview: true,
+          },
+        });
+
+        if (response.error) throw new Error(response.error.message);
+        const { imageUrl } = response.data;
+        if (imageUrl) {
+          setGeneratedSceneUrl(imageUrl);
+        }
+      } catch (err) {
+        console.error("Scene generation error:", err);
+        setGenerationError("Scene generation took too long — showing preview instead");
+      }
+
+      // Move to result
+      setStep(6);
+    };
+
+    generateScene();
+  }, [step]);
+
+  const runLoadingAnimation = () => {
+    let idx = 0;
+    const interval = setInterval(() => {
+      idx++;
+      setLoadingMsgIndex(idx);
+      if (idx >= loadingMessages.length - 1) {
+        clearInterval(interval);
+        setTimeout(() => setStep(6), 800);
+      }
+    }, 1200);
+  };
 
   useEffect(() => {
     if (step !== 5) return;
+    if (startMode !== "upload" || uploadedFiles.length === 0) return;
+    // For upload mode, loading messages animate independently — generation controls step transition
+    let idx = 0;
     const interval = setInterval(() => {
-      setLoadingMsgIndex((prev) => {
-        if (prev < loadingMessages.length - 1) return prev + 1;
-        setTimeout(() => setStep(6), 800);
+      idx++;
+      setLoadingMsgIndex(idx);
+      if (idx >= loadingMessages.length - 1) {
         clearInterval(interval);
-        return prev;
-      });
+        // Don't auto-advance — generation callback will set step to 6
+      }
     }, 1200);
     return () => clearInterval(interval);
-  }, [step]);
+  }, [step, startMode, uploadedFiles.length]);
+
+  // Demo mode loading (no uploads)
+  useEffect(() => {
+    if (step !== 5 || startMode === "upload") return;
+    // handled by generateScene -> runLoadingAnimation
+  }, [step, startMode]);
 
   useEffect(() => {
     if (selectedStyle && step === 3) {
@@ -141,6 +239,10 @@ const B2BOnboardingFlow = () => {
     setSelectedGoal(null);
     setLoadingMsgIndex(0);
     setUploadedCount(0);
+    setUploadedImages([]);
+    setUploadedFiles([]);
+    setGeneratedSceneUrl(null);
+    setGenerationError(null);
   };
 
   const goalData = selectedGoal ? goalResults[selectedGoal] : goalResults.sales;
