@@ -838,7 +838,7 @@ const FloorPlan = () => {
                         <>Generate Layouts <ArrowRight className="w-4 h-4 ml-2" /></>
                       )}
                     </Button>
-                    <Button variant="ghost" size="sm" onClick={() => setStep(2)} className="text-xs text-muted-foreground">
+                    <Button variant="ghost" size="sm" onClick={() => generateLayouts()} className="text-xs text-muted-foreground">
                       Skip — no openings to add
                     </Button>
                   </div>
@@ -847,8 +847,8 @@ const FloorPlan = () => {
             </div>
           )}
 
-          {/* Step 3: Layout Suggestions */}
-          {step === 3 && (
+          {/* Step 4: Layout Suggestions */}
+          {step === 4 && (
             <div className="space-y-6">
               <div className="text-center space-y-2">
                 <h1 className="text-2xl md:text-3xl font-bold">Choose Your Layout</h1>
@@ -900,7 +900,7 @@ const FloorPlan = () => {
                   </div>
 
                   <div className="flex justify-center gap-3 pt-4">
-                    <Button variant="outline" onClick={() => { setStep(2); setLayouts([]); setSelectedLayout(null); }}>
+                    <Button variant="outline" onClick={() => { setStep(3); setLayouts([]); setSelectedLayout(null); }}>
                       <RotateCcw className="w-4 h-4 mr-2" /> Edit Openings
                     </Button>
                     <Button variant="outline" onClick={generateLayouts} disabled={generating}>
