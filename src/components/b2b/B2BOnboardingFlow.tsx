@@ -37,13 +37,15 @@ const goalResults: Record<string, {
   headline: string;
   subtitle: string;
   chatMessage: string;
+  shoppingList: string[];
   metrics: { icon: React.ReactNode; label: string; value: string }[];
   tip: string;
 }> = {
   sales: {
     headline: "Turn browsers into buyers",
     subtitle: "Customers who visualize products in their space are 3× more likely to purchase",
-    chatMessage: "I see you love that velvet sofa — here are matching pillows from your store. Want me to add them to cart?",
+    chatMessage: "Love how that velvet sofa looks here! I found matching throw pillows and a cozy rug from your store — want me to add them to your cart?",
+    shoppingList: ["Velvet Sofa — $1,299", "Linen Throw Pillows (set of 2) — $189", "Hand-Woven Area Rug — $449"],
     metrics: [
       { icon: <DollarSign className="w-4 h-4" />, label: "Avg. order value", value: "+40%" },
       { icon: <ShoppingBag className="w-4 h-4" />, label: "Conversion rate", value: "3.2×" },
@@ -54,7 +56,8 @@ const goalResults: Record<string, {
   presence: {
     headline: "Stand out from every competitor",
     subtitle: "An AI showroom makes your brand feel premium, modern, and unforgettable",
-    chatMessage: "Welcome to your personalized showroom! I'll help you explore our collection in your own style.",
+    chatMessage: "Welcome to your personalized showroom! I've curated a living room around your best-selling oak dining table.",
+    shoppingList: ["Oak Dining Table — $1,899", "Upholstered Dining Chairs (×4) — $1,196", "Pendant Light Fixture — $349"],
     metrics: [
       { icon: <Eye className="w-4 h-4" />, label: "Time on site", value: "+65%" },
       { icon: <Globe className="w-4 h-4" />, label: "SEO boost", value: "+30%" },
@@ -65,7 +68,8 @@ const goalResults: Record<string, {
   engagement: {
     headline: "Keep customers coming back",
     subtitle: "Interactive design tools create sticky experiences that build loyalty",
-    chatMessage: "You've saved 3 rooms so far! Want to try a new style with your favorite pieces?",
+    chatMessage: "You've saved 3 rooms so far! Your marble coffee table pairs beautifully with this brass floor lamp — try it out?",
+    shoppingList: ["Marble Coffee Table — $899", "Brass Floor Lamp — $279", "Ceramic Vase Set — $129"],
     metrics: [
       { icon: <Heart className="w-4 h-4" />, label: "Return visits", value: "+80%" },
       { icon: <Users className="w-4 h-4" />, label: "Session duration", value: "4.5 min" },
@@ -413,7 +417,7 @@ const B2BOnboardingFlow = () => {
                 {/* Shopping list */}
                 <div className="space-y-2">
                   <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Shopping List</p>
-                  {["Velvet Sofa — $1,299", "Side Table — $349", "Floor Lamp — $189"].map((item, i) => (
+                  {goalData.shoppingList.map((item, i) => (
                     <div key={i} className="flex items-center gap-2 p-2 rounded-md bg-card border border-border/50 text-sm">
                       <ShoppingBag className="w-4 h-4 text-primary" />
                       <span className="text-foreground">{item}</span>
