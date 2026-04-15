@@ -1,4 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Card } from "@/components/ui/card";
@@ -99,21 +101,119 @@ const B2BOnboardingFlow = () => {
   const [loadingMsgIndex, setLoadingMsgIndex] = useState(0);
   const [uploadedCount, setUploadedCount] = useState(0);
   const [uploadedImages, setUploadedImages] = useState<string[]>([]);
+  const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   const [showLinkInput, setShowLinkInput] = useState(false);
   const [linkValue, setLinkValue] = useState("");
+  const [generatedSceneUrl, setGeneratedSceneUrl] = useState<string | null>(null);
+  const [generationError, setGenerationError] = useState<string | null>(null);
+  const generationStarted = useRef(false);
+  const { user } = useAuth();
+
+  // When entering loading step (5), trigger AI generation if user uploaded products
+  useEffect(() => {
+    if (step !== 5) {
+      generationStarted.current = false;
+      return;
+    }
+    if (generationStarted.current) return;
+    generationStarted.current = true;
+
+    const hasUploads = uploadedFiles.length > 0 && startMode === "upload";
+
+    const generateScene = async () => {
+      if (!hasUploads || !user) {
+        // Demo mode — just animate loading messages and proceed
+        runLoadingAnimation();
+        return;
+      }
+
+      setGenerationError(null);
+
+      try {
+        // 1. Upload product files to Supabase storage to get public URLs
+        const productImageUrls: string[] = [];
+        for (const file of uploadedFiles.slice(0, 4)) {
+          const ext = file.name.split(".").pop();
+          const fileName = `${user.id}/b2b-demo-${Date.now()}-${Math.random().toString(36).slice(2, 6)}.${ext}`;
+          const { error } = await supabase.storage.from("product-images").upload(fileName, file);
+          if (error) {
+            console.error("Upload error:", error);
+            continue;
+          }
+          const { data } = supabase.storage.from("product-images").getPublicUrl(fileName);
+          productImageUrls.push(data.publicUrl);
+        }
+
+        if (productImageUrls.length === 0) {
+          runLoadingAnimation();
+          return;
+        }
+
+        // 2. Call generate-design with the uploaded product images
+        const styleLabel = styleOptions.find(s => s.value === selectedStyle)?.label || "Modern Minimal";
+        const response = await supabase.functions.invoke("generate-design", {
+          body: {
+            stylePreference: selectedStyle?.replace(/_/g, "-") || "modern-minimal",
+            colorPalette: "neutral",
+            roomType: "living_room",
+            budgetFeel: "mid_range",
+            mustHaveElements: [],
+            furnitureSource: "open",
+            productImageUrls,
+            isScenePreview: true,
+          },
+        });
+
+        if (response.error) throw new Error(response.error.message);
+        const { imageUrl } = response.data;
+        if (imageUrl) {
+          setGeneratedSceneUrl(imageUrl);
+        }
+      } catch (err) {
+        console.error("Scene generation error:", err);
+        setGenerationError("Scene generation took too long — showing preview instead");
+      }
+
+      // Move to result
+      setStep(6);
+    };
+
+    generateScene();
+  }, [step]);
+
+  const runLoadingAnimation = () => {
+    let idx = 0;
+    const interval = setInterval(() => {
+      idx++;
+      setLoadingMsgIndex(idx);
+      if (idx >= loadingMessages.length - 1) {
+        clearInterval(interval);
+        setTimeout(() => setStep(6), 800);
+      }
+    }, 1200);
+  };
 
   useEffect(() => {
     if (step !== 5) return;
+    if (startMode !== "upload" || uploadedFiles.length === 0) return;
+    // For upload mode, loading messages animate independently — generation controls step transition
+    let idx = 0;
     const interval = setInterval(() => {
-      setLoadingMsgIndex((prev) => {
-        if (prev < loadingMessages.length - 1) return prev + 1;
-        setTimeout(() => setStep(6), 800);
+      idx++;
+      setLoadingMsgIndex(idx);
+      if (idx >= loadingMessages.length - 1) {
         clearInterval(interval);
-        return prev;
-      });
+        // Don't auto-advance — generation callback will set step to 6
+      }
     }, 1200);
     return () => clearInterval(interval);
-  }, [step]);
+  }, [step, startMode, uploadedFiles.length]);
+
+  // Demo mode loading (no uploads)
+  useEffect(() => {
+    if (step !== 5 || startMode === "upload") return;
+    // handled by generateScene -> runLoadingAnimation
+  }, [step, startMode]);
 
   useEffect(() => {
     if (selectedStyle && step === 3) {
@@ -139,6 +239,10 @@ const B2BOnboardingFlow = () => {
     setSelectedGoal(null);
     setLoadingMsgIndex(0);
     setUploadedCount(0);
+    setUploadedImages([]);
+    setUploadedFiles([]);
+    setGeneratedSceneUrl(null);
+    setGenerationError(null);
   };
 
   const goalData = selectedGoal ? goalResults[selectedGoal] : goalResults.sales;
@@ -259,6 +363,7 @@ const B2BOnboardingFlow = () => {
                   const toAdd = files.slice(0, remaining);
                   const newUrls = toAdd.map(f => URL.createObjectURL(f));
                   setUploadedImages(prev => [...prev, ...newUrls]);
+                  setUploadedFiles(prev => [...prev, ...toAdd]);
                   setUploadedCount(prev => prev + toAdd.length);
                   e.target.value = "";
                 }}
@@ -428,48 +533,20 @@ const B2BOnboardingFlow = () => {
 
           <Card className="overflow-hidden border-border/50">
             <div className="grid md:grid-cols-2">
-              {/* Room preview with real image */}
+              {/* Room preview — AI-generated scene or fallback */}
               <div className="relative group">
                 <img
-                  src={selectedStyleData?.image || styleModern}
+                  src={generatedSceneUrl || selectedStyleData?.image || styleModern}
                   alt="AI Generated Room Preview"
                   className="w-full h-full object-cover min-h-[240px]"
                 />
-
-                {/* Uploaded products composited into the scene */}
-                {uploadedImages.length > 0 && uploadedImages.slice(0, 3).map((img, i) => {
-                  const positions = [
-                    { top: "52%", left: "28%", w: 110, h: 90, rotate: -2 },
-                    { top: "48%", left: "58%", w: 90, h: 75, rotate: 1 },
-                    { top: "55%", left: "80%", w: 80, h: 65, rotate: -1 },
-                  ];
-                  const pos = positions[i];
-                  return (
-                    <img
-                      key={`scene-product-${i}`}
-                      src={img}
-                      alt={`Your product ${i + 1}`}
-                      className="absolute object-contain animate-in fade-in duration-700 pointer-events-none"
-                      style={{
-                        top: pos.top,
-                        left: pos.left,
-                        width: pos.w,
-                        height: pos.h,
-                        transform: `translate(-50%, -50%) rotate(${pos.rotate}deg)`,
-                        animationDelay: `${i * 200}ms`,
-                        filter: "drop-shadow(0 8px 20px rgba(0,0,0,0.35))",
-                        mixBlendMode: "normal",
-                      }}
-                    />
-                  );
-                })}
 
                 {/* Upsell product tags */}
                 {goalData.shoppingList.map((item, i) => (
                   <div
                     key={i}
                     className="absolute flex items-center gap-1 animate-in fade-in zoom-in duration-500"
-                    style={{ top: item.tagPos.top, left: item.tagPos.left, animationDelay: `${(uploadedImages.length + i) * 200}ms`, transform: 'translate(-50%, -50%)' }}
+                    style={{ top: item.tagPos.top, left: item.tagPos.left, animationDelay: `${i * 200}ms`, transform: 'translate(-50%, -50%)' }}
                   >
                     <div className="relative">
                       <div className="w-5 h-5 rounded-full bg-accent text-accent-foreground flex items-center justify-center text-[10px] font-bold shadow-lg cursor-pointer ring-2 ring-white/80">
@@ -483,7 +560,7 @@ const B2BOnboardingFlow = () => {
                 ))}
 
                 <div className="absolute top-3 left-3 px-2 py-1 rounded-md bg-card/80 backdrop-blur text-xs font-medium text-foreground">
-                  {uploadedImages.length > 0 ? "Your products in context" : "Live Preview"}
+                  {generatedSceneUrl ? "AI-designed with your products" : "Live Preview"}
                 </div>
                 <div className="absolute bottom-3 left-3 right-3 px-3 py-2 rounded-lg bg-card/90 backdrop-blur-sm">
                   <p className="text-xs font-medium text-primary">{goalData.headline}</p>
@@ -519,13 +596,9 @@ const B2BOnboardingFlow = () => {
                   <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">🛒 AI-Suggested Matching Products</p>
                   {goalData.shoppingList.map((item, i) => (
                     <div key={i} className="flex items-center gap-2 p-2 rounded-md bg-card border border-border/50 text-sm">
-                      {uploadedImages[i] ? (
-                        <img src={uploadedImages[i]} alt={item.name} className="w-8 h-8 rounded object-cover border border-border shrink-0" />
-                      ) : (
-                        <div className="w-5 h-5 rounded-full bg-primary/15 text-primary flex items-center justify-center text-[10px] font-bold shrink-0">
-                          {i + 1}
-                        </div>
-                      )}
+                      <div className="w-5 h-5 rounded-full bg-accent/20 text-accent-foreground flex items-center justify-center text-[10px] font-bold shrink-0">
+                        +
+                      </div>
                       <span className="text-foreground flex-1">{item.name}</span>
                       <span className="text-primary font-semibold">{item.price}</span>
                     </div>
@@ -611,7 +684,7 @@ const B2BOnboardingFlow = () => {
                 </div>
                 <div className="relative rounded-lg overflow-hidden border border-border/30">
                   <img
-                    src={selectedStyleData?.image || styleModern}
+                    src={generatedSceneUrl || selectedStyleData?.image || styleModern}
                     alt="Store embedded preview"
                     className="w-full aspect-[16/9] object-cover"
                   />
