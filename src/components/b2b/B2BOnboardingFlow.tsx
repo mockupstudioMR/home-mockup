@@ -496,9 +496,13 @@ const B2BOnboardingFlow = () => {
                   <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Shopping List</p>
                   {goalData.shoppingList.map((item, i) => (
                     <div key={i} className="flex items-center gap-2 p-2 rounded-md bg-card border border-border/50 text-sm">
-                      <div className="w-5 h-5 rounded-full bg-primary/15 text-primary flex items-center justify-center text-[10px] font-bold shrink-0">
-                        {i + 1}
-                      </div>
+                      {uploadedImages[i] ? (
+                        <img src={uploadedImages[i]} alt={item.name} className="w-8 h-8 rounded object-cover border border-border shrink-0" />
+                      ) : (
+                        <div className="w-5 h-5 rounded-full bg-primary/15 text-primary flex items-center justify-center text-[10px] font-bold shrink-0">
+                          {i + 1}
+                        </div>
+                      )}
                       <span className="text-foreground flex-1">{item.name}</span>
                       <span className="text-primary font-semibold">{item.price}</span>
                     </div>
