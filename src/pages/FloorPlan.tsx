@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import Logo from "@/components/Logo";
 import { ArrowLeft, ArrowRight, Loader2, RotateCcw, DoorOpen, Plus, X } from "lucide-react";
+import { ArchFurniture, ArchLegend } from "@/components/floorplan/ArchFurniture";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 
