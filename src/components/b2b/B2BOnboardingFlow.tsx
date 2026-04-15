@@ -37,7 +37,7 @@ const goalResults: Record<string, {
   headline: string;
   subtitle: string;
   chatMessage: string;
-  shoppingList: string[];
+  shoppingList: { name: string; price: string; tagPos: { top: string; left: string } }[];
   metrics: { icon: React.ReactNode; label: string; value: string }[];
   tip: string;
 }> = {
@@ -45,7 +45,11 @@ const goalResults: Record<string, {
     headline: "Turn browsers into buyers",
     subtitle: "Customers who visualize products in their space are 3× more likely to purchase",
     chatMessage: "Love how that velvet sofa looks here! I found matching throw pillows and a cozy rug from your store — want me to add them to your cart?",
-    shoppingList: ["Velvet Sofa — $1,299", "Linen Throw Pillows (set of 2) — $189", "Hand-Woven Area Rug — $449"],
+    shoppingList: [
+      { name: "Velvet Sofa", price: "$1,299", tagPos: { top: "55%", left: "45%" } },
+      { name: "Linen Throw Pillows (×2)", price: "$189", tagPos: { top: "42%", left: "62%" } },
+      { name: "Hand-Woven Area Rug", price: "$449", tagPos: { top: "82%", left: "50%" } },
+    ],
     metrics: [
       { icon: <DollarSign className="w-4 h-4" />, label: "Avg. order value", value: "+40%" },
       { icon: <ShoppingBag className="w-4 h-4" />, label: "Conversion rate", value: "3.2×" },
@@ -57,7 +61,11 @@ const goalResults: Record<string, {
     headline: "Stand out from every competitor",
     subtitle: "An AI showroom makes your brand feel premium, modern, and unforgettable",
     chatMessage: "Welcome to your personalized showroom! I've curated a living room around your best-selling oak dining table.",
-    shoppingList: ["Oak Dining Table — $1,899", "Upholstered Dining Chairs (×4) — $1,196", "Pendant Light Fixture — $349"],
+    shoppingList: [
+      { name: "Oak Dining Table", price: "$1,899", tagPos: { top: "60%", left: "50%" } },
+      { name: "Upholstered Chairs (×4)", price: "$1,196", tagPos: { top: "50%", left: "30%" } },
+      { name: "Pendant Light", price: "$349", tagPos: { top: "15%", left: "50%" } },
+    ],
     metrics: [
       { icon: <Eye className="w-4 h-4" />, label: "Time on site", value: "+65%" },
       { icon: <Globe className="w-4 h-4" />, label: "SEO boost", value: "+30%" },
@@ -69,7 +77,11 @@ const goalResults: Record<string, {
     headline: "Keep customers coming back",
     subtitle: "Interactive design tools create sticky experiences that build loyalty",
     chatMessage: "You've saved 3 rooms so far! Your marble coffee table pairs beautifully with this brass floor lamp — try it out?",
-    shoppingList: ["Marble Coffee Table — $899", "Brass Floor Lamp — $279", "Ceramic Vase Set — $129"],
+    shoppingList: [
+      { name: "Marble Coffee Table", price: "$899", tagPos: { top: "65%", left: "45%" } },
+      { name: "Brass Floor Lamp", price: "$279", tagPos: { top: "35%", left: "18%" } },
+      { name: "Ceramic Vase Set", price: "$129", tagPos: { top: "40%", left: "70%" } },
+    ],
     metrics: [
       { icon: <Heart className="w-4 h-4" />, label: "Return visits", value: "+80%" },
       { icon: <Users className="w-4 h-4" />, label: "Session duration", value: "4.5 min" },
@@ -375,12 +387,29 @@ const B2BOnboardingFlow = () => {
           <Card className="overflow-hidden border-border/50">
             <div className="grid md:grid-cols-2">
               {/* Room preview with real image */}
-              <div className="relative">
+              <div className="relative group">
                 <img
                   src={selectedStyleData?.image || styleModern}
                   alt="AI Generated Room Preview"
                   className="w-full h-full object-cover min-h-[240px]"
                 />
+                {/* Product tags on image */}
+                {goalData.shoppingList.map((item, i) => (
+                  <div
+                    key={i}
+                    className="absolute flex items-center gap-1 animate-in fade-in zoom-in duration-500"
+                    style={{ top: item.tagPos.top, left: item.tagPos.left, animationDelay: `${i * 200}ms`, transform: 'translate(-50%, -50%)' }}
+                  >
+                    <div className="relative">
+                      <div className="w-5 h-5 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-[10px] font-bold shadow-lg cursor-pointer ring-2 ring-white/80">
+                        {i + 1}
+                      </div>
+                      <div className="absolute left-6 top-1/2 -translate-y-1/2 whitespace-nowrap px-2 py-1 rounded-md bg-card/95 backdrop-blur shadow-lg border border-border/50 text-[11px] font-medium text-foreground opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                        {item.name} <span className="text-primary font-bold">{item.price}</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
                 <div className="absolute top-3 left-3 px-2 py-1 rounded-md bg-card/80 backdrop-blur text-xs font-medium text-foreground">
                   Live Preview
                 </div>
@@ -419,8 +448,11 @@ const B2BOnboardingFlow = () => {
                   <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Shopping List</p>
                   {goalData.shoppingList.map((item, i) => (
                     <div key={i} className="flex items-center gap-2 p-2 rounded-md bg-card border border-border/50 text-sm">
-                      <ShoppingBag className="w-4 h-4 text-primary" />
-                      <span className="text-foreground">{item}</span>
+                      <div className="w-5 h-5 rounded-full bg-primary/15 text-primary flex items-center justify-center text-[10px] font-bold shrink-0">
+                        {i + 1}
+                      </div>
+                      <span className="text-foreground flex-1">{item.name}</span>
+                      <span className="text-primary font-semibold">{item.price}</span>
                     </div>
                   ))}
                 </div>
