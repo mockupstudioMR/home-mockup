@@ -46,9 +46,9 @@ const goalResults: Record<string, {
     subtitle: "Customers who visualize products in their space are 3× more likely to purchase",
     chatMessage: "Love how that sofa looks here! I found matching throw pillows and a coffee table from your store — want me to add them to your cart?",
     shoppingList: [
-      { name: "Modern Sofa", price: "$1,299", tagPos: { top: "62%", left: "25%" } },
-      { name: "Accent Pillows (×2)", price: "$189", tagPos: { top: "56%", left: "38%" } },
-      { name: "Wooden Coffee Table", price: "$449", tagPos: { top: "72%", left: "48%" } },
+      { name: "Modern Sofa", price: "$1,299", tagPos: { top: "68%", left: "22%" } },
+      { name: "Accent Pillows (×2)", price: "$189", tagPos: { top: "62%", left: "32%" } },
+      { name: "Wooden Coffee Table", price: "$449", tagPos: { top: "74%", left: "42%" } },
     ],
     metrics: [
       { icon: <DollarSign className="w-4 h-4" />, label: "Avg. order value", value: "+40%" },
@@ -62,9 +62,9 @@ const goalResults: Record<string, {
     subtitle: "An AI showroom makes your brand feel premium, modern, and unforgettable",
     chatMessage: "Welcome to your personalized showroom! I've curated this living room around your best-selling sofa and accent chair.",
     shoppingList: [
-      { name: "Lounge Chair", price: "$899", tagPos: { top: "63%", left: "78%" } },
-      { name: "Area Rug", price: "$596", tagPos: { top: "85%", left: "50%" } },
-      { name: "Floor Lamp", price: "$349", tagPos: { top: "50%", left: "88%" } },
+      { name: "Lounge Chair", price: "$899", tagPos: { top: "60%", left: "72%" } },
+      { name: "Area Rug", price: "$596", tagPos: { top: "82%", left: "45%" } },
+      { name: "TV Console", price: "$349", tagPos: { top: "55%", left: "82%" } },
     ],
     metrics: [
       { icon: <Eye className="w-4 h-4" />, label: "Time on site", value: "+65%" },
@@ -78,9 +78,9 @@ const goalResults: Record<string, {
     subtitle: "Interactive design tools create sticky experiences that build loyalty",
     chatMessage: "You've saved 3 rooms so far! Your coffee table pairs beautifully with this accent chair — try it out?",
     shoppingList: [
-      { name: "Coffee Table", price: "$899", tagPos: { top: "72%", left: "48%" } },
-      { name: "Accent Chair", price: "$579", tagPos: { top: "63%", left: "78%" } },
-      { name: "Decorative Vase", price: "$129", tagPos: { top: "68%", left: "55%" } },
+      { name: "Coffee Table", price: "$899", tagPos: { top: "74%", left: "42%" } },
+      { name: "Accent Chair", price: "$579", tagPos: { top: "60%", left: "72%" } },
+      { name: "Decorative Vase", price: "$129", tagPos: { top: "70%", left: "50%" } },
     ],
     metrics: [
       { icon: <Heart className="w-4 h-4" />, label: "Return visits", value: "+80%" },
