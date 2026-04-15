@@ -370,21 +370,16 @@ function RoomWithOpenings({
   );
 }
 
-// Furniture icon renderers for layouts
-function FurnitureOverlay({ items, canvasW, canvasH }: { items: LayoutItem[]; canvasW: number; canvasH: number }) {
+// Architectural furniture overlay using top-view symbols
+function ArchFurnitureOverlay({ items, canvasW, canvasH }: { items: LayoutItem[]; canvasW: number; canvasH: number }) {
   return (
     <>
       {items.map((item, i) => {
-        const x = (item.x / 100) * canvasW;
-        const y = (item.y / 100) * canvasH;
+        const x = (item.x / 100) * canvasW + 10;
+        const y = (item.y / 100) * canvasH + 10;
         const w = (item.w / 100) * canvasW;
         const h = (item.h / 100) * canvasH;
-        return (
-          <g key={i}>
-            <rect x={x} y={y} width={w} height={h} fill="hsl(var(--accent) / 0.3)" stroke="hsl(var(--accent-foreground) / 0.5)" strokeWidth={1} rx={2} />
-            <text x={x + w / 2} y={y + h / 2 + 3} textAnchor="middle" fontSize={Math.min(w, h) > 20 ? 8 : 6} fill="hsl(var(--foreground))">{item.label}</text>
-          </g>
-        );
+        return <ArchFurniture key={i} x={x} y={y} w={w} h={h} label={item.label} />;
       })}
     </>
   );
