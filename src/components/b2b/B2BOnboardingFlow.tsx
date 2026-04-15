@@ -363,6 +363,7 @@ const B2BOnboardingFlow = () => {
                   const toAdd = files.slice(0, remaining);
                   const newUrls = toAdd.map(f => URL.createObjectURL(f));
                   setUploadedImages(prev => [...prev, ...newUrls]);
+                  setUploadedFiles(prev => [...prev, ...toAdd]);
                   setUploadedCount(prev => prev + toAdd.length);
                   e.target.value = "";
                 }}
