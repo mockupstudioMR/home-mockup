@@ -449,10 +449,16 @@ const B2BOnboardingFlow = () => {
                     style={{ top: item.tagPos.top, left: item.tagPos.left, animationDelay: `${i * 200}ms`, transform: 'translate(-50%, -50%)' }}
                   >
                     <div className="relative">
-                      <div className="w-5 h-5 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-[10px] font-bold shadow-lg cursor-pointer ring-2 ring-white/80">
-                        {i + 1}
-                      </div>
-                      <div className="absolute left-6 top-1/2 -translate-y-1/2 whitespace-nowrap px-2 py-1 rounded-md bg-card/95 backdrop-blur shadow-lg border border-border/50 text-[11px] font-medium text-foreground opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                      {uploadedImages[i] ? (
+                        <div className="w-8 h-8 rounded-full overflow-hidden border-2 border-white shadow-lg cursor-pointer">
+                          <img src={uploadedImages[i]} alt={item.name} className="w-full h-full object-cover" />
+                        </div>
+                      ) : (
+                        <div className="w-5 h-5 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-[10px] font-bold shadow-lg cursor-pointer ring-2 ring-white/80">
+                          {i + 1}
+                        </div>
+                      )}
+                      <div className="absolute left-full ml-2 top-1/2 -translate-y-1/2 whitespace-nowrap px-2 py-1 rounded-md bg-card/95 backdrop-blur shadow-lg border border-border/50 text-[11px] font-medium text-foreground opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
                         {item.name} <span className="text-primary font-bold">{item.price}</span>
                       </div>
                     </div>
