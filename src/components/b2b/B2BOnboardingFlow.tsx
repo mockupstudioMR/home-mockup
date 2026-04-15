@@ -33,6 +33,12 @@ const goalOptions = [
   { value: "engagement", label: "More engagement", icon: <Users className="w-5 h-5" /> },
 ];
 
+const upsellProducts = [
+  { name: "Velvet Throw Pillows (×2)", price: "$189", tagPos: { top: "55%", left: "75%" } },
+  { name: "Marble Side Table", price: "$349", tagPos: { top: "72%", left: "80%" } },
+  { name: "Woven Area Rug", price: "$596", tagPos: { top: "85%", left: "50%" } },
+];
+
 const goalResults: Record<string, {
   headline: string;
   subtitle: string;
@@ -44,12 +50,8 @@ const goalResults: Record<string, {
   sales: {
     headline: "Turn browsers into buyers",
     subtitle: "Customers who visualize products in their space are 3× more likely to purchase",
-    chatMessage: "Love how that sofa looks here! I found matching throw pillows and a coffee table from your store — want me to add them to your cart?",
-    shoppingList: [
-      { name: "Modern Sofa", price: "$1,299", tagPos: { top: "68%", left: "22%" } },
-      { name: "Accent Pillows (×2)", price: "$189", tagPos: { top: "62%", left: "32%" } },
-      { name: "Wooden Coffee Table", price: "$449", tagPos: { top: "74%", left: "42%" } },
-    ],
+    chatMessage: "Love how that sofa looks here! I found matching throw pillows and a side table from your store — want me to add them to your cart?",
+    shoppingList: upsellProducts,
     metrics: [
       { icon: <DollarSign className="w-4 h-4" />, label: "Avg. order value", value: "+40%" },
       { icon: <ShoppingBag className="w-4 h-4" />, label: "Conversion rate", value: "3.2×" },
@@ -60,12 +62,8 @@ const goalResults: Record<string, {
   presence: {
     headline: "Stand out from every competitor",
     subtitle: "An AI showroom makes your brand feel premium, modern, and unforgettable",
-    chatMessage: "Welcome to your personalized showroom! I've curated this living room around your best-selling sofa and accent chair.",
-    shoppingList: [
-      { name: "Lounge Chair", price: "$899", tagPos: { top: "60%", left: "72%" } },
-      { name: "Area Rug", price: "$596", tagPos: { top: "82%", left: "45%" } },
-      { name: "TV Console", price: "$349", tagPos: { top: "55%", left: "82%" } },
-    ],
+    chatMessage: "Welcome to your personalized showroom! I've curated this living room around your uploaded products with matching accessories.",
+    shoppingList: upsellProducts,
     metrics: [
       { icon: <Eye className="w-4 h-4" />, label: "Time on site", value: "+65%" },
       { icon: <Globe className="w-4 h-4" />, label: "SEO boost", value: "+30%" },
@@ -76,12 +74,8 @@ const goalResults: Record<string, {
   engagement: {
     headline: "Keep customers coming back",
     subtitle: "Interactive design tools create sticky experiences that build loyalty",
-    chatMessage: "You've saved 3 rooms so far! Your coffee table pairs beautifully with this accent chair — try it out?",
-    shoppingList: [
-      { name: "Coffee Table", price: "$899", tagPos: { top: "74%", left: "42%" } },
-      { name: "Accent Chair", price: "$579", tagPos: { top: "60%", left: "72%" } },
-      { name: "Decorative Vase", price: "$129", tagPos: { top: "70%", left: "50%" } },
-    ],
+    chatMessage: "You've saved 3 rooms so far! Your products pair beautifully with these matching accessories — try it out?",
+    shoppingList: upsellProducts,
     metrics: [
       { icon: <Heart className="w-4 h-4" />, label: "Return visits", value: "+80%" },
       { icon: <Users className="w-4 h-4" />, label: "Session duration", value: "4.5 min" },
@@ -441,31 +435,55 @@ const B2BOnboardingFlow = () => {
                   alt="AI Generated Room Preview"
                   className="w-full h-full object-cover min-h-[240px]"
                 />
-                {/* Product tags on image */}
+
+                {/* Uploaded products shown IN the scene */}
+                {uploadedImages.length > 0 && (
+                  <>
+                    {uploadedImages.slice(0, 3).map((img, i) => {
+                      const positions = [
+                        { top: "35%", left: "25%", size: "w-20 h-20" },
+                        { top: "50%", left: "55%", size: "w-16 h-16" },
+                        { top: "40%", left: "78%", size: "w-14 h-14" },
+                      ];
+                      const pos = positions[i];
+                      return (
+                        <div
+                          key={`uploaded-${i}`}
+                          className={cn("absolute animate-in fade-in zoom-in duration-500 drop-shadow-xl", pos.size)}
+                          style={{ top: pos.top, left: pos.left, animationDelay: `${i * 150}ms`, transform: "translate(-50%, -50%)" }}
+                        >
+                          <div className="relative w-full h-full rounded-lg overflow-hidden border-2 border-white/90 shadow-2xl ring-1 ring-black/10">
+                            <img src={img} alt={`Your product ${i + 1}`} className="w-full h-full object-cover" />
+                          </div>
+                          <div className="absolute -bottom-5 left-1/2 -translate-x-1/2 whitespace-nowrap px-1.5 py-0.5 rounded bg-primary text-primary-foreground text-[9px] font-bold shadow">
+                            Your product
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </>
+                )}
+
+                {/* Upsell product tags */}
                 {goalData.shoppingList.map((item, i) => (
                   <div
                     key={i}
                     className="absolute flex items-center gap-1 animate-in fade-in zoom-in duration-500"
-                    style={{ top: item.tagPos.top, left: item.tagPos.left, animationDelay: `${i * 200}ms`, transform: 'translate(-50%, -50%)' }}
+                    style={{ top: item.tagPos.top, left: item.tagPos.left, animationDelay: `${(uploadedImages.length + i) * 200}ms`, transform: 'translate(-50%, -50%)' }}
                   >
                     <div className="relative">
-                      {uploadedImages[i] ? (
-                        <div className="w-8 h-8 rounded-full overflow-hidden border-2 border-white shadow-lg cursor-pointer">
-                          <img src={uploadedImages[i]} alt={item.name} className="w-full h-full object-cover" />
-                        </div>
-                      ) : (
-                        <div className="w-5 h-5 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-[10px] font-bold shadow-lg cursor-pointer ring-2 ring-white/80">
-                          {i + 1}
-                        </div>
-                      )}
+                      <div className="w-5 h-5 rounded-full bg-accent text-accent-foreground flex items-center justify-center text-[10px] font-bold shadow-lg cursor-pointer ring-2 ring-white/80">
+                        +
+                      </div>
                       <div className="absolute left-full ml-2 top-1/2 -translate-y-1/2 whitespace-nowrap px-2 py-1 rounded-md bg-card/95 backdrop-blur shadow-lg border border-border/50 text-[11px] font-medium text-foreground opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
                         {item.name} <span className="text-primary font-bold">{item.price}</span>
                       </div>
                     </div>
                   </div>
                 ))}
+
                 <div className="absolute top-3 left-3 px-2 py-1 rounded-md bg-card/80 backdrop-blur text-xs font-medium text-foreground">
-                  Live Preview
+                  {uploadedImages.length > 0 ? "Your products in context" : "Live Preview"}
                 </div>
                 <div className="absolute bottom-3 left-3 right-3 px-3 py-2 rounded-lg bg-card/90 backdrop-blur-sm">
                   <p className="text-xs font-medium text-primary">{goalData.headline}</p>
@@ -497,9 +515,8 @@ const B2BOnboardingFlow = () => {
                   ))}
                 </div>
 
-                {/* Shopping list */}
                 <div className="space-y-2">
-                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Shopping List</p>
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">🛒 AI-Suggested Matching Products</p>
                   {goalData.shoppingList.map((item, i) => (
                     <div key={i} className="flex items-center gap-2 p-2 rounded-md bg-card border border-border/50 text-sm">
                       {uploadedImages[i] ? (
