@@ -238,29 +238,74 @@ const B2BOnboardingFlow = () => {
             <p className="text-muted-foreground">We'll place your products inside a styled room</p>
           </div>
           <div className="grid md:grid-cols-2 gap-4 max-w-xl mx-auto">
-            <button
-              onClick={() => setUploadedCount(Math.min(uploadedCount + 1, 5))}
-              className="flex flex-col items-center justify-center gap-3 p-8 rounded-xl border-2 border-dashed border-border bg-card hover:border-primary/50 hover:bg-primary/5 transition-all"
+            <label
+              className="flex flex-col items-center justify-center gap-3 p-8 rounded-xl border-2 border-dashed border-border bg-card hover:border-primary/50 hover:bg-primary/5 transition-all cursor-pointer"
             >
               <ImageIcon className="w-10 h-10 text-muted-foreground" />
               <div className="text-center">
                 <p className="font-medium text-foreground">Upload images</p>
                 <p className="text-xs text-muted-foreground mt-1">Up to 5 product photos</p>
               </div>
-              {uploadedCount > 0 && (
-                <span className="text-sm text-primary font-medium">{uploadedCount}/5 uploaded</span>
+              {uploadedImages.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 justify-center">
+                  {uploadedImages.map((src, i) => (
+                    <img key={i} src={src} alt={`Product ${i+1}`} className="w-10 h-10 rounded object-cover border border-border" />
+                  ))}
+                  <span className="text-sm text-primary font-medium self-center">{uploadedImages.length}/5</span>
+                </div>
               )}
-            </button>
-            <button
-              onClick={() => setUploadedCount(Math.min(uploadedCount + 2, 5))}
-              className="flex flex-col items-center justify-center gap-3 p-8 rounded-xl border-2 border-dashed border-border bg-card hover:border-primary/50 hover:bg-primary/5 transition-all"
-            >
+              <input
+                type="file"
+                accept="image/*"
+                multiple
+                className="hidden"
+                onChange={(e) => {
+                  const files = Array.from(e.target.files || []);
+                  const remaining = 5 - uploadedImages.length;
+                  const toAdd = files.slice(0, remaining);
+                  const newUrls = toAdd.map(f => URL.createObjectURL(f));
+                  setUploadedImages(prev => [...prev, ...newUrls]);
+                  setUploadedCount(prev => prev + toAdd.length);
+                  e.target.value = "";
+                }}
+                disabled={uploadedImages.length >= 5}
+              />
+            </label>
+            <div className="flex flex-col items-center justify-center gap-3 p-8 rounded-xl border-2 border-dashed border-border bg-card hover:border-primary/50 hover:bg-primary/5 transition-all">
               <Link2 className="w-10 h-10 text-muted-foreground" />
               <div className="text-center">
                 <p className="font-medium text-foreground">Paste product links</p>
                 <p className="text-xs text-muted-foreground mt-1">We'll grab the images for you</p>
               </div>
-            </button>
+              {!showLinkInput ? (
+                <Button variant="outline" size="sm" onClick={() => setShowLinkInput(true)}>
+                  Paste a link
+                </Button>
+              ) : (
+                <div className="flex gap-2 w-full">
+                  <input
+                    type="url"
+                    value={linkValue}
+                    onChange={(e) => setLinkValue(e.target.value)}
+                    placeholder="https://store.com/product"
+                    className="flex-1 px-3 py-1.5 text-sm rounded-md border border-input bg-background focus:outline-none focus:ring-2 focus:ring-ring"
+                    autoFocus
+                  />
+                  <Button
+                    size="sm"
+                    disabled={!linkValue.trim()}
+                    onClick={() => {
+                      if (linkValue.trim()) {
+                        setUploadedCount(prev => Math.min(prev + 1, 5));
+                        setLinkValue("");
+                      }
+                    }}
+                  >
+                    Add
+                  </Button>
+                </div>
+              )}
+            </div>
           </div>
           <div className="text-center">
             <Button onClick={() => setStep(3)} disabled={uploadedCount === 0 && startMode === "upload"} className="gap-2">
