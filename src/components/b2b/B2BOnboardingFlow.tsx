@@ -151,7 +151,7 @@ const B2BOnboardingFlow = () => {
             60-second setup
           </div>
           <h2 className="text-3xl md:text-4xl font-bold text-foreground leading-tight">
-            Create your AI showroom<br />in 60 seconds
+            Your store, redesigned.<br />Ready in seconds.
           </h2>
           <p className="text-lg text-muted-foreground max-w-lg mx-auto">
             Let your customers design their home using your products
