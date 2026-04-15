@@ -436,33 +436,33 @@ const B2BOnboardingFlow = () => {
                   className="w-full h-full object-cover min-h-[240px]"
                 />
 
-                {/* Uploaded products shown IN the scene */}
-                {uploadedImages.length > 0 && (
-                  <>
-                    {uploadedImages.slice(0, 3).map((img, i) => {
-                      const positions = [
-                        { top: "35%", left: "25%", size: "w-20 h-20" },
-                        { top: "50%", left: "55%", size: "w-16 h-16" },
-                        { top: "40%", left: "78%", size: "w-14 h-14" },
-                      ];
-                      const pos = positions[i];
-                      return (
-                        <div
-                          key={`uploaded-${i}`}
-                          className={cn("absolute animate-in fade-in zoom-in duration-500 drop-shadow-xl", pos.size)}
-                          style={{ top: pos.top, left: pos.left, animationDelay: `${i * 150}ms`, transform: "translate(-50%, -50%)" }}
-                        >
-                          <div className="relative w-full h-full rounded-lg overflow-hidden border-2 border-white/90 shadow-2xl ring-1 ring-black/10">
-                            <img src={img} alt={`Your product ${i + 1}`} className="w-full h-full object-cover" />
-                          </div>
-                          <div className="absolute -bottom-5 left-1/2 -translate-x-1/2 whitespace-nowrap px-1.5 py-0.5 rounded bg-primary text-primary-foreground text-[9px] font-bold shadow">
-                            Your product
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </>
-                )}
+                {/* Uploaded products composited into the scene */}
+                {uploadedImages.length > 0 && uploadedImages.slice(0, 3).map((img, i) => {
+                  const positions = [
+                    { top: "52%", left: "28%", w: 110, h: 90, rotate: -2 },
+                    { top: "48%", left: "58%", w: 90, h: 75, rotate: 1 },
+                    { top: "55%", left: "80%", w: 80, h: 65, rotate: -1 },
+                  ];
+                  const pos = positions[i];
+                  return (
+                    <img
+                      key={`scene-product-${i}`}
+                      src={img}
+                      alt={`Your product ${i + 1}`}
+                      className="absolute object-contain animate-in fade-in duration-700 pointer-events-none"
+                      style={{
+                        top: pos.top,
+                        left: pos.left,
+                        width: pos.w,
+                        height: pos.h,
+                        transform: `translate(-50%, -50%) rotate(${pos.rotate}deg)`,
+                        animationDelay: `${i * 200}ms`,
+                        filter: "drop-shadow(0 8px 20px rgba(0,0,0,0.35))",
+                        mixBlendMode: "normal",
+                      }}
+                    />
+                  );
+                })}
 
                 {/* Upsell product tags */}
                 {goalData.shoppingList.map((item, i) => (
