@@ -2,7 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent } from "@/components/ui/card";
-import { Home, Palette, Upload, Package, ArrowRight } from "lucide-react";
+import { Home, Palette, Upload, Package, ArrowRight, Ruler } from "lucide-react";
 import Logo from "@/components/Logo";
 
 // Style moodboard images
@@ -31,6 +31,14 @@ const Start = () => {
       description: "Upload a photo of your existing room and we'll redesign it while keeping your space's layout",
       preview: null,
       path: "/existing-room",
+    },
+    {
+      id: "floor-plan",
+      icon: <Ruler className="w-8 h-8" />,
+      title: "Start from a Floor Plan",
+      description: "Draw your room shape, set dimensions, and get AI-generated furniture layouts tailored to your space",
+      preview: null,
+      path: "/floor-plan",
     },
     {
       id: "style-tree",
