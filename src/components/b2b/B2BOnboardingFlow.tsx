@@ -5,18 +5,26 @@ import { Card } from "@/components/ui/card";
 import {
   Upload, Link2, Sparkles, ShoppingBag, MessageSquare,
   ArrowRight, Star, TrendingUp, Globe, Users, Check,
-  Image as ImageIcon, ExternalLink, Play, RotateCcw
+  Image as ImageIcon, ExternalLink, Play, RotateCcw,
+  DollarSign, Eye, Heart
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+
+import styleModern from "@/assets/b2b/style-modern-minimal.jpg";
+import styleScandi from "@/assets/b2b/style-scandinavian.jpg";
+import styleContemporary from "@/assets/b2b/style-contemporary.jpg";
+import styleBoho from "@/assets/b2b/style-boho.jpg";
+import styleLuxury from "@/assets/b2b/style-luxury.jpg";
+import resultRoom from "@/assets/b2b/result-room-preview.jpg";
 
 const TOTAL_STEPS = 7;
 
 const styleOptions = [
-  { value: "modern_minimal", label: "Modern Minimal", emoji: "🏠" },
-  { value: "scandinavian", label: "Scandinavian", emoji: "🪵" },
-  { value: "contemporary", label: "Contemporary Comfort", emoji: "🛋️" },
-  { value: "boho", label: "Boho Natural", emoji: "🌿" },
-  { value: "luxury", label: "Luxury Modern", emoji: "✨" },
+  { value: "modern_minimal", label: "Modern Minimal", image: styleModern },
+  { value: "scandinavian", label: "Scandinavian", image: styleScandi },
+  { value: "contemporary", label: "Contemporary Comfort", image: styleContemporary },
+  { value: "boho", label: "Boho Natural", image: styleBoho },
+  { value: "luxury", label: "Luxury Modern", image: styleLuxury },
 ];
 
 const goalOptions = [
@@ -24,6 +32,48 @@ const goalOptions = [
   { value: "presence", label: "Better online presence", icon: <Globe className="w-5 h-5" /> },
   { value: "engagement", label: "More engagement", icon: <Users className="w-5 h-5" /> },
 ];
+
+const goalResults: Record<string, {
+  headline: string;
+  subtitle: string;
+  chatMessage: string;
+  metrics: { icon: React.ReactNode; label: string; value: string }[];
+  tip: string;
+}> = {
+  sales: {
+    headline: "Turn browsers into buyers",
+    subtitle: "Customers who visualize products in their space are 3× more likely to purchase",
+    chatMessage: "I see you love that velvet sofa — here are matching pillows from your store. Want me to add them to cart?",
+    metrics: [
+      { icon: <DollarSign className="w-4 h-4" />, label: "Avg. order value", value: "+40%" },
+      { icon: <ShoppingBag className="w-4 h-4" />, label: "Conversion rate", value: "3.2×" },
+      { icon: <TrendingUp className="w-4 h-4" />, label: "Return rate drop", value: "-25%" },
+    ],
+    tip: "AI-driven product placement increases add-to-cart rates by showing items in context, not isolation.",
+  },
+  presence: {
+    headline: "Stand out from every competitor",
+    subtitle: "An AI showroom makes your brand feel premium, modern, and unforgettable",
+    chatMessage: "Welcome to your personalized showroom! I'll help you explore our collection in your own style.",
+    metrics: [
+      { icon: <Eye className="w-4 h-4" />, label: "Time on site", value: "+65%" },
+      { icon: <Globe className="w-4 h-4" />, label: "SEO boost", value: "+30%" },
+      { icon: <Star className="w-4 h-4" />, label: "Brand recall", value: "2.4×" },
+    ],
+    tip: "Interactive experiences generate shareable moments — customers talk about brands that feel innovative.",
+  },
+  engagement: {
+    headline: "Keep customers coming back",
+    subtitle: "Interactive design tools create sticky experiences that build loyalty",
+    chatMessage: "You've saved 3 rooms so far! Want to try a new style with your favorite pieces?",
+    metrics: [
+      { icon: <Heart className="w-4 h-4" />, label: "Return visits", value: "+80%" },
+      { icon: <Users className="w-4 h-4" />, label: "Session duration", value: "4.5 min" },
+      { icon: <MessageSquare className="w-4 h-4" />, label: "Interactions/visit", value: "12+" },
+    ],
+    tip: "Gamified room design keeps users engaged — each saved room is a reason to return.",
+  },
+};
 
 const loadingMessages = [
   "Designing your showroom…",
@@ -39,13 +89,11 @@ const B2BOnboardingFlow = () => {
   const [loadingMsgIndex, setLoadingMsgIndex] = useState(0);
   const [uploadedCount, setUploadedCount] = useState(0);
 
-  // Loading animation cycle
   useEffect(() => {
     if (step !== 5) return;
     const interval = setInterval(() => {
       setLoadingMsgIndex((prev) => {
         if (prev < loadingMessages.length - 1) return prev + 1;
-        // Auto-advance to result after all messages
         setTimeout(() => setStep(6), 800);
         clearInterval(interval);
         return prev;
@@ -54,7 +102,6 @@ const B2BOnboardingFlow = () => {
     return () => clearInterval(interval);
   }, [step]);
 
-  // Auto-advance when style is picked
   useEffect(() => {
     if (selectedStyle && step === 3) {
       const timer = setTimeout(() => setStep(4), 600);
@@ -62,7 +109,6 @@ const B2BOnboardingFlow = () => {
     }
   }, [selectedStyle, step]);
 
-  // Auto-advance when goal is picked
   useEffect(() => {
     if (selectedGoal && step === 4) {
       const timer = setTimeout(() => {
@@ -82,11 +128,11 @@ const B2BOnboardingFlow = () => {
     setUploadedCount(0);
   };
 
-  const progressValue = ((step + 1) / TOTAL_STEPS) * 100;
+  const goalData = selectedGoal ? goalResults[selectedGoal] : goalResults.sales;
+  const selectedStyleData = styleOptions.find(s => s.value === selectedStyle);
 
   return (
     <div className="w-full max-w-3xl mx-auto">
-      {/* Progress indicator for steps 2-5 */}
       {step >= 2 && step <= 4 && (
         <div className="mb-6">
           <div className="flex justify-between text-xs text-muted-foreground mb-2">
@@ -110,11 +156,15 @@ const B2BOnboardingFlow = () => {
           <p className="text-lg text-muted-foreground max-w-lg mx-auto">
             Let your customers design their home using your products
           </p>
-          <Button
-            size="lg"
-            onClick={() => setStep(1)}
-            className="text-lg px-8 gap-2"
-          >
+          {/* Preview grid of styles */}
+          <div className="grid grid-cols-5 gap-2 max-w-md mx-auto">
+            {styleOptions.map((s) => (
+              <div key={s.value} className="aspect-square rounded-lg overflow-hidden">
+                <img src={s.image} alt={s.label} className="w-full h-full object-cover" loading="lazy" />
+              </div>
+            ))}
+          </div>
+          <Button size="lg" onClick={() => setStep(1)} className="text-lg px-8 gap-2">
             <Play className="w-5 h-5" />
             Start Free Demo
           </Button>
@@ -138,9 +188,7 @@ const B2BOnboardingFlow = () => {
               <div className="flex-1">
                 <p className="font-semibold text-foreground flex items-center gap-2">
                   Upload products
-                  <span className="text-xs px-2 py-0.5 rounded-full bg-secondary/30 text-secondary-foreground">
-                    recommended ⭐
-                  </span>
+                  <span className="text-xs px-2 py-0.5 rounded-full bg-secondary/30 text-secondary-foreground">recommended ⭐</span>
                 </p>
                 <p className="text-sm text-muted-foreground mt-0.5">Use your own product images</p>
               </div>
@@ -170,9 +218,7 @@ const B2BOnboardingFlow = () => {
             <h2 className="text-2xl md:text-3xl font-bold text-foreground">Add your products</h2>
             <p className="text-muted-foreground">We'll place your products inside a styled room</p>
           </div>
-
           <div className="grid md:grid-cols-2 gap-4 max-w-xl mx-auto">
-            {/* Upload area */}
             <button
               onClick={() => setUploadedCount(Math.min(uploadedCount + 1, 5))}
               className="flex flex-col items-center justify-center gap-3 p-8 rounded-xl border-2 border-dashed border-border bg-card hover:border-primary/50 hover:bg-primary/5 transition-all"
@@ -186,8 +232,6 @@ const B2BOnboardingFlow = () => {
                 <span className="text-sm text-primary font-medium">{uploadedCount}/5 uploaded</span>
               )}
             </button>
-
-            {/* Link paste area */}
             <button
               onClick={() => setUploadedCount(Math.min(uploadedCount + 2, 5))}
               className="flex flex-col items-center justify-center gap-3 p-8 rounded-xl border-2 border-dashed border-border bg-card hover:border-primary/50 hover:bg-primary/5 transition-all"
@@ -199,15 +243,9 @@ const B2BOnboardingFlow = () => {
               </div>
             </button>
           </div>
-
           <div className="text-center">
-            <Button
-              onClick={() => setStep(3)}
-              disabled={uploadedCount === 0 && startMode === "upload"}
-              className="gap-2"
-            >
-              Continue
-              <ArrowRight className="w-4 h-4" />
+            <Button onClick={() => setStep(3)} disabled={uploadedCount === 0 && startMode === "upload"} className="gap-2">
+              Continue <ArrowRight className="w-4 h-4" />
             </Button>
             {startMode === "upload" && uploadedCount === 0 && (
               <p className="text-xs text-muted-foreground mt-2">Click an area above to simulate adding products</p>
@@ -216,28 +254,34 @@ const B2BOnboardingFlow = () => {
         </div>
       )}
 
-      {/* SCREEN 4 — Style Pick */}
+      {/* SCREEN 4 — Style Pick with real images */}
       {step === 3 && (
         <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-400">
           <div className="text-center space-y-2">
             <h2 className="text-2xl md:text-3xl font-bold text-foreground">Pick a style</h2>
             <p className="text-muted-foreground">Tap one to continue</p>
           </div>
-
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3 max-w-xl mx-auto">
             {styleOptions.map((style) => (
               <button
                 key={style.value}
                 onClick={() => setSelectedStyle(style.value)}
                 className={cn(
-                  "relative flex flex-col items-center gap-2 p-5 rounded-xl border-2 transition-all",
+                  "relative flex flex-col items-center gap-2 rounded-xl border-2 transition-all overflow-hidden",
                   selectedStyle === style.value
-                    ? "border-primary bg-primary/10 scale-[1.02] shadow-md"
+                    ? "border-primary scale-[1.02] shadow-md"
                     : "border-border bg-card hover:border-primary/40"
                 )}
               >
-                <span className="text-3xl">{style.emoji}</span>
-                <span className="font-medium text-sm text-foreground">{style.label}</span>
+                <div className="w-full aspect-[4/3] overflow-hidden">
+                  <img
+                    src={style.image}
+                    alt={style.label}
+                    className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
+                    loading="lazy"
+                  />
+                </div>
+                <span className="font-medium text-sm text-foreground pb-3">{style.label}</span>
                 {selectedStyle === style.value && (
                   <div className="absolute top-2 right-2 bg-primary text-primary-foreground rounded-full p-0.5">
                     <Check className="w-3 h-3" />
@@ -253,12 +297,9 @@ const B2BOnboardingFlow = () => {
       {step === 4 && (
         <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-400">
           <div className="text-center space-y-2">
-            <h2 className="text-2xl md:text-3xl font-bold text-foreground">
-              What do you want more of?
-            </h2>
+            <h2 className="text-2xl md:text-3xl font-bold text-foreground">What do you want more of?</h2>
             <p className="text-muted-foreground">Just one question — almost done!</p>
           </div>
-
           <div className="grid gap-3 max-w-sm mx-auto">
             {goalOptions.map((goal) => (
               <button
@@ -273,9 +314,7 @@ const B2BOnboardingFlow = () => {
               >
                 <div className={cn(
                   "w-10 h-10 rounded-lg flex items-center justify-center shrink-0",
-                  selectedGoal === goal.value
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-muted text-muted-foreground"
+                  selectedGoal === goal.value ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
                 )}>
                   {goal.icon}
                 </div>
@@ -294,7 +333,6 @@ const B2BOnboardingFlow = () => {
             <div className="absolute inset-0 rounded-full border-4 border-primary border-t-transparent animate-spin" />
             <Sparkles className="absolute inset-0 m-auto w-8 h-8 text-primary" />
           </div>
-
           <div className="space-y-3">
             {loadingMessages.map((msg, i) => (
               <p
@@ -315,41 +353,56 @@ const B2BOnboardingFlow = () => {
         </div>
       )}
 
-      {/* SCREEN 7 — Result */}
+      {/* SCREEN 7 — Result (goal-personalized) */}
       {step === 6 && (
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
           <div className="text-center space-y-2">
             <h2 className="text-2xl md:text-3xl font-bold text-foreground">
               This is how customers could shop your store
             </h2>
+            <p className="text-muted-foreground text-lg">{goalData.subtitle}</p>
           </div>
 
-          {/* Mock result preview */}
           <Card className="overflow-hidden border-border/50">
             <div className="grid md:grid-cols-2">
-              {/* Room preview */}
-              <div className="aspect-[4/3] bg-gradient-to-br from-muted via-secondary/10 to-accent/10 flex items-center justify-center p-6 relative">
-                <div className="text-center space-y-2">
-                  <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto">
-                    <Sparkles className="w-8 h-8 text-primary" />
-                  </div>
-                  <p className="text-sm font-medium text-foreground">AI Generated Room</p>
-                  <p className="text-xs text-muted-foreground">Your products styled in context</p>
-                </div>
+              {/* Room preview with real image */}
+              <div className="relative">
+                <img
+                  src={selectedStyleData?.image || resultRoom}
+                  alt="AI Generated Room Preview"
+                  className="w-full h-full object-cover min-h-[240px]"
+                />
                 <div className="absolute top-3 left-3 px-2 py-1 rounded-md bg-card/80 backdrop-blur text-xs font-medium text-foreground">
                   Live Preview
+                </div>
+                <div className="absolute bottom-3 left-3 right-3 px-3 py-2 rounded-lg bg-card/90 backdrop-blur-sm">
+                  <p className="text-xs font-medium text-primary">{goalData.headline}</p>
                 </div>
               </div>
 
               {/* Interactive elements */}
               <div className="p-5 space-y-4">
-                {/* Chat preview */}
+                {/* Chat preview — personalized by goal */}
                 <div className="flex items-start gap-3 p-3 rounded-lg bg-muted/50">
                   <MessageSquare className="w-5 h-5 text-primary shrink-0 mt-0.5" />
                   <div className="text-sm">
                     <p className="font-medium text-foreground">AI Shopping Assistant</p>
-                    <p className="text-muted-foreground text-xs mt-1">"I see you like that sofa — here are matching pillows from your store"</p>
+                    <p className="text-muted-foreground text-xs mt-1">"{goalData.chatMessage}"</p>
                   </div>
+                </div>
+
+                {/* Goal-specific metrics */}
+                <div className="space-y-2">
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Expected Impact</p>
+                  {goalData.metrics.map((metric, i) => (
+                    <div key={i} className="flex items-center justify-between p-2 rounded-md bg-card border border-border/50 text-sm">
+                      <div className="flex items-center gap-2">
+                        <span className="text-primary">{metric.icon}</span>
+                        <span className="text-muted-foreground">{metric.label}</span>
+                      </div>
+                      <span className="font-bold text-primary">{metric.value}</span>
+                    </div>
+                  ))}
                 </div>
 
                 {/* Shopping list */}
@@ -362,11 +415,17 @@ const B2BOnboardingFlow = () => {
                     </div>
                   ))}
                 </div>
+
+                {/* Pro tip */}
+                <div className="p-3 rounded-lg bg-primary/5 border border-primary/20">
+                  <p className="text-xs text-muted-foreground">
+                    <span className="font-semibold text-primary">💡 Pro tip:</span> {goalData.tip}
+                  </p>
+                </div>
               </div>
             </div>
           </Card>
 
-          {/* CTA section */}
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <Button size="lg" className="gap-2 text-base" onClick={() => setStep(7)}>
               <ExternalLink className="w-5 h-5" />
@@ -380,7 +439,7 @@ const B2BOnboardingFlow = () => {
         </div>
       )}
 
-      {/* UPGRADE SCREEN — after "Get this on my website" */}
+      {/* UPGRADE SCREEN */}
       {step === 7 && (
         <div className="text-center space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-medium">
@@ -393,35 +452,21 @@ const B2BOnboardingFlow = () => {
           <p className="text-muted-foreground text-lg max-w-md mx-auto">
             Give your customers the future of furniture shopping
           </p>
-
           <div className="grid gap-3 max-w-sm mx-auto text-left">
-            {[
-              "Remove watermark",
-              "Add your full catalog",
-              "Embed on your website",
-              "AI-powered customer chat",
-              "Analytics dashboard",
-            ].map((feature, i) => (
+            {["Remove watermark", "Add your full catalog", "Embed on your website", "AI-powered customer chat", "Analytics dashboard"].map((feature, i) => (
               <div key={i} className="flex items-center gap-3 p-3 rounded-lg bg-card border border-border/50">
                 <Check className="w-5 h-5 text-primary shrink-0" />
                 <span className="text-foreground font-medium text-sm">{feature}</span>
               </div>
             ))}
           </div>
-
           <div className="flex flex-col sm:flex-row gap-3 justify-center pt-2">
             <Button size="lg" className="gap-2 text-base">
-              Upgrade Now
-              <ArrowRight className="w-5 h-5" />
+              Upgrade Now <ArrowRight className="w-5 h-5" />
             </Button>
-            <Button size="lg" variant="outline" className="gap-2 text-base">
-              Book a Demo
-            </Button>
+            <Button size="lg" variant="outline" className="gap-2 text-base">Book a Demo</Button>
           </div>
-
-          <button onClick={reset} className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-            ← Start over
-          </button>
+          <button onClick={reset} className="text-sm text-muted-foreground hover:text-foreground transition-colors">← Start over</button>
         </div>
       )}
     </div>
