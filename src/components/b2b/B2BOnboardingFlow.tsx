@@ -387,12 +387,29 @@ const B2BOnboardingFlow = () => {
           <Card className="overflow-hidden border-border/50">
             <div className="grid md:grid-cols-2">
               {/* Room preview with real image */}
-              <div className="relative">
+              <div className="relative group">
                 <img
                   src={selectedStyleData?.image || styleModern}
                   alt="AI Generated Room Preview"
                   className="w-full h-full object-cover min-h-[240px]"
                 />
+                {/* Product tags on image */}
+                {goalData.shoppingList.map((item, i) => (
+                  <div
+                    key={i}
+                    className="absolute flex items-center gap-1 animate-in fade-in zoom-in duration-500"
+                    style={{ top: item.tagPos.top, left: item.tagPos.left, animationDelay: `${i * 200}ms`, transform: 'translate(-50%, -50%)' }}
+                  >
+                    <div className="relative">
+                      <div className="w-5 h-5 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-[10px] font-bold shadow-lg cursor-pointer ring-2 ring-white/80">
+                        {i + 1}
+                      </div>
+                      <div className="absolute left-6 top-1/2 -translate-y-1/2 whitespace-nowrap px-2 py-1 rounded-md bg-card/95 backdrop-blur shadow-lg border border-border/50 text-[11px] font-medium text-foreground opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                        {item.name} <span className="text-primary font-bold">{item.price}</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
                 <div className="absolute top-3 left-3 px-2 py-1 rounded-md bg-card/80 backdrop-blur text-xs font-medium text-foreground">
                   Live Preview
                 </div>
