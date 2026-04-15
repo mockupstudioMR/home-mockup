@@ -15,7 +15,7 @@ import styleScandi from "@/assets/b2b/style-scandinavian.jpg";
 import styleContemporary from "@/assets/b2b/style-contemporary.jpg";
 import styleBoho from "@/assets/b2b/style-boho.jpg";
 import styleLuxury from "@/assets/b2b/style-luxury.jpg";
-import resultRoom from "@/assets/b2b/result-room-preview.jpg";
+
 
 const TOTAL_STEPS = 7;
 
@@ -368,7 +368,7 @@ const B2BOnboardingFlow = () => {
               {/* Room preview with real image */}
               <div className="relative">
                 <img
-                  src={selectedStyleData?.image || resultRoom}
+                  src={selectedStyleData?.image || styleModern}
                   alt="AI Generated Room Preview"
                   className="w-full h-full object-cover min-h-[240px]"
                 />
