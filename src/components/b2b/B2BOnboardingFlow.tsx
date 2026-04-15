@@ -104,6 +104,9 @@ const B2BOnboardingFlow = () => {
   const [selectedGoal, setSelectedGoal] = useState<string | null>(null);
   const [loadingMsgIndex, setLoadingMsgIndex] = useState(0);
   const [uploadedCount, setUploadedCount] = useState(0);
+  const [uploadedImages, setUploadedImages] = useState<string[]>([]);
+  const [showLinkInput, setShowLinkInput] = useState(false);
+  const [linkValue, setLinkValue] = useState("");
 
   useEffect(() => {
     if (step !== 5) return;
