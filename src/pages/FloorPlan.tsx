@@ -482,6 +482,8 @@ const FloorPlan = () => {
         body: {
           shape: selectedShape.id,
           dimensions,
+          roomType: selectedRoomType,
+          furnitureItems: selectedFurniture,
           openings: openings.map(o => ({ type: o.type, wall: o.wall, position: o.position })),
         },
       });
@@ -493,7 +495,7 @@ const FloorPlan = () => {
       } else {
         throw new Error("Invalid layout response");
       }
-      setStep(3);
+      setStep(4);
     } catch (e: any) {
       console.error("Layout generation error:", e);
       toast({ title: "Layout Generation Failed", description: e.message || "Please try again.", variant: "destructive" });
