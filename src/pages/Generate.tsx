@@ -37,6 +37,7 @@ import GenerationCountdown from "@/components/generate/GenerationCountdown";
 import TryAnotherStyle from "@/components/generate/TryAnotherStyle";
 import WallExtractionPanel from "@/components/generate/WallExtractionPanel";
 import type { ExtractedWall } from "@/components/generate/WallExtractionPanel";
+import FloorPlanPreview from "@/components/generate/FloorPlanPreview";
 
 interface GeneratedDesign {
   id: string;
@@ -1785,6 +1786,9 @@ const Generate = () => {
             profileDescription={styleProfile.description}
           />
         )}
+
+        {/* Floor Plan Preview */}
+        <FloorPlanPreview />
 
         {/* Main Design */}
         {design && (
