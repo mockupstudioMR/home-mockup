@@ -78,9 +78,9 @@ const goalResults: Record<string, {
     subtitle: "Interactive design tools create sticky experiences that build loyalty",
     chatMessage: "You've saved 3 rooms so far! Your coffee table pairs beautifully with this accent chair — try it out?",
     shoppingList: [
-      { name: "Coffee Table", price: "$899", tagPos: { top: "72%", left: "48%" } },
-      { name: "Accent Chair", price: "$579", tagPos: { top: "63%", left: "78%" } },
-      { name: "Decorative Vase", price: "$129", tagPos: { top: "68%", left: "55%" } },
+      { name: "Coffee Table", price: "$899", tagPos: { top: "74%", left: "42%" } },
+      { name: "Accent Chair", price: "$579", tagPos: { top: "60%", left: "72%" } },
+      { name: "Decorative Vase", price: "$129", tagPos: { top: "70%", left: "50%" } },
     ],
     metrics: [
       { icon: <Heart className="w-4 h-4" />, label: "Return visits", value: "+80%" },
