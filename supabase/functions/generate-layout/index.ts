@@ -12,7 +12,7 @@ serve(async (req) => {
   }
 
   try {
-    const { shape, dimensions, openings } = await req.json();
+    const { shape, dimensions, openings, roomType, furnitureItems } = await req.json();
 
     if (!shape || !dimensions) {
       return new Response(JSON.stringify({ error: "shape and dimensions required" }), {
@@ -28,32 +28,39 @@ serve(async (req) => {
       .map(([k, v]) => `${k}: ${v}m`)
       .join(", ");
 
-    const systemPrompt = `You are an interior design layout planner. Given a room shape, dimensions, and locations of doors/windows/balconies, suggest exactly 3 different furniture layout arrangements. Each layout should be practical and follow interior design principles.
+    const furnitureList = furnitureItems && Array.isArray(furnitureItems) && furnitureItems.length > 0
+      ? furnitureItems.join(", ")
+      : "Sofa, Coffee Table, TV Unit, Bookshelf, Armchair, Rug, Plant";
+
+    const systemPrompt = `You are an interior design layout planner. Given a room shape, dimensions, room type, specific furniture items, and locations of doors/windows/balconies, suggest exactly 3 different furniture layout arrangements.
 
 CRITICAL RULES:
+- ONLY use the furniture items specified by the user — do not add extra items
 - Never place furniture blocking doors
 - Place seating/reading areas near windows for natural light
 - Balcony doors need clear access paths
 - Consider traffic flow between openings
+- Size each piece realistically relative to the room dimensions
 
 Return a JSON object with a "layouts" array. Each layout has:
 - "name": short creative name (e.g. "Cozy Conversation")
 - "description": one-sentence description of the arrangement style
 - "items": array of furniture pieces, each with:
-  - "label": furniture name (e.g. "Sofa", "Coffee Table", "TV Unit", "Dining Table", "Bookshelf", "Armchair", "Bed", "Desk", "Rug", "Plant")
+  - "label": exact furniture name from the provided list
   - "x": percentage from left (0-100)
   - "y": percentage from top (0-100)
   - "w": width as percentage of room (5-40)
   - "h": height as percentage of room (5-40)
 
-Make layouts diverse: one conversation-focused, one work/productivity, one entertainment/relaxation. Place 5-8 items per layout. Ensure items don't overlap and are placed logically (sofa facing TV, desk near window/wall, etc).`;
+Make layouts diverse in arrangement style. Ensure items don't overlap and are placed logically.`;
 
     let openingsDesc = "";
     if (openings && Array.isArray(openings) && openings.length > 0) {
       openingsDesc = "\nOpenings:\n" + openings.map((o: any) => `- ${o.type} on ${o.wall} wall at ${o.position}% along the wall`).join("\n");
     }
 
-    const userPrompt = `Room shape: ${shape}\nDimensions: ${dimDesc}${openingsDesc}\n\nGenerate 3 furniture layout suggestions that respect the door/window/balcony positions.`;
+    const roomTypeDesc = roomType ? `\nRoom type: ${roomType}` : "";
+    const userPrompt = `Room shape: ${shape}\nDimensions: ${dimDesc}${roomTypeDesc}\nFurniture to place: ${furnitureList}${openingsDesc}\n\nGenerate 3 furniture layout suggestions using ONLY the specified furniture items.`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
