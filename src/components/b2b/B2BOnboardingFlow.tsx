@@ -33,6 +33,12 @@ const goalOptions = [
   { value: "engagement", label: "More engagement", icon: <Users className="w-5 h-5" /> },
 ];
 
+const upsellProducts = [
+  { name: "Velvet Throw Pillows (×2)", price: "$189", tagPos: { top: "55%", left: "75%" } },
+  { name: "Marble Side Table", price: "$349", tagPos: { top: "72%", left: "80%" } },
+  { name: "Woven Area Rug", price: "$596", tagPos: { top: "85%", left: "50%" } },
+];
+
 const goalResults: Record<string, {
   headline: string;
   subtitle: string;
@@ -44,12 +50,8 @@ const goalResults: Record<string, {
   sales: {
     headline: "Turn browsers into buyers",
     subtitle: "Customers who visualize products in their space are 3× more likely to purchase",
-    chatMessage: "Love how that sofa looks here! I found matching throw pillows and a coffee table from your store — want me to add them to your cart?",
-    shoppingList: [
-      { name: "Modern Sofa", price: "$1,299", tagPos: { top: "68%", left: "22%" } },
-      { name: "Accent Pillows (×2)", price: "$189", tagPos: { top: "62%", left: "32%" } },
-      { name: "Wooden Coffee Table", price: "$449", tagPos: { top: "74%", left: "42%" } },
-    ],
+    chatMessage: "Love how that sofa looks here! I found matching throw pillows and a side table from your store — want me to add them to your cart?",
+    shoppingList: upsellProducts,
     metrics: [
       { icon: <DollarSign className="w-4 h-4" />, label: "Avg. order value", value: "+40%" },
       { icon: <ShoppingBag className="w-4 h-4" />, label: "Conversion rate", value: "3.2×" },
@@ -60,12 +62,8 @@ const goalResults: Record<string, {
   presence: {
     headline: "Stand out from every competitor",
     subtitle: "An AI showroom makes your brand feel premium, modern, and unforgettable",
-    chatMessage: "Welcome to your personalized showroom! I've curated this living room around your best-selling sofa and accent chair.",
-    shoppingList: [
-      { name: "Lounge Chair", price: "$899", tagPos: { top: "60%", left: "72%" } },
-      { name: "Area Rug", price: "$596", tagPos: { top: "82%", left: "45%" } },
-      { name: "TV Console", price: "$349", tagPos: { top: "55%", left: "82%" } },
-    ],
+    chatMessage: "Welcome to your personalized showroom! I've curated this living room around your uploaded products with matching accessories.",
+    shoppingList: upsellProducts,
     metrics: [
       { icon: <Eye className="w-4 h-4" />, label: "Time on site", value: "+65%" },
       { icon: <Globe className="w-4 h-4" />, label: "SEO boost", value: "+30%" },
@@ -76,12 +74,8 @@ const goalResults: Record<string, {
   engagement: {
     headline: "Keep customers coming back",
     subtitle: "Interactive design tools create sticky experiences that build loyalty",
-    chatMessage: "You've saved 3 rooms so far! Your coffee table pairs beautifully with this accent chair — try it out?",
-    shoppingList: [
-      { name: "Coffee Table", price: "$899", tagPos: { top: "74%", left: "42%" } },
-      { name: "Accent Chair", price: "$579", tagPos: { top: "60%", left: "72%" } },
-      { name: "Decorative Vase", price: "$129", tagPos: { top: "70%", left: "50%" } },
-    ],
+    chatMessage: "You've saved 3 rooms so far! Your products pair beautifully with these matching accessories — try it out?",
+    shoppingList: upsellProducts,
     metrics: [
       { icon: <Heart className="w-4 h-4" />, label: "Return visits", value: "+80%" },
       { icon: <Users className="w-4 h-4" />, label: "Session duration", value: "4.5 min" },
