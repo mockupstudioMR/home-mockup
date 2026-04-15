@@ -635,8 +635,131 @@ const FloorPlan = () => {
             </div>
           )}
 
-          {/* Step 2: Openings (doors, windows, balconies) */}
+          {/* Step 2: Room Type & Furniture Selection */}
           {step === 2 && selectedShape && (
+            <div className="space-y-6">
+              <div className="text-center space-y-2">
+                <h1 className="text-2xl md:text-3xl font-bold">Select Room Type & Furniture</h1>
+                <p className="text-muted-foreground">Choose what type of room this is, then pick the furniture you want</p>
+              </div>
+
+              <div className="grid md:grid-cols-2 gap-8 items-start">
+                {/* Room Type Selection */}
+                <div className="space-y-3">
+                  <Label className="text-sm font-medium">Room Type</Label>
+                  <div className="grid gap-2">
+                    {(roomConfigs || []).map((rc) => (
+                      <button
+                        key={rc.room_type}
+                        onClick={() => {
+                          setSelectedRoomType(rc.room_type);
+                          setSelectedFurniture([...rc.furniture_items]); // Pre-select all
+                        }}
+                        className={`flex items-center gap-3 px-4 py-3 rounded-xl border text-left transition-all ${
+                          selectedRoomType === rc.room_type
+                            ? "border-primary bg-primary/10 ring-1 ring-primary/30"
+                            : "border-border hover:border-primary/30 bg-card"
+                        }`}
+                      >
+                        <div className="text-primary">
+                          {ROOM_ICONS[rc.room_type] || <Sofa className="w-6 h-6" />}
+                        </div>
+                        <div>
+                          <div className="font-medium text-sm">{rc.room_label}</div>
+                          {rc.description && (
+                            <div className="text-xs text-muted-foreground">{rc.description}</div>
+                          )}
+                        </div>
+                      </button>
+                    ))}
+                    {(!roomConfigs || roomConfigs.length === 0) && (
+                      <div className="text-sm text-muted-foreground py-4 text-center">Loading room types...</div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Furniture Items Selection */}
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-sm font-medium">
+                      Furniture Items {selectedFurniture.length > 0 && `(${selectedFurniture.length} selected)`}
+                    </Label>
+                    {activeRoomConfig && (
+                      <button
+                        onClick={() => {
+                          if (selectedFurniture.length === activeRoomConfig.furniture_items.length) {
+                            setSelectedFurniture([]);
+                          } else {
+                            setSelectedFurniture([...activeRoomConfig.furniture_items]);
+                          }
+                        }}
+                        className="text-xs text-primary hover:underline"
+                      >
+                        {selectedFurniture.length === activeRoomConfig.furniture_items.length ? "Deselect all" : "Select all"}
+                      </button>
+                    )}
+                  </div>
+
+                  {activeRoomConfig ? (
+                    <div className="space-y-1.5 max-h-[400px] overflow-y-auto rounded-xl border bg-card p-3">
+                      {activeRoomConfig.furniture_items.map((item) => (
+                        <label
+                          key={item}
+                          className={`flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer transition-colors ${
+                            selectedFurniture.includes(item) ? "bg-primary/8" : "hover:bg-muted/50"
+                          }`}
+                        >
+                          <Checkbox
+                            checked={selectedFurniture.includes(item)}
+                            onCheckedChange={(checked) => {
+                              if (checked) {
+                                setSelectedFurniture(prev => [...prev, item]);
+                              } else {
+                                setSelectedFurniture(prev => prev.filter(f => f !== item));
+                              }
+                            }}
+                          />
+                          <span className="text-sm">{item}</span>
+                        </label>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="rounded-xl border bg-muted/20 p-8 text-center text-sm text-muted-foreground">
+                      ← Select a room type first to see available furniture
+                    </div>
+                  )}
+
+                  {selectedFurniture.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 pt-1">
+                      {selectedFurniture.map((item) => (
+                        <Badge key={item} variant="secondary" className="text-xs gap-1">
+                          {item}
+                          <button onClick={() => setSelectedFurniture(prev => prev.filter(f => f !== item))}>
+                            <X className="w-3 h-3" />
+                          </button>
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex justify-center gap-3 pt-2">
+                <Button variant="outline" onClick={() => setStep(1)}>
+                  <ArrowLeft className="w-4 h-4 mr-2" /> Back to Dimensions
+                </Button>
+                <Button
+                  onClick={() => setStep(3)}
+                  disabled={!selectedRoomType || selectedFurniture.length === 0}
+                >
+                  Next: Openings <ArrowRight className="w-4 h-4 ml-2" />
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* Step 3: Openings (doors, windows, balconies) */}
+          {step === 3 && selectedShape && (
             <div className="space-y-6">
               <div className="text-center space-y-2">
                 <h1 className="text-2xl md:text-3xl font-bold">Add Doors, Windows & Balconies</h1>
