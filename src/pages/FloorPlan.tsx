@@ -504,7 +504,7 @@ const FloorPlan = () => {
     }
   }, [selectedShape, dimensions, selectedRoomType, selectedFurniture, openings]);
 
-  const proceedToQuiz = useCallback(() => {
+  const proceedToQuiz = useCallback(async () => {
     if (selectedLayout === null || !selectedShape) return;
     const floorPlanContext = {
       shape: selectedShape.id,
