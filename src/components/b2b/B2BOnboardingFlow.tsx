@@ -62,9 +62,9 @@ const goalResults: Record<string, {
     subtitle: "An AI showroom makes your brand feel premium, modern, and unforgettable",
     chatMessage: "Welcome to your personalized showroom! I've curated this living room around your best-selling sofa and accent chair.",
     shoppingList: [
-      { name: "Lounge Chair", price: "$899", tagPos: { top: "63%", left: "78%" } },
-      { name: "Area Rug", price: "$596", tagPos: { top: "85%", left: "50%" } },
-      { name: "Floor Lamp", price: "$349", tagPos: { top: "50%", left: "88%" } },
+      { name: "Lounge Chair", price: "$899", tagPos: { top: "60%", left: "72%" } },
+      { name: "Area Rug", price: "$596", tagPos: { top: "82%", left: "45%" } },
+      { name: "TV Console", price: "$349", tagPos: { top: "55%", left: "82%" } },
     ],
     metrics: [
       { icon: <Eye className="w-4 h-4" />, label: "Time on site", value: "+65%" },
