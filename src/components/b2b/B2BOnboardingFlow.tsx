@@ -515,9 +515,8 @@ const B2BOnboardingFlow = () => {
                   ))}
                 </div>
 
-                {/* Shopping list */}
                 <div className="space-y-2">
-                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Shopping List</p>
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">🛒 AI-Suggested Matching Products</p>
                   {goalData.shoppingList.map((item, i) => (
                     <div key={i} className="flex items-center gap-2 p-2 rounded-md bg-card border border-border/50 text-sm">
                       {uploadedImages[i] ? (
