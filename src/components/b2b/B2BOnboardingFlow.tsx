@@ -495,9 +495,9 @@ const B2BOnboardingFlow = () => {
             {/* Title bar */}
             <div className="flex items-center gap-2 px-4 py-2.5 bg-muted/60 border-b border-border/50">
               <div className="flex gap-1.5">
-                <div className="w-3 h-3 rounded-full bg-red-400/70" />
-                <div className="w-3 h-3 rounded-full bg-yellow-400/70" />
-                <div className="w-3 h-3 rounded-full bg-green-400/70" />
+                <div className="w-3 h-3 rounded-full bg-destructive/60" />
+                <div className="w-3 h-3 rounded-full bg-accent/60" />
+                <div className="w-3 h-3 rounded-full bg-primary/60" />
               </div>
               <div className="flex-1 flex justify-center">
                 <div className="flex items-center gap-2 px-4 py-1 rounded-md bg-background/80 border border-border/50 text-xs text-muted-foreground min-w-[240px]">
