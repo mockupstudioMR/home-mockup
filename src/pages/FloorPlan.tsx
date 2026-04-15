@@ -515,8 +515,24 @@ const FloorPlan = () => {
       layout: layouts[selectedLayout],
     };
     sessionStorage.setItem("floor_plan_context", JSON.stringify(floorPlanContext));
-    updateQuizData({ roomType: selectedRoomType || (selectedShape.id === "open-plan" ? "living_room" : "") });
-    navigate("/quiz");
+    const roomType = selectedRoomType || (selectedShape.id === "open-plan" ? "living_room" : "living_room");
+    updateQuizData({ roomType });
+
+    // Save quiz response directly and skip quiz page
+    try {
+      await supabase.from("quiz_responses").insert({
+        user_id: user!.id,
+        style_preference: "modern-minimal",
+        color_palette: "neutral",
+        room_type: roomType,
+        budget_feel: "mid-range",
+        must_have_elements: selectedFurniture,
+        furniture_source: null,
+      });
+    } catch (_) { /* non-critical */ }
+
+    sessionStorage.setItem('generate_quiz_nonce', crypto.randomUUID());
+    navigate("/generate", { state: { quizData: { roomType, stylePreference: "modern-minimal", colorPalette: "neutral", budgetFeel: "mid-range", mustHaveElements: selectedFurniture } } });
   }, [selectedLayout, selectedShape, dimensions, selectedRoomType, selectedFurniture, openings, layouts, navigate, updateQuizData]);
 
   if (authLoading) {
