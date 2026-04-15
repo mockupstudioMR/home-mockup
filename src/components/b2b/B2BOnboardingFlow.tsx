@@ -17,7 +17,7 @@ import styleBoho from "@/assets/b2b/style-boho.jpg";
 import styleLuxury from "@/assets/b2b/style-luxury.jpg";
 
 
-const TOTAL_STEPS = 7;
+const TOTAL_STEPS = 9;
 
 const styleOptions = [
   { value: "modern_minimal", label: "Modern Minimal", image: styleModern },
@@ -470,7 +470,7 @@ const B2BOnboardingFlow = () => {
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <Button size="lg" className="gap-2 text-base" onClick={() => setStep(7)}>
               <ExternalLink className="w-5 h-5" />
-              Get this on my website
+              See it on your website
             </Button>
             <Button size="lg" variant="outline" className="gap-2 text-base" onClick={reset}>
               <RotateCcw className="w-5 h-5" />
@@ -480,8 +480,122 @@ const B2BOnboardingFlow = () => {
         </div>
       )}
 
-      {/* UPGRADE SCREEN */}
+      {/* SCREEN 8 — Browser Mockup: Your Store */}
       {step === 7 && (
+        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <div className="text-center space-y-2">
+            <h2 className="text-2xl md:text-3xl font-bold text-foreground">
+              This is how it looks on your store
+            </h2>
+            <p className="text-muted-foreground text-lg">Embedded seamlessly — your brand, your products, our AI</p>
+          </div>
+
+          {/* Browser Chrome */}
+          <div className="rounded-xl border border-border/80 bg-card shadow-xl overflow-hidden max-w-2xl mx-auto">
+            {/* Title bar */}
+            <div className="flex items-center gap-2 px-4 py-2.5 bg-muted/60 border-b border-border/50">
+              <div className="flex gap-1.5">
+                <div className="w-3 h-3 rounded-full bg-destructive/60" />
+                <div className="w-3 h-3 rounded-full bg-accent/60" />
+                <div className="w-3 h-3 rounded-full bg-primary/60" />
+              </div>
+              <div className="flex-1 flex justify-center">
+                <div className="flex items-center gap-2 px-4 py-1 rounded-md bg-background/80 border border-border/50 text-xs text-muted-foreground min-w-[240px]">
+                  <Globe className="w-3 h-3 shrink-0" />
+                  <span className="text-foreground font-medium">yourstore.com</span>
+                  <span className="text-muted-foreground">/design-your-room</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Fake store page content */}
+            <div className="bg-background">
+              {/* Store header bar */}
+              <div className="flex items-center justify-between px-4 py-2 border-b border-border/30">
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 rounded bg-primary/20" />
+                  <span className="text-sm font-semibold text-foreground">Your Store</span>
+                </div>
+                <div className="flex gap-4 text-xs text-muted-foreground">
+                  <span>Shop</span>
+                  <span className="text-primary font-medium">Design Your Room ✨</span>
+                  <span>About</span>
+                  <span>Contact</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <ShoppingBag className="w-4 h-4 text-muted-foreground" />
+                  <span className="text-xs text-muted-foreground">Cart (0)</span>
+                </div>
+              </div>
+
+              {/* Embedded room preview */}
+              <div className="p-4 space-y-3">
+                <div className="text-center space-y-1">
+                  <p className="text-sm font-semibold text-foreground">Design your dream room with our products</p>
+                  <p className="text-[11px] text-muted-foreground">Powered by HomeMockUp</p>
+                </div>
+                <div className="relative rounded-lg overflow-hidden border border-border/30">
+                  <img
+                    src={selectedStyleData?.image || styleModern}
+                    alt="Store embedded preview"
+                    className="w-full aspect-[16/9] object-cover"
+                  />
+                  {/* Tags */}
+                  {goalData.shoppingList.map((item, i) => (
+                    <div
+                      key={i}
+                      className="absolute"
+                      style={{ top: item.tagPos.top, left: item.tagPos.left, transform: 'translate(-50%, -50%)' }}
+                    >
+                      <div className="w-4 h-4 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-[9px] font-bold shadow-lg ring-2 ring-white/80">
+                        {i + 1}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Mini shopping list inside the browser */}
+                <div className="grid grid-cols-3 gap-2">
+                  {goalData.shoppingList.map((item, i) => (
+                    <div key={i} className="flex items-center gap-1.5 p-2 rounded-md bg-muted/50 border border-border/30">
+                      <div className="w-4 h-4 rounded-full bg-primary/15 text-primary flex items-center justify-center text-[9px] font-bold shrink-0">
+                        {i + 1}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-[10px] font-medium text-foreground truncate">{item.name}</p>
+                        <p className="text-[10px] text-primary font-semibold">{item.price}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="text-center">
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-primary text-primary-foreground text-xs font-medium">
+                    <ShoppingBag className="w-3 h-3" />
+                    Add all to cart — {goalData.shoppingList.reduce((_, __, ___, arr) => {
+                      const total = arr.reduce((sum, p) => sum + parseFloat(p.price.replace(/[^0-9.]/g, '')), 0);
+                      return `$${total.toLocaleString()}`;
+                    }, '')}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            <Button size="lg" className="gap-2 text-base" onClick={() => setStep(8)}>
+              I want this <ArrowRight className="w-5 h-5" />
+            </Button>
+            <Button size="lg" variant="outline" className="gap-2 text-base" onClick={reset}>
+              <RotateCcw className="w-5 h-5" />
+              Start over
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* UPGRADE SCREEN */}
+      {step === 8 && (
         <div className="text-center space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-medium">
             <Star className="w-4 h-4" />
