@@ -12,7 +12,7 @@ serve(async (req) => {
   }
 
   try {
-    const { shape, dimensions } = await req.json();
+    const { shape, dimensions, openings } = await req.json();
 
     if (!shape || !dimensions) {
       return new Response(JSON.stringify({ error: "shape and dimensions required" }), {
@@ -28,7 +28,13 @@ serve(async (req) => {
       .map(([k, v]) => `${k}: ${v}m`)
       .join(", ");
 
-    const systemPrompt = `You are an interior design layout planner. Given a room shape and dimensions, suggest exactly 3 different furniture layout arrangements. Each layout should be practical and follow interior design principles.
+    const systemPrompt = `You are an interior design layout planner. Given a room shape, dimensions, and locations of doors/windows/balconies, suggest exactly 3 different furniture layout arrangements. Each layout should be practical and follow interior design principles.
+
+CRITICAL RULES:
+- Never place furniture blocking doors
+- Place seating/reading areas near windows for natural light
+- Balcony doors need clear access paths
+- Consider traffic flow between openings
 
 Return a JSON object with a "layouts" array. Each layout has:
 - "name": short creative name (e.g. "Cozy Conversation")
@@ -42,7 +48,12 @@ Return a JSON object with a "layouts" array. Each layout has:
 
 Make layouts diverse: one conversation-focused, one work/productivity, one entertainment/relaxation. Place 5-8 items per layout. Ensure items don't overlap and are placed logically (sofa facing TV, desk near window/wall, etc).`;
 
-    const userPrompt = `Room shape: ${shape}\nDimensions: ${dimDesc}\n\nGenerate 3 furniture layout suggestions.`;
+    let openingsDesc = "";
+    if (openings && Array.isArray(openings) && openings.length > 0) {
+      openingsDesc = "\nOpenings:\n" + openings.map((o: any) => `- ${o.type} on ${o.wall} wall at ${o.position}% along the wall`).join("\n");
+    }
+
+    const userPrompt = `Room shape: ${shape}\nDimensions: ${dimDesc}${openingsDesc}\n\nGenerate 3 furniture layout suggestions that respect the door/window/balcony positions.`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",

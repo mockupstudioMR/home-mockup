@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import Logo from "@/components/Logo";
-import { ArrowLeft, ArrowRight, Loader2, RotateCcw } from "lucide-react";
+import { ArrowLeft, ArrowRight, Loader2, RotateCcw, DoorOpen, Plus, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 
@@ -64,6 +64,30 @@ const ROOM_SHAPES: RoomShape[] = [
   },
 ];
 
+// Opening types
+type OpeningType = "door" | "window" | "balcony";
+type WallSide = "top" | "right" | "bottom" | "left";
+
+interface RoomOpening {
+  id: string;
+  type: OpeningType;
+  wall: WallSide;
+  position: number; // 0-100 percentage along the wall
+}
+
+const OPENING_TYPES: { type: OpeningType; label: string; icon: string; color: string }[] = [
+  { type: "door", label: "Door", icon: "🚪", color: "hsl(var(--primary))" },
+  { type: "window", label: "Window", icon: "🪟", color: "hsl(25 80% 55%)" },
+  { type: "balcony", label: "Balcony", icon: "🏠", color: "hsl(150 50% 45%)" },
+];
+
+const WALL_LABELS: Record<WallSide, string> = {
+  top: "Top Wall",
+  right: "Right Wall",
+  bottom: "Bottom Wall",
+  left: "Left Wall",
+};
+
 // SVG shape renderers
 function ShapeSVG({ shapeId, dims, scale = 1, className = "" }: { shapeId: ShapeId; dims: Record<string, number>; scale?: number; className?: string }) {
   const s = scale;
@@ -117,7 +141,6 @@ function ShapeSVG({ shapeId, dims, scale = 1, className = "" }: { shapeId: Shape
       return (
         <svg viewBox={`-20 -20 ${w + 40} ${h + 40}`} className={className}>
           <rect x={0} y={0} width={w} height={h} fill={fill} stroke={stroke} strokeWidth={2} rx={2} />
-          {/* Kitchen island indicator */}
           <rect x={w * 0.6} y={h * 0.2} width={w * 0.25} height={h * 0.15} fill="hsl(var(--primary) / 0.15)" stroke={stroke} strokeWidth={1} strokeDasharray="4 2" rx={1} />
           <text x={w / 2} y={h + 16} textAnchor="middle" fontSize={11} fill="hsl(var(--muted-foreground))">{dims.width}m</text>
           <text x={-12} y={h / 2} textAnchor="middle" fontSize={11} fill="hsl(var(--muted-foreground))" transform={`rotate(-90, -12, ${h / 2})`}>{dims.height}m</text>
@@ -125,6 +148,225 @@ function ShapeSVG({ shapeId, dims, scale = 1, className = "" }: { shapeId: Shape
       );
     }
   }
+}
+
+// Interactive room SVG with openings - click on walls to add
+function RoomWithOpenings({
+  shapeId,
+  dims,
+  openings,
+  activeType,
+  onWallClick,
+  onRemoveOpening,
+}: {
+  shapeId: ShapeId;
+  dims: Record<string, number>;
+  openings: RoomOpening[];
+  activeType: OpeningType;
+  onWallClick: (wall: WallSide, position: number) => void;
+  onRemoveOpening: (id: string) => void;
+}) {
+  const padding = 40;
+  // Use a consistent scale for the interactive view
+  const w = (dims.width || dims.mainW || dims.totalW || 5) * 30;
+  const h = (dims.height || dims.mainH || dims.totalH || 4) * 30;
+  const svgW = w + padding * 2;
+  const svgH = h + padding * 2;
+
+  const stroke = "hsl(var(--primary))";
+  const fill = "hsl(var(--primary) / 0.06)";
+
+  const handleWallClick = (wall: WallSide, e: React.MouseEvent<SVGLineElement>) => {
+    const svg = e.currentTarget.closest("svg");
+    if (!svg) return;
+    const pt = svg.createSVGPoint();
+    pt.x = e.clientX;
+    pt.y = e.clientY;
+    const svgPt = pt.matrixTransform(svg.getScreenCTM()?.inverse());
+
+    let position = 0;
+    if (wall === "top" || wall === "bottom") {
+      position = ((svgPt.x - padding) / w) * 100;
+    } else {
+      position = ((svgPt.y - padding) / h) * 100;
+    }
+    position = Math.max(10, Math.min(90, position));
+    onWallClick(wall, position);
+  };
+
+  const getOpeningPos = (opening: RoomOpening) => {
+    const pos = opening.position / 100;
+    const size = opening.type === "door" ? 18 : opening.type === "balcony" ? 24 : 20;
+
+    switch (opening.wall) {
+      case "top":
+        return { x: padding + pos * w, y: padding, horizontal: true, size };
+      case "bottom":
+        return { x: padding + pos * w, y: padding + h, horizontal: true, size };
+      case "left":
+        return { x: padding, y: padding + pos * h, horizontal: false, size };
+      case "right":
+        return { x: padding + w, y: padding + pos * h, horizontal: false, size };
+    }
+  };
+
+  const openingColor = (type: OpeningType) => {
+    return OPENING_TYPES.find((t) => t.type === type)?.color || stroke;
+  };
+
+  return (
+    <svg viewBox={`0 0 ${svgW} ${svgH}`} className="w-full h-full max-h-[350px]">
+      {/* Room fill */}
+      <rect x={padding} y={padding} width={w} height={h} fill={fill} stroke="none" />
+
+      {/* Clickable wall zones (invisible, wide hit area) */}
+      {(["top", "bottom", "left", "right"] as WallSide[]).map((wall) => {
+        const props =
+          wall === "top"
+            ? { x1: padding, y1: padding, x2: padding + w, y2: padding }
+            : wall === "bottom"
+            ? { x1: padding, y1: padding + h, x2: padding + w, y2: padding + h }
+            : wall === "left"
+            ? { x1: padding, y1: padding, x2: padding, y2: padding + h }
+            : { x1: padding + w, y1: padding, x2: padding + w, y2: padding + h };
+        return (
+          <line
+            key={wall}
+            {...props}
+            stroke="transparent"
+            strokeWidth={16}
+            className="cursor-crosshair"
+            onClick={(e) => handleWallClick(wall, e)}
+          />
+        );
+      })}
+
+      {/* Visible walls */}
+      <rect x={padding} y={padding} width={w} height={h} fill="none" stroke={stroke} strokeWidth={2.5} rx={2} />
+
+      {/* Wall labels */}
+      {(["top", "bottom", "left", "right"] as WallSide[]).map((wall) => {
+        const labelProps =
+          wall === "top"
+            ? { x: padding + w / 2, y: padding - 8, anchor: "middle" }
+            : wall === "bottom"
+            ? { x: padding + w / 2, y: padding + h + 18, anchor: "middle" }
+            : wall === "left"
+            ? { x: padding - 8, y: padding + h / 2, anchor: "middle", rotate: true }
+            : { x: padding + w + 8, y: padding + h / 2, anchor: "middle", rotate: true };
+        return (
+          <text
+            key={wall}
+            x={labelProps.x}
+            y={labelProps.y}
+            textAnchor="middle"
+            fontSize={9}
+            fill="hsl(var(--muted-foreground))"
+            className="pointer-events-none select-none"
+            transform={
+              (labelProps as any).rotate
+                ? `rotate(-90, ${labelProps.x}, ${labelProps.y})`
+                : undefined
+            }
+          >
+            Click to add {activeType}
+          </text>
+        );
+      })}
+
+      {/* Openings */}
+      {openings.map((opening) => {
+        const pos = getOpeningPos(opening);
+        const color = openingColor(opening.type);
+        const icon = OPENING_TYPES.find((t) => t.type === opening.type)?.icon || "?";
+
+        return (
+          <g key={opening.id} className="cursor-pointer" onClick={() => onRemoveOpening(opening.id)}>
+            {pos.horizontal ? (
+              <>
+                <line
+                  x1={pos.x - pos.size / 2}
+                  y1={pos.y}
+                  x2={pos.x + pos.size / 2}
+                  y2={pos.y}
+                  stroke={color}
+                  strokeWidth={4}
+                  strokeLinecap="round"
+                />
+                {opening.type === "door" && (
+                  <path
+                    d={`M${pos.x - pos.size / 2},${pos.y} A${pos.size / 2},${pos.size / 2} 0 0,${pos.y === padding ? 1 : 0} ${pos.x + pos.size / 2},${pos.y}`}
+                    fill="none"
+                    stroke={color}
+                    strokeWidth={1}
+                    strokeDasharray="3 2"
+                    opacity={0.5}
+                  />
+                )}
+                {opening.type === "balcony" && (
+                  <rect
+                    x={pos.x - pos.size / 2}
+                    y={pos.y === padding ? pos.y - 10 : pos.y}
+                    width={pos.size}
+                    height={10}
+                    fill={color}
+                    opacity={0.15}
+                    stroke={color}
+                    strokeWidth={1}
+                    rx={1}
+                  />
+                )}
+              </>
+            ) : (
+              <>
+                <line
+                  x1={pos.x}
+                  y1={pos.y - pos.size / 2}
+                  x2={pos.x}
+                  y2={pos.y + pos.size / 2}
+                  stroke={color}
+                  strokeWidth={4}
+                  strokeLinecap="round"
+                />
+                {opening.type === "door" && (
+                  <path
+                    d={`M${pos.x},${pos.y - pos.size / 2} A${pos.size / 2},${pos.size / 2} 0 0,${pos.x === padding ? 0 : 1} ${pos.x},${pos.y + pos.size / 2}`}
+                    fill="none"
+                    stroke={color}
+                    strokeWidth={1}
+                    strokeDasharray="3 2"
+                    opacity={0.5}
+                  />
+                )}
+                {opening.type === "balcony" && (
+                  <rect
+                    x={pos.x === padding ? pos.x - 10 : pos.x}
+                    y={pos.y - pos.size / 2}
+                    width={10}
+                    height={pos.size}
+                    fill={color}
+                    opacity={0.15}
+                    stroke={color}
+                    strokeWidth={1}
+                    rx={1}
+                  />
+                )}
+              </>
+            )}
+            <text
+              x={pos.horizontal ? pos.x : pos.x + (pos.x === padding ? -14 : 14)}
+              y={pos.horizontal ? pos.y + (pos.y === padding ? -10 : 16) : pos.y + 3}
+              textAnchor="middle"
+              fontSize={12}
+              className="pointer-events-none"
+            >
+              {icon}
+            </text>
+          </g>
+        );
+      })}
+    </svg>
+  );
 }
 
 // Furniture icon renderers for layouts
@@ -163,9 +405,11 @@ const FloorPlan = () => {
   const { user, loading: authLoading } = useAuth();
   const { updateQuizData } = useQuiz();
 
-  const [step, setStep] = useState(0); // 0=shape, 1=dimensions, 2=layouts
+  const [step, setStep] = useState(0); // 0=shape, 1=dimensions, 2=openings, 3=layouts
   const [selectedShape, setSelectedShape] = useState<RoomShape | null>(null);
   const [dimensions, setDimensions] = useState<Record<string, number>>({});
+  const [openings, setOpenings] = useState<RoomOpening[]>([]);
+  const [activeOpeningType, setActiveOpeningType] = useState<OpeningType>("door");
   const [layouts, setLayouts] = useState<LayoutSuggestion[]>([]);
   const [selectedLayout, setSelectedLayout] = useState<number | null>(null);
   const [generating, setGenerating] = useState(false);
@@ -187,6 +431,22 @@ const FloorPlan = () => {
     }
   }, []);
 
+  const addOpening = useCallback((wall: WallSide, position: number) => {
+    setOpenings(prev => [
+      ...prev,
+      {
+        id: crypto.randomUUID(),
+        type: activeOpeningType,
+        wall,
+        position: Math.round(position),
+      },
+    ]);
+  }, [activeOpeningType]);
+
+  const removeOpening = useCallback((id: string) => {
+    setOpenings(prev => prev.filter(o => o.id !== id));
+  }, []);
+
   const generateLayouts = useCallback(async () => {
     if (!selectedShape) return;
     setGenerating(true);
@@ -198,6 +458,7 @@ const FloorPlan = () => {
         body: {
           shape: selectedShape.id,
           dimensions,
+          openings: openings.map(o => ({ type: o.type, wall: o.wall, position: o.position })),
         },
       });
 
@@ -208,28 +469,27 @@ const FloorPlan = () => {
       } else {
         throw new Error("Invalid layout response");
       }
-      setStep(2);
+      setStep(3);
     } catch (e: any) {
       console.error("Layout generation error:", e);
       toast({ title: "Layout Generation Failed", description: e.message || "Please try again.", variant: "destructive" });
     } finally {
       setGenerating(false);
     }
-  }, [selectedShape, dimensions]);
+  }, [selectedShape, dimensions, openings]);
 
   const proceedToQuiz = useCallback(() => {
     if (selectedLayout === null || !selectedShape) return;
-    // Store floor plan context in session for quiz/generate to use
     const floorPlanContext = {
       shape: selectedShape.id,
       dimensions,
+      openings: openings.map(o => ({ type: o.type, wall: o.wall, position: o.position })),
       layout: layouts[selectedLayout],
     };
     sessionStorage.setItem("floor_plan_context", JSON.stringify(floorPlanContext));
-    // Set room type based on shape
     updateQuizData({ roomType: selectedShape.id === "open-plan" ? "living_room" : "" });
     navigate("/quiz");
-  }, [selectedLayout, selectedShape, dimensions, layouts, navigate, updateQuizData]);
+  }, [selectedLayout, selectedShape, dimensions, openings, layouts, navigate, updateQuizData]);
 
   if (authLoading) {
     return (
@@ -238,6 +498,8 @@ const FloorPlan = () => {
       </div>
     );
   }
+
+  const STEP_LABELS = ["Shape", "Dimensions", "Openings", "Layouts"];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-secondary/20 to-primary/10">
@@ -259,7 +521,7 @@ const FloorPlan = () => {
 
       {/* Progress */}
       <div className="flex justify-center gap-2 px-4 pb-4">
-        {["Shape", "Dimensions", "Layouts"].map((label, i) => (
+        {STEP_LABELS.map((label, i) => (
           <div key={label} className="flex items-center gap-2">
             <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold transition-colors ${
               i <= step ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
@@ -267,7 +529,7 @@ const FloorPlan = () => {
               {i + 1}
             </div>
             <span className={`text-xs hidden sm:inline ${i <= step ? "text-foreground" : "text-muted-foreground"}`}>{label}</span>
-            {i < 2 && <div className={`w-8 h-px ${i < step ? "bg-primary" : "bg-border"}`} />}
+            {i < STEP_LABELS.length - 1 && <div className={`w-8 h-px ${i < step ? "bg-primary" : "bg-border"}`} />}
           </div>
         ))}
       </div>
@@ -312,12 +574,10 @@ const FloorPlan = () => {
               </div>
 
               <div className="grid md:grid-cols-2 gap-8 items-start">
-                {/* SVG Preview */}
                 <div className="bg-card rounded-xl border p-6 flex items-center justify-center min-h-[300px]">
                   <ShapeSVG shapeId={selectedShape.id} dims={dimensions} scale={1} className="w-full h-full max-h-[280px]" />
                 </div>
 
-                {/* Dimension Inputs */}
                 <div className="space-y-4">
                   {Object.entries(selectedShape.dimensionLabels).map(([key, label]) => (
                     <div key={key} className="space-y-1.5">
@@ -338,12 +598,8 @@ const FloorPlan = () => {
                     <Button variant="outline" onClick={() => setStep(0)} className="flex-1">
                       <RotateCcw className="w-4 h-4 mr-2" /> Change Shape
                     </Button>
-                    <Button onClick={generateLayouts} disabled={generating} className="flex-1">
-                      {generating ? (
-                        <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Generating...</>
-                      ) : (
-                        <>Generate Layouts <ArrowRight className="w-4 h-4 ml-2" /></>
-                      )}
+                    <Button onClick={() => setStep(2)} className="flex-1">
+                      Next: Openings <ArrowRight className="w-4 h-4 ml-2" />
                     </Button>
                   </div>
                 </div>
@@ -351,8 +607,97 @@ const FloorPlan = () => {
             </div>
           )}
 
-          {/* Step 2: Layout Suggestions */}
-          {step === 2 && (
+          {/* Step 2: Openings (doors, windows, balconies) */}
+          {step === 2 && selectedShape && (
+            <div className="space-y-6">
+              <div className="text-center space-y-2">
+                <h1 className="text-2xl md:text-3xl font-bold">Add Doors, Windows & Balconies</h1>
+                <p className="text-muted-foreground">Select a type below, then click on any wall to place it. Click an opening to remove it.</p>
+              </div>
+
+              <div className="grid md:grid-cols-[1fr_280px] gap-6 items-start">
+                {/* Interactive room */}
+                <div className="bg-card rounded-xl border p-4 min-h-[400px] flex items-center justify-center">
+                  <RoomWithOpenings
+                    shapeId={selectedShape.id}
+                    dims={dimensions}
+                    openings={openings}
+                    activeType={activeOpeningType}
+                    onWallClick={addOpening}
+                    onRemoveOpening={removeOpening}
+                  />
+                </div>
+
+                {/* Controls */}
+                <div className="space-y-5">
+                  {/* Opening type selector */}
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">Placing:</Label>
+                    <div className="flex flex-col gap-2">
+                      {OPENING_TYPES.map((ot) => (
+                        <button
+                          key={ot.type}
+                          onClick={() => setActiveOpeningType(ot.type)}
+                          className={`flex items-center gap-3 px-3 py-2.5 rounded-lg border text-left text-sm transition-all ${
+                            activeOpeningType === ot.type
+                              ? "border-primary bg-primary/10 font-medium"
+                              : "border-border hover:border-primary/30"
+                          }`}
+                        >
+                          <span className="text-lg">{ot.icon}</span>
+                          <span>{ot.label}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Placed openings list */}
+                  {openings.length > 0 && (
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium">Placed ({openings.length}):</Label>
+                      <div className="space-y-1.5 max-h-[200px] overflow-y-auto">
+                        {openings.map((o) => {
+                          const typeInfo = OPENING_TYPES.find(t => t.type === o.type);
+                          return (
+                            <div
+                              key={o.id}
+                              className="flex items-center justify-between px-3 py-2 rounded-md bg-muted/50 text-sm"
+                            >
+                              <span>
+                                {typeInfo?.icon} {typeInfo?.label} — {WALL_LABELS[o.wall]}
+                              </span>
+                              <button
+                                onClick={() => removeOpening(o.id)}
+                                className="text-muted-foreground hover:text-destructive transition-colors"
+                              >
+                                <X className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="flex flex-col gap-2 pt-2">
+                    <Button onClick={generateLayouts} disabled={generating}>
+                      {generating ? (
+                        <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Generating...</>
+                      ) : (
+                        <>Generate Layouts <ArrowRight className="w-4 h-4 ml-2" /></>
+                      )}
+                    </Button>
+                    <Button variant="ghost" size="sm" onClick={() => setStep(2)} className="text-xs text-muted-foreground">
+                      Skip — no openings to add
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Step 3: Layout Suggestions */}
+          {step === 3 && (
             <div className="space-y-6">
               <div className="text-center space-y-2">
                 <h1 className="text-2xl md:text-3xl font-bold">Choose Your Layout</h1>
@@ -382,7 +727,6 @@ const FloorPlan = () => {
                           <CardContent className="p-4 space-y-3">
                             <div className="bg-muted/30 rounded-lg p-2 flex items-center justify-center">
                               <svg viewBox={`0 0 ${canvasW} ${canvasH}`} className="w-full h-auto">
-                                {/* Room outline */}
                                 <rect x={10} y={10} width={canvasW - 20} height={canvasH - 20} fill="hsl(var(--primary) / 0.05)" stroke="hsl(var(--border))" strokeWidth={1.5} rx={3} />
                                 <FurnitureOverlay items={layout.items} canvasW={canvasW - 20} canvasH={canvasH - 20} />
                               </svg>
@@ -398,8 +742,8 @@ const FloorPlan = () => {
                   </div>
 
                   <div className="flex justify-center gap-3 pt-4">
-                    <Button variant="outline" onClick={() => { setStep(1); setLayouts([]); setSelectedLayout(null); }}>
-                      <RotateCcw className="w-4 h-4 mr-2" /> Adjust Dimensions
+                    <Button variant="outline" onClick={() => { setStep(2); setLayouts([]); setSelectedLayout(null); }}>
+                      <RotateCcw className="w-4 h-4 mr-2" /> Edit Openings
                     </Button>
                     <Button variant="outline" onClick={generateLayouts} disabled={generating}>
                       {generating ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
