@@ -435,31 +435,55 @@ const B2BOnboardingFlow = () => {
                   alt="AI Generated Room Preview"
                   className="w-full h-full object-cover min-h-[240px]"
                 />
-                {/* Product tags on image */}
+
+                {/* Uploaded products shown IN the scene */}
+                {uploadedImages.length > 0 && (
+                  <>
+                    {uploadedImages.slice(0, 3).map((img, i) => {
+                      const positions = [
+                        { top: "35%", left: "25%", size: "w-20 h-20" },
+                        { top: "50%", left: "55%", size: "w-16 h-16" },
+                        { top: "40%", left: "78%", size: "w-14 h-14" },
+                      ];
+                      const pos = positions[i];
+                      return (
+                        <div
+                          key={`uploaded-${i}`}
+                          className={cn("absolute animate-in fade-in zoom-in duration-500 drop-shadow-xl", pos.size)}
+                          style={{ top: pos.top, left: pos.left, animationDelay: `${i * 150}ms`, transform: "translate(-50%, -50%)" }}
+                        >
+                          <div className="relative w-full h-full rounded-lg overflow-hidden border-2 border-white/90 shadow-2xl ring-1 ring-black/10">
+                            <img src={img} alt={`Your product ${i + 1}`} className="w-full h-full object-cover" />
+                          </div>
+                          <div className="absolute -bottom-5 left-1/2 -translate-x-1/2 whitespace-nowrap px-1.5 py-0.5 rounded bg-primary text-primary-foreground text-[9px] font-bold shadow">
+                            Your product
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </>
+                )}
+
+                {/* Upsell product tags */}
                 {goalData.shoppingList.map((item, i) => (
                   <div
                     key={i}
                     className="absolute flex items-center gap-1 animate-in fade-in zoom-in duration-500"
-                    style={{ top: item.tagPos.top, left: item.tagPos.left, animationDelay: `${i * 200}ms`, transform: 'translate(-50%, -50%)' }}
+                    style={{ top: item.tagPos.top, left: item.tagPos.left, animationDelay: `${(uploadedImages.length + i) * 200}ms`, transform: 'translate(-50%, -50%)' }}
                   >
                     <div className="relative">
-                      {uploadedImages[i] ? (
-                        <div className="w-8 h-8 rounded-full overflow-hidden border-2 border-white shadow-lg cursor-pointer">
-                          <img src={uploadedImages[i]} alt={item.name} className="w-full h-full object-cover" />
-                        </div>
-                      ) : (
-                        <div className="w-5 h-5 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-[10px] font-bold shadow-lg cursor-pointer ring-2 ring-white/80">
-                          {i + 1}
-                        </div>
-                      )}
+                      <div className="w-5 h-5 rounded-full bg-accent text-accent-foreground flex items-center justify-center text-[10px] font-bold shadow-lg cursor-pointer ring-2 ring-white/80">
+                        +
+                      </div>
                       <div className="absolute left-full ml-2 top-1/2 -translate-y-1/2 whitespace-nowrap px-2 py-1 rounded-md bg-card/95 backdrop-blur shadow-lg border border-border/50 text-[11px] font-medium text-foreground opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
                         {item.name} <span className="text-primary font-bold">{item.price}</span>
                       </div>
                     </div>
                   </div>
                 ))}
+
                 <div className="absolute top-3 left-3 px-2 py-1 rounded-md bg-card/80 backdrop-blur text-xs font-medium text-foreground">
-                  Live Preview
+                  {uploadedImages.length > 0 ? "Your products in context" : "Live Preview"}
                 </div>
                 <div className="absolute bottom-3 left-3 right-3 px-3 py-2 rounded-lg bg-card/90 backdrop-blur-sm">
                   <p className="text-xs font-medium text-primary">{goalData.headline}</p>
