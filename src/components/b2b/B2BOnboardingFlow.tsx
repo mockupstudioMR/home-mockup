@@ -533,48 +533,20 @@ const B2BOnboardingFlow = () => {
 
           <Card className="overflow-hidden border-border/50">
             <div className="grid md:grid-cols-2">
-              {/* Room preview with real image */}
+              {/* Room preview — AI-generated scene or fallback */}
               <div className="relative group">
                 <img
-                  src={selectedStyleData?.image || styleModern}
+                  src={generatedSceneUrl || selectedStyleData?.image || styleModern}
                   alt="AI Generated Room Preview"
                   className="w-full h-full object-cover min-h-[240px]"
                 />
-
-                {/* Uploaded products composited into the scene */}
-                {uploadedImages.length > 0 && uploadedImages.slice(0, 3).map((img, i) => {
-                  const positions = [
-                    { top: "52%", left: "28%", w: 110, h: 90, rotate: -2 },
-                    { top: "48%", left: "58%", w: 90, h: 75, rotate: 1 },
-                    { top: "55%", left: "80%", w: 80, h: 65, rotate: -1 },
-                  ];
-                  const pos = positions[i];
-                  return (
-                    <img
-                      key={`scene-product-${i}`}
-                      src={img}
-                      alt={`Your product ${i + 1}`}
-                      className="absolute object-contain animate-in fade-in duration-700 pointer-events-none"
-                      style={{
-                        top: pos.top,
-                        left: pos.left,
-                        width: pos.w,
-                        height: pos.h,
-                        transform: `translate(-50%, -50%) rotate(${pos.rotate}deg)`,
-                        animationDelay: `${i * 200}ms`,
-                        filter: "drop-shadow(0 8px 20px rgba(0,0,0,0.35))",
-                        mixBlendMode: "normal",
-                      }}
-                    />
-                  );
-                })}
 
                 {/* Upsell product tags */}
                 {goalData.shoppingList.map((item, i) => (
                   <div
                     key={i}
                     className="absolute flex items-center gap-1 animate-in fade-in zoom-in duration-500"
-                    style={{ top: item.tagPos.top, left: item.tagPos.left, animationDelay: `${(uploadedImages.length + i) * 200}ms`, transform: 'translate(-50%, -50%)' }}
+                    style={{ top: item.tagPos.top, left: item.tagPos.left, animationDelay: `${i * 200}ms`, transform: 'translate(-50%, -50%)' }}
                   >
                     <div className="relative">
                       <div className="w-5 h-5 rounded-full bg-accent text-accent-foreground flex items-center justify-center text-[10px] font-bold shadow-lg cursor-pointer ring-2 ring-white/80">
@@ -588,7 +560,7 @@ const B2BOnboardingFlow = () => {
                 ))}
 
                 <div className="absolute top-3 left-3 px-2 py-1 rounded-md bg-card/80 backdrop-blur text-xs font-medium text-foreground">
-                  {uploadedImages.length > 0 ? "Your products in context" : "Live Preview"}
+                  {generatedSceneUrl ? "AI-designed with your products" : "Live Preview"}
                 </div>
                 <div className="absolute bottom-3 left-3 right-3 px-3 py-2 rounded-lg bg-card/90 backdrop-blur-sm">
                   <p className="text-xs font-medium text-primary">{goalData.headline}</p>
