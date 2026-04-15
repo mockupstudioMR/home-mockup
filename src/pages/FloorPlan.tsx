@@ -8,7 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import Logo from "@/components/Logo";
-import { ArrowLeft, ArrowRight, Loader2, RotateCcw, DoorOpen, Plus, X } from "lucide-react";
+import { ArrowLeft, ArrowRight, Loader2, RotateCcw, X } from "lucide-react";
+import { ArchFurniture, ArchLegend } from "@/components/floorplan/ArchFurniture";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 
@@ -369,21 +370,16 @@ function RoomWithOpenings({
   );
 }
 
-// Furniture icon renderers for layouts
-function FurnitureOverlay({ items, canvasW, canvasH }: { items: LayoutItem[]; canvasW: number; canvasH: number }) {
+// Architectural furniture overlay using top-view symbols
+function ArchFurnitureOverlay({ items, canvasW, canvasH }: { items: LayoutItem[]; canvasW: number; canvasH: number }) {
   return (
     <>
       {items.map((item, i) => {
-        const x = (item.x / 100) * canvasW;
-        const y = (item.y / 100) * canvasH;
+        const x = (item.x / 100) * canvasW + 10;
+        const y = (item.y / 100) * canvasH + 10;
         const w = (item.w / 100) * canvasW;
         const h = (item.h / 100) * canvasH;
-        return (
-          <g key={i}>
-            <rect x={x} y={y} width={w} height={h} fill="hsl(var(--accent) / 0.3)" stroke="hsl(var(--accent-foreground) / 0.5)" strokeWidth={1} rx={2} />
-            <text x={x + w / 2} y={y + h / 2 + 3} textAnchor="middle" fontSize={Math.min(w, h) > 20 ? 8 : 6} fill="hsl(var(--foreground))">{item.label}</text>
-          </g>
-        );
+        return <ArchFurniture key={i} x={x} y={y} w={w} h={h} label={item.label} />;
       })}
     </>
   );
@@ -724,16 +720,23 @@ const FloorPlan = () => {
                           }`}
                           onClick={() => setSelectedLayout(i)}
                         >
-                          <CardContent className="p-4 space-y-3">
-                            <div className="bg-muted/30 rounded-lg p-2 flex items-center justify-center">
+                          <CardContent className="p-4 space-y-2">
+                            <div className="bg-[hsl(var(--background))] rounded-lg p-3 flex items-center justify-center border border-border/30">
                               <svg viewBox={`0 0 ${canvasW} ${canvasH}`} className="w-full h-auto">
-                                <rect x={10} y={10} width={canvasW - 20} height={canvasH - 20} fill="hsl(var(--primary) / 0.05)" stroke="hsl(var(--border))" strokeWidth={1.5} rx={3} />
-                                <FurnitureOverlay items={layout.items} canvasW={canvasW - 20} canvasH={canvasH - 20} />
+                                <defs>
+                                  <pattern id={`grid-${i}`} width="15" height="15" patternUnits="userSpaceOnUse">
+                                    <path d="M 15 0 L 0 0 0 15" fill="none" stroke="hsl(var(--border) / 0.3)" strokeWidth="0.3" />
+                                  </pattern>
+                                </defs>
+                                <rect x={10} y={10} width={canvasW - 20} height={canvasH - 20} fill={`url(#grid-${i})`} stroke="hsl(var(--foreground) / 0.4)" strokeWidth={2} rx={1} />
+                                <rect x={8} y={8} width={canvasW - 16} height={canvasH - 16} fill="none" stroke="hsl(var(--foreground) / 0.15)" strokeWidth={5} rx={2} />
+                                <ArchFurnitureOverlay items={layout.items} canvasW={canvasW - 20} canvasH={canvasH - 20} />
                               </svg>
                             </div>
                             <div>
                               <h3 className="font-semibold text-sm">{layout.name}</h3>
-                              <p className="text-xs text-muted-foreground mt-1">{layout.description}</p>
+                              <p className="text-xs text-muted-foreground mt-0.5">{layout.description}</p>
+                              <ArchLegend items={layout.items.map(it => it.label)} />
                             </div>
                           </CardContent>
                         </Card>
