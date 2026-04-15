@@ -509,13 +509,15 @@ const FloorPlan = () => {
     const floorPlanContext = {
       shape: selectedShape.id,
       dimensions,
+      roomType: selectedRoomType,
+      furnitureItems: selectedFurniture,
       openings: openings.map(o => ({ type: o.type, wall: o.wall, position: o.position })),
       layout: layouts[selectedLayout],
     };
     sessionStorage.setItem("floor_plan_context", JSON.stringify(floorPlanContext));
-    updateQuizData({ roomType: selectedShape.id === "open-plan" ? "living_room" : "" });
+    updateQuizData({ roomType: selectedRoomType || (selectedShape.id === "open-plan" ? "living_room" : "") });
     navigate("/quiz");
-  }, [selectedLayout, selectedShape, dimensions, openings, layouts, navigate, updateQuizData]);
+  }, [selectedLayout, selectedShape, dimensions, selectedRoomType, selectedFurniture, openings, layouts, navigate, updateQuizData]);
 
   if (authLoading) {
     return (
