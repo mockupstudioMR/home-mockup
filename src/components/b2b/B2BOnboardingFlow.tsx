@@ -15,7 +15,7 @@ import styleScandi from "@/assets/b2b/style-scandinavian.jpg";
 import styleContemporary from "@/assets/b2b/style-contemporary.jpg";
 import styleBoho from "@/assets/b2b/style-boho.jpg";
 import styleLuxury from "@/assets/b2b/style-luxury.jpg";
-import resultRoom from "@/assets/b2b/result-room-preview.jpg";
+
 
 const TOTAL_STEPS = 7;
 
@@ -151,7 +151,7 @@ const B2BOnboardingFlow = () => {
             60-second setup
           </div>
           <h2 className="text-3xl md:text-4xl font-bold text-foreground leading-tight">
-            Create your AI showroom<br />in 60 seconds
+            Your store, redesigned.<br />Ready in seconds.
           </h2>
           <p className="text-lg text-muted-foreground max-w-lg mx-auto">
             Let your customers design their home using your products
@@ -368,7 +368,7 @@ const B2BOnboardingFlow = () => {
               {/* Room preview with real image */}
               <div className="relative">
                 <img
-                  src={selectedStyleData?.image || resultRoom}
+                  src={selectedStyleData?.image || styleModern}
                   alt="AI Generated Room Preview"
                   className="w-full h-full object-cover min-h-[240px]"
                 />
