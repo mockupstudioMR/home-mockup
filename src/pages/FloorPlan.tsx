@@ -404,14 +404,39 @@ const FloorPlan = () => {
   const { user, loading: authLoading } = useAuth();
   const { updateQuizData } = useQuiz();
 
-  const [step, setStep] = useState(0); // 0=shape, 1=dimensions, 2=openings, 3=layouts
+  const [step, setStep] = useState(0); // 0=shape, 1=dimensions, 2=room type & furniture, 3=openings, 4=layouts
   const [selectedShape, setSelectedShape] = useState<RoomShape | null>(null);
   const [dimensions, setDimensions] = useState<Record<string, number>>({});
+  const [selectedRoomType, setSelectedRoomType] = useState<string>("");
+  const [selectedFurniture, setSelectedFurniture] = useState<string[]>([]);
   const [openings, setOpenings] = useState<RoomOpening[]>([]);
   const [activeOpeningType, setActiveOpeningType] = useState<OpeningType>("door");
   const [layouts, setLayouts] = useState<LayoutSuggestion[]>([]);
   const [selectedLayout, setSelectedLayout] = useState<number | null>(null);
   const [generating, setGenerating] = useState(false);
+
+  // Fetch room furniture configs from DB
+  const { data: roomConfigs } = useQuery({
+    queryKey: ["room-furniture-config"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("room_furniture_config")
+        .select("*")
+        .order("room_label");
+      if (error) throw error;
+      return data as { id: string; room_type: string; room_label: string; furniture_items: string[]; description: string | null }[];
+    },
+  });
+
+  const ROOM_ICONS: Record<string, React.ReactNode> = {
+    "living-room": <Sofa className="w-6 h-6" />,
+    "bedroom": <Bed className="w-6 h-6" />,
+    "kitchen": <UtensilsCrossed className="w-6 h-6" />,
+    "office": <Monitor className="w-6 h-6" />,
+    "bathroom": <Bath className="w-6 h-6" />,
+  };
+
+  const activeRoomConfig = roomConfigs?.find(r => r.room_type === selectedRoomType);
 
   useEffect(() => {
     if (!authLoading && !user) navigate("/auth");
