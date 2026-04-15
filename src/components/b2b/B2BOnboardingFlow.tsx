@@ -688,7 +688,7 @@ const B2BOnboardingFlow = () => {
                 </div>
                 <div className="relative rounded-lg overflow-hidden border border-border/30">
                   <img
-                    src={selectedStyleData?.image || styleModern}
+                    src={generatedSceneUrl || selectedStyleData?.image || styleModern}
                     alt="Store embedded preview"
                     className="w-full aspect-[16/9] object-cover"
                   />
