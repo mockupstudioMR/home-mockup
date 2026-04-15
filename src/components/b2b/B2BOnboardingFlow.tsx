@@ -37,6 +37,7 @@ const goalResults: Record<string, {
   headline: string;
   subtitle: string;
   chatMessage: string;
+  shoppingList: string[];
   metrics: { icon: React.ReactNode; label: string; value: string }[];
   tip: string;
 }> = {
@@ -416,7 +417,7 @@ const B2BOnboardingFlow = () => {
                 {/* Shopping list */}
                 <div className="space-y-2">
                   <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Shopping List</p>
-                  {["Velvet Sofa — $1,299", "Side Table — $349", "Floor Lamp — $189"].map((item, i) => (
+                  {goalData.shoppingList.map((item, i) => (
                     <div key={i} className="flex items-center gap-2 p-2 rounded-md bg-card border border-border/50 text-sm">
                       <ShoppingBag className="w-4 h-4 text-primary" />
                       <span className="text-foreground">{item}</span>
