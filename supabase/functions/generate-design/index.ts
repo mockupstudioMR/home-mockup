@@ -351,6 +351,12 @@ serve(async (req) => {
         contentParts.push({ type: "image_url", image_url: { url: imgUrl } });
       }
       addDebug("Scene layout image", `Added scene reference after product images`);
+    } else if (enrichedRequestData.modificationPrompt) {
+      // Modification mode: ONLY send the source design image so the edit is applied verbatim
+      if (enrichedRequestData.sourceImageUrl) {
+        contentParts.push({ type: "image_url", image_url: { url: enrichedRequestData.sourceImageUrl } });
+        addDebug("Modification mode", "Sending ONLY source image — feedback applied verbatim, no extra context");
+      }
     } else {
       // Normal mode: existing room images first, then products
       if (enrichedRequestData.existingRoomImages && enrichedRequestData.existingRoomImages.length > 0) {
