@@ -37,7 +37,7 @@ import GenerationCountdown from "@/components/generate/GenerationCountdown";
 import TryAnotherStyle from "@/components/generate/TryAnotherStyle";
 import WallExtractionPanel from "@/components/generate/WallExtractionPanel";
 import type { ExtractedWall } from "@/components/generate/WallExtractionPanel";
-import FloorPlanPreview from "@/components/generate/FloorPlanPreview";
+import FloorPlanComparison from "@/components/generate/FloorPlanComparison";
 
 interface GeneratedDesign {
   id: string;
@@ -1787,8 +1787,12 @@ const Generate = () => {
           />
         )}
 
-        {/* Floor Plan Preview */}
-        <FloorPlanPreview />
+        {/* Floor Plan vs Design comparison */}
+        <FloorPlanComparison
+          designImageUrl={design?.imageUrl ?? null}
+          isRealigning={generating}
+          onRealign={handleRealignToPlan}
+        />
 
         {/* Main Design */}
         {design && (
