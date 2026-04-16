@@ -391,6 +391,7 @@ function ArchFurnitureOverlay({ items, canvasW, canvasH }: { items: LayoutItem[]
 interface LayoutItem {
   label: string;
   x: number; y: number; w: number; h: number;
+  reason?: string;
 }
 
 interface LayoutSuggestion {
