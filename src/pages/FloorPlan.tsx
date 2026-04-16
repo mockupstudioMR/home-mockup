@@ -269,6 +269,7 @@ function RoomWithOpenings({
   activeType,
   onWallClick,
   onRemoveOpening,
+  customWalls,
 }: {
   shapeId: ShapeId;
   dims: Record<string, number>;
@@ -276,6 +277,7 @@ function RoomWithOpenings({
   activeType: OpeningType;
   onWallClick: (wall: WallSide, position: number) => void;
   onRemoveOpening: (id: string) => void;
+  customWalls?: WallSegment[];
 }) {
   const padding = 40;
   const w = (dims.width || dims.mainW || dims.totalW || 5) * 30;
@@ -304,52 +306,76 @@ function RoomWithOpenings({
     onWallClick(wall, position);
   };
 
-  const getOpeningPos = (opening: RoomOpening) => {
-    const pos = opening.position / 100;
-    const size = opening.type === "door" ? 18 : opening.type === "balcony" ? 24 : 20;
-
-    switch (opening.wall) {
-      case "top":
-        return { x: padding + pos * w, y: padding, horizontal: true, size };
-      case "bottom":
-        return { x: padding + pos * w, y: padding + h, horizontal: true, size };
-      case "left":
-        return { x: padding, y: padding + pos * h, horizontal: false, size };
-      case "right":
-        return { x: padding + w, y: padding + pos * h, horizontal: false, size };
+  // Build shape path based on shapeId
+  const getShapePath = () => {
+    switch (shapeId) {
+      case "l-shape": {
+        const mw = (dims.mainW || 6) * 30;
+        const mh = (dims.mainH || 4) * 30;
+        const ww = (dims.wingW || 3) * 30;
+        const wh = (dims.wingH || 3) * 30;
+        return `M${padding},${padding} H${padding + mw} V${padding + wh} H${padding + ww} V${padding + mh} H${padding} Z`;
+      }
+      case "u-shape": {
+        const tw = (dims.totalW || 7) * 30;
+        const th = (dims.totalH || 5) * 30;
+        const cw = (dims.cutoutW || 3) * 30;
+        const ch = (dims.cutoutH || 3) * 30;
+        const cx = (tw - cw) / 2;
+        return `M${padding},${padding} H${padding + tw} V${padding + th} H${padding + cx + cw} V${padding + th - ch} H${padding + cx} V${padding + th} H${padding} Z`;
+      }
+      case "custom": {
+        if (customWalls && customWalls.length >= 3) {
+          const verts = wallSegmentsToVertices(customWalls);
+          const bb = verticesBBox(verts);
+          const scale = Math.min(w / (bb.w || 1), h / (bb.h || 1));
+          return verts.map((v, i) => {
+            const x = (v.x - bb.minX) * scale + padding;
+            const y = (v.y - bb.minY) * scale + padding;
+            return `${i === 0 ? "M" : "L"}${x},${y}`;
+          }).join(" ") + " Z";
+        }
+        return null;
+      }
+      default:
+        return null; // rectangle handled separately
     }
   };
 
-  const openingColor = (type: OpeningType) => {
-    return OPENING_TYPES.find((t) => t.type === type)?.color || stroke;
-  };
+  const shapePath = getShapePath();
+  const isRect = !shapePath;
 
-  return (
-    <svg viewBox={`0 0 ${svgW} ${svgH}`} className="w-full h-full max-h-[350px]">
+  // Render shape outline
+  const shapeOutline = isRect ? (
+    <>
       <rect x={padding} y={padding} width={w} height={h} fill={fill} stroke="none" />
-
-      {(["top", "bottom", "left", "right"] as WallSide[]).map((wall) => {
-        const props =
-          wall === "top"
-            ? { x1: padding, y1: padding, x2: padding + w, y2: padding }
-            : wall === "bottom"
-            ? { x1: padding, y1: padding + h, x2: padding + w, y2: padding + h }
-            : wall === "left"
-            ? { x1: padding, y1: padding, x2: padding, y2: padding + h }
-            : { x1: padding + w, y1: padding, x2: padding + w, y2: padding + h };
-        return (
-          <line
-            key={wall}
-            {...props}
-            stroke="transparent"
-            strokeWidth={16}
-            className="cursor-crosshair"
-            onClick={(e) => handleWallClick(wall, e)}
-          />
-        );
-      })}
-
       <rect x={padding} y={padding} width={w} height={h} fill="none" stroke={stroke} strokeWidth={2.5} rx={2} />
+    </>
+  ) : (
+    <path d={shapePath} fill={fill} stroke={stroke} strokeWidth={2.5} />
+  );
+
+  // Clickable wall lines (always use bounding box for click targets)
+  const wallLines = (["top", "bottom", "left", "right"] as WallSide[]).map((wall) => {
+    const props =
+      wall === "top"
+        ? { x1: padding, y1: padding, x2: padding + w, y2: padding }
+        : wall === "bottom"
+        ? { x1: padding, y1: padding + h, x2: padding + w, y2: padding + h }
+        : wall === "left"
+        ? { x1: padding, y1: padding, x2: padding, y2: padding + h }
+        : { x1: padding + w, y1: padding, x2: padding + w, y2: padding + h };
+    return (
+      <line
+        key={wall}
+        {...props}
+        stroke="transparent"
+        strokeWidth={16}
+        className="cursor-crosshair"
+        onClick={(e) => handleWallClick(wall, e)}
+      />
+    );
+  });
 
       {(["top", "bottom", "left", "right"] as WallSide[]).map((wall) => {
         const labelProps =
