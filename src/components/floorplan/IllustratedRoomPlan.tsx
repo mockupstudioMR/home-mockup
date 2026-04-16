@@ -1,4 +1,5 @@
 import { IllustratedFurniture } from "@/components/floorplan/IllustratedFurniture";
+import RoomOpenings, { type RoomOpeningInput } from "@/components/floorplan/RoomOpenings";
 
 interface LayoutItem {
   label: string;
@@ -13,6 +14,7 @@ interface Props {
   shape?: string;
   dimensions?: Record<string, number>;
   customWalls?: { x: number; y: number }[][];
+  openings?: RoomOpeningInput[];
   height?: number;
 }
 
@@ -85,6 +87,7 @@ export default function IllustratedRoomPlan({
   items,
   shape = "rectangle",
   dimensions = {},
+  openings = [],
   height = 240,
 }: Props) {
   const padding = 20;
@@ -122,6 +125,8 @@ export default function IllustratedRoomPlan({
           return <IllustratedFurniture key={i} x={x} y={y} w={w} h={h} label={item.label} />;
         })}
       </g>
+      {/* Openings rendered AFTER furniture and OUTSIDE the clip so swing arcs and balconies extend past the wall */}
+      <RoomOpenings vertices={verts} openings={openings} scale={1} />
     </svg>
   );
 }
