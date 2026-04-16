@@ -1502,8 +1502,8 @@ const FloorPlan = () => {
             </div>
           )}
 
-          {/* Step 5: Layout Result */}
-          {step === 5 && (
+          {/* Step 4: Layout Result */}
+          {step === 4 && (
             <div className="space-y-6">
               <div className="text-center space-y-2">
                 <h1 className="text-2xl md:text-3xl font-bold">Your Suggested Layout</h1>
