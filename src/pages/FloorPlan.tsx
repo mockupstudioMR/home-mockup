@@ -812,8 +812,7 @@ const FloorPlan = () => {
         furnitureItems: selectedFurniture,
         openings: openings.map(o => ({ type: o.type, wall: o.wall, position: o.position })),
         walls: wallsData,
-        style: selectedStyle,
-        referenceImageUrl: referenceImageUrl || undefined,
+        // Layout is generated based on room geometry only — style is chosen after
       };
       if (selectedShape.id === "custom") {
         body.customWalls = customWalls;
@@ -829,14 +828,14 @@ const FloorPlan = () => {
       } else {
         throw new Error("Invalid layout response");
       }
-      setStep(5);
+      setStep(4);
     } catch (e: any) {
       console.error("Layout generation error:", e);
       toast({ title: "Layout Generation Failed", description: e.message || "Please try again.", variant: "destructive" });
     } finally {
       setGenerating(false);
     }
-  }, [selectedShape, dimensions, selectedRoomType, selectedFurniture, openings, buildWallsClockwise, selectedStyle, referenceImageUrl]);
+  }, [selectedShape, dimensions, selectedRoomType, selectedFurniture, openings, buildWallsClockwise, customWalls]);
 
   const saveFeedbackAndProceed = useCallback(async () => {
     if (!layout || !selectedShape || !user) return;
