@@ -256,6 +256,8 @@ function ShapeSVG({ shapeId, dims, scale = 1, className = "" }: { shapeId: Shape
         </svg>
       );
     }
+    case "custom":
+      return null; // CustomShapeSVG handles this
   }
 }
 
