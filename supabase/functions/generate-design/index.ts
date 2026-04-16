@@ -671,9 +671,9 @@ function buildImagePrompt(
     }
   }
 
-  // Modification: edit the attached source image applying ONLY the user's feedback. Preserve everything else.
+  // Modification: surgical image edit. Preserve everything except the requested change.
   if (data.modificationPrompt) {
-    return `Edit the attached image. Apply EXACTLY and ONLY this change: "${data.modificationPrompt}". Keep every other element (camera angle, composition, lighting, walls, floor, all other furniture, colors, materials, decor) IDENTICAL to the original. Do not add, remove, restyle, or rearrange anything beyond the requested change. Output the full edited image at the same aspect ratio and resolution.`;
+    return `SURGICAL EDIT of the attached image. Apply ONLY this single change: "${data.modificationPrompt}". Treat the rest of the image as a locked reference — do NOT regenerate, restyle, recolor, relight, reframe, or rearrange anything else. Pixel-level preservation required for: camera angle, perspective, framing, aspect ratio, walls, floor, ceiling, windows, doors, lighting direction & color temperature, shadows, all furniture not mentioned in the change, all decor, textures, materials, plants, art, and overall composition. The output must look like the original photograph with ONLY the requested element modified — as if edited in Photoshop, not regenerated.`;
   }
 
   // Scene preview refinement - reproduce the exact scene with the exact same products
