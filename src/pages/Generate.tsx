@@ -37,7 +37,7 @@ import GenerationCountdown from "@/components/generate/GenerationCountdown";
 import TryAnotherStyle from "@/components/generate/TryAnotherStyle";
 import WallExtractionPanel from "@/components/generate/WallExtractionPanel";
 import type { ExtractedWall } from "@/components/generate/WallExtractionPanel";
-import FloorPlanPreview from "@/components/generate/FloorPlanPreview";
+import FloorPlanComparison from "@/components/generate/FloorPlanComparison";
 
 interface GeneratedDesign {
   id: string;
@@ -1440,6 +1440,60 @@ const Generate = () => {
     }
   };
 
+  const handleRealignToPlan = async ({
+    plannedItems,
+    shape,
+    dimensions,
+  }: {
+    plannedItems: { label: string; x: number; y: number; w: number; h: number }[];
+    shape: string;
+    dimensions: Record<string, number>;
+  }) => {
+    if (!quizData || !design || !user) return;
+    if (design.isLocked) {
+      toast({ title: "Design is locked", variant: "destructive" });
+      return;
+    }
+    setGenerating(true);
+    try {
+      const dimsLabel = Object.entries(dimensions).map(([k, v]) => `${k}=${v}m`).join(", ");
+      const layoutLines = plannedItems
+        .map((it) => `- ${it.label} at ${Math.round(it.x)}%,${Math.round(it.y)}% size ${Math.round(it.w)}%×${Math.round(it.h)}%`)
+        .join("\n");
+      const modPrompt = `Re-render this exact room as a ${shape} with dimensions ${dimsLabel}. Strictly preserve the planned top-down furniture layout (positions and footprints relative to the room's bounding box):\n${layoutLines}\nKeep the same style, colors, and materials as the current image. Adjust camera and proportions so the room geometry matches the floor plan.`;
+
+      const response = await supabase.functions.invoke("generate-design", {
+        body: {
+          ...quizData,
+          modificationPrompt: modPrompt,
+          modificationType: "layout_adjust",
+          sourceImageUrl: design.imageUrl,
+        },
+      });
+      if (response.error) throw new Error(response.error.message);
+      const { imageUrl, prompt: usedPrompt, debugSteps: steps } = response.data;
+      if (steps) setDebugSteps(steps);
+      if (usedPrompt) setDebugPrompt(usedPrompt);
+
+      const storedImageUrl = await uploadDesignImage(imageUrl, user.id);
+      setImageHistoryStack((prev) => [...prev, design.imageUrl]);
+      if (!design.id.startsWith("design-")) {
+        await supabase.from("generated_designs").update({ image_url: storedImageUrl }).eq("id", design.id);
+      }
+      setDesign({ ...design, imageUrl: storedImageUrl });
+      generateHighlights(storedImageUrl);
+      toast({ title: "Design re-aligned to your floor plan" });
+    } catch (e) {
+      toast({
+        title: "Re-align failed",
+        description: e instanceof Error ? e.message : "Please try again",
+        variant: "destructive",
+      });
+    } finally {
+      setGenerating(false);
+    }
+  };
+
   const handleLockDesign = async () => {
     if (!design || design.isLocked || design.id.startsWith("design-")) {
       toast({
@@ -1787,8 +1841,12 @@ const Generate = () => {
           />
         )}
 
-        {/* Floor Plan Preview */}
-        <FloorPlanPreview />
+        {/* Floor Plan vs Design comparison */}
+        <FloorPlanComparison
+          designImageUrl={design?.imageUrl ?? null}
+          isRealigning={generating}
+          onRealign={handleRealignToPlan}
+        />
 
         {/* Main Design */}
         {design && (
