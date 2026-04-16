@@ -1390,10 +1390,14 @@ const FloorPlan = () => {
                   )}
 
                   <div className="flex flex-col gap-2 pt-2">
-                    <Button onClick={() => setStep(4)}>
-                      Next: Style <ArrowRight className="w-4 h-4 ml-2" />
+                    <Button onClick={generateLayouts} disabled={generating}>
+                      {generating ? (
+                        <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Generating Layout...</>
+                      ) : (
+                        <>Generate Layout <ArrowRight className="w-4 h-4 ml-2" /></>
+                      )}
                     </Button>
-                    <Button variant="ghost" size="sm" onClick={() => setStep(4)} className="text-xs text-muted-foreground">
+                    <Button variant="ghost" size="sm" onClick={generateLayouts} disabled={generating} className="text-xs text-muted-foreground">
                       Skip — no openings to add
                     </Button>
                   </div>
