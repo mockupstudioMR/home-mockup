@@ -545,19 +545,6 @@ function RoomWithOpenings({
     </svg>
   );
 }
-function ArchFurnitureOverlay({ items, canvasW, canvasH }: { items: LayoutItem[]; canvasW: number; canvasH: number }) {
-  return (
-    <>
-      {items.map((item, i) => {
-        const x = (item.x / 100) * canvasW + 10;
-        const y = (item.y / 100) * canvasH + 10;
-        const w = (item.w / 100) * canvasW;
-        const h = (item.h / 100) * canvasH;
-        return <ArchFurniture key={i} x={x} y={y} w={w} h={h} label={item.label} />;
-      })}
-    </>
-  );
-}
 
 interface LayoutItem {
   label: string;
