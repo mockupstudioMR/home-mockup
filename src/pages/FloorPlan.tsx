@@ -1524,16 +1524,17 @@ const FloorPlan = () => {
                             return (
                               <svg viewBox={`0 0 ${svgW} ${svgH}`} className="w-full h-auto max-h-[350px]">
                                 <defs>
-                                  <pattern id="grid-single" width="15" height="15" patternUnits="userSpaceOnUse">
-                                    <path d="M 15 0 L 0 0 0 15" fill="none" stroke="hsl(var(--border) / 0.3)" strokeWidth="0.3" />
+                                  <pattern id="wood-floor" width="14" height="60" patternUnits="userSpaceOnUse">
+                                    <rect width="14" height="60" fill="hsl(35 35% 86%)" />
+                                    <line x1="0" y1="0" x2="14" y2="0" stroke="hsl(28 30% 72%)" strokeWidth="0.4" opacity="0.6" />
+                                    <line x1="7" y1="0" x2="7" y2="60" stroke="hsl(28 30% 72%)" strokeWidth="0.3" opacity="0.4" />
                                   </pattern>
                                   <clipPath id="room-clip">
                                     <path d={shapePath} />
                                   </clipPath>
                                 </defs>
-                                {/* Room polygon */}
-                                <path d={shapePath} fill="url(#grid-single)" stroke="hsl(var(--foreground) / 0.4)" strokeWidth={2} />
-                                <path d={shapePath} fill="none" stroke="hsl(var(--foreground) / 0.15)" strokeWidth={5} />
+                                {/* Room polygon with wood floor */}
+                                <path d={shapePath} fill="url(#wood-floor)" stroke="hsl(25 30% 35%)" strokeWidth={2.5} strokeLinejoin="round" />
                                 {/* Furniture clipped to room polygon */}
                                 <g clipPath="url(#room-clip)">
                                   {layout.items.map((item, i) => {
