@@ -32,7 +32,7 @@ serve(async (req) => {
       ? furnitureItems.join(", ")
       : "Sofa, Coffee Table, TV Unit, Bookshelf, Armchair, Rug, Plant";
 
-    const systemPrompt = `You are an interior design layout planner. Given a room shape, dimensions, room type, specific furniture items, and locations of doors/windows/balconies, suggest exactly 3 different furniture layout arrangements.
+    const systemPrompt = `You are an interior design layout planner. Given a room shape, dimensions, room type, specific furniture items, and locations of doors/windows/balconies, suggest exactly ONE optimal furniture layout.
 
 CRITICAL RULES:
 - ONLY use the furniture items specified by the user — do not add extra items
@@ -42,17 +42,20 @@ CRITICAL RULES:
 - Consider traffic flow between openings
 - Size each piece realistically relative to the room dimensions
 
-Return a JSON object with a "layouts" array. Each layout has:
-- "name": short creative name (e.g. "Cozy Conversation")
-- "description": one-sentence description of the arrangement style
+For EACH furniture item, provide a short reason explaining WHY you placed it there (e.g. "Near the window for natural light", "Against the wall opposite the door for a clear sightline", "Next to the sofa for easy reach").
+
+Return a JSON object with:
+- "name": short creative name for the layout (e.g. "Cozy Conversation")
+- "description": one-sentence overview of the arrangement philosophy
 - "items": array of furniture pieces, each with:
   - "label": exact furniture name from the provided list
   - "x": percentage from left (0-100)
   - "y": percentage from top (0-100)
   - "w": width as percentage of room (5-40)
   - "h": height as percentage of room (5-40)
+  - "reason": short explanation of why this item is placed here
 
-Make layouts diverse in arrangement style. Ensure items don't overlap and are placed logically.`;
+Ensure items don't overlap and are placed logically.`;
 
     let openingsDesc = "";
     if (openings && Array.isArray(openings) && openings.length > 0) {
@@ -60,7 +63,7 @@ Make layouts diverse in arrangement style. Ensure items don't overlap and are pl
     }
 
     const roomTypeDesc = roomType ? `\nRoom type: ${roomType}` : "";
-    const userPrompt = `Room shape: ${shape}\nDimensions: ${dimDesc}${roomTypeDesc}\nFurniture to place: ${furnitureList}${openingsDesc}\n\nGenerate 3 furniture layout suggestions using ONLY the specified furniture items.`;
+    const userPrompt = `Room shape: ${shape}\nDimensions: ${dimDesc}${roomTypeDesc}\nFurniture to place: ${furnitureList}${openingsDesc}\n\nGenerate the best furniture layout using ONLY the specified furniture items. Explain why each piece is placed where it is.`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -78,43 +81,35 @@ Make layouts diverse in arrangement style. Ensure items don't overlap and are pl
           {
             type: "function",
             function: {
-              name: "suggest_layouts",
-              description: "Return 3 furniture layout suggestions for the room",
+              name: "suggest_layout",
+              description: "Return a single optimal furniture layout for the room with placement reasoning",
               parameters: {
                 type: "object",
                 properties: {
-                  layouts: {
+                  name: { type: "string" },
+                  description: { type: "string" },
+                  items: {
                     type: "array",
                     items: {
                       type: "object",
                       properties: {
-                        name: { type: "string" },
-                        description: { type: "string" },
-                        items: {
-                          type: "array",
-                          items: {
-                            type: "object",
-                            properties: {
-                              label: { type: "string" },
-                              x: { type: "number" },
-                              y: { type: "number" },
-                              w: { type: "number" },
-                              h: { type: "number" },
-                            },
-                            required: ["label", "x", "y", "w", "h"],
-                          },
-                        },
+                        label: { type: "string" },
+                        x: { type: "number" },
+                        y: { type: "number" },
+                        w: { type: "number" },
+                        h: { type: "number" },
+                        reason: { type: "string" },
                       },
-                      required: ["name", "description", "items"],
+                      required: ["label", "x", "y", "w", "h", "reason"],
                     },
                   },
                 },
-                required: ["layouts"],
+                required: ["name", "description", "items"],
               },
             },
           },
         ],
-        tool_choice: { type: "function", function: { name: "suggest_layouts" } },
+        tool_choice: { type: "function", function: { name: "suggest_layout" } },
       }),
     });
 
@@ -147,7 +142,8 @@ Make layouts diverse in arrangement style. Ensure items don't overlap and are pl
 
     const parsed = JSON.parse(toolCall.function.arguments);
 
-    return new Response(JSON.stringify(parsed), {
+    // Wrap in layout key for backward compat
+    return new Response(JSON.stringify({ layout: parsed }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
