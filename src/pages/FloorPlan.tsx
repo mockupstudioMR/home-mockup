@@ -887,8 +887,8 @@ const FloorPlan = () => {
                 <h1 className="text-2xl md:text-3xl font-bold">Choose Your Room Shape</h1>
                 <p className="text-muted-foreground">Select the shape that best matches your room</p>
               </div>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                {ROOM_SHAPES.map((shape) => (
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                {ROOM_SHAPES.filter(s => s.id !== "custom").map((shape) => (
                   <Card
                     key={shape.id}
                     className="group cursor-pointer hover:border-primary/50 transition-all"
@@ -906,48 +906,182 @@ const FloorPlan = () => {
                   </Card>
                 ))}
               </div>
+
+              {/* Custom & Upload options */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Custom shape */}
+                <Card
+                  className="group cursor-pointer hover:border-primary/50 transition-all border-dashed"
+                  onClick={() => selectShape(ROOM_SHAPES.find(s => s.id === "custom")!)}
+                >
+                  <CardContent className="p-5 flex items-center gap-4">
+                    <div className="w-14 h-14 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                      <svg viewBox="0 0 40 40" className="w-8 h-8">
+                        <polygon points="5,35 5,10 15,5 35,10 35,30 20,35" fill="none" stroke="hsl(var(--primary))" strokeWidth="2" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h3 className="font-semibold group-hover:text-primary transition-colors">Custom Shape</h3>
+                      <p className="text-xs text-muted-foreground">Define walls with lengths and angles for any room shape</p>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Upload floor plan */}
+                <Card className="group hover:border-primary/50 transition-all border-dashed">
+                  <CardContent className="p-5">
+                    <label className="flex items-center gap-4 cursor-pointer">
+                      <div className="w-14 h-14 rounded-xl bg-accent/50 flex items-center justify-center shrink-0">
+                        {floorPlanUploading || floorPlanAnalyzing ? (
+                          <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                        ) : (
+                          <Upload className="w-6 h-6 text-primary" />
+                        )}
+                      </div>
+                      <div>
+                        <h3 className="font-semibold group-hover:text-primary transition-colors">Upload Floor Plan</h3>
+                        <p className="text-xs text-muted-foreground">
+                          {floorPlanAnalyzing ? "Analyzing your floor plan…" : floorPlanUploading ? "Uploading…" : "Upload a photo or sketch and we'll extract the shape"}
+                        </p>
+                      </div>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={handleFloorPlanUpload}
+                        disabled={floorPlanUploading || floorPlanAnalyzing}
+                      />
+                    </label>
+                  </CardContent>
+                </Card>
+              </div>
             </div>
           )}
 
-          {/* Step 1: Set Dimensions */}
+          {/* Step 1: Set Dimensions / Custom Wall Editor */}
           {step === 1 && selectedShape && (
             <div className="space-y-6">
               <div className="text-center space-y-2">
-                <h1 className="text-2xl md:text-3xl font-bold">Set Room Dimensions</h1>
-                <p className="text-muted-foreground">Enter measurements in meters</p>
+                <h1 className="text-2xl md:text-3xl font-bold">
+                  {selectedShape.id === "custom" ? "Define Your Room Walls" : "Set Room Dimensions"}
+                </h1>
+                <p className="text-muted-foreground">
+                  {selectedShape.id === "custom" ? "Add wall segments with lengths and turning angles" : "Enter measurements in meters"}
+                </p>
               </div>
 
-              <div className="grid md:grid-cols-2 gap-8 items-start">
-                <div className="bg-card rounded-xl border p-6 flex items-center justify-center min-h-[300px]">
-                  <ShapeSVG shapeId={selectedShape.id} dims={dimensions} scale={1} className="w-full h-full max-h-[280px]" />
-                </div>
+              {selectedShape.id === "custom" ? (
+                /* Custom wall segment editor */
+                <div className="grid md:grid-cols-2 gap-8 items-start">
+                  <div className="bg-card rounded-xl border p-6 flex items-center justify-center min-h-[300px]">
+                    {customWalls.length >= 3 ? (
+                      <CustomShapeSVG segments={customWalls} className="w-full h-full max-h-[280px]" />
+                    ) : (
+                      <p className="text-muted-foreground text-sm">Add at least 3 walls to preview shape</p>
+                    )}
+                  </div>
 
-                <div className="space-y-4">
-                  {Object.entries(selectedShape.dimensionLabels).map(([key, label]) => (
-                    <div key={key} className="space-y-1.5">
-                      <Label htmlFor={key}>{label}</Label>
-                      <Input
-                        id={key}
-                        type="number"
-                        min={1}
-                        max={30}
-                        step={0.1}
-                        value={dimensions[key] || ""}
-                        onChange={(e) => updateDim(key, e.target.value)}
-                      />
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-sm font-medium">Wall Segments ({customWalls.length})</Label>
+                      <Button variant="outline" size="sm" onClick={addWallSegment}>
+                        + Add Wall
+                      </Button>
                     </div>
-                  ))}
 
-                  <div className="pt-4 flex gap-3">
-                    <Button variant="outline" onClick={() => setStep(0)} className="flex-1">
-                      <RotateCcw className="w-4 h-4 mr-2" /> Change Shape
-                    </Button>
-                    <Button onClick={() => setStep(2)} className="flex-1">
-                      Next: Room Type <ArrowRight className="w-4 h-4 ml-2" />
-                    </Button>
+                    <div className="space-y-2 max-h-[350px] overflow-y-auto pr-1">
+                      {customWalls.map((wall, i) => (
+                        <div key={i} className="flex items-center gap-2 p-2.5 rounded-lg bg-secondary/40 border border-border/50">
+                          <span className="text-xs font-medium text-muted-foreground w-16 shrink-0">Wall {i + 1}</span>
+                          <div className="flex-1 space-y-1">
+                            <div className="flex gap-2 items-center">
+                              <Input
+                                type="number"
+                                min={0.5}
+                                max={20}
+                                step={0.1}
+                                value={wall.length_m}
+                                onChange={(e) => updateWallSegment(i, "length_m", parseFloat(e.target.value) || 1)}
+                                className="h-7 text-xs"
+                              />
+                              <span className="text-xs text-muted-foreground shrink-0">m</span>
+                            </div>
+                            <div className="flex gap-2 items-center">
+                              <Input
+                                type="number"
+                                min={-180}
+                                max={180}
+                                step={1}
+                                value={wall.angle_deg}
+                                onChange={(e) => updateWallSegment(i, "angle_deg", parseFloat(e.target.value) || 0)}
+                                className="h-7 text-xs"
+                              />
+                              <span className="text-xs text-muted-foreground shrink-0">° turn</span>
+                            </div>
+                          </div>
+                          {customWalls.length > 3 && (
+                            <button
+                              onClick={() => removeWallSegment(i)}
+                              className="p-1 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
+                            >
+                              <X className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+
+                    {floorPlanImageUrl && (
+                      <div className="rounded-lg border overflow-hidden">
+                        <img src={floorPlanImageUrl} alt="Uploaded floor plan" className="w-full h-24 object-cover" />
+                        <p className="text-[10px] text-muted-foreground p-1.5">Extracted from uploaded floor plan — adjust values as needed</p>
+                      </div>
+                    )}
+
+                    <div className="pt-3 flex gap-3">
+                      <Button variant="outline" onClick={() => setStep(0)} className="flex-1">
+                        <RotateCcw className="w-4 h-4 mr-2" /> Change Shape
+                      </Button>
+                      <Button onClick={() => setStep(2)} disabled={customWalls.length < 3} className="flex-1">
+                        Next: Room Type <ArrowRight className="w-4 h-4 ml-2" />
+                      </Button>
+                    </div>
                   </div>
                 </div>
-              </div>
+              ) : (
+                /* Standard dimension editor */
+                <div className="grid md:grid-cols-2 gap-8 items-start">
+                  <div className="bg-card rounded-xl border p-6 flex items-center justify-center min-h-[300px]">
+                    <ShapeSVG shapeId={selectedShape.id} dims={dimensions} scale={1} className="w-full h-full max-h-[280px]" />
+                  </div>
+
+                  <div className="space-y-4">
+                    {Object.entries(selectedShape.dimensionLabels).map(([key, label]) => (
+                      <div key={key} className="space-y-1.5">
+                        <Label htmlFor={key}>{label}</Label>
+                        <Input
+                          id={key}
+                          type="number"
+                          min={1}
+                          max={30}
+                          step={0.1}
+                          value={dimensions[key] || ""}
+                          onChange={(e) => updateDim(key, e.target.value)}
+                        />
+                      </div>
+                    ))}
+
+                    <div className="pt-4 flex gap-3">
+                      <Button variant="outline" onClick={() => setStep(0)} className="flex-1">
+                        <RotateCcw className="w-4 h-4 mr-2" /> Change Shape
+                      </Button>
+                      <Button onClick={() => setStep(2)} className="flex-1">
+                        Next: Room Type <ArrowRight className="w-4 h-4 ml-2" />
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
