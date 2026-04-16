@@ -504,14 +504,14 @@ const FloorPlan = () => {
   }, [selectedShape, dimensions, selectedRoomType, selectedFurniture, openings]);
 
   const proceedToQuiz = useCallback(async () => {
-    if (selectedLayout === null || !selectedShape) return;
+    if (!layout || !selectedShape) return;
     const floorPlanContext = {
       shape: selectedShape.id,
       dimensions,
       roomType: selectedRoomType,
       furnitureItems: selectedFurniture,
       openings: openings.map(o => ({ type: o.type, wall: o.wall, position: o.position })),
-      layout: layouts[selectedLayout],
+      layout,
     };
     sessionStorage.setItem("floor_plan_context", JSON.stringify(floorPlanContext));
     const roomType = selectedRoomType || (selectedShape.id === "open-plan" ? "living_room" : "living_room");
@@ -528,11 +528,11 @@ const FloorPlan = () => {
         must_have_elements: selectedFurniture,
         furniture_source: null,
       });
-    } catch (_) { /* non-critical */ }
+    } catch { /* non-critical */ }
 
     sessionStorage.setItem('generate_quiz_nonce', crypto.randomUUID());
     navigate("/generate", { state: { quizData: { roomType, stylePreference: "modern-minimal", colorPalette: "neutral", budgetFeel: "mid-range", mustHaveElements: selectedFurniture } } });
-  }, [selectedLayout, selectedShape, dimensions, selectedRoomType, selectedFurniture, openings, layouts, navigate, updateQuizData]);
+  }, [layout, selectedShape, dimensions, selectedRoomType, selectedFurniture, openings, navigate, updateQuizData]);
 
   if (authLoading) {
     return (
