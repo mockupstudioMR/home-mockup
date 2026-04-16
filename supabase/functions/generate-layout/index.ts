@@ -12,10 +12,10 @@ serve(async (req) => {
   }
 
   try {
-    const { shape, dimensions, openings, roomType, furnitureItems, walls, style, referenceImageUrl } = await req.json();
+    const { shape, dimensions, openings, roomType, furnitureItems, walls, style, referenceImageUrl, customWalls } = await req.json();
 
-    if (!shape || !dimensions) {
-      return new Response(JSON.stringify({ error: "shape and dimensions required" }), {
+    if (!shape) {
+      return new Response(JSON.stringify({ error: "shape required" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -24,9 +24,14 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
-    const dimDesc = Object.entries(dimensions)
-      .map(([k, v]) => `${k}: ${v}m`)
-      .join(", ");
+    let dimDesc = "";
+    if (shape === "custom" && customWalls && Array.isArray(customWalls)) {
+      dimDesc = "Custom polygon with walls: " + customWalls.map((w: any, i: number) => `Wall ${i + 1}: ${w.length_m}m, then turn ${w.angle_deg}°`).join("; ");
+    } else if (dimensions) {
+      dimDesc = Object.entries(dimensions)
+        .map(([k, v]) => `${k}: ${v}m`)
+        .join(", ");
+    }
 
     const furnitureList = furnitureItems && Array.isArray(furnitureItems) && furnitureItems.length > 0
       ? furnitureItems.join(", ")

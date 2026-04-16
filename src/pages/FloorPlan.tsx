@@ -36,7 +36,12 @@ const STYLE_OPTIONS = [
 ];
 
 // Room shape definitions
-type ShapeId = "rectangle" | "l-shape" | "u-shape" | "open-plan";
+type ShapeId = "rectangle" | "l-shape" | "u-shape" | "open-plan" | "custom";
+
+interface WallSegment {
+  length_m: number;
+  angle_deg: number;
+}
 
 interface RoomShape {
   id: ShapeId;
@@ -85,7 +90,76 @@ const ROOM_SHAPES: RoomShape[] = [
     defaultDimensions: { width: 8, height: 6 },
     dimensionLabels: { width: "Width (m)", height: "Length (m)" },
   },
+  {
+    id: "custom",
+    label: "Custom Shape",
+    description: "Define walls with angles",
+    defaultDimensions: {},
+    dimensionLabels: {},
+  },
 ];
+
+// Compute polygon vertices from wall segments
+function wallSegmentsToVertices(segments: WallSegment[]): { x: number; y: number }[] {
+  const vertices: { x: number; y: number }[] = [{ x: 0, y: 0 }];
+  let heading = 0; // degrees, 0 = right/east
+  for (let i = 0; i < segments.length; i++) {
+    const seg = segments[i];
+    const rad = (heading * Math.PI) / 180;
+    const lastV = vertices[vertices.length - 1];
+    vertices.push({
+      x: lastV.x + seg.length_m * Math.cos(rad),
+      y: lastV.y + seg.length_m * Math.sin(rad),
+    });
+    heading += seg.angle_deg;
+  }
+  return vertices;
+}
+
+function verticesBBox(verts: { x: number; y: number }[]) {
+  let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+  for (const v of verts) {
+    if (v.x < minX) minX = v.x;
+    if (v.x > maxX) maxX = v.x;
+    if (v.y < minY) minY = v.y;
+    if (v.y > maxY) maxY = v.y;
+  }
+  return { minX, maxX, minY, maxY, w: maxX - minX, h: maxY - minY };
+}
+
+// SVG for custom polygon shape
+function CustomShapeSVG({ segments, className = "" }: { segments: WallSegment[]; className?: string }) {
+  if (segments.length < 3) return null;
+  const verts = wallSegmentsToVertices(segments);
+  const bb = verticesBBox(verts);
+  const pad = 30;
+  const scale = Math.min(200 / (bb.w || 1), 160 / (bb.h || 1));
+  const points = verts.map(v => `${(v.x - bb.minX) * scale + pad},${(v.y - bb.minY) * scale + pad}`).join(" ");
+  const svgW = bb.w * scale + pad * 2;
+  const svgH = bb.h * scale + pad * 2;
+
+  return (
+    <svg viewBox={`0 0 ${svgW} ${svgH}`} className={className}>
+      <polygon
+        points={points}
+        fill="hsl(var(--primary) / 0.08)"
+        stroke="hsl(var(--primary))"
+        strokeWidth={2}
+      />
+      {/* Label each wall with length */}
+      {verts.slice(0, -1).map((v, i) => {
+        const next = verts[i + 1];
+        const mx = ((v.x - bb.minX + next.x - bb.minX) / 2) * scale + pad;
+        const my = ((v.y - bb.minY + next.y - bb.minY) / 2) * scale + pad;
+        return (
+          <text key={i} x={mx} y={my - 4} textAnchor="middle" fontSize={9} fill="hsl(var(--muted-foreground))">
+            {segments[i].length_m}m
+          </text>
+        );
+      })}
+    </svg>
+  );
+}
 
 // Opening types
 type OpeningType = "door" | "window" | "balcony";
@@ -182,6 +256,8 @@ function ShapeSVG({ shapeId, dims, scale = 1, className = "" }: { shapeId: Shape
         </svg>
       );
     }
+    case "custom":
+      return null; // CustomShapeSVG handles this
   }
 }
 
@@ -441,6 +517,19 @@ const FloorPlan = () => {
     top: "flat", right: "flat", bottom: "flat", left: "flat",
   });
 
+  // Custom shape
+  const [customWalls, setCustomWalls] = useState<WallSegment[]>([
+    { length_m: 5, angle_deg: 90 },
+    { length_m: 4, angle_deg: 90 },
+    { length_m: 5, angle_deg: 90 },
+    { length_m: 4, angle_deg: 90 },
+  ]);
+
+  // Floor plan upload
+  const [floorPlanUploading, setFloorPlanUploading] = useState(false);
+  const [floorPlanAnalyzing, setFloorPlanAnalyzing] = useState(false);
+  const [floorPlanImageUrl, setFloorPlanImageUrl] = useState<string>("");
+
   // Style step
   const [selectedStyle, setSelectedStyle] = useState<string>("");
   const [referenceImageUrl, setReferenceImageUrl] = useState<string>("");
@@ -509,8 +598,76 @@ const FloorPlan = () => {
 
   const selectShape = useCallback((shape: RoomShape) => {
     setSelectedShape(shape);
-    setDimensions({ ...shape.defaultDimensions });
+    if (shape.id !== "custom") {
+      setDimensions({ ...shape.defaultDimensions });
+    }
     setStep(1);
+  }, []);
+
+  const handleFloorPlanUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+    setFloorPlanUploading(true);
+    setFloorPlanAnalyzing(false);
+    try {
+      const ext = file.name.split(".").pop();
+      const path = `${user.id}/floorplan_${Date.now()}.${ext}`;
+      const { error: uploadErr } = await supabase.storage.from("room-uploads").upload(path, file);
+      if (uploadErr) throw uploadErr;
+      const { data: urlData } = supabase.storage.from("room-uploads").getPublicUrl(path);
+      setFloorPlanImageUrl(urlData.publicUrl);
+      setFloorPlanUploading(false);
+      setFloorPlanAnalyzing(true);
+
+      // Call AI to analyze the floor plan
+      const { data, error } = await supabase.functions.invoke("analyze-floorplan", {
+        body: { imageUrl: urlData.publicUrl },
+      });
+      if (error) throw error;
+
+      if (data?.floorplan?.walls && data.floorplan.walls.length >= 3) {
+        setCustomWalls(data.floorplan.walls);
+        // Set shape to custom and go to step 1
+        const customShape = ROOM_SHAPES.find(s => s.id === "custom")!;
+        setSelectedShape(customShape);
+
+        // Auto-import detected openings
+        if (data.floorplan.openings?.length > 0) {
+          const wallLabels: WallSide[] = ["top", "right", "bottom", "left"];
+          const importedOpenings: RoomOpening[] = data.floorplan.openings
+            .filter((o: any) => o.wall_index < wallLabels.length)
+            .map((o: any) => ({
+              id: crypto.randomUUID(),
+              type: o.type as OpeningType,
+              wall: wallLabels[o.wall_index % wallLabels.length],
+              position: Math.round(o.position_pct),
+            }));
+          setOpenings(importedOpenings);
+        }
+
+        toast({ title: "Floor plan analyzed!", description: data.floorplan.shape_description || "Shape extracted successfully" });
+        setStep(1);
+      } else {
+        throw new Error("Could not extract room shape from image");
+      }
+    } catch (err: any) {
+      toast({ title: "Analysis failed", description: err.message || "Please try again", variant: "destructive" });
+    } finally {
+      setFloorPlanUploading(false);
+      setFloorPlanAnalyzing(false);
+    }
+  }, [user]);
+
+  const addWallSegment = useCallback(() => {
+    setCustomWalls(prev => [...prev, { length_m: 3, angle_deg: 90 }]);
+  }, []);
+
+  const removeWallSegment = useCallback((index: number) => {
+    setCustomWalls(prev => prev.length > 3 ? prev.filter((_, i) => i !== index) : prev);
+  }, []);
+
+  const updateWallSegment = useCallback((index: number, field: "length_m" | "angle_deg", value: number) => {
+    setCustomWalls(prev => prev.map((w, i) => i === index ? { ...w, [field]: value } : w));
   }, []);
 
   const updateDim = useCallback((key: string, val: string) => {
@@ -577,17 +734,21 @@ const FloorPlan = () => {
 
     try {
       const wallsData = buildWallsClockwise();
+      const body: Record<string, any> = {
+        shape: selectedShape.id,
+        dimensions,
+        roomType: selectedRoomType,
+        furnitureItems: selectedFurniture,
+        openings: openings.map(o => ({ type: o.type, wall: o.wall, position: o.position })),
+        walls: wallsData,
+        style: selectedStyle,
+        referenceImageUrl: referenceImageUrl || undefined,
+      };
+      if (selectedShape.id === "custom") {
+        body.customWalls = customWalls;
+      }
       const { data, error } = await supabase.functions.invoke("generate-layout", {
-        body: {
-          shape: selectedShape.id,
-          dimensions,
-          roomType: selectedRoomType,
-          furnitureItems: selectedFurniture,
-          openings: openings.map(o => ({ type: o.type, wall: o.wall, position: o.position })),
-          walls: wallsData,
-          style: selectedStyle,
-          referenceImageUrl: referenceImageUrl || undefined,
-        },
+        body,
       });
 
       if (error) throw error;
@@ -732,8 +893,8 @@ const FloorPlan = () => {
                 <h1 className="text-2xl md:text-3xl font-bold">Choose Your Room Shape</h1>
                 <p className="text-muted-foreground">Select the shape that best matches your room</p>
               </div>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                {ROOM_SHAPES.map((shape) => (
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                {ROOM_SHAPES.filter(s => s.id !== "custom").map((shape) => (
                   <Card
                     key={shape.id}
                     className="group cursor-pointer hover:border-primary/50 transition-all"
@@ -751,48 +912,182 @@ const FloorPlan = () => {
                   </Card>
                 ))}
               </div>
+
+              {/* Custom & Upload options */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Custom shape */}
+                <Card
+                  className="group cursor-pointer hover:border-primary/50 transition-all border-dashed"
+                  onClick={() => selectShape(ROOM_SHAPES.find(s => s.id === "custom")!)}
+                >
+                  <CardContent className="p-5 flex items-center gap-4">
+                    <div className="w-14 h-14 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                      <svg viewBox="0 0 40 40" className="w-8 h-8">
+                        <polygon points="5,35 5,10 15,5 35,10 35,30 20,35" fill="none" stroke="hsl(var(--primary))" strokeWidth="2" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h3 className="font-semibold group-hover:text-primary transition-colors">Custom Shape</h3>
+                      <p className="text-xs text-muted-foreground">Define walls with lengths and angles for any room shape</p>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Upload floor plan */}
+                <Card className="group hover:border-primary/50 transition-all border-dashed">
+                  <CardContent className="p-5">
+                    <label className="flex items-center gap-4 cursor-pointer">
+                      <div className="w-14 h-14 rounded-xl bg-accent/50 flex items-center justify-center shrink-0">
+                        {floorPlanUploading || floorPlanAnalyzing ? (
+                          <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                        ) : (
+                          <Upload className="w-6 h-6 text-primary" />
+                        )}
+                      </div>
+                      <div>
+                        <h3 className="font-semibold group-hover:text-primary transition-colors">Upload Floor Plan</h3>
+                        <p className="text-xs text-muted-foreground">
+                          {floorPlanAnalyzing ? "Analyzing your floor plan…" : floorPlanUploading ? "Uploading…" : "Upload a photo or sketch and we'll extract the shape"}
+                        </p>
+                      </div>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={handleFloorPlanUpload}
+                        disabled={floorPlanUploading || floorPlanAnalyzing}
+                      />
+                    </label>
+                  </CardContent>
+                </Card>
+              </div>
             </div>
           )}
 
-          {/* Step 1: Set Dimensions */}
+          {/* Step 1: Set Dimensions / Custom Wall Editor */}
           {step === 1 && selectedShape && (
             <div className="space-y-6">
               <div className="text-center space-y-2">
-                <h1 className="text-2xl md:text-3xl font-bold">Set Room Dimensions</h1>
-                <p className="text-muted-foreground">Enter measurements in meters</p>
+                <h1 className="text-2xl md:text-3xl font-bold">
+                  {selectedShape.id === "custom" ? "Define Your Room Walls" : "Set Room Dimensions"}
+                </h1>
+                <p className="text-muted-foreground">
+                  {selectedShape.id === "custom" ? "Add wall segments with lengths and turning angles" : "Enter measurements in meters"}
+                </p>
               </div>
 
-              <div className="grid md:grid-cols-2 gap-8 items-start">
-                <div className="bg-card rounded-xl border p-6 flex items-center justify-center min-h-[300px]">
-                  <ShapeSVG shapeId={selectedShape.id} dims={dimensions} scale={1} className="w-full h-full max-h-[280px]" />
-                </div>
+              {selectedShape.id === "custom" ? (
+                /* Custom wall segment editor */
+                <div className="grid md:grid-cols-2 gap-8 items-start">
+                  <div className="bg-card rounded-xl border p-6 flex items-center justify-center min-h-[300px]">
+                    {customWalls.length >= 3 ? (
+                      <CustomShapeSVG segments={customWalls} className="w-full h-full max-h-[280px]" />
+                    ) : (
+                      <p className="text-muted-foreground text-sm">Add at least 3 walls to preview shape</p>
+                    )}
+                  </div>
 
-                <div className="space-y-4">
-                  {Object.entries(selectedShape.dimensionLabels).map(([key, label]) => (
-                    <div key={key} className="space-y-1.5">
-                      <Label htmlFor={key}>{label}</Label>
-                      <Input
-                        id={key}
-                        type="number"
-                        min={1}
-                        max={30}
-                        step={0.1}
-                        value={dimensions[key] || ""}
-                        onChange={(e) => updateDim(key, e.target.value)}
-                      />
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-sm font-medium">Wall Segments ({customWalls.length})</Label>
+                      <Button variant="outline" size="sm" onClick={addWallSegment}>
+                        + Add Wall
+                      </Button>
                     </div>
-                  ))}
 
-                  <div className="pt-4 flex gap-3">
-                    <Button variant="outline" onClick={() => setStep(0)} className="flex-1">
-                      <RotateCcw className="w-4 h-4 mr-2" /> Change Shape
-                    </Button>
-                    <Button onClick={() => setStep(2)} className="flex-1">
-                      Next: Room Type <ArrowRight className="w-4 h-4 ml-2" />
-                    </Button>
+                    <div className="space-y-2 max-h-[350px] overflow-y-auto pr-1">
+                      {customWalls.map((wall, i) => (
+                        <div key={i} className="flex items-center gap-2 p-2.5 rounded-lg bg-secondary/40 border border-border/50">
+                          <span className="text-xs font-medium text-muted-foreground w-16 shrink-0">Wall {i + 1}</span>
+                          <div className="flex-1 space-y-1">
+                            <div className="flex gap-2 items-center">
+                              <Input
+                                type="number"
+                                min={0.5}
+                                max={20}
+                                step={0.1}
+                                value={wall.length_m}
+                                onChange={(e) => updateWallSegment(i, "length_m", parseFloat(e.target.value) || 1)}
+                                className="h-7 text-xs"
+                              />
+                              <span className="text-xs text-muted-foreground shrink-0">m</span>
+                            </div>
+                            <div className="flex gap-2 items-center">
+                              <Input
+                                type="number"
+                                min={-180}
+                                max={180}
+                                step={1}
+                                value={wall.angle_deg}
+                                onChange={(e) => updateWallSegment(i, "angle_deg", parseFloat(e.target.value) || 0)}
+                                className="h-7 text-xs"
+                              />
+                              <span className="text-xs text-muted-foreground shrink-0">° turn</span>
+                            </div>
+                          </div>
+                          {customWalls.length > 3 && (
+                            <button
+                              onClick={() => removeWallSegment(i)}
+                              className="p-1 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
+                            >
+                              <X className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+
+                    {floorPlanImageUrl && (
+                      <div className="rounded-lg border overflow-hidden">
+                        <img src={floorPlanImageUrl} alt="Uploaded floor plan" className="w-full h-24 object-cover" />
+                        <p className="text-[10px] text-muted-foreground p-1.5">Extracted from uploaded floor plan — adjust values as needed</p>
+                      </div>
+                    )}
+
+                    <div className="pt-3 flex gap-3">
+                      <Button variant="outline" onClick={() => setStep(0)} className="flex-1">
+                        <RotateCcw className="w-4 h-4 mr-2" /> Change Shape
+                      </Button>
+                      <Button onClick={() => setStep(2)} disabled={customWalls.length < 3} className="flex-1">
+                        Next: Room Type <ArrowRight className="w-4 h-4 ml-2" />
+                      </Button>
+                    </div>
                   </div>
                 </div>
-              </div>
+              ) : (
+                /* Standard dimension editor */
+                <div className="grid md:grid-cols-2 gap-8 items-start">
+                  <div className="bg-card rounded-xl border p-6 flex items-center justify-center min-h-[300px]">
+                    <ShapeSVG shapeId={selectedShape.id} dims={dimensions} scale={1} className="w-full h-full max-h-[280px]" />
+                  </div>
+
+                  <div className="space-y-4">
+                    {Object.entries(selectedShape.dimensionLabels).map(([key, label]) => (
+                      <div key={key} className="space-y-1.5">
+                        <Label htmlFor={key}>{label}</Label>
+                        <Input
+                          id={key}
+                          type="number"
+                          min={1}
+                          max={30}
+                          step={0.1}
+                          value={dimensions[key] || ""}
+                          onChange={(e) => updateDim(key, e.target.value)}
+                        />
+                      </div>
+                    ))}
+
+                    <div className="pt-4 flex gap-3">
+                      <Button variant="outline" onClick={() => setStep(0)} className="flex-1">
+                        <RotateCcw className="w-4 h-4 mr-2" /> Change Shape
+                      </Button>
+                      <Button onClick={() => setStep(2)} className="flex-1">
+                        Next: Room Type <ArrowRight className="w-4 h-4 ml-2" />
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
