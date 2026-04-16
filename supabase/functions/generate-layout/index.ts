@@ -12,7 +12,7 @@ serve(async (req) => {
   }
 
   try {
-    const { shape, dimensions, openings, roomType, furnitureItems } = await req.json();
+    const { shape, dimensions, openings, roomType, furnitureItems, walls, style, referenceImageUrl } = await req.json();
 
     if (!shape || !dimensions) {
       return new Response(JSON.stringify({ error: "shape and dimensions required" }), {
@@ -32,7 +32,28 @@ serve(async (req) => {
       ? furnitureItems.join(", ")
       : "Sofa, Coffee Table, TV Unit, Bookshelf, Armchair, Rug, Plant";
 
-    const systemPrompt = `You are an interior design layout planner. Given a room shape, dimensions, room type, specific furniture items, and locations of doors/windows/balconies, suggest exactly ONE optimal furniture layout.
+    // Build clockwise wall descriptions
+    let wallsDesc = "";
+    if (walls && Array.isArray(walls) && walls.length > 0) {
+      wallsDesc = "\n\nWalls (clockwise from top/north):\n" + walls.map((w: any) => {
+        const openingsList = w.openings && w.openings.length > 0
+          ? w.openings.map((o: any) => `${o.type} at ${o.position_pct}%`).join(", ")
+          : "no openings";
+        return `- ${w.wall}: surface=${w.surface}, openings: ${openingsList}`;
+      }).join("\n");
+    }
+
+    // Legacy openings description (fallback if walls not provided)
+    let openingsDesc = "";
+    if (!wallsDesc && openings && Array.isArray(openings) && openings.length > 0) {
+      openingsDesc = "\nOpenings:\n" + openings.map((o: any) => `- ${o.type} on ${o.wall} wall at ${o.position}% along the wall`).join("\n");
+    }
+
+    const styleDesc = style ? `\nDesign style: ${style.replace(/_/g, " ")}` : "";
+    const refDesc = referenceImageUrl ? `\nA reference image has been uploaded for style inspiration.` : "";
+    const roomTypeDesc = roomType ? `\nRoom type: ${roomType}` : "";
+
+    const systemPrompt = `You are an interior design layout planner. Given a room shape, dimensions, room type, design style, specific furniture items, wall surfaces, and locations of doors/windows/balconies, suggest exactly ONE optimal furniture layout.
 
 CRITICAL RULES:
 - ONLY use the furniture items specified by the user — do not add extra items
@@ -41,8 +62,14 @@ CRITICAL RULES:
 - Balcony doors need clear access paths
 - Consider traffic flow between openings
 - Size each piece realistically relative to the room dimensions
+- Consider wall surfaces when placing furniture (e.g. a feature brick wall is ideal behind a bed or sofa)
+- All walls are flat/standard unless otherwise specified
 
-For EACH furniture item, provide a short reason explaining WHY you placed it there (e.g. "Near the window for natural light", "Against the wall opposite the door for a clear sightline", "Next to the sofa for easy reach").
+For EACH furniture item, provide a detailed functional reason explaining WHY you placed it there. The reason should feel like advice from an interior designer, e.g.:
+- "Placed near the window so you can use natural daylight while working"
+- "Against the brick wall to create a cozy focal point"
+- "Away from the door to keep the entrance clear and welcoming"
+- "Next to the sofa for convenient reach — perfect for a reading lamp or drink"
 
 Return a JSON object with:
 - "name": short creative name for the layout (e.g. "Cozy Conversation")
@@ -53,17 +80,11 @@ Return a JSON object with:
   - "y": percentage from top (0-100)
   - "w": width as percentage of room (5-40)
   - "h": height as percentage of room (5-40)
-  - "reason": short explanation of why this item is placed here
+  - "reason": detailed functional explanation of why this item is placed here
 
 Ensure items don't overlap and are placed logically.`;
 
-    let openingsDesc = "";
-    if (openings && Array.isArray(openings) && openings.length > 0) {
-      openingsDesc = "\nOpenings:\n" + openings.map((o: any) => `- ${o.type} on ${o.wall} wall at ${o.position}% along the wall`).join("\n");
-    }
-
-    const roomTypeDesc = roomType ? `\nRoom type: ${roomType}` : "";
-    const userPrompt = `Room shape: ${shape}\nDimensions: ${dimDesc}${roomTypeDesc}\nFurniture to place: ${furnitureList}${openingsDesc}\n\nGenerate the best furniture layout using ONLY the specified furniture items. Explain why each piece is placed where it is.`;
+    const userPrompt = `Room shape: ${shape}\nDimensions: ${dimDesc}${roomTypeDesc}${styleDesc}${refDesc}\nFurniture to place: ${furnitureList}${wallsDesc}${openingsDesc}\n\nGenerate the best furniture layout using ONLY the specified furniture items. Explain why each piece is placed where it is with practical, advisor-style reasoning.`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -142,7 +163,6 @@ Ensure items don't overlap and are placed logically.`;
 
     const parsed = JSON.parse(toolCall.function.arguments);
 
-    // Wrap in layout key for backward compat
     return new Response(JSON.stringify({ layout: parsed }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

@@ -10,12 +10,30 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import Logo from "@/components/Logo";
-import { ArrowLeft, ArrowRight, Loader2, RotateCcw, X, Sofa, Bed, UtensilsCrossed, Monitor, Bath, ThumbsUp, ThumbsDown, Save } from "lucide-react";
+import { ArrowLeft, ArrowRight, Loader2, RotateCcw, X, Sofa, Bed, UtensilsCrossed, Monitor, Bath, ThumbsUp, ThumbsDown, Save, Upload, Image as ImageIcon } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { ArchFurniture, ArchLegend } from "@/components/floorplan/ArchFurniture";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+
+// Style images
+import modernMinimalImg from "@/assets/styles/modern-minimal.png";
+import bohemianEclecticImg from "@/assets/styles/bohemian-eclectic.png";
+import classicHistoricalImg from "@/assets/styles/classic-historical.png";
+import glamLuxeImg from "@/assets/styles/glam-luxe.png";
+import mediterraneanImg from "@/assets/styles/mediterranean.png";
+import rusticNatureImg from "@/assets/styles/rustic-nature.png";
+
+const STYLE_OPTIONS = [
+  { value: "modern_minimal", label: "Modern Minimal", description: "Clean lines, neutral tones, minimalist furniture", imageUrl: modernMinimalImg },
+  { value: "classic_historical", label: "Classic Historical", description: "Timeless elegance with rich textures", imageUrl: classicHistoricalImg },
+  { value: "rustic_nature", label: "Rustic Nature", description: "Warm wood tones, natural materials", imageUrl: rusticNatureImg },
+  { value: "mediterranean", label: "Mediterranean", description: "Sun-kissed colors, terracotta, coastal vibes", imageUrl: mediterraneanImg },
+  { value: "bohemian_eclectic", label: "Bohemian Eclectic", description: "Eclectic patterns, vibrant colors", imageUrl: bohemianEclecticImg },
+  { value: "glam_luxe", label: "Glam Luxe", description: "Luxurious finishes, bold accents", imageUrl: glamLuxeImg },
+];
 
 // Room shape definitions
 type ShapeId = "rectangle" | "l-shape" | "u-shape" | "open-plan";
@@ -73,11 +91,30 @@ const ROOM_SHAPES: RoomShape[] = [
 type OpeningType = "door" | "window" | "balcony";
 type WallSide = "top" | "right" | "bottom" | "left";
 
+// Clockwise wall order
+const WALLS_CLOCKWISE: WallSide[] = ["top", "right", "bottom", "left"];
+
+const WALL_LABELS: Record<WallSide, string> = {
+  top: "Wall A (North)",
+  right: "Wall B (East)",
+  bottom: "Wall C (South)",
+  left: "Wall D (West)",
+};
+
+const WALL_SURFACE_OPTIONS = [
+  { value: "flat", label: "Flat (Standard)" },
+  { value: "brick", label: "Brick" },
+  { value: "wood_panel", label: "Wood Panel" },
+  { value: "stone", label: "Stone" },
+  { value: "concrete", label: "Concrete" },
+  { value: "glass", label: "Glass" },
+];
+
 interface RoomOpening {
   id: string;
   type: OpeningType;
   wall: WallSide;
-  position: number; // 0-100 percentage along the wall
+  position: number;
 }
 
 const OPENING_TYPES: { type: OpeningType; label: string; icon: string; color: string }[] = [
@@ -85,13 +122,6 @@ const OPENING_TYPES: { type: OpeningType; label: string; icon: string; color: st
   { type: "window", label: "Window", icon: "🪟", color: "hsl(25 80% 55%)" },
   { type: "balcony", label: "Balcony", icon: "🏠", color: "hsl(150 50% 45%)" },
 ];
-
-const WALL_LABELS: Record<WallSide, string> = {
-  top: "Top Wall",
-  right: "Right Wall",
-  bottom: "Bottom Wall",
-  left: "Left Wall",
-};
 
 // SVG shape renderers
 function ShapeSVG({ shapeId, dims, scale = 1, className = "" }: { shapeId: ShapeId; dims: Record<string, number>; scale?: number; className?: string }) {
@@ -155,7 +185,7 @@ function ShapeSVG({ shapeId, dims, scale = 1, className = "" }: { shapeId: Shape
   }
 }
 
-// Interactive room SVG with openings - click on walls to add
+// Interactive room SVG with openings
 function RoomWithOpenings({
   shapeId,
   dims,
@@ -172,7 +202,6 @@ function RoomWithOpenings({
   onRemoveOpening: (id: string) => void;
 }) {
   const padding = 40;
-  // Use a consistent scale for the interactive view
   const w = (dims.width || dims.mainW || dims.totalW || 5) * 30;
   const h = (dims.height || dims.mainH || dims.totalH || 4) * 30;
   const svgW = w + padding * 2;
@@ -221,10 +250,8 @@ function RoomWithOpenings({
 
   return (
     <svg viewBox={`0 0 ${svgW} ${svgH}`} className="w-full h-full max-h-[350px]">
-      {/* Room fill */}
       <rect x={padding} y={padding} width={w} height={h} fill={fill} stroke="none" />
 
-      {/* Clickable wall zones (invisible, wide hit area) */}
       {(["top", "bottom", "left", "right"] as WallSide[]).map((wall) => {
         const props =
           wall === "top"
@@ -246,10 +273,8 @@ function RoomWithOpenings({
         );
       })}
 
-      {/* Visible walls */}
       <rect x={padding} y={padding} width={w} height={h} fill="none" stroke={stroke} strokeWidth={2.5} rx={2} />
 
-      {/* Wall labels */}
       {(["top", "bottom", "left", "right"] as WallSide[]).map((wall) => {
         const labelProps =
           wall === "top"
@@ -274,12 +299,11 @@ function RoomWithOpenings({
                 : undefined
             }
           >
-            Click to add {activeType}
+            {WALL_LABELS[wall]}
           </text>
         );
       })}
 
-      {/* Openings */}
       {openings.map((opening) => {
         const pos = getOpeningPos(opening);
         const color = openingColor(opening.type);
@@ -374,7 +398,6 @@ function RoomWithOpenings({
   );
 }
 
-// Architectural furniture overlay using top-view symbols
 function ArchFurnitureOverlay({ items, canvasW, canvasH }: { items: LayoutItem[]; canvasW: number; canvasH: number }) {
   return (
     <>
@@ -406,13 +429,24 @@ const FloorPlan = () => {
   const { user, loading: authLoading } = useAuth();
   const { updateQuizData } = useQuiz();
 
-  const [step, setStep] = useState(0); // 0=shape, 1=dimensions, 2=room type & furniture, 3=openings, 4=layouts
+  // Steps: 0=shape, 1=dimensions, 2=room type & furniture, 3=openings, 4=style, 5=layout
+  const [step, setStep] = useState(0);
   const [selectedShape, setSelectedShape] = useState<RoomShape | null>(null);
   const [dimensions, setDimensions] = useState<Record<string, number>>({});
   const [selectedRoomType, setSelectedRoomType] = useState<string>("");
   const [selectedFurniture, setSelectedFurniture] = useState<string[]>([]);
   const [openings, setOpenings] = useState<RoomOpening[]>([]);
   const [activeOpeningType, setActiveOpeningType] = useState<OpeningType>("door");
+  const [wallSurfaces, setWallSurfaces] = useState<Record<WallSide, string>>({
+    top: "flat", right: "flat", bottom: "flat", left: "flat",
+  });
+
+  // Style step
+  const [selectedStyle, setSelectedStyle] = useState<string>("");
+  const [referenceImageUrl, setReferenceImageUrl] = useState<string>("");
+  const [uploadingRef, setUploadingRef] = useState(false);
+
+  // Layout step
   const [layout, setLayout] = useState<LayoutSuggestion | null>(null);
   const [generating, setGenerating] = useState(false);
   const [itemScores, setItemScores] = useState<Record<number, boolean | null>>({});
@@ -431,6 +465,33 @@ const FloorPlan = () => {
       return data as { id: string; room_type: string; room_label: string; furniture_items: string[]; description: string | null }[];
     },
   });
+
+  // Fetch CMS styles (optional override)
+  const { data: cmsStyles } = useQuery({
+    queryKey: ["cms-quiz-styles"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("cms_content")
+        .select("key, value, metadata")
+        .like("key", "quiz_style_%")
+        .eq("content_type", "image_url");
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const styleOptions = cmsStyles?.length
+    ? cmsStyles.map((item) => {
+        const styleKey = item.key.replace("quiz_style_", "");
+        const meta = item.metadata as { label?: string; title?: string; description?: string } | null;
+        return {
+          value: styleKey,
+          label: meta?.label || meta?.title || styleKey.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()),
+          description: meta?.description || "",
+          imageUrl: item.value,
+        };
+      })
+    : STYLE_OPTIONS;
 
   const ROOM_ICONS: Record<string, React.ReactNode> = {
     "living-room": <Sofa className="w-6 h-6" />,
@@ -475,12 +536,47 @@ const FloorPlan = () => {
     setOpenings(prev => prev.filter(o => o.id !== id));
   }, []);
 
+  const handleReferenceUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+    setUploadingRef(true);
+    try {
+      const ext = file.name.split(".").pop();
+      const path = `${user.id}/ref_${Date.now()}.${ext}`;
+      const { error } = await supabase.storage.from("room-uploads").upload(path, file);
+      if (error) throw error;
+      const { data: urlData } = supabase.storage.from("room-uploads").getPublicUrl(path);
+      setReferenceImageUrl(urlData.publicUrl);
+      toast({ title: "Reference uploaded", description: "Your style reference has been saved." });
+    } catch (err: any) {
+      toast({ title: "Upload failed", description: err.message, variant: "destructive" });
+    } finally {
+      setUploadingRef(false);
+    }
+  }, [user]);
+
+  // Build clockwise walls data for the prompt
+  const buildWallsClockwise = useCallback(() => {
+    return WALLS_CLOCKWISE.map((wall) => {
+      const wallOpenings = openings.filter(o => o.wall === wall);
+      return {
+        wall: WALL_LABELS[wall],
+        surface: wallSurfaces[wall],
+        openings: wallOpenings.map(o => ({
+          type: o.type,
+          position_pct: o.position,
+        })),
+      };
+    });
+  }, [openings, wallSurfaces]);
+
   const generateLayouts = useCallback(async () => {
     if (!selectedShape) return;
     setGenerating(true);
     setLayout(null);
 
     try {
+      const wallsData = buildWallsClockwise();
       const { data, error } = await supabase.functions.invoke("generate-layout", {
         body: {
           shape: selectedShape.id,
@@ -488,6 +584,9 @@ const FloorPlan = () => {
           roomType: selectedRoomType,
           furnitureItems: selectedFurniture,
           openings: openings.map(o => ({ type: o.type, wall: o.wall, position: o.position })),
+          walls: wallsData,
+          style: selectedStyle,
+          referenceImageUrl: referenceImageUrl || undefined,
         },
       });
 
@@ -498,20 +597,19 @@ const FloorPlan = () => {
       } else {
         throw new Error("Invalid layout response");
       }
-      setStep(4);
+      setStep(5);
     } catch (e: any) {
       console.error("Layout generation error:", e);
       toast({ title: "Layout Generation Failed", description: e.message || "Please try again.", variant: "destructive" });
     } finally {
       setGenerating(false);
     }
-  }, [selectedShape, dimensions, selectedRoomType, selectedFurniture, openings]);
+  }, [selectedShape, dimensions, selectedRoomType, selectedFurniture, openings, buildWallsClockwise, selectedStyle, referenceImageUrl]);
 
   const saveFeedbackAndProceed = useCallback(async () => {
     if (!layout || !selectedShape || !user) return;
     setSavingFeedback(true);
 
-    // Save layout feedback for each scored item
     try {
       const feedbackRows = layout.items
         .map((item, i) => {
@@ -541,23 +639,34 @@ const FloorPlan = () => {
       }
     } catch { /* non-critical */ }
 
-    // Save floor plan context
+    // Save full floor plan context including walls, style, and feedback
     const floorPlanContext = {
       shape: selectedShape.id,
       dimensions,
       roomType: selectedRoomType,
       furnitureItems: selectedFurniture,
-      openings: openings.map(o => ({ type: o.type, wall: o.wall, position: o.position })),
+      walls: buildWallsClockwise(),
+      style: selectedStyle,
+      referenceImageUrl: referenceImageUrl || undefined,
       layout,
+      feedback: layout.items.map((item, i) => ({
+        item: item.label,
+        position: { x: item.x, y: item.y, w: item.w, h: item.h },
+        reason: item.reason,
+        agreed: itemScores[i] ?? null,
+        note: itemNotes[i] || null,
+      })),
     };
     sessionStorage.setItem("floor_plan_context", JSON.stringify(floorPlanContext));
+
     const roomType = selectedRoomType || "living_room";
-    updateQuizData({ roomType });
+    const stylePreference = selectedStyle || "modern_minimal";
+    updateQuizData({ roomType, stylePreference });
 
     try {
       await supabase.from("quiz_responses").insert({
         user_id: user.id,
-        style_preference: "modern-minimal",
+        style_preference: stylePreference,
         color_palette: "neutral",
         room_type: roomType,
         budget_feel: "mid-range",
@@ -568,8 +677,8 @@ const FloorPlan = () => {
 
     setSavingFeedback(false);
     sessionStorage.setItem('generate_quiz_nonce', crypto.randomUUID());
-    navigate("/generate", { state: { quizData: { roomType, stylePreference: "modern-minimal", colorPalette: "neutral", budgetFeel: "mid-range", mustHaveElements: selectedFurniture } } });
-  }, [layout, selectedShape, dimensions, selectedRoomType, selectedFurniture, openings, navigate, updateQuizData, user, itemScores, itemNotes]);
+    navigate("/generate", { state: { quizData: { roomType, stylePreference, colorPalette: "neutral", budgetFeel: "mid-range", mustHaveElements: selectedFurniture } } });
+  }, [layout, selectedShape, dimensions, selectedRoomType, selectedFurniture, openings, navigate, updateQuizData, user, itemScores, itemNotes, buildWallsClockwise, selectedStyle, referenceImageUrl]);
 
   if (authLoading) {
     return (
@@ -579,7 +688,7 @@ const FloorPlan = () => {
     );
   }
 
-  const STEP_LABELS = ["Shape", "Dimensions", "Room & Furniture", "Openings", "Layouts"];
+  const STEP_LABELS = ["Shape", "Dimensions", "Room & Furniture", "Openings", "Style", "Layout"];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-secondary/20 to-primary/10">
@@ -696,7 +805,6 @@ const FloorPlan = () => {
               </div>
 
               <div className="grid md:grid-cols-2 gap-8 items-start">
-                {/* Room Type Selection */}
                 <div className="space-y-3">
                   <Label className="text-sm font-medium">Room Type</Label>
                   <div className="grid gap-2">
@@ -705,7 +813,7 @@ const FloorPlan = () => {
                         key={rc.room_type}
                         onClick={() => {
                           setSelectedRoomType(rc.room_type);
-                          setSelectedFurniture([...rc.furniture_items]); // Pre-select all
+                          setSelectedFurniture([...rc.furniture_items]);
                         }}
                         className={`flex items-center gap-3 px-4 py-3 rounded-xl border text-left transition-all ${
                           selectedRoomType === rc.room_type
@@ -730,7 +838,6 @@ const FloorPlan = () => {
                   </div>
                 </div>
 
-                {/* Furniture Items Selection */}
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
                     <Label className="text-sm font-medium">
@@ -810,16 +917,15 @@ const FloorPlan = () => {
             </div>
           )}
 
-          {/* Step 3: Openings (doors, windows, balconies) */}
+          {/* Step 3: Openings & Wall Surfaces */}
           {step === 3 && selectedShape && (
             <div className="space-y-6">
               <div className="text-center space-y-2">
-                <h1 className="text-2xl md:text-3xl font-bold">Add Doors, Windows & Balconies</h1>
-                <p className="text-muted-foreground">Select a type below, then click on any wall to place it. Click an opening to remove it.</p>
+                <h1 className="text-2xl md:text-3xl font-bold">Walls, Doors & Windows</h1>
+                <p className="text-muted-foreground">Set wall surfaces and place openings. Click a wall to add, click an opening to remove.</p>
               </div>
 
-              <div className="grid md:grid-cols-[1fr_280px] gap-6 items-start">
-                {/* Interactive room */}
+              <div className="grid md:grid-cols-[1fr_300px] gap-6 items-start">
                 <div className="bg-card rounded-xl border p-4 min-h-[400px] flex items-center justify-center">
                   <RoomWithOpenings
                     shapeId={selectedShape.id}
@@ -831,8 +937,32 @@ const FloorPlan = () => {
                   />
                 </div>
 
-                {/* Controls */}
                 <div className="space-y-5">
+                  {/* Wall surfaces */}
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">Wall Surfaces</Label>
+                    <div className="space-y-2">
+                      {WALLS_CLOCKWISE.map((wall) => (
+                        <div key={wall} className="flex items-center gap-2">
+                          <span className="text-xs text-muted-foreground w-24 shrink-0">{WALL_LABELS[wall]}</span>
+                          <Select
+                            value={wallSurfaces[wall]}
+                            onValueChange={(val) => setWallSurfaces(prev => ({ ...prev, [wall]: val }))}
+                          >
+                            <SelectTrigger className="h-8 text-xs">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {WALL_SURFACE_OPTIONS.map((opt) => (
+                                <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
                   {/* Opening type selector */}
                   <div className="space-y-2">
                     <Label className="text-sm font-medium">Placing:</Label>
@@ -858,7 +988,7 @@ const FloorPlan = () => {
                   {openings.length > 0 && (
                     <div className="space-y-2">
                       <Label className="text-sm font-medium">Placed ({openings.length}):</Label>
-                      <div className="space-y-1.5 max-h-[200px] overflow-y-auto">
+                      <div className="space-y-1.5 max-h-[150px] overflow-y-auto">
                         {openings.map((o) => {
                           const typeInfo = OPENING_TYPES.find(t => t.type === o.type);
                           return (
@@ -883,14 +1013,10 @@ const FloorPlan = () => {
                   )}
 
                   <div className="flex flex-col gap-2 pt-2">
-                    <Button onClick={generateLayouts} disabled={generating}>
-                      {generating ? (
-                        <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Generating...</>
-                      ) : (
-                        <>Generate Layouts <ArrowRight className="w-4 h-4 ml-2" /></>
-                      )}
+                    <Button onClick={() => setStep(4)}>
+                      Next: Style <ArrowRight className="w-4 h-4 ml-2" />
                     </Button>
-                    <Button variant="ghost" size="sm" onClick={() => generateLayouts()} className="text-xs text-muted-foreground">
+                    <Button variant="ghost" size="sm" onClick={() => setStep(4)} className="text-xs text-muted-foreground">
                       Skip — no openings to add
                     </Button>
                   </div>
@@ -899,8 +1025,104 @@ const FloorPlan = () => {
             </div>
           )}
 
-          {/* Step 4: Layout Result */}
+          {/* Step 4: Style Selection */}
           {step === 4 && (
+            <div className="space-y-6">
+              <div className="text-center space-y-2">
+                <h1 className="text-2xl md:text-3xl font-bold">What's Your Design Style?</h1>
+                <p className="text-muted-foreground">Pick a style or upload a reference image for inspiration</p>
+              </div>
+
+              {/* Reference image upload */}
+              <div className="max-w-md mx-auto">
+                <div className="rounded-xl border-2 border-dashed border-border/50 p-4 text-center space-y-2">
+                  {referenceImageUrl ? (
+                    <div className="relative">
+                      <img src={referenceImageUrl} alt="Reference" className="w-full h-32 object-cover rounded-lg" />
+                      <button
+                        onClick={() => setReferenceImageUrl("")}
+                        className="absolute top-1 right-1 bg-background/80 rounded-full p-1"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                      <p className="text-xs text-muted-foreground mt-2">Reference image uploaded — style will be matched to this</p>
+                    </div>
+                  ) : (
+                    <label className="cursor-pointer flex flex-col items-center gap-2 py-2">
+                      {uploadingRef ? (
+                        <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                      ) : (
+                        <Upload className="w-6 h-6 text-muted-foreground" />
+                      )}
+                      <span className="text-sm text-muted-foreground">Upload a reference image (optional)</span>
+                      <input type="file" accept="image/*" className="hidden" onChange={handleReferenceUpload} disabled={uploadingRef} />
+                    </label>
+                  )}
+                </div>
+              </div>
+
+              <div className="text-center text-sm text-muted-foreground">— or pick a style —</div>
+
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                {styleOptions.map((style) => (
+                  <button
+                    key={style.value}
+                    onClick={() => setSelectedStyle(style.value)}
+                    className={`relative group overflow-hidden rounded-xl border-2 transition-all ${
+                      selectedStyle === style.value
+                        ? "border-primary ring-2 ring-primary/20"
+                        : "border-border hover:border-primary/50"
+                    }`}
+                  >
+                    {style.imageUrl ? (
+                      <img
+                        src={style.imageUrl}
+                        alt={style.label}
+                        className="w-full aspect-[4/3] object-cover"
+                      />
+                    ) : (
+                      <div className="w-full aspect-[4/3] bg-muted flex items-center justify-center">
+                        <ImageIcon className="w-8 h-8 text-muted-foreground" />
+                      </div>
+                    )}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+                    <div className="absolute bottom-0 left-0 right-0 p-3 text-left">
+                      <p className="text-white font-semibold text-sm">{style.label}</p>
+                      {style.description && (
+                        <p className="text-white/70 text-xs line-clamp-2">{style.description}</p>
+                      )}
+                    </div>
+                    {selectedStyle === style.value && (
+                      <div className="absolute top-2 right-2 bg-primary text-primary-foreground rounded-full p-1">
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                      </div>
+                    )}
+                  </button>
+                ))}
+              </div>
+
+              <div className="flex justify-center gap-3 pt-2">
+                <Button variant="outline" onClick={() => setStep(3)}>
+                  <ArrowLeft className="w-4 h-4 mr-2" /> Back to Openings
+                </Button>
+                <Button
+                  onClick={generateLayouts}
+                  disabled={generating || (!selectedStyle && !referenceImageUrl)}
+                >
+                  {generating ? (
+                    <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Generating Layout...</>
+                  ) : (
+                    <>Generate Layout <ArrowRight className="w-4 h-4 ml-2" /></>
+                  )}
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* Step 5: Layout Result */}
+          {step === 5 && (
             <div className="space-y-6">
               <div className="text-center space-y-2">
                 <h1 className="text-2xl md:text-3xl font-bold">Your Suggested Layout</h1>
@@ -916,7 +1138,6 @@ const FloorPlan = () => {
               ) : (
                 <>
                   <div className="grid md:grid-cols-[1fr_320px] gap-6 items-start">
-                    {/* Layout SVG */}
                     <Card>
                       <CardContent className="p-4 space-y-2">
                         <h3 className="font-semibold text-lg">{layout.name}</h3>
@@ -942,7 +1163,6 @@ const FloorPlan = () => {
                       </CardContent>
                     </Card>
 
-                    {/* Placement scoring */}
                     <div className="space-y-2">
                       <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">Score each placement</h3>
                       <p className="text-xs text-muted-foreground">Agree or disagree — your feedback trains better layouts</p>
@@ -993,7 +1213,6 @@ const FloorPlan = () => {
                           );
                         })}
                       </div>
-                      {/* Score summary */}
                       {Object.keys(itemScores).length > 0 && (
                         <div className="flex items-center gap-3 pt-1 text-xs text-muted-foreground">
                           <span className="text-green-600">
@@ -1011,8 +1230,8 @@ const FloorPlan = () => {
                   </div>
 
                   <div className="flex justify-center gap-3 pt-4">
-                    <Button variant="outline" onClick={() => { setStep(3); setLayout(null); setItemScores({}); setItemNotes({}); }}>
-                      <RotateCcw className="w-4 h-4 mr-2" /> Edit Openings
+                    <Button variant="outline" onClick={() => { setStep(4); setLayout(null); setItemScores({}); setItemNotes({}); }}>
+                      <RotateCcw className="w-4 h-4 mr-2" /> Change Style
                     </Button>
                     <Button variant="outline" onClick={() => { setItemScores({}); setItemNotes({}); generateLayouts(); }} disabled={generating}>
                       {generating ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
