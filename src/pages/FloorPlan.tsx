@@ -596,6 +596,9 @@ const FloorPlan = () => {
 
   // Layout step
   const [layout, setLayout] = useState<LayoutSuggestion | null>(null);
+  const [previousLayout, setPreviousLayout] = useState<LayoutSuggestion | null>(null);
+  const [previousScores, setPreviousScores] = useState<Record<number, boolean | null>>({});
+  const [previousNotes, setPreviousNotes] = useState<Record<number, string>>({});
   const [generating, setGenerating] = useState(false);
   const [itemScores, setItemScores] = useState<Record<number, boolean | null>>({});
   const [itemNotes, setItemNotes] = useState<Record<number, string>>({});
@@ -788,6 +791,12 @@ const FloorPlan = () => {
 
   const generateLayouts = useCallback(async () => {
     if (!selectedShape) return;
+    // Snapshot current layout/feedback so the user can undo a regenerate
+    if (layout) {
+      setPreviousLayout(layout);
+      setPreviousScores(itemScores);
+      setPreviousNotes(itemNotes);
+    }
     setGenerating(true);
     setLayout(null);
 
@@ -823,7 +832,18 @@ const FloorPlan = () => {
     } finally {
       setGenerating(false);
     }
-  }, [selectedShape, dimensions, selectedRoomType, selectedFurniture, openings, buildWallsClockwise, customWalls]);
+  }, [selectedShape, dimensions, selectedRoomType, selectedFurniture, openings, buildWallsClockwise, customWalls, layout, itemScores, itemNotes]);
+
+  const undoLayout = useCallback(() => {
+    if (!previousLayout) return;
+    setLayout(previousLayout);
+    setItemScores(previousScores);
+    setItemNotes(previousNotes);
+    setPreviousLayout(null);
+    setPreviousScores({});
+    setPreviousNotes({});
+    toast({ title: "Restored previous layout" });
+  }, [previousLayout, previousScores, previousNotes]);
 
   const saveFeedbackAndProceed = useCallback(async () => {
     if (!layout || !selectedShape || !user) return;
@@ -1627,7 +1647,7 @@ const FloorPlan = () => {
                     </div>
                   </div>
 
-                  <div className="flex justify-center gap-3 pt-4">
+                  <div className="flex justify-center gap-3 pt-4 flex-wrap">
                     <Button variant="outline" onClick={() => { setStep(3); }}>
                       <ArrowLeft className="w-4 h-4 mr-2" /> Back to Openings
                     </Button>
@@ -1635,6 +1655,11 @@ const FloorPlan = () => {
                       {generating ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <RotateCcw className="w-4 h-4 mr-2" />}
                       Regenerate
                     </Button>
+                    {previousLayout && (
+                      <Button variant="secondary" onClick={undoLayout} disabled={generating}>
+                        <RotateCcw className="w-4 h-4 mr-2 -scale-x-100" /> Undo
+                      </Button>
+                    )}
                     <Button onClick={() => setStep(5)} disabled={!layout}>
                       Next: Style <ArrowRight className="w-4 h-4 ml-2" />
                     </Button>
