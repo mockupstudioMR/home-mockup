@@ -545,19 +545,6 @@ function RoomWithOpenings({
     </svg>
   );
 }
-function ArchFurnitureOverlay({ items, canvasW, canvasH }: { items: LayoutItem[]; canvasW: number; canvasH: number }) {
-  return (
-    <>
-      {items.map((item, i) => {
-        const x = (item.x / 100) * canvasW + 10;
-        const y = (item.y / 100) * canvasH + 10;
-        const w = (item.w / 100) * canvasW;
-        const h = (item.h / 100) * canvasH;
-        return <ArchFurniture key={i} x={x} y={y} w={w} h={h} label={item.label} />;
-      })}
-    </>
-  );
-}
 
 interface LayoutItem {
   label: string;
@@ -576,7 +563,7 @@ const FloorPlan = () => {
   const { user, loading: authLoading } = useAuth();
   const { updateQuizData } = useQuiz();
 
-  // Steps: 0=shape, 1=dimensions, 2=room type & furniture, 3=openings, 4=style, 5=layout
+  // Steps: 0=shape, 1=dimensions, 2=room type & furniture, 3=openings, 4=layout, 5=style
   const [step, setStep] = useState(0);
   const [selectedShape, setSelectedShape] = useState<RoomShape | null>(null);
   const [dimensions, setDimensions] = useState<Record<string, number>>({});
@@ -812,8 +799,7 @@ const FloorPlan = () => {
         furnitureItems: selectedFurniture,
         openings: openings.map(o => ({ type: o.type, wall: o.wall, position: o.position })),
         walls: wallsData,
-        style: selectedStyle,
-        referenceImageUrl: referenceImageUrl || undefined,
+        // Layout is generated based on room geometry only — style is chosen after
       };
       if (selectedShape.id === "custom") {
         body.customWalls = customWalls;
@@ -829,14 +815,14 @@ const FloorPlan = () => {
       } else {
         throw new Error("Invalid layout response");
       }
-      setStep(5);
+      setStep(4);
     } catch (e: any) {
       console.error("Layout generation error:", e);
       toast({ title: "Layout Generation Failed", description: e.message || "Please try again.", variant: "destructive" });
     } finally {
       setGenerating(false);
     }
-  }, [selectedShape, dimensions, selectedRoomType, selectedFurniture, openings, buildWallsClockwise, selectedStyle, referenceImageUrl]);
+  }, [selectedShape, dimensions, selectedRoomType, selectedFurniture, openings, buildWallsClockwise, customWalls]);
 
   const saveFeedbackAndProceed = useCallback(async () => {
     if (!layout || !selectedShape || !user) return;
@@ -920,7 +906,7 @@ const FloorPlan = () => {
     );
   }
 
-  const STEP_LABELS = ["Shape", "Dimensions", "Room & Furniture", "Openings", "Style", "Layout"];
+  const STEP_LABELS = ["Shape", "Dimensions", "Room & Furniture", "Openings", "Layout", "Style"];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-secondary/20 to-primary/10">
@@ -1391,10 +1377,14 @@ const FloorPlan = () => {
                   )}
 
                   <div className="flex flex-col gap-2 pt-2">
-                    <Button onClick={() => setStep(4)}>
-                      Next: Style <ArrowRight className="w-4 h-4 ml-2" />
+                    <Button onClick={generateLayouts} disabled={generating}>
+                      {generating ? (
+                        <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Generating Layout...</>
+                      ) : (
+                        <>Generate Layout <ArrowRight className="w-4 h-4 ml-2" /></>
+                      )}
                     </Button>
-                    <Button variant="ghost" size="sm" onClick={() => setStep(4)} className="text-xs text-muted-foreground">
+                    <Button variant="ghost" size="sm" onClick={generateLayouts} disabled={generating} className="text-xs text-muted-foreground">
                       Skip — no openings to add
                     </Button>
                   </div>
@@ -1403,8 +1393,8 @@ const FloorPlan = () => {
             </div>
           )}
 
-          {/* Step 4: Style Selection */}
-          {step === 4 && (
+          {/* Step 5: Style Selection */}
+          {step === 5 && (
             <div className="space-y-6">
               <div className="text-center space-y-2">
                 <h1 className="text-2xl md:text-3xl font-bold">What's Your Design Style?</h1>
@@ -1482,25 +1472,25 @@ const FloorPlan = () => {
               </div>
 
               <div className="flex justify-center gap-3 pt-2">
-                <Button variant="outline" onClick={() => setStep(3)}>
-                  <ArrowLeft className="w-4 h-4 mr-2" /> Back to Openings
+                <Button variant="outline" onClick={() => setStep(4)}>
+                  <ArrowLeft className="w-4 h-4 mr-2" /> Back to Layout
                 </Button>
                 <Button
-                  onClick={generateLayouts}
-                  disabled={generating || (!selectedStyle && !referenceImageUrl)}
+                  onClick={saveFeedbackAndProceed}
+                  disabled={savingFeedback || (!selectedStyle && !referenceImageUrl)}
                 >
-                  {generating ? (
-                    <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Generating Layout...</>
+                  {savingFeedback ? (
+                    <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Saving...</>
                   ) : (
-                    <>Generate Layout <ArrowRight className="w-4 h-4 ml-2" /></>
+                    <><Save className="w-4 h-4 mr-2" /> Generate Design</>
                   )}
                 </Button>
               </div>
             </div>
           )}
 
-          {/* Step 5: Layout Result */}
-          {step === 5 && (
+          {/* Step 4: Layout Result */}
+          {step === 4 && (
             <div className="space-y-6">
               <div className="text-center space-y-2">
                 <h1 className="text-2xl md:text-3xl font-bold">Your Suggested Layout</h1>
@@ -1521,18 +1511,39 @@ const FloorPlan = () => {
                         <h3 className="font-semibold text-lg">{layout.name}</h3>
                         <div className="bg-muted/30 rounded-lg p-3 flex items-center justify-center border border-border/30">
                           {(() => {
-                            const canvasW = 400;
-                            const canvasH = 320;
+                            const padding = 30;
+                            const verts = selectedShape
+                              ? getShapeVertices(selectedShape.id, dimensions, padding, customWalls)
+                              : [];
+                            const bb = verts.length ? verticesBBox(verts) : { minX: 0, minY: 0, maxX: 400, maxY: 320, w: 400, h: 320 };
+                            const svgW = bb.maxX + padding;
+                            const svgH = bb.maxY + padding;
+                            const shapePath = verts.length
+                              ? verts.map((v, i) => `${i === 0 ? "M" : "L"}${v.x},${v.y}`).join(" ") + " Z"
+                              : "";
                             return (
-                              <svg viewBox={`0 0 ${canvasW} ${canvasH}`} className="w-full h-auto max-h-[350px]">
+                              <svg viewBox={`0 0 ${svgW} ${svgH}`} className="w-full h-auto max-h-[350px]">
                                 <defs>
                                   <pattern id="grid-single" width="15" height="15" patternUnits="userSpaceOnUse">
                                     <path d="M 15 0 L 0 0 0 15" fill="none" stroke="hsl(var(--border) / 0.3)" strokeWidth="0.3" />
                                   </pattern>
+                                  <clipPath id="room-clip">
+                                    <path d={shapePath} />
+                                  </clipPath>
                                 </defs>
-                                <rect x={10} y={10} width={canvasW - 20} height={canvasH - 20} fill="url(#grid-single)" stroke="hsl(var(--foreground) / 0.4)" strokeWidth={2} rx={1} />
-                                <rect x={8} y={8} width={canvasW - 16} height={canvasH - 16} fill="none" stroke="hsl(var(--foreground) / 0.15)" strokeWidth={5} rx={2} />
-                                <ArchFurnitureOverlay items={layout.items} canvasW={canvasW - 20} canvasH={canvasH - 20} />
+                                {/* Room polygon */}
+                                <path d={shapePath} fill="url(#grid-single)" stroke="hsl(var(--foreground) / 0.4)" strokeWidth={2} />
+                                <path d={shapePath} fill="none" stroke="hsl(var(--foreground) / 0.15)" strokeWidth={5} />
+                                {/* Furniture clipped to room polygon */}
+                                <g clipPath="url(#room-clip)">
+                                  {layout.items.map((item, i) => {
+                                    const x = (item.x / 100) * (bb.w) + bb.minX;
+                                    const y = (item.y / 100) * (bb.h) + bb.minY;
+                                    const w = (item.w / 100) * (bb.w);
+                                    const h = (item.h / 100) * (bb.h);
+                                    return <ArchFurniture key={i} x={x} y={y} w={w} h={h} label={item.label} />;
+                                  })}
+                                </g>
                               </svg>
                             );
                           })()}
@@ -1608,16 +1619,15 @@ const FloorPlan = () => {
                   </div>
 
                   <div className="flex justify-center gap-3 pt-4">
-                    <Button variant="outline" onClick={() => { setStep(4); setLayout(null); setItemScores({}); setItemNotes({}); }}>
-                      <RotateCcw className="w-4 h-4 mr-2" /> Change Style
+                    <Button variant="outline" onClick={() => { setStep(3); }}>
+                      <ArrowLeft className="w-4 h-4 mr-2" /> Back to Openings
                     </Button>
                     <Button variant="outline" onClick={() => { setItemScores({}); setItemNotes({}); generateLayouts(); }} disabled={generating}>
-                      {generating ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+                      {generating ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <RotateCcw className="w-4 h-4 mr-2" />}
                       Regenerate
                     </Button>
-                    <Button onClick={saveFeedbackAndProceed} disabled={!layout || savingFeedback}>
-                      {savingFeedback ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
-                      Save & Continue
+                    <Button onClick={() => setStep(5)} disabled={!layout}>
+                      Next: Style <ArrowRight className="w-4 h-4 ml-2" />
                     </Button>
                   </div>
                 </>
