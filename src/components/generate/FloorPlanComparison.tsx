@@ -20,7 +20,7 @@ interface FloorPlanContext {
   dimensions: Record<string, number>;
   roomType: string;
   furnitureItems: string[];
-  openings: { type: string; wall: string; position: number }[];
+  openings: { type: "door" | "window" | "balcony"; wall: "top" | "right" | "bottom" | "left"; position: number }[];
   layout: { name: string; description: string; items: LayoutItem[] };
 }
 
