@@ -414,35 +414,40 @@ function RoomWithOpenings({
     return { x, y, ux, uy, nx, ny, size, horizontal, edge };
   };
 
+  // Distinct wall colors
+  const WALL_COLORS = [
+    "hsl(var(--primary))",
+    "hsl(25 80% 55%)",
+    "hsl(150 50% 45%)",
+    "hsl(280 60% 55%)",
+    "hsl(200 70% 50%)",
+    "hsl(350 65% 50%)",
+    "hsl(45 80% 50%)",
+    "hsl(170 60% 40%)",
+  ];
+
   return (
     <svg viewBox={`0 0 ${svgW} ${svgH}`} className="w-full h-full max-h-[350px]">
-      <path d={shapePath} fill={fill} stroke={stroke} strokeWidth={2.5} />
+      <path d={shapePath} fill={fill} stroke="none" />
 
-      {/* Wall labels at edge midpoints */}
+      {/* Colored wall edges */}
       {edges.map((edge, i) => {
-        const mx = (edge.v1.x + edge.v2.x) / 2;
-        const my = (edge.v1.y + edge.v2.y) / 2;
         const dx = edge.v2.x - edge.v1.x;
         const dy = edge.v2.y - edge.v1.y;
-        // Normal for offset
         const len = Math.sqrt(dx * dx + dy * dy);
-        if (len < 10) return null;
-        const nx = -dy / len;
-        const ny = dx / len;
-        const offset = 14;
+        if (len < 5) return null;
         return (
-          <text
-            key={`label-${i}`}
-            x={mx + nx * offset}
-            y={my + ny * offset}
-            textAnchor="middle"
-            dominantBaseline="middle"
-            fontSize={9}
-            fill="hsl(var(--muted-foreground))"
-            className="pointer-events-none select-none"
-          >
-            Wall {String.fromCharCode(65 + i)}
-          </text>
+          <line
+            key={`wall-${i}`}
+            x1={edge.v1.x}
+            y1={edge.v1.y}
+            x2={edge.v2.x}
+            y2={edge.v2.y}
+            stroke={WALL_COLORS[i % WALL_COLORS.length]}
+            strokeWidth={3}
+            strokeLinecap="round"
+            className="pointer-events-none"
+          />
         );
       })}
 
