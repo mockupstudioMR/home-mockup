@@ -200,6 +200,48 @@ export type Database = {
           },
         ]
       }
+      furniture_specs: {
+        Row: {
+          companion_of: string | null
+          created_at: string
+          default_orientation: string
+          depth_cm: number
+          grouping_key: string | null
+          id: string
+          min_clearance_cm: number
+          must_against_wall: boolean
+          name: string
+          updated_at: string
+          width_cm: number
+        }
+        Insert: {
+          companion_of?: string | null
+          created_at?: string
+          default_orientation?: string
+          depth_cm?: number
+          grouping_key?: string | null
+          id?: string
+          min_clearance_cm?: number
+          must_against_wall?: boolean
+          name: string
+          updated_at?: string
+          width_cm?: number
+        }
+        Update: {
+          companion_of?: string | null
+          created_at?: string
+          default_orientation?: string
+          depth_cm?: number
+          grouping_key?: string | null
+          id?: string
+          min_clearance_cm?: number
+          must_against_wall?: boolean
+          name?: string
+          updated_at?: string
+          width_cm?: number
+        }
+        Relationships: []
+      }
       generated_designs: {
         Row: {
           created_at: string
@@ -356,6 +398,39 @@ export type Database = {
           title?: string
           to_user_id?: string
           viewed_at?: string | null
+        }
+        Relationships: []
+      }
+      opening_rules: {
+        Row: {
+          attracts_furniture: string[] | null
+          clearance_cm: number
+          created_at: string
+          id: string
+          opening_type: string
+          repels_furniture: string[] | null
+          requires_path_to: string[] | null
+          updated_at: string
+        }
+        Insert: {
+          attracts_furniture?: string[] | null
+          clearance_cm?: number
+          created_at?: string
+          id?: string
+          opening_type: string
+          repels_furniture?: string[] | null
+          requires_path_to?: string[] | null
+          updated_at?: string
+        }
+        Update: {
+          attracts_furniture?: string[] | null
+          clearance_cm?: number
+          created_at?: string
+          id?: string
+          opening_type?: string
+          repels_furniture?: string[] | null
+          requires_path_to?: string[] | null
+          updated_at?: string
         }
         Relationships: []
       }
@@ -542,6 +617,54 @@ export type Database = {
           status?: Database["public"]["Enums"]["invite_status"]
           token?: string
           used_by?: string | null
+        }
+        Relationships: []
+      }
+      room_activities: {
+        Row: {
+          activity_name: string
+          advisory_text: string | null
+          created_at: string
+          furniture_items: string[]
+          id: string
+          is_predefined: boolean
+          opening_affinity: Json | null
+          preferred_orientation: string
+          preferred_zone: string
+          priority: number
+          room_type: string
+          space_weight: number
+          updated_at: string
+        }
+        Insert: {
+          activity_name: string
+          advisory_text?: string | null
+          created_at?: string
+          furniture_items?: string[]
+          id?: string
+          is_predefined?: boolean
+          opening_affinity?: Json | null
+          preferred_orientation?: string
+          preferred_zone?: string
+          priority?: number
+          room_type: string
+          space_weight?: number
+          updated_at?: string
+        }
+        Update: {
+          activity_name?: string
+          advisory_text?: string | null
+          created_at?: string
+          furniture_items?: string[]
+          id?: string
+          is_predefined?: boolean
+          opening_affinity?: Json | null
+          preferred_orientation?: string
+          preferred_zone?: string
+          priority?: number
+          room_type?: string
+          space_weight?: number
+          updated_at?: string
         }
         Relationships: []
       }
