@@ -15,6 +15,7 @@ import Logo from "@/components/Logo";
 import { ArrowLeft, ArrowRight, Loader2, RotateCcw, X, Sofa, Bed, UtensilsCrossed, Monitor, Bath, ThumbsUp, ThumbsDown, Save, Upload, Image as ImageIcon } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { IllustratedFurniture, IllustratedLegend } from "@/components/floorplan/IllustratedFurniture";
+import RoomOpenings from "@/components/floorplan/RoomOpenings";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 
@@ -863,6 +864,7 @@ const FloorPlan = () => {
       dimensions,
       roomType: selectedRoomType,
       furnitureItems: selectedFurniture,
+      openings: openings.map((o) => ({ type: o.type, wall: o.wall, position: o.position })),
       walls: buildWallsClockwise(),
       style: selectedStyle,
       referenceImageUrl: referenceImageUrl || undefined,
@@ -1545,6 +1547,12 @@ const FloorPlan = () => {
                                     return <IllustratedFurniture key={i} x={x} y={y} w={w} h={h} label={item.label} />;
                                   })}
                                 </g>
+                                {/* Openings (doors / windows / balconies) — drawn after furniture, outside the clip */}
+                                <RoomOpenings
+                                  vertices={verts}
+                                  openings={openings.map((o) => ({ type: o.type, wall: o.wall, position: o.position }))}
+                                  scale={1}
+                                />
                               </svg>
                             );
                           })()}
