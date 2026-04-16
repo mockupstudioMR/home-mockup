@@ -11,7 +11,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import Logo from "@/components/Logo";
-import { ArrowLeft, ArrowRight, Loader2, RotateCcw, X, Sofa, Bed, UtensilsCrossed, Monitor, Bath } from "lucide-react";
+import { ArrowLeft, ArrowRight, Loader2, RotateCcw, X, Sofa, Bed, UtensilsCrossed, Monitor, Bath, ThumbsUp, ThumbsDown, Save } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
 import { ArchFurniture, ArchLegend } from "@/components/floorplan/ArchFurniture";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
@@ -414,6 +415,9 @@ const FloorPlan = () => {
   const [activeOpeningType, setActiveOpeningType] = useState<OpeningType>("door");
   const [layout, setLayout] = useState<LayoutSuggestion | null>(null);
   const [generating, setGenerating] = useState(false);
+  const [itemScores, setItemScores] = useState<Record<number, boolean | null>>({});
+  const [itemNotes, setItemNotes] = useState<Record<number, string>>({});
+  const [savingFeedback, setSavingFeedback] = useState(false);
 
   // Fetch room furniture configs from DB
   const { data: roomConfigs } = useQuery({
@@ -503,8 +507,41 @@ const FloorPlan = () => {
     }
   }, [selectedShape, dimensions, selectedRoomType, selectedFurniture, openings]);
 
-  const proceedToQuiz = useCallback(async () => {
-    if (!layout || !selectedShape) return;
+  const saveFeedbackAndProceed = useCallback(async () => {
+    if (!layout || !selectedShape || !user) return;
+    setSavingFeedback(true);
+
+    // Save layout feedback for each scored item
+    try {
+      const feedbackRows = layout.items
+        .map((item, i) => {
+          const agreed = itemScores[i];
+          if (agreed === null || agreed === undefined) return null;
+          return {
+            user_id: user.id,
+            room_type: selectedRoomType || null,
+            room_shape: selectedShape.id,
+            room_dimensions: dimensions,
+            openings: openings.map(o => ({ type: o.type, wall: o.wall, position: o.position })),
+            layout_name: layout.name,
+            furniture_item: item.label,
+            position_x: item.x,
+            position_y: item.y,
+            width_pct: item.w,
+            height_pct: item.h,
+            ai_reason: item.reason || null,
+            agreed,
+            user_note: itemNotes[i] || null,
+          };
+        })
+        .filter(Boolean);
+
+      if (feedbackRows.length > 0) {
+        await supabase.from("layout_feedback").insert(feedbackRows);
+      }
+    } catch { /* non-critical */ }
+
+    // Save floor plan context
     const floorPlanContext = {
       shape: selectedShape.id,
       dimensions,
@@ -514,13 +551,12 @@ const FloorPlan = () => {
       layout,
     };
     sessionStorage.setItem("floor_plan_context", JSON.stringify(floorPlanContext));
-    const roomType = selectedRoomType || (selectedShape.id === "open-plan" ? "living_room" : "living_room");
+    const roomType = selectedRoomType || "living_room";
     updateQuizData({ roomType });
 
-    // Save quiz response directly and skip quiz page
     try {
       await supabase.from("quiz_responses").insert({
-        user_id: user!.id,
+        user_id: user.id,
         style_preference: "modern-minimal",
         color_palette: "neutral",
         room_type: roomType,
@@ -530,9 +566,10 @@ const FloorPlan = () => {
       });
     } catch { /* non-critical */ }
 
+    setSavingFeedback(false);
     sessionStorage.setItem('generate_quiz_nonce', crypto.randomUUID());
     navigate("/generate", { state: { quizData: { roomType, stylePreference: "modern-minimal", colorPalette: "neutral", budgetFeel: "mid-range", mustHaveElements: selectedFurniture } } });
-  }, [layout, selectedShape, dimensions, selectedRoomType, selectedFurniture, openings, navigate, updateQuizData]);
+  }, [layout, selectedShape, dimensions, selectedRoomType, selectedFurniture, openings, navigate, updateQuizData, user, itemScores, itemNotes]);
 
   if (authLoading) {
     return (
@@ -905,32 +942,85 @@ const FloorPlan = () => {
                       </CardContent>
                     </Card>
 
-                    {/* Placement reasons */}
+                    {/* Placement scoring */}
                     <div className="space-y-2">
-                      <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">Why this arrangement</h3>
+                      <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">Score each placement</h3>
+                      <p className="text-xs text-muted-foreground">Agree or disagree — your feedback trains better layouts</p>
                       <div className="space-y-2 max-h-[450px] overflow-y-auto pr-1">
-                        {layout.items.map((item, i) => (
-                          <div key={i} className="p-3 rounded-lg bg-secondary/40 border border-border/50">
-                            <p className="font-medium text-sm">{item.label}</p>
-                            {item.reason && (
-                              <p className="text-xs text-muted-foreground mt-0.5">💡 {item.reason}</p>
-                            )}
-                          </div>
-                        ))}
+                        {layout.items.map((item, i) => {
+                          const score = itemScores[i];
+                          return (
+                            <div key={i} className={`p-3 rounded-lg border transition-colors ${
+                              score === true ? "bg-green-500/10 border-green-500/30" :
+                              score === false ? "bg-red-500/10 border-red-500/30" :
+                              "bg-secondary/40 border-border/50"
+                            }`}>
+                              <div className="flex items-center justify-between">
+                                <p className="font-medium text-sm">{item.label}</p>
+                                <div className="flex gap-1">
+                                  <button
+                                    onClick={() => setItemScores(prev => ({ ...prev, [i]: prev[i] === true ? null : true }))}
+                                    className={`p-1.5 rounded-md transition-colors ${
+                                      score === true ? "bg-green-500/20 text-green-600" : "hover:bg-muted text-muted-foreground"
+                                    }`}
+                                    title="Agree"
+                                  >
+                                    <ThumbsUp className="w-3.5 h-3.5" />
+                                  </button>
+                                  <button
+                                    onClick={() => setItemScores(prev => ({ ...prev, [i]: prev[i] === false ? null : false }))}
+                                    className={`p-1.5 rounded-md transition-colors ${
+                                      score === false ? "bg-red-500/20 text-red-600" : "hover:bg-muted text-muted-foreground"
+                                    }`}
+                                    title="Disagree"
+                                  >
+                                    <ThumbsDown className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+                              </div>
+                              {item.reason && (
+                                <p className="text-xs text-muted-foreground mt-1">💡 {item.reason}</p>
+                              )}
+                              {score !== null && score !== undefined && (
+                                <Textarea
+                                  placeholder={score ? "What do you like about this?" : "Where would you prefer it?"}
+                                  value={itemNotes[i] || ""}
+                                  onChange={(e) => setItemNotes(prev => ({ ...prev, [i]: e.target.value }))}
+                                  className="mt-2 text-xs min-h-[40px] h-10 resize-none"
+                                />
+                              )}
+                            </div>
+                          );
+                        })}
                       </div>
+                      {/* Score summary */}
+                      {Object.keys(itemScores).length > 0 && (
+                        <div className="flex items-center gap-3 pt-1 text-xs text-muted-foreground">
+                          <span className="text-green-600">
+                            ✓ {Object.values(itemScores).filter(v => v === true).length} agreed
+                          </span>
+                          <span className="text-red-500">
+                            ✗ {Object.values(itemScores).filter(v => v === false).length} disagreed
+                          </span>
+                          <span>
+                            {layout.items.length - Object.values(itemScores).filter(v => v !== null && v !== undefined).length} unscored
+                          </span>
+                        </div>
+                      )}
                     </div>
                   </div>
 
                   <div className="flex justify-center gap-3 pt-4">
-                    <Button variant="outline" onClick={() => { setStep(3); setLayout(null); }}>
+                    <Button variant="outline" onClick={() => { setStep(3); setLayout(null); setItemScores({}); setItemNotes({}); }}>
                       <RotateCcw className="w-4 h-4 mr-2" /> Edit Openings
                     </Button>
-                    <Button variant="outline" onClick={generateLayouts} disabled={generating}>
+                    <Button variant="outline" onClick={() => { setItemScores({}); setItemNotes({}); generateLayouts(); }} disabled={generating}>
                       {generating ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
                       Regenerate
                     </Button>
-                    <Button onClick={proceedToQuiz} disabled={!layout}>
-                      Continue to Style <ArrowRight className="w-4 h-4 ml-2" />
+                    <Button onClick={saveFeedbackAndProceed} disabled={!layout || savingFeedback}>
+                      {savingFeedback ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
+                      Save & Continue
                     </Button>
                   </div>
                 </>
