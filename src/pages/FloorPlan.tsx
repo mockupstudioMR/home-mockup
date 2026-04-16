@@ -1548,7 +1548,7 @@ const FloorPlan = () => {
                             );
                           })()}
                         </div>
-                        <ArchLegend items={layout.items.map(it => it.label)} />
+                        <IllustratedLegend items={layout.items.map(it => it.label)} />
                       </CardContent>
                     </Card>
 
