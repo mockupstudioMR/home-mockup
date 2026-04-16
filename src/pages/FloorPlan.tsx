@@ -596,6 +596,9 @@ const FloorPlan = () => {
 
   // Layout step
   const [layout, setLayout] = useState<LayoutSuggestion | null>(null);
+  const [previousLayout, setPreviousLayout] = useState<LayoutSuggestion | null>(null);
+  const [previousScores, setPreviousScores] = useState<Record<number, boolean | null>>({});
+  const [previousNotes, setPreviousNotes] = useState<Record<number, string>>({});
   const [generating, setGenerating] = useState(false);
   const [itemScores, setItemScores] = useState<Record<number, boolean | null>>({});
   const [itemNotes, setItemNotes] = useState<Record<number, string>>({});
