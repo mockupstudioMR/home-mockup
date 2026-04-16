@@ -507,8 +507,41 @@ const FloorPlan = () => {
     }
   }, [selectedShape, dimensions, selectedRoomType, selectedFurniture, openings]);
 
-  const proceedToQuiz = useCallback(async () => {
-    if (!layout || !selectedShape) return;
+  const saveFeedbackAndProceed = useCallback(async () => {
+    if (!layout || !selectedShape || !user) return;
+    setSavingFeedback(true);
+
+    // Save layout feedback for each scored item
+    try {
+      const feedbackRows = layout.items
+        .map((item, i) => {
+          const agreed = itemScores[i];
+          if (agreed === null || agreed === undefined) return null;
+          return {
+            user_id: user.id,
+            room_type: selectedRoomType || null,
+            room_shape: selectedShape.id,
+            room_dimensions: dimensions,
+            openings: openings.map(o => ({ type: o.type, wall: o.wall, position: o.position })),
+            layout_name: layout.name,
+            furniture_item: item.label,
+            position_x: item.x,
+            position_y: item.y,
+            width_pct: item.w,
+            height_pct: item.h,
+            ai_reason: item.reason || null,
+            agreed,
+            user_note: itemNotes[i] || null,
+          };
+        })
+        .filter(Boolean);
+
+      if (feedbackRows.length > 0) {
+        await supabase.from("layout_feedback").insert(feedbackRows);
+      }
+    } catch { /* non-critical */ }
+
+    // Save floor plan context
     const floorPlanContext = {
       shape: selectedShape.id,
       dimensions,
@@ -518,13 +551,12 @@ const FloorPlan = () => {
       layout,
     };
     sessionStorage.setItem("floor_plan_context", JSON.stringify(floorPlanContext));
-    const roomType = selectedRoomType || (selectedShape.id === "open-plan" ? "living_room" : "living_room");
+    const roomType = selectedRoomType || "living_room";
     updateQuizData({ roomType });
 
-    // Save quiz response directly and skip quiz page
     try {
       await supabase.from("quiz_responses").insert({
-        user_id: user!.id,
+        user_id: user.id,
         style_preference: "modern-minimal",
         color_palette: "neutral",
         room_type: roomType,
@@ -534,9 +566,10 @@ const FloorPlan = () => {
       });
     } catch { /* non-critical */ }
 
+    setSavingFeedback(false);
     sessionStorage.setItem('generate_quiz_nonce', crypto.randomUUID());
     navigate("/generate", { state: { quizData: { roomType, stylePreference: "modern-minimal", colorPalette: "neutral", budgetFeel: "mid-range", mustHaveElements: selectedFurniture } } });
-  }, [layout, selectedShape, dimensions, selectedRoomType, selectedFurniture, openings, navigate, updateQuizData]);
+  }, [layout, selectedShape, dimensions, selectedRoomType, selectedFurniture, openings, navigate, updateQuizData, user, itemScores, itemNotes]);
 
   if (authLoading) {
     return (
