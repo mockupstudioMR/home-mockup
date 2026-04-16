@@ -355,27 +355,7 @@ function RoomWithOpenings({
     <path d={shapePath} fill={fill} stroke={stroke} strokeWidth={2.5} />
   );
 
-  // Clickable wall lines (always use bounding box for click targets)
-  const wallLines = (["top", "bottom", "left", "right"] as WallSide[]).map((wall) => {
-    const props =
-      wall === "top"
-        ? { x1: padding, y1: padding, x2: padding + w, y2: padding }
-        : wall === "bottom"
-        ? { x1: padding, y1: padding + h, x2: padding + w, y2: padding + h }
-        : wall === "left"
-        ? { x1: padding, y1: padding, x2: padding, y2: padding + h }
-        : { x1: padding + w, y1: padding, x2: padding + w, y2: padding + h };
-    return (
-      <line
-        key={wall}
-        {...props}
-        stroke="transparent"
-        strokeWidth={16}
-        className="cursor-crosshair"
-        onClick={(e) => handleWallClick(wall, e)}
-      />
-    );
-  });
+  // Clickable wall hit areas (rendered last in SVG so they're on top)
 
   const getOpeningPos = (opening: RoomOpening) => {
     const pos = opening.position / 100;
