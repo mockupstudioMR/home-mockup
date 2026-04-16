@@ -261,6 +261,94 @@ function ShapeSVG({ shapeId, dims, scale = 1, className = "" }: { shapeId: Shape
   }
 }
 
+// Compute polygon vertices in SVG coords for any shape
+function getShapeVertices(
+  shapeId: ShapeId,
+  dims: Record<string, number>,
+  padding: number,
+  customWalls?: WallSegment[]
+): { x: number; y: number }[] {
+  const scale = 30;
+  switch (shapeId) {
+    case "l-shape": {
+      const mw = (dims.mainW || 6) * scale;
+      const mh = (dims.mainH || 4) * scale;
+      const ww = (dims.wingW || 3) * scale;
+      const wh = (dims.wingH || 3) * scale;
+      return [
+        { x: padding, y: padding },
+        { x: padding + mw, y: padding },
+        { x: padding + mw, y: padding + wh },
+        { x: padding + ww, y: padding + wh },
+        { x: padding + ww, y: padding + mh },
+        { x: padding, y: padding + mh },
+      ];
+    }
+    case "u-shape": {
+      const tw = (dims.totalW || 7) * scale;
+      const th = (dims.totalH || 5) * scale;
+      const cw = (dims.cutoutW || 3) * scale;
+      const ch = (dims.cutoutH || 3) * scale;
+      const cx = (tw - cw) / 2;
+      return [
+        { x: padding, y: padding },
+        { x: padding + tw, y: padding },
+        { x: padding + tw, y: padding + th },
+        { x: padding + cx + cw, y: padding + th },
+        { x: padding + cx + cw, y: padding + th - ch },
+        { x: padding + cx, y: padding + th - ch },
+        { x: padding + cx, y: padding + th },
+        { x: padding, y: padding + th },
+      ];
+    }
+    case "custom": {
+      if (customWalls && customWalls.length >= 3) {
+        const verts = wallSegmentsToVertices(customWalls);
+        const bb = verticesBBox(verts);
+        const w = (dims.width || dims.mainW || dims.totalW || 5) * scale;
+        const h = (dims.height || dims.mainH || dims.totalH || 4) * scale;
+        const s = Math.min(w / (bb.w || 1), h / (bb.h || 1));
+        return verts.map((v) => ({
+          x: (v.x - bb.minX) * s + padding,
+          y: (v.y - bb.minY) * s + padding,
+        }));
+      }
+      // fallback to rect
+      const w = (dims.width || 5) * scale;
+      const h = (dims.height || 4) * scale;
+      return [
+        { x: padding, y: padding },
+        { x: padding + w, y: padding },
+        { x: padding + w, y: padding + h },
+        { x: padding, y: padding + h },
+      ];
+    }
+    default: {
+      // rectangle & open-plan
+      const w = (dims.width || dims.mainW || dims.totalW || 5) * scale;
+      const h = (dims.height || dims.mainH || dims.totalH || 4) * scale;
+      return [
+        { x: padding, y: padding },
+        { x: padding + w, y: padding },
+        { x: padding + w, y: padding + h },
+        { x: padding, y: padding + h },
+      ];
+    }
+  }
+}
+
+// Map edge index to closest WallSide based on edge direction
+function edgeToWallSide(v1: { x: number; y: number }, v2: { x: number; y: number }): WallSide {
+  const dx = v2.x - v1.x;
+  const dy = v2.y - v1.y;
+  const angle = Math.atan2(dy, dx) * 180 / Math.PI; // -180..180
+  // Normalize: top=going right (0°), right=going down (90°), bottom=going left (180°), left=going up (-90°)
+  if (angle >= -45 && angle < 45) return "top";
+  if (angle >= 45 && angle < 135) return "right";
+  if (angle >= -135 && angle < -45) return "left";
+  return "bottom";
+}
+
 // Interactive room SVG with openings
 function RoomWithOpenings({
   shapeId,
@@ -288,110 +376,77 @@ function RoomWithOpenings({
   const stroke = "hsl(var(--primary))";
   const fill = "hsl(var(--primary) / 0.06)";
 
-  // Build shape path based on shapeId
-  const getShapePath = () => {
-    switch (shapeId) {
-      case "l-shape": {
-        const mw = (dims.mainW || 6) * 30;
-        const mh = (dims.mainH || 4) * 30;
-        const ww = (dims.wingW || 3) * 30;
-        const wh = (dims.wingH || 3) * 30;
-        return `M${padding},${padding} H${padding + mw} V${padding + wh} H${padding + ww} V${padding + mh} H${padding} Z`;
-      }
-      case "u-shape": {
-        const tw = (dims.totalW || 7) * 30;
-        const th = (dims.totalH || 5) * 30;
-        const cw = (dims.cutoutW || 3) * 30;
-        const ch = (dims.cutoutH || 3) * 30;
-        const cx = (tw - cw) / 2;
-        return `M${padding},${padding} H${padding + tw} V${padding + th} H${padding + cx + cw} V${padding + th - ch} H${padding + cx} V${padding + th} H${padding} Z`;
-      }
-      case "custom": {
-        if (customWalls && customWalls.length >= 3) {
-          const verts = wallSegmentsToVertices(customWalls);
-          const bb = verticesBBox(verts);
-          const scale = Math.min(w / (bb.w || 1), h / (bb.h || 1));
-          return verts.map((v, i) => {
-            const x = (v.x - bb.minX) * scale + padding;
-            const y = (v.y - bb.minY) * scale + padding;
-            return `${i === 0 ? "M" : "L"}${x},${y}`;
-          }).join(" ") + " Z";
-        }
-        return null;
-      }
-      default:
-        return null; // rectangle handled separately
-    }
-  };
+  const vertices = getShapeVertices(shapeId, dims, padding, customWalls);
 
-  const shapePath = getShapePath();
-  const isRect = !shapePath;
+  // Build edges
+  const edges = vertices.map((v, i) => {
+    const next = vertices[(i + 1) % vertices.length];
+    return { v1: v, v2: next, wallSide: edgeToWallSide(v, next), index: i };
+  });
 
-  // Render shape outline
-  const shapeOutline = isRect ? (
-    <>
-      <rect x={padding} y={padding} width={w} height={h} fill={fill} stroke="none" />
-      <rect x={padding} y={padding} width={w} height={h} fill="none" stroke={stroke} strokeWidth={2.5} rx={2} />
-    </>
-  ) : (
-    <path d={shapePath} fill={fill} stroke={stroke} strokeWidth={2.5} />
-  );
-
-  // Clickable wall hit areas (rendered last in SVG so they're on top)
-
-  const getOpeningPos = (opening: RoomOpening) => {
-    const pos = opening.position / 100;
-    const size = opening.type === "door" ? 18 : opening.type === "balcony" ? 24 : 20;
-
-    switch (opening.wall) {
-      case "top":
-        return { x: padding + pos * w, y: padding, horizontal: true, size };
-      case "bottom":
-        return { x: padding + pos * w, y: padding + h, horizontal: true, size };
-      case "left":
-        return { x: padding, y: padding + pos * h, horizontal: false, size };
-      case "right":
-        return { x: padding + w, y: padding + pos * h, horizontal: false, size };
-    }
-  };
+  // Build SVG path from vertices
+  const shapePath = vertices.map((v, i) => `${i === 0 ? "M" : "L"}${v.x},${v.y}`).join(" ") + " Z";
 
   const openingColor = (type: OpeningType) => {
     return OPENING_TYPES.find((t) => t.type === type)?.color || stroke;
   };
 
+  // Get opening position along actual wall edge
+  const getOpeningPos = (opening: RoomOpening) => {
+    // Find the best matching edge for this opening's wall side
+    const matchingEdges = edges.filter(e => e.wallSide === opening.wall);
+    // Use first matching edge (or fallback to any edge)
+    const edge = matchingEdges[0] || edges[0];
+    const pos = opening.position / 100;
+    const size = opening.type === "door" ? 18 : opening.type === "balcony" ? 24 : 20;
+    const x = edge.v1.x + (edge.v2.x - edge.v1.x) * pos;
+    const y = edge.v1.y + (edge.v2.y - edge.v1.y) * pos;
+    const dx = edge.v2.x - edge.v1.x;
+    const dy = edge.v2.y - edge.v1.y;
+    const len = Math.sqrt(dx * dx + dy * dy);
+    // Unit direction along the wall
+    const ux = dx / (len || 1);
+    const uy = dy / (len || 1);
+    // Normal (pointing inward — we'll pick based on which side)
+    const nx = -uy;
+    const ny = ux;
+    const horizontal = Math.abs(dx) > Math.abs(dy);
+    return { x, y, ux, uy, nx, ny, size, horizontal, edge };
+  };
+
   return (
     <svg viewBox={`0 0 ${svgW} ${svgH}`} className="w-full h-full max-h-[350px]">
-      {shapeOutline}
+      <path d={shapePath} fill={fill} stroke={stroke} strokeWidth={2.5} />
 
-      {(["top", "bottom", "left", "right"] as WallSide[]).map((wall) => {
-        const labelProps =
-          wall === "top"
-            ? { x: padding + w / 2, y: padding - 8, anchor: "middle" }
-            : wall === "bottom"
-            ? { x: padding + w / 2, y: padding + h + 18, anchor: "middle" }
-            : wall === "left"
-            ? { x: padding - 8, y: padding + h / 2, anchor: "middle", rotate: true }
-            : { x: padding + w + 8, y: padding + h / 2, anchor: "middle", rotate: true };
+      {/* Wall labels at edge midpoints */}
+      {edges.map((edge, i) => {
+        const mx = (edge.v1.x + edge.v2.x) / 2;
+        const my = (edge.v1.y + edge.v2.y) / 2;
+        const dx = edge.v2.x - edge.v1.x;
+        const dy = edge.v2.y - edge.v1.y;
+        // Normal for offset
+        const len = Math.sqrt(dx * dx + dy * dy);
+        if (len < 10) return null;
+        const nx = -dy / len;
+        const ny = dx / len;
+        const offset = 14;
         return (
           <text
-            key={wall}
-            x={labelProps.x}
-            y={labelProps.y}
+            key={`label-${i}`}
+            x={mx + nx * offset}
+            y={my + ny * offset}
             textAnchor="middle"
+            dominantBaseline="middle"
             fontSize={9}
             fill="hsl(var(--muted-foreground))"
             className="pointer-events-none select-none"
-            transform={
-              (labelProps as any).rotate
-                ? `rotate(-90, ${labelProps.x}, ${labelProps.y})`
-                : undefined
-            }
           >
-            {WALL_LABELS[wall]}
+            Wall {String.fromCharCode(65 + i)}
           </text>
         );
       })}
 
+      {/* Openings */}
       {openings.map((opening) => {
         const pos = getOpeningPos(opening);
         const color = openingColor(opening.type);
@@ -399,31 +454,45 @@ function RoomWithOpenings({
 
         return (
           <g key={opening.id} className="cursor-pointer" onClick={() => onRemoveOpening(opening.id)}>
-            {pos.horizontal ? (
-              <>
-                <line x1={pos.x - pos.size / 2} y1={pos.y} x2={pos.x + pos.size / 2} y2={pos.y} stroke={color} strokeWidth={4} strokeLinecap="round" />
-                {opening.type === "door" && (
-                  <path d={`M${pos.x - pos.size / 2},${pos.y} A${pos.size / 2},${pos.size / 2} 0 0,${pos.y === padding ? 1 : 0} ${pos.x + pos.size / 2},${pos.y}`} fill="none" stroke={color} strokeWidth={1} strokeDasharray="3 2" opacity={0.5} />
-                )}
-                {opening.type === "balcony" && (
-                  <rect x={pos.x - pos.size / 2} y={pos.y === padding ? pos.y - 10 : pos.y} width={pos.size} height={10} fill={color} opacity={0.15} stroke={color} strokeWidth={1} rx={1} />
-                )}
-              </>
-            ) : (
-              <>
-                <line x1={pos.x} y1={pos.y - pos.size / 2} x2={pos.x} y2={pos.y + pos.size / 2} stroke={color} strokeWidth={4} strokeLinecap="round" />
-                {opening.type === "door" && (
-                  <path d={`M${pos.x},${pos.y - pos.size / 2} A${pos.size / 2},${pos.size / 2} 0 0,${pos.x === padding ? 0 : 1} ${pos.x},${pos.y + pos.size / 2}`} fill="none" stroke={color} strokeWidth={1} strokeDasharray="3 2" opacity={0.5} />
-                )}
-                {opening.type === "balcony" && (
-                  <rect x={pos.x === padding ? pos.x - 10 : pos.x} y={pos.y - pos.size / 2} width={10} height={pos.size} fill={color} opacity={0.15} stroke={color} strokeWidth={1} rx={1} />
-                )}
-              </>
+            {/* Opening line along wall */}
+            <line
+              x1={pos.x - pos.ux * pos.size / 2}
+              y1={pos.y - pos.uy * pos.size / 2}
+              x2={pos.x + pos.ux * pos.size / 2}
+              y2={pos.y + pos.uy * pos.size / 2}
+              stroke={color}
+              strokeWidth={4}
+              strokeLinecap="round"
+            />
+            {opening.type === "door" && (
+              <path
+                d={`M${pos.x - pos.ux * pos.size / 2},${pos.y - pos.uy * pos.size / 2} A${pos.size / 2},${pos.size / 2} 0 0,1 ${pos.x + pos.ux * pos.size / 2},${pos.y + pos.uy * pos.size / 2}`}
+                fill="none"
+                stroke={color}
+                strokeWidth={1}
+                strokeDasharray="3 2"
+                opacity={0.5}
+              />
+            )}
+            {opening.type === "balcony" && (
+              <rect
+                x={pos.x - pos.ux * pos.size / 2 + pos.nx * 0}
+                y={pos.y - pos.uy * pos.size / 2 + pos.ny * 0}
+                width={pos.horizontal ? pos.size : 10}
+                height={pos.horizontal ? 10 : pos.size}
+                fill={color}
+                opacity={0.15}
+                stroke={color}
+                strokeWidth={1}
+                rx={1}
+                transform={`translate(${pos.nx * -5},${pos.ny * -5})`}
+              />
             )}
             <text
-              x={pos.horizontal ? pos.x : pos.x + (pos.x === padding ? -14 : 14)}
-              y={pos.horizontal ? pos.y + (pos.y === padding ? -10 : 16) : pos.y + 3}
+              x={pos.x + pos.nx * 16}
+              y={pos.y + pos.ny * 16}
               textAnchor="middle"
+              dominantBaseline="middle"
               fontSize={12}
               className="pointer-events-none"
             >
@@ -433,20 +502,19 @@ function RoomWithOpenings({
         );
       })}
 
-      {/* Clickable wall hit areas — rendered last so on top of everything */}
-      {(["top", "bottom", "left", "right"] as WallSide[]).map((wall) => {
-        const wallProps =
-          wall === "top"
-            ? { x1: padding, y1: padding, x2: padding + w, y2: padding }
-            : wall === "bottom"
-            ? { x1: padding, y1: padding + h, x2: padding + w, y2: padding + h }
-            : wall === "left"
-            ? { x1: padding, y1: padding, x2: padding, y2: padding + h }
-            : { x1: padding + w, y1: padding, x2: padding + w, y2: padding + h };
+      {/* Clickable wall hit areas along actual edges — rendered last so on top */}
+      {edges.map((edge, i) => {
+        const dx = edge.v2.x - edge.v1.x;
+        const dy = edge.v2.y - edge.v1.y;
+        const len = Math.sqrt(dx * dx + dy * dy);
+        if (len < 5) return null;
         return (
           <line
-            key={`hit-${wall}`}
-            {...wallProps}
+            key={`hit-${i}`}
+            x1={edge.v1.x}
+            y1={edge.v1.y}
+            x2={edge.v2.x}
+            y2={edge.v2.y}
             stroke="transparent"
             strokeWidth={28}
             className="cursor-crosshair"
@@ -459,14 +527,12 @@ function RoomWithOpenings({
               const scaleY = vb.height / rect.height;
               const svgX = (e.clientX - rect.left) * scaleX;
               const svgY = (e.clientY - rect.top) * scaleY;
-              let pct = 0;
-              if (wall === "top" || wall === "bottom") {
-                pct = Math.round(((svgX - padding) / w) * 100);
-              } else {
-                pct = Math.round(((svgY - padding) / h) * 100);
-              }
-              pct = Math.max(10, Math.min(90, pct));
-              onWallClick(wall, pct);
+              // Project click onto the edge to get percentage
+              const ex = svgX - edge.v1.x;
+              const ey = svgY - edge.v1.y;
+              const dot = (ex * dx + ey * dy) / (len * len);
+              const pct = Math.max(10, Math.min(90, Math.round(dot * 100)));
+              onWallClick(edge.wallSide, pct);
             }}
           />
         );
