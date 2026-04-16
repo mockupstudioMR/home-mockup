@@ -515,6 +515,19 @@ const FloorPlan = () => {
     top: "flat", right: "flat", bottom: "flat", left: "flat",
   });
 
+  // Custom shape
+  const [customWalls, setCustomWalls] = useState<WallSegment[]>([
+    { length_m: 5, angle_deg: 90 },
+    { length_m: 4, angle_deg: 90 },
+    { length_m: 5, angle_deg: 90 },
+    { length_m: 4, angle_deg: 90 },
+  ]);
+
+  // Floor plan upload
+  const [floorPlanUploading, setFloorPlanUploading] = useState(false);
+  const [floorPlanAnalyzing, setFloorPlanAnalyzing] = useState(false);
+  const [floorPlanImageUrl, setFloorPlanImageUrl] = useState<string>("");
+
   // Style step
   const [selectedStyle, setSelectedStyle] = useState<string>("");
   const [referenceImageUrl, setReferenceImageUrl] = useState<string>("");
