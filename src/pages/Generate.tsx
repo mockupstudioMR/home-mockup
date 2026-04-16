@@ -1494,6 +1494,7 @@ const Generate = () => {
     }
   };
 
+  const handleLockDesign = async () => {
     if (!design || design.isLocked || design.id.startsWith("design-")) {
       toast({
         title: "Cannot lock design",
