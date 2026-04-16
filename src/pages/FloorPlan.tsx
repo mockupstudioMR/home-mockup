@@ -415,6 +415,9 @@ const FloorPlan = () => {
   const [activeOpeningType, setActiveOpeningType] = useState<OpeningType>("door");
   const [layout, setLayout] = useState<LayoutSuggestion | null>(null);
   const [generating, setGenerating] = useState(false);
+  const [itemScores, setItemScores] = useState<Record<number, boolean | null>>({});
+  const [itemNotes, setItemNotes] = useState<Record<number, string>>({});
+  const [savingFeedback, setSavingFeedback] = useState(false);
 
   // Fetch room furniture configs from DB
   const { data: roomConfigs } = useQuery({
