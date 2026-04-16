@@ -85,22 +85,73 @@ function Lamp({ x, y, w, h }: Omit<FurnitureProps, "label">) {
 }
 
 function Wardrobe({ x, y, w, h }: Omit<FurnitureProps, "label">) {
-  const doors = w > h ? 4 : 2;
-  const dw = w / doors;
+  // True top-down: a slim cabinet (depth ~60cm) with hanging rod line and door-swing arcs.
+  const horiz = w >= h;
+  const depth = horiz ? h : w; // the "thin" axis = depth from wall
+  const length = horiz ? w : h; // the "long" axis = run along wall
+  const doors = Math.max(2, Math.min(4, Math.round(length / Math.max(depth * 1.2, 1))));
   return (
     <g>
-      <rect x={x + 1} y={y + 2} width={w} height={h} rx={1} fill={SHADOW} />
-      <rect x={x} y={y} width={w} height={h} rx={1} fill={WOOD} stroke={OUTLINE} strokeWidth={0.6} />
-      {/* wood grain lines */}
-      <line x1={x} y1={y + h * 0.3} x2={x + w} y2={y + h * 0.3} stroke={WOOD_DARK} strokeWidth={0.2} opacity={0.4} />
-      <line x1={x} y1={y + h * 0.7} x2={x + w} y2={y + h * 0.7} stroke={WOOD_DARK} strokeWidth={0.2} opacity={0.4} />
-      {/* door dividers + handles */}
-      {Array.from({ length: doors - 1 }).map((_, i) => (
-        <line key={i} x1={x + dw * (i + 1)} y1={y + h * 0.1} x2={x + dw * (i + 1)} y2={y + h * 0.9} stroke={WOOD_DARK} strokeWidth={0.4} opacity={0.6} />
-      ))}
-      {Array.from({ length: doors }).map((_, i) => (
-        <rect key={i} x={x + dw * i + dw * 0.45} y={y + h * 0.42} width={dw * 0.1} height={h * 0.16} rx={0.4} fill="hsl(0 0% 75%)" />
-      ))}
+      {/* shadow */}
+      <rect x={x + 1} y={y + 2} width={w} height={h} rx={0.5} fill={SHADOW} />
+      {/* cabinet body (top of carcass) */}
+      <rect x={x} y={y} width={w} height={h} rx={0.5} fill={WOOD} stroke={OUTLINE} strokeWidth={0.6} />
+      {/* inner hanging rod line, parallel to the wall side */}
+      {horiz ? (
+        <line x1={x + depth * 0.15} y1={y + depth * 0.5} x2={x + w - depth * 0.15} y2={y + depth * 0.5} stroke={WOOD_DARK} strokeWidth={0.5} opacity={0.7} strokeDasharray="2 1.5" />
+      ) : (
+        <line x1={x + depth * 0.5} y1={y + depth * 0.15} x2={x + depth * 0.5} y2={y + h - depth * 0.15} stroke={WOOD_DARK} strokeWidth={0.5} opacity={0.7} strokeDasharray="2 1.5" />
+      )}
+      {/* front edge highlight (where doors meet the room) */}
+      {horiz ? (
+        <line x1={x} y1={y + h} x2={x + w} y2={y + h} stroke={WOOD_LIGHT} strokeWidth={0.6} opacity={0.9} />
+      ) : (
+        <line x1={x + w} y1={y} x2={x + w} y2={y + h} stroke={WOOD_LIGHT} strokeWidth={0.6} opacity={0.9} />
+      )}
+      {/* door dividers */}
+      {Array.from({ length: doors - 1 }).map((_, i) => {
+        const t = (i + 1) / doors;
+        return horiz ? (
+          <line key={i} x1={x + w * t} y1={y} x2={x + w * t} y2={y + h} stroke={WOOD_DARK} strokeWidth={0.3} opacity={0.5} />
+        ) : (
+          <line key={i} x1={x} y1={y + h * t} x2={x + w} y2={y + h * t} stroke={WOOD_DARK} strokeWidth={0.3} opacity={0.5} />
+        );
+      })}
+      {/* door-swing arcs (subtle) showing this is a wardrobe opening outward */}
+      {Array.from({ length: doors }).map((_, i) => {
+        const seg = (horiz ? w : h) / doors;
+        const r = seg * 0.9;
+        if (horiz) {
+          const x0 = x + seg * i;
+          const cx = x0;
+          const cy = y + h;
+          return (
+            <path
+              key={i}
+              d={`M ${cx} ${cy} A ${r} ${r} 0 0 0 ${cx + r} ${cy}`}
+              fill="none"
+              stroke={WOOD_DARK}
+              strokeWidth={0.25}
+              opacity={0.45}
+              strokeDasharray="1.5 1.5"
+            />
+          );
+        }
+        const y0 = y + seg * i;
+        const cx = x + w;
+        const cy = y0;
+        return (
+          <path
+            key={i}
+            d={`M ${cx} ${cy} A ${r} ${r} 0 0 1 ${cx} ${cy + r}`}
+            fill="none"
+            stroke={WOOD_DARK}
+            strokeWidth={0.25}
+            opacity={0.45}
+            strokeDasharray="1.5 1.5"
+          />
+        );
+      })}
     </g>
   );
 }
