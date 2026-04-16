@@ -1229,6 +1229,7 @@ const FloorPlan = () => {
                     activeType={activeOpeningType}
                     onWallClick={addOpening}
                     onRemoveOpening={removeOpening}
+                    customWalls={customWalls}
                   />
                 </div>
 
