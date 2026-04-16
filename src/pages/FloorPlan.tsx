@@ -732,17 +732,21 @@ const FloorPlan = () => {
 
     try {
       const wallsData = buildWallsClockwise();
+      const body: Record<string, any> = {
+        shape: selectedShape.id,
+        dimensions,
+        roomType: selectedRoomType,
+        furnitureItems: selectedFurniture,
+        openings: openings.map(o => ({ type: o.type, wall: o.wall, position: o.position })),
+        walls: wallsData,
+        style: selectedStyle,
+        referenceImageUrl: referenceImageUrl || undefined,
+      };
+      if (selectedShape.id === "custom") {
+        body.customWalls = customWalls;
+      }
       const { data, error } = await supabase.functions.invoke("generate-layout", {
-        body: {
-          shape: selectedShape.id,
-          dimensions,
-          roomType: selectedRoomType,
-          furnitureItems: selectedFurniture,
-          openings: openings.map(o => ({ type: o.type, wall: o.wall, position: o.position })),
-          walls: wallsData,
-          style: selectedStyle,
-          referenceImageUrl: referenceImageUrl || undefined,
-        },
+        body,
       });
 
       if (error) throw error;
