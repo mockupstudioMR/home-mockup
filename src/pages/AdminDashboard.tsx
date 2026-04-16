@@ -15,6 +15,9 @@ import AdminProductManagement from "@/components/admin/AdminProductManagement";
 import RoomFurnitureManager from "@/components/admin/RoomFurnitureManager";
 import PromptTemplateManager from "@/components/admin/PromptTemplateManager";
 import TypeFamiliesManager from "@/components/admin/TypeFamiliesManager";
+import FurnitureSpecsManager from "@/components/admin/FurnitureSpecsManager";
+import RoomActivitiesManager from "@/components/admin/RoomActivitiesManager";
+import OpeningRulesManager from "@/components/admin/OpeningRulesManager";
 import ProductMatchingWeights from "@/components/admin/ProductMatchingWeights";
 import { 
   Shield, 
