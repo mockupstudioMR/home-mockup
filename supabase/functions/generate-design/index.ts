@@ -386,7 +386,11 @@ serve(async (req) => {
       }
     ];
 
-    addDebug("AI request prepared", `Model: google/gemini-3-pro-image-preview, ${contentParts.length} content parts`);
+    // Use the dedicated image-edit model for modifications (better preservation of unchanged areas)
+    const modelToUse = enrichedRequestData.modificationPrompt
+      ? "google/gemini-3.1-flash-image-preview"
+      : "google/gemini-3-pro-image-preview";
+    addDebug("AI request prepared", `Model: ${modelToUse}, ${contentParts.length} content parts`);
 
     // Retry logic for image generation
     let imageUrl: string | undefined;
@@ -403,7 +407,7 @@ serve(async (req) => {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "google/gemini-3-pro-image-preview",
+          model: modelToUse,
           messages,
           modalities: ["image", "text"],
         }),
