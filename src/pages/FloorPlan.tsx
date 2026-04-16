@@ -400,7 +400,6 @@ function RoomWithOpenings({
   return (
     <svg viewBox={`0 0 ${svgW} ${svgH}`} className="w-full h-full max-h-[350px]">
       {shapeOutline}
-      {wallLines}
 
       {(["top", "bottom", "left", "right"] as WallSide[]).map((wall) => {
         const labelProps =
