@@ -791,6 +791,12 @@ const FloorPlan = () => {
 
   const generateLayouts = useCallback(async () => {
     if (!selectedShape) return;
+    // Snapshot current layout/feedback so the user can undo a regenerate
+    if (layout) {
+      setPreviousLayout(layout);
+      setPreviousScores(itemScores);
+      setPreviousNotes(itemNotes);
+    }
     setGenerating(true);
     setLayout(null);
 
@@ -826,7 +832,18 @@ const FloorPlan = () => {
     } finally {
       setGenerating(false);
     }
-  }, [selectedShape, dimensions, selectedRoomType, selectedFurniture, openings, buildWallsClockwise, customWalls]);
+  }, [selectedShape, dimensions, selectedRoomType, selectedFurniture, openings, buildWallsClockwise, customWalls, layout, itemScores, itemNotes]);
+
+  const undoLayout = useCallback(() => {
+    if (!previousLayout) return;
+    setLayout(previousLayout);
+    setItemScores(previousScores);
+    setItemNotes(previousNotes);
+    setPreviousLayout(null);
+    setPreviousScores({});
+    setPreviousNotes({});
+    toast({ title: "Restored previous layout" });
+  }, [previousLayout, previousScores, previousNotes]);
 
   const saveFeedbackAndProceed = useCallback(async () => {
     if (!layout || !selectedShape || !user) return;
