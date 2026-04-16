@@ -54,6 +54,8 @@ export default function FloorPlanComparison({
   // Auto-detect when design image is available
   useEffect(() => {
     if (!designImageUrl || !ctx?.layout) return;
+    // Skip data: URIs — too large for edge function body. Wait for storage URL.
+    if (designImageUrl.startsWith("data:")) return;
     let cancelled = false;
     (async () => {
       setLoading(true);
