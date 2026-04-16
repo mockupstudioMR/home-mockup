@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
-import { ArchFurniture, ArchLegend } from "@/components/floorplan/ArchFurniture";
+import { IllustratedFurniture, IllustratedLegend } from "@/components/floorplan/IllustratedFurniture";
 import { LayoutGrid } from "lucide-react";
 
 interface LayoutItem {
@@ -69,7 +69,7 @@ export default function FloorPlanPreview() {
               const y = (item.y / 100) * (canvasH - 20) + 10;
               const w = (item.w / 100) * (canvasW - 20);
               const h = (item.h / 100) * (canvasH - 20);
-              return <ArchFurniture key={i} x={x} y={y} w={w} h={h} label={item.label} />;
+              return <IllustratedFurniture key={i} x={x} y={y} w={w} h={h} label={item.label} />;
             })}
           </svg>
         </div>
@@ -79,7 +79,7 @@ export default function FloorPlanPreview() {
           <p className="text-[10px] text-muted-foreground/70 capitalize">
             {shape} · {dimLabel} · {roomType?.replace(/_/g, " ")}
           </p>
-          <ArchLegend items={layout.items.map((it) => it.label)} />
+          <IllustratedLegend items={layout.items.map((it) => it.label)} />
         </div>
       </CardContent>
     </Card>
