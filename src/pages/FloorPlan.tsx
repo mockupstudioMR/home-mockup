@@ -862,67 +862,74 @@ const FloorPlan = () => {
             </div>
           )}
 
-          {/* Step 4: Layout Suggestions */}
+          {/* Step 4: Layout Result */}
           {step === 4 && (
             <div className="space-y-6">
               <div className="text-center space-y-2">
-                <h1 className="text-2xl md:text-3xl font-bold">Choose Your Layout</h1>
-                <p className="text-muted-foreground">AI-suggested furniture arrangements for your {selectedShape?.label} room</p>
+                <h1 className="text-2xl md:text-3xl font-bold">Your Suggested Layout</h1>
+                <p className="text-muted-foreground">
+                  {layout ? layout.description : `Optimized arrangement for your ${selectedShape?.label} room`}
+                </p>
               </div>
 
-              {layouts.length === 0 ? (
+              {!layout ? (
                 <div className="flex items-center justify-center py-20">
                   <Loader2 className="w-8 h-8 animate-spin text-primary" />
                 </div>
               ) : (
                 <>
-                  <div className="grid md:grid-cols-3 gap-4">
-                    {layouts.map((layout, i) => {
-                      const canvasW = 300;
-                      const canvasH = 240;
-                      return (
-                        <Card
-                          key={i}
-                          className={`cursor-pointer transition-all ${
-                            selectedLayout === i
-                              ? "ring-2 ring-primary border-primary"
-                              : "hover:border-primary/40"
-                          }`}
-                          onClick={() => setSelectedLayout(i)}
-                        >
-                          <CardContent className="p-4 space-y-2">
-                            <div className="bg-[hsl(var(--background))] rounded-lg p-3 flex items-center justify-center border border-border/30">
-                              <svg viewBox={`0 0 ${canvasW} ${canvasH}`} className="w-full h-auto">
+                  <div className="grid md:grid-cols-[1fr_320px] gap-6 items-start">
+                    {/* Layout SVG */}
+                    <Card>
+                      <CardContent className="p-4 space-y-2">
+                        <h3 className="font-semibold text-lg">{layout.name}</h3>
+                        <div className="bg-muted/30 rounded-lg p-3 flex items-center justify-center border border-border/30">
+                          {(() => {
+                            const canvasW = 400;
+                            const canvasH = 320;
+                            return (
+                              <svg viewBox={`0 0 ${canvasW} ${canvasH}`} className="w-full h-auto max-h-[350px]">
                                 <defs>
-                                  <pattern id={`grid-${i}`} width="15" height="15" patternUnits="userSpaceOnUse">
+                                  <pattern id="grid-single" width="15" height="15" patternUnits="userSpaceOnUse">
                                     <path d="M 15 0 L 0 0 0 15" fill="none" stroke="hsl(var(--border) / 0.3)" strokeWidth="0.3" />
                                   </pattern>
                                 </defs>
-                                <rect x={10} y={10} width={canvasW - 20} height={canvasH - 20} fill={`url(#grid-${i})`} stroke="hsl(var(--foreground) / 0.4)" strokeWidth={2} rx={1} />
+                                <rect x={10} y={10} width={canvasW - 20} height={canvasH - 20} fill="url(#grid-single)" stroke="hsl(var(--foreground) / 0.4)" strokeWidth={2} rx={1} />
                                 <rect x={8} y={8} width={canvasW - 16} height={canvasH - 16} fill="none" stroke="hsl(var(--foreground) / 0.15)" strokeWidth={5} rx={2} />
                                 <ArchFurnitureOverlay items={layout.items} canvasW={canvasW - 20} canvasH={canvasH - 20} />
                               </svg>
-                            </div>
-                            <div>
-                              <h3 className="font-semibold text-sm">{layout.name}</h3>
-                              <p className="text-xs text-muted-foreground mt-0.5">{layout.description}</p>
-                              <ArchLegend items={layout.items.map(it => it.label)} />
-                            </div>
-                          </CardContent>
-                        </Card>
-                      );
-                    })}
+                            );
+                          })()}
+                        </div>
+                        <ArchLegend items={layout.items.map(it => it.label)} />
+                      </CardContent>
+                    </Card>
+
+                    {/* Placement reasons */}
+                    <div className="space-y-2">
+                      <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">Why this arrangement</h3>
+                      <div className="space-y-2 max-h-[450px] overflow-y-auto pr-1">
+                        {layout.items.map((item, i) => (
+                          <div key={i} className="p-3 rounded-lg bg-secondary/40 border border-border/50">
+                            <p className="font-medium text-sm">{item.label}</p>
+                            {item.reason && (
+                              <p className="text-xs text-muted-foreground mt-0.5">💡 {item.reason}</p>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
                   </div>
 
                   <div className="flex justify-center gap-3 pt-4">
-                    <Button variant="outline" onClick={() => { setStep(3); setLayouts([]); setSelectedLayout(null); }}>
+                    <Button variant="outline" onClick={() => { setStep(3); setLayout(null); }}>
                       <RotateCcw className="w-4 h-4 mr-2" /> Edit Openings
                     </Button>
                     <Button variant="outline" onClick={generateLayouts} disabled={generating}>
                       {generating ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
                       Regenerate
                     </Button>
-                    <Button onClick={proceedToQuiz} disabled={selectedLayout === null}>
+                    <Button onClick={proceedToQuiz} disabled={!layout}>
                       Continue to Style <ArrowRight className="w-4 h-4 ml-2" />
                     </Button>
                   </div>
