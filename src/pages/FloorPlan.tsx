@@ -596,8 +596,76 @@ const FloorPlan = () => {
 
   const selectShape = useCallback((shape: RoomShape) => {
     setSelectedShape(shape);
-    setDimensions({ ...shape.defaultDimensions });
+    if (shape.id !== "custom") {
+      setDimensions({ ...shape.defaultDimensions });
+    }
     setStep(1);
+  }, []);
+
+  const handleFloorPlanUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+    setFloorPlanUploading(true);
+    setFloorPlanAnalyzing(false);
+    try {
+      const ext = file.name.split(".").pop();
+      const path = `${user.id}/floorplan_${Date.now()}.${ext}`;
+      const { error: uploadErr } = await supabase.storage.from("room-uploads").upload(path, file);
+      if (uploadErr) throw uploadErr;
+      const { data: urlData } = supabase.storage.from("room-uploads").getPublicUrl(path);
+      setFloorPlanImageUrl(urlData.publicUrl);
+      setFloorPlanUploading(false);
+      setFloorPlanAnalyzing(true);
+
+      // Call AI to analyze the floor plan
+      const { data, error } = await supabase.functions.invoke("analyze-floorplan", {
+        body: { imageUrl: urlData.publicUrl },
+      });
+      if (error) throw error;
+
+      if (data?.floorplan?.walls && data.floorplan.walls.length >= 3) {
+        setCustomWalls(data.floorplan.walls);
+        // Set shape to custom and go to step 1
+        const customShape = ROOM_SHAPES.find(s => s.id === "custom")!;
+        setSelectedShape(customShape);
+
+        // Auto-import detected openings
+        if (data.floorplan.openings?.length > 0) {
+          const wallLabels: WallSide[] = ["top", "right", "bottom", "left"];
+          const importedOpenings: RoomOpening[] = data.floorplan.openings
+            .filter((o: any) => o.wall_index < wallLabels.length)
+            .map((o: any) => ({
+              id: crypto.randomUUID(),
+              type: o.type as OpeningType,
+              wall: wallLabels[o.wall_index % wallLabels.length],
+              position: Math.round(o.position_pct),
+            }));
+          setOpenings(importedOpenings);
+        }
+
+        toast({ title: "Floor plan analyzed!", description: data.floorplan.shape_description || "Shape extracted successfully" });
+        setStep(1);
+      } else {
+        throw new Error("Could not extract room shape from image");
+      }
+    } catch (err: any) {
+      toast({ title: "Analysis failed", description: err.message || "Please try again", variant: "destructive" });
+    } finally {
+      setFloorPlanUploading(false);
+      setFloorPlanAnalyzing(false);
+    }
+  }, [user]);
+
+  const addWallSegment = useCallback(() => {
+    setCustomWalls(prev => [...prev, { length_m: 3, angle_deg: 90 }]);
+  }, []);
+
+  const removeWallSegment = useCallback((index: number) => {
+    setCustomWalls(prev => prev.length > 3 ? prev.filter((_, i) => i !== index) : prev);
+  }, []);
+
+  const updateWallSegment = useCallback((index: number, field: "length_m" | "angle_deg", value: number) => {
+    setCustomWalls(prev => prev.map((w, i) => i === index ? { ...w, [field]: value } : w));
   }, []);
 
   const updateDim = useCallback((key: string, val: string) => {
