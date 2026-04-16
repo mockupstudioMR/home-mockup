@@ -1541,7 +1541,7 @@ const FloorPlan = () => {
                                     const y = (item.y / 100) * (bb.h) + bb.minY;
                                     const w = (item.w / 100) * (bb.w);
                                     const h = (item.h / 100) * (bb.h);
-                                    return <ArchFurniture key={i} x={x} y={y} w={w} h={h} label={item.label} />;
+                                    return <IllustratedFurniture key={i} x={x} y={y} w={w} h={h} label={item.label} />;
                                   })}
                                 </g>
                               </svg>
