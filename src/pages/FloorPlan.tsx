@@ -474,8 +474,7 @@ const FloorPlan = () => {
   const generateLayouts = useCallback(async () => {
     if (!selectedShape) return;
     setGenerating(true);
-    setLayouts([]);
-    setSelectedLayout(null);
+    setLayout(null);
 
     try {
       const { data, error } = await supabase.functions.invoke("generate-layout", {
@@ -490,8 +489,8 @@ const FloorPlan = () => {
 
       if (error) throw error;
 
-      if (data?.layouts && Array.isArray(data.layouts)) {
-        setLayouts(data.layouts);
+      if (data?.layout) {
+        setLayout(data.layout);
       } else {
         throw new Error("Invalid layout response");
       }
