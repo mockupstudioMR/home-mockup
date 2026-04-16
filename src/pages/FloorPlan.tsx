@@ -354,7 +354,7 @@ function RoomWithOpenings({
   shapeId,
   dims,
   openings,
-  activeType,
+  activeType: _activeType,
   onWallClick,
   onRemoveOpening,
   customWalls,
