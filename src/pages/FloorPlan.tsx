@@ -288,24 +288,6 @@ function RoomWithOpenings({
   const stroke = "hsl(var(--primary))";
   const fill = "hsl(var(--primary) / 0.06)";
 
-  const handleWallClick = (wall: WallSide, e: React.MouseEvent<SVGLineElement>) => {
-    const svg = e.currentTarget.closest("svg");
-    if (!svg) return;
-    const pt = svg.createSVGPoint();
-    pt.x = e.clientX;
-    pt.y = e.clientY;
-    const svgPt = pt.matrixTransform(svg.getScreenCTM()?.inverse());
-
-    let position = 0;
-    if (wall === "top" || wall === "bottom") {
-      position = ((svgPt.x - padding) / w) * 100;
-    } else {
-      position = ((svgPt.y - padding) / h) * 100;
-    }
-    position = Math.max(10, Math.min(90, position));
-    onWallClick(wall, position);
-  };
-
   // Build shape path based on shapeId
   const getShapePath = () => {
     switch (shapeId) {
@@ -355,27 +337,7 @@ function RoomWithOpenings({
     <path d={shapePath} fill={fill} stroke={stroke} strokeWidth={2.5} />
   );
 
-  // Clickable wall lines (always use bounding box for click targets)
-  const wallLines = (["top", "bottom", "left", "right"] as WallSide[]).map((wall) => {
-    const props =
-      wall === "top"
-        ? { x1: padding, y1: padding, x2: padding + w, y2: padding }
-        : wall === "bottom"
-        ? { x1: padding, y1: padding + h, x2: padding + w, y2: padding + h }
-        : wall === "left"
-        ? { x1: padding, y1: padding, x2: padding, y2: padding + h }
-        : { x1: padding + w, y1: padding, x2: padding + w, y2: padding + h };
-    return (
-      <line
-        key={wall}
-        {...props}
-        stroke="transparent"
-        strokeWidth={16}
-        className="cursor-crosshair"
-        onClick={(e) => handleWallClick(wall, e)}
-      />
-    );
-  });
+  // Clickable wall hit areas (rendered last in SVG so they're on top)
 
   const getOpeningPos = (opening: RoomOpening) => {
     const pos = opening.position / 100;
@@ -400,7 +362,6 @@ function RoomWithOpenings({
   return (
     <svg viewBox={`0 0 ${svgW} ${svgH}`} className="w-full h-full max-h-[350px]">
       {shapeOutline}
-      {wallLines}
 
       {(["top", "bottom", "left", "right"] as WallSide[]).map((wall) => {
         const labelProps =
@@ -469,6 +430,45 @@ function RoomWithOpenings({
               {icon}
             </text>
           </g>
+        );
+      })}
+
+      {/* Clickable wall hit areas — rendered last so on top of everything */}
+      {(["top", "bottom", "left", "right"] as WallSide[]).map((wall) => {
+        const wallProps =
+          wall === "top"
+            ? { x1: padding, y1: padding, x2: padding + w, y2: padding }
+            : wall === "bottom"
+            ? { x1: padding, y1: padding + h, x2: padding + w, y2: padding + h }
+            : wall === "left"
+            ? { x1: padding, y1: padding, x2: padding, y2: padding + h }
+            : { x1: padding + w, y1: padding, x2: padding + w, y2: padding + h };
+        return (
+          <line
+            key={`hit-${wall}`}
+            {...wallProps}
+            stroke="transparent"
+            strokeWidth={28}
+            className="cursor-crosshair"
+            onClick={(e) => {
+              const svg = e.currentTarget.closest("svg");
+              if (!svg) return;
+              const rect = svg.getBoundingClientRect();
+              const vb = svg.viewBox.baseVal;
+              const scaleX = vb.width / rect.width;
+              const scaleY = vb.height / rect.height;
+              const svgX = (e.clientX - rect.left) * scaleX;
+              const svgY = (e.clientY - rect.top) * scaleY;
+              let pct = 0;
+              if (wall === "top" || wall === "bottom") {
+                pct = Math.round(((svgX - padding) / w) * 100);
+              } else {
+                pct = Math.round(((svgY - padding) / h) * 100);
+              }
+              pct = Math.max(10, Math.min(90, pct));
+              onWallClick(wall, pct);
+            }}
+          />
         );
       })}
     </svg>
