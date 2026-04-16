@@ -412,8 +412,7 @@ const FloorPlan = () => {
   const [selectedFurniture, setSelectedFurniture] = useState<string[]>([]);
   const [openings, setOpenings] = useState<RoomOpening[]>([]);
   const [activeOpeningType, setActiveOpeningType] = useState<OpeningType>("door");
-  const [layouts, setLayouts] = useState<LayoutSuggestion[]>([]);
-  const [selectedLayout, setSelectedLayout] = useState<number | null>(null);
+  const [layout, setLayout] = useState<LayoutSuggestion | null>(null);
   const [generating, setGenerating] = useState(false);
 
   // Fetch room furniture configs from DB
