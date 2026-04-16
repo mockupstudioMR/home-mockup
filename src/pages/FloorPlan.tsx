@@ -1309,24 +1309,35 @@ const FloorPlan = () => {
                   <div className="space-y-2">
                     <Label className="text-sm font-medium">Wall Surfaces</Label>
                     <div className="space-y-2">
-                      {WALLS_CLOCKWISE.map((wall) => (
-                        <div key={wall} className="flex items-center gap-2">
-                          <span className="text-xs text-muted-foreground w-24 shrink-0">{WALL_LABELS[wall]}</span>
-                          <Select
-                            value={wallSurfaces[wall]}
-                            onValueChange={(val) => setWallSurfaces(prev => ({ ...prev, [wall]: val }))}
-                          >
-                            <SelectTrigger className="h-8 text-xs">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {WALL_SURFACE_OPTIONS.map((opt) => (
-                                <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      ))}
+                      {WALLS_CLOCKWISE.map((wall, i) => {
+                        const WALL_COLORS_SIDEBAR = [
+                          "hsl(var(--primary))",
+                          "hsl(25 80% 55%)",
+                          "hsl(150 50% 45%)",
+                          "hsl(280 60% 55%)",
+                        ];
+                        return (
+                          <div key={wall} className="flex items-center gap-2">
+                            <span
+                              className="w-4 h-4 rounded-sm shrink-0 border border-border/50"
+                              style={{ backgroundColor: WALL_COLORS_SIDEBAR[i] }}
+                            />
+                            <Select
+                              value={wallSurfaces[wall]}
+                              onValueChange={(val) => setWallSurfaces(prev => ({ ...prev, [wall]: val }))}
+                            >
+                              <SelectTrigger className="h-8 text-xs">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {WALL_SURFACE_OPTIONS.map((opt) => (
+                                  <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
 
