@@ -661,9 +661,9 @@ function buildImagePrompt(
     }
   }
 
-  // Modification: send ONLY the user's submitted feedback as the prompt — no wrappers, no context.
+  // Modification: edit the attached source image applying ONLY the user's feedback. Preserve everything else.
   if (data.modificationPrompt) {
-    return data.modificationPrompt;
+    return `Edit the attached image. Apply EXACTLY and ONLY this change: "${data.modificationPrompt}". Keep every other element (camera angle, composition, lighting, walls, floor, all other furniture, colors, materials, decor) IDENTICAL to the original. Do not add, remove, restyle, or rearrange anything beyond the requested change. Output the full edited image at the same aspect ratio and resolution.`;
   }
 
   // Scene preview refinement - reproduce the exact scene with the exact same products
