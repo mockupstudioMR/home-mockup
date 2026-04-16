@@ -1611,16 +1611,15 @@ const FloorPlan = () => {
                   </div>
 
                   <div className="flex justify-center gap-3 pt-4">
-                    <Button variant="outline" onClick={() => { setStep(4); setLayout(null); setItemScores({}); setItemNotes({}); }}>
-                      <RotateCcw className="w-4 h-4 mr-2" /> Change Style
+                    <Button variant="outline" onClick={() => { setStep(3); }}>
+                      <ArrowLeft className="w-4 h-4 mr-2" /> Back to Openings
                     </Button>
                     <Button variant="outline" onClick={() => { setItemScores({}); setItemNotes({}); generateLayouts(); }} disabled={generating}>
-                      {generating ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+                      {generating ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <RotateCcw className="w-4 h-4 mr-2" />}
                       Regenerate
                     </Button>
-                    <Button onClick={saveFeedbackAndProceed} disabled={!layout || savingFeedback}>
-                      {savingFeedback ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
-                      Save & Continue
+                    <Button onClick={() => setStep(5)} disabled={!layout}>
+                      Next: Style <ArrowRight className="w-4 h-4 ml-2" />
                     </Button>
                   </div>
                 </>
