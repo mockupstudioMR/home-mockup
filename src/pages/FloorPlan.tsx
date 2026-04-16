@@ -1311,10 +1311,10 @@ const FloorPlan = () => {
                     <div className="space-y-2">
                       {WALLS_CLOCKWISE.map((wall, i) => {
                         const WALL_COLORS_SIDEBAR = [
-                          "hsl(var(--primary))",
-                          "hsl(25 80% 55%)",
-                          "hsl(150 50% 45%)",
-                          "hsl(280 60% 55%)",
+                          "hsl(15 55% 70%)",
+                          "hsl(280 30% 68%)",
+                          "hsl(140 25% 58%)",
+                          "hsl(25 45% 65%)",
                         ];
                         return (
                           <div key={wall} className="flex items-center gap-2">
