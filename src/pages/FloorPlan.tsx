@@ -288,24 +288,6 @@ function RoomWithOpenings({
   const stroke = "hsl(var(--primary))";
   const fill = "hsl(var(--primary) / 0.06)";
 
-  const handleWallClick = (wall: WallSide, e: React.MouseEvent<SVGLineElement>) => {
-    const svg = e.currentTarget.closest("svg");
-    if (!svg) return;
-    const pt = svg.createSVGPoint();
-    pt.x = e.clientX;
-    pt.y = e.clientY;
-    const svgPt = pt.matrixTransform(svg.getScreenCTM()?.inverse());
-
-    let position = 0;
-    if (wall === "top" || wall === "bottom") {
-      position = ((svgPt.x - padding) / w) * 100;
-    } else {
-      position = ((svgPt.y - padding) / h) * 100;
-    }
-    position = Math.max(10, Math.min(90, position));
-    onWallClick(wall, position);
-  };
-
   // Build shape path based on shapeId
   const getShapePath = () => {
     switch (shapeId) {
