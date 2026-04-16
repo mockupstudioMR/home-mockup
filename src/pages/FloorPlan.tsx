@@ -269,6 +269,7 @@ function RoomWithOpenings({
   activeType,
   onWallClick,
   onRemoveOpening,
+  customWalls,
 }: {
   shapeId: ShapeId;
   dims: Record<string, number>;
@@ -276,6 +277,7 @@ function RoomWithOpenings({
   activeType: OpeningType;
   onWallClick: (wall: WallSide, position: number) => void;
   onRemoveOpening: (id: string) => void;
+  customWalls?: WallSegment[];
 }) {
   const padding = 40;
   const w = (dims.width || dims.mainW || dims.totalW || 5) * 30;
@@ -304,6 +306,77 @@ function RoomWithOpenings({
     onWallClick(wall, position);
   };
 
+  // Build shape path based on shapeId
+  const getShapePath = () => {
+    switch (shapeId) {
+      case "l-shape": {
+        const mw = (dims.mainW || 6) * 30;
+        const mh = (dims.mainH || 4) * 30;
+        const ww = (dims.wingW || 3) * 30;
+        const wh = (dims.wingH || 3) * 30;
+        return `M${padding},${padding} H${padding + mw} V${padding + wh} H${padding + ww} V${padding + mh} H${padding} Z`;
+      }
+      case "u-shape": {
+        const tw = (dims.totalW || 7) * 30;
+        const th = (dims.totalH || 5) * 30;
+        const cw = (dims.cutoutW || 3) * 30;
+        const ch = (dims.cutoutH || 3) * 30;
+        const cx = (tw - cw) / 2;
+        return `M${padding},${padding} H${padding + tw} V${padding + th} H${padding + cx + cw} V${padding + th - ch} H${padding + cx} V${padding + th} H${padding} Z`;
+      }
+      case "custom": {
+        if (customWalls && customWalls.length >= 3) {
+          const verts = wallSegmentsToVertices(customWalls);
+          const bb = verticesBBox(verts);
+          const scale = Math.min(w / (bb.w || 1), h / (bb.h || 1));
+          return verts.map((v, i) => {
+            const x = (v.x - bb.minX) * scale + padding;
+            const y = (v.y - bb.minY) * scale + padding;
+            return `${i === 0 ? "M" : "L"}${x},${y}`;
+          }).join(" ") + " Z";
+        }
+        return null;
+      }
+      default:
+        return null; // rectangle handled separately
+    }
+  };
+
+  const shapePath = getShapePath();
+  const isRect = !shapePath;
+
+  // Render shape outline
+  const shapeOutline = isRect ? (
+    <>
+      <rect x={padding} y={padding} width={w} height={h} fill={fill} stroke="none" />
+      <rect x={padding} y={padding} width={w} height={h} fill="none" stroke={stroke} strokeWidth={2.5} rx={2} />
+    </>
+  ) : (
+    <path d={shapePath} fill={fill} stroke={stroke} strokeWidth={2.5} />
+  );
+
+  // Clickable wall lines (always use bounding box for click targets)
+  const wallLines = (["top", "bottom", "left", "right"] as WallSide[]).map((wall) => {
+    const props =
+      wall === "top"
+        ? { x1: padding, y1: padding, x2: padding + w, y2: padding }
+        : wall === "bottom"
+        ? { x1: padding, y1: padding + h, x2: padding + w, y2: padding + h }
+        : wall === "left"
+        ? { x1: padding, y1: padding, x2: padding, y2: padding + h }
+        : { x1: padding + w, y1: padding, x2: padding + w, y2: padding + h };
+    return (
+      <line
+        key={wall}
+        {...props}
+        stroke="transparent"
+        strokeWidth={16}
+        className="cursor-crosshair"
+        onClick={(e) => handleWallClick(wall, e)}
+      />
+    );
+  });
+
   const getOpeningPos = (opening: RoomOpening) => {
     const pos = opening.position / 100;
     const size = opening.type === "door" ? 18 : opening.type === "balcony" ? 24 : 20;
@@ -326,30 +399,8 @@ function RoomWithOpenings({
 
   return (
     <svg viewBox={`0 0 ${svgW} ${svgH}`} className="w-full h-full max-h-[350px]">
-      <rect x={padding} y={padding} width={w} height={h} fill={fill} stroke="none" />
-
-      {(["top", "bottom", "left", "right"] as WallSide[]).map((wall) => {
-        const props =
-          wall === "top"
-            ? { x1: padding, y1: padding, x2: padding + w, y2: padding }
-            : wall === "bottom"
-            ? { x1: padding, y1: padding + h, x2: padding + w, y2: padding + h }
-            : wall === "left"
-            ? { x1: padding, y1: padding, x2: padding, y2: padding + h }
-            : { x1: padding + w, y1: padding, x2: padding + w, y2: padding + h };
-        return (
-          <line
-            key={wall}
-            {...props}
-            stroke="transparent"
-            strokeWidth={16}
-            className="cursor-crosshair"
-            onClick={(e) => handleWallClick(wall, e)}
-          />
-        );
-      })}
-
-      <rect x={padding} y={padding} width={w} height={h} fill="none" stroke={stroke} strokeWidth={2.5} rx={2} />
+      {shapeOutline}
+      {wallLines}
 
       {(["top", "bottom", "left", "right"] as WallSide[]).map((wall) => {
         const labelProps =
@@ -389,72 +440,22 @@ function RoomWithOpenings({
           <g key={opening.id} className="cursor-pointer" onClick={() => onRemoveOpening(opening.id)}>
             {pos.horizontal ? (
               <>
-                <line
-                  x1={pos.x - pos.size / 2}
-                  y1={pos.y}
-                  x2={pos.x + pos.size / 2}
-                  y2={pos.y}
-                  stroke={color}
-                  strokeWidth={4}
-                  strokeLinecap="round"
-                />
+                <line x1={pos.x - pos.size / 2} y1={pos.y} x2={pos.x + pos.size / 2} y2={pos.y} stroke={color} strokeWidth={4} strokeLinecap="round" />
                 {opening.type === "door" && (
-                  <path
-                    d={`M${pos.x - pos.size / 2},${pos.y} A${pos.size / 2},${pos.size / 2} 0 0,${pos.y === padding ? 1 : 0} ${pos.x + pos.size / 2},${pos.y}`}
-                    fill="none"
-                    stroke={color}
-                    strokeWidth={1}
-                    strokeDasharray="3 2"
-                    opacity={0.5}
-                  />
+                  <path d={`M${pos.x - pos.size / 2},${pos.y} A${pos.size / 2},${pos.size / 2} 0 0,${pos.y === padding ? 1 : 0} ${pos.x + pos.size / 2},${pos.y}`} fill="none" stroke={color} strokeWidth={1} strokeDasharray="3 2" opacity={0.5} />
                 )}
                 {opening.type === "balcony" && (
-                  <rect
-                    x={pos.x - pos.size / 2}
-                    y={pos.y === padding ? pos.y - 10 : pos.y}
-                    width={pos.size}
-                    height={10}
-                    fill={color}
-                    opacity={0.15}
-                    stroke={color}
-                    strokeWidth={1}
-                    rx={1}
-                  />
+                  <rect x={pos.x - pos.size / 2} y={pos.y === padding ? pos.y - 10 : pos.y} width={pos.size} height={10} fill={color} opacity={0.15} stroke={color} strokeWidth={1} rx={1} />
                 )}
               </>
             ) : (
               <>
-                <line
-                  x1={pos.x}
-                  y1={pos.y - pos.size / 2}
-                  x2={pos.x}
-                  y2={pos.y + pos.size / 2}
-                  stroke={color}
-                  strokeWidth={4}
-                  strokeLinecap="round"
-                />
+                <line x1={pos.x} y1={pos.y - pos.size / 2} x2={pos.x} y2={pos.y + pos.size / 2} stroke={color} strokeWidth={4} strokeLinecap="round" />
                 {opening.type === "door" && (
-                  <path
-                    d={`M${pos.x},${pos.y - pos.size / 2} A${pos.size / 2},${pos.size / 2} 0 0,${pos.x === padding ? 0 : 1} ${pos.x},${pos.y + pos.size / 2}`}
-                    fill="none"
-                    stroke={color}
-                    strokeWidth={1}
-                    strokeDasharray="3 2"
-                    opacity={0.5}
-                  />
+                  <path d={`M${pos.x},${pos.y - pos.size / 2} A${pos.size / 2},${pos.size / 2} 0 0,${pos.x === padding ? 0 : 1} ${pos.x},${pos.y + pos.size / 2}`} fill="none" stroke={color} strokeWidth={1} strokeDasharray="3 2" opacity={0.5} />
                 )}
                 {opening.type === "balcony" && (
-                  <rect
-                    x={pos.x === padding ? pos.x - 10 : pos.x}
-                    y={pos.y - pos.size / 2}
-                    width={10}
-                    height={pos.size}
-                    fill={color}
-                    opacity={0.15}
-                    stroke={color}
-                    strokeWidth={1}
-                    rx={1}
-                  />
+                  <rect x={pos.x === padding ? pos.x - 10 : pos.x} y={pos.y - pos.size / 2} width={10} height={pos.size} fill={color} opacity={0.15} stroke={color} strokeWidth={1} rx={1} />
                 )}
               </>
             )}
@@ -473,7 +474,6 @@ function RoomWithOpenings({
     </svg>
   );
 }
-
 function ArchFurnitureOverlay({ items, canvasW, canvasH }: { items: LayoutItem[]; canvasW: number; canvasH: number }) {
   return (
     <>
@@ -1229,6 +1229,7 @@ const FloorPlan = () => {
                     activeType={activeOpeningType}
                     onWallClick={addOpening}
                     onRemoveOpening={removeOpening}
+                    customWalls={customWalls}
                   />
                 </div>
 
