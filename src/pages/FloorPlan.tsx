@@ -1406,8 +1406,8 @@ const FloorPlan = () => {
             </div>
           )}
 
-          {/* Step 4: Style Selection */}
-          {step === 4 && (
+          {/* Step 5: Style Selection */}
+          {step === 5 && (
             <div className="space-y-6">
               <div className="text-center space-y-2">
                 <h1 className="text-2xl md:text-3xl font-bold">What's Your Design Style?</h1>
@@ -1485,17 +1485,17 @@ const FloorPlan = () => {
               </div>
 
               <div className="flex justify-center gap-3 pt-2">
-                <Button variant="outline" onClick={() => setStep(3)}>
-                  <ArrowLeft className="w-4 h-4 mr-2" /> Back to Openings
+                <Button variant="outline" onClick={() => setStep(4)}>
+                  <ArrowLeft className="w-4 h-4 mr-2" /> Back to Layout
                 </Button>
                 <Button
-                  onClick={generateLayouts}
-                  disabled={generating || (!selectedStyle && !referenceImageUrl)}
+                  onClick={saveFeedbackAndProceed}
+                  disabled={savingFeedback || (!selectedStyle && !referenceImageUrl)}
                 >
-                  {generating ? (
-                    <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Generating Layout...</>
+                  {savingFeedback ? (
+                    <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Saving...</>
                   ) : (
-                    <>Generate Layout <ArrowRight className="w-4 h-4 ml-2" /></>
+                    <><Save className="w-4 h-4 mr-2" /> Generate Design</>
                   )}
                 </Button>
               </div>
