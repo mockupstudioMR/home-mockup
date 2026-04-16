@@ -377,6 +377,31 @@ function RoomWithOpenings({
     );
   });
 
+  const getOpeningPos = (opening: RoomOpening) => {
+    const pos = opening.position / 100;
+    const size = opening.type === "door" ? 18 : opening.type === "balcony" ? 24 : 20;
+
+    switch (opening.wall) {
+      case "top":
+        return { x: padding + pos * w, y: padding, horizontal: true, size };
+      case "bottom":
+        return { x: padding + pos * w, y: padding + h, horizontal: true, size };
+      case "left":
+        return { x: padding, y: padding + pos * h, horizontal: false, size };
+      case "right":
+        return { x: padding + w, y: padding + pos * h, horizontal: false, size };
+    }
+  };
+
+  const openingColor = (type: OpeningType) => {
+    return OPENING_TYPES.find((t) => t.type === type)?.color || stroke;
+  };
+
+  return (
+    <svg viewBox={`0 0 ${svgW} ${svgH}`} className="w-full h-full max-h-[350px]">
+      {shapeOutline}
+      {wallLines}
+
       {(["top", "bottom", "left", "right"] as WallSide[]).map((wall) => {
         const labelProps =
           wall === "top"
@@ -415,72 +440,22 @@ function RoomWithOpenings({
           <g key={opening.id} className="cursor-pointer" onClick={() => onRemoveOpening(opening.id)}>
             {pos.horizontal ? (
               <>
-                <line
-                  x1={pos.x - pos.size / 2}
-                  y1={pos.y}
-                  x2={pos.x + pos.size / 2}
-                  y2={pos.y}
-                  stroke={color}
-                  strokeWidth={4}
-                  strokeLinecap="round"
-                />
+                <line x1={pos.x - pos.size / 2} y1={pos.y} x2={pos.x + pos.size / 2} y2={pos.y} stroke={color} strokeWidth={4} strokeLinecap="round" />
                 {opening.type === "door" && (
-                  <path
-                    d={`M${pos.x - pos.size / 2},${pos.y} A${pos.size / 2},${pos.size / 2} 0 0,${pos.y === padding ? 1 : 0} ${pos.x + pos.size / 2},${pos.y}`}
-                    fill="none"
-                    stroke={color}
-                    strokeWidth={1}
-                    strokeDasharray="3 2"
-                    opacity={0.5}
-                  />
+                  <path d={`M${pos.x - pos.size / 2},${pos.y} A${pos.size / 2},${pos.size / 2} 0 0,${pos.y === padding ? 1 : 0} ${pos.x + pos.size / 2},${pos.y}`} fill="none" stroke={color} strokeWidth={1} strokeDasharray="3 2" opacity={0.5} />
                 )}
                 {opening.type === "balcony" && (
-                  <rect
-                    x={pos.x - pos.size / 2}
-                    y={pos.y === padding ? pos.y - 10 : pos.y}
-                    width={pos.size}
-                    height={10}
-                    fill={color}
-                    opacity={0.15}
-                    stroke={color}
-                    strokeWidth={1}
-                    rx={1}
-                  />
+                  <rect x={pos.x - pos.size / 2} y={pos.y === padding ? pos.y - 10 : pos.y} width={pos.size} height={10} fill={color} opacity={0.15} stroke={color} strokeWidth={1} rx={1} />
                 )}
               </>
             ) : (
               <>
-                <line
-                  x1={pos.x}
-                  y1={pos.y - pos.size / 2}
-                  x2={pos.x}
-                  y2={pos.y + pos.size / 2}
-                  stroke={color}
-                  strokeWidth={4}
-                  strokeLinecap="round"
-                />
+                <line x1={pos.x} y1={pos.y - pos.size / 2} x2={pos.x} y2={pos.y + pos.size / 2} stroke={color} strokeWidth={4} strokeLinecap="round" />
                 {opening.type === "door" && (
-                  <path
-                    d={`M${pos.x},${pos.y - pos.size / 2} A${pos.size / 2},${pos.size / 2} 0 0,${pos.x === padding ? 0 : 1} ${pos.x},${pos.y + pos.size / 2}`}
-                    fill="none"
-                    stroke={color}
-                    strokeWidth={1}
-                    strokeDasharray="3 2"
-                    opacity={0.5}
-                  />
+                  <path d={`M${pos.x},${pos.y - pos.size / 2} A${pos.size / 2},${pos.size / 2} 0 0,${pos.x === padding ? 0 : 1} ${pos.x},${pos.y + pos.size / 2}`} fill="none" stroke={color} strokeWidth={1} strokeDasharray="3 2" opacity={0.5} />
                 )}
                 {opening.type === "balcony" && (
-                  <rect
-                    x={pos.x === padding ? pos.x - 10 : pos.x}
-                    y={pos.y - pos.size / 2}
-                    width={10}
-                    height={pos.size}
-                    fill={color}
-                    opacity={0.15}
-                    stroke={color}
-                    strokeWidth={1}
-                    rx={1}
-                  />
+                  <rect x={pos.x === padding ? pos.x - 10 : pos.x} y={pos.y - pos.size / 2} width={10} height={pos.size} fill={color} opacity={0.15} stroke={color} strokeWidth={1} rx={1} />
                 )}
               </>
             )}
@@ -499,7 +474,6 @@ function RoomWithOpenings({
     </svg>
   );
 }
-
 function ArchFurnitureOverlay({ items, canvasW, canvasH }: { items: LayoutItem[]; canvasW: number; canvasH: number }) {
   return (
     <>
