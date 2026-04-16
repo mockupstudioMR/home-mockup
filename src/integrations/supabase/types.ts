@@ -311,6 +311,63 @@ export type Database = {
           },
         ]
       }
+      layout_feedback: {
+        Row: {
+          agreed: boolean
+          ai_reason: string | null
+          created_at: string
+          furniture_item: string
+          height_pct: number | null
+          id: string
+          layout_name: string | null
+          openings: Json | null
+          position_x: number | null
+          position_y: number | null
+          room_dimensions: Json | null
+          room_shape: string | null
+          room_type: string | null
+          user_id: string
+          user_note: string | null
+          width_pct: number | null
+        }
+        Insert: {
+          agreed: boolean
+          ai_reason?: string | null
+          created_at?: string
+          furniture_item: string
+          height_pct?: number | null
+          id?: string
+          layout_name?: string | null
+          openings?: Json | null
+          position_x?: number | null
+          position_y?: number | null
+          room_dimensions?: Json | null
+          room_shape?: string | null
+          room_type?: string | null
+          user_id: string
+          user_note?: string | null
+          width_pct?: number | null
+        }
+        Update: {
+          agreed?: boolean
+          ai_reason?: string | null
+          created_at?: string
+          furniture_item?: string
+          height_pct?: number | null
+          id?: string
+          layout_name?: string | null
+          openings?: Json | null
+          position_x?: number | null
+          position_y?: number | null
+          room_dimensions?: Json | null
+          room_shape?: string | null
+          room_type?: string | null
+          user_id?: string
+          user_note?: string | null
+          width_pct?: number | null
+        }
+        Relationships: []
+      }
       notification_settings: {
         Row: {
           created_at: string
