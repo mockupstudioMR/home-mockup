@@ -36,7 +36,12 @@ const STYLE_OPTIONS = [
 ];
 
 // Room shape definitions
-type ShapeId = "rectangle" | "l-shape" | "u-shape" | "open-plan";
+type ShapeId = "rectangle" | "l-shape" | "u-shape" | "open-plan" | "custom";
+
+interface WallSegment {
+  length_m: number;
+  angle_deg: number;
+}
 
 interface RoomShape {
   id: ShapeId;
@@ -85,7 +90,76 @@ const ROOM_SHAPES: RoomShape[] = [
     defaultDimensions: { width: 8, height: 6 },
     dimensionLabels: { width: "Width (m)", height: "Length (m)" },
   },
+  {
+    id: "custom",
+    label: "Custom Shape",
+    description: "Define walls with angles",
+    defaultDimensions: {},
+    dimensionLabels: {},
+  },
 ];
+
+// Compute polygon vertices from wall segments
+function wallSegmentsToVertices(segments: WallSegment[]): { x: number; y: number }[] {
+  const vertices: { x: number; y: number }[] = [{ x: 0, y: 0 }];
+  let heading = 0; // degrees, 0 = right/east
+  for (let i = 0; i < segments.length; i++) {
+    const seg = segments[i];
+    const rad = (heading * Math.PI) / 180;
+    const lastV = vertices[vertices.length - 1];
+    vertices.push({
+      x: lastV.x + seg.length_m * Math.cos(rad),
+      y: lastV.y + seg.length_m * Math.sin(rad),
+    });
+    heading += seg.angle_deg;
+  }
+  return vertices;
+}
+
+function verticesBBox(verts: { x: number; y: number }[]) {
+  let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+  for (const v of verts) {
+    if (v.x < minX) minX = v.x;
+    if (v.x > maxX) maxX = v.x;
+    if (v.y < minY) minY = v.y;
+    if (v.y > maxY) maxY = v.y;
+  }
+  return { minX, maxX, minY, maxY, w: maxX - minX, h: maxY - minY };
+}
+
+// SVG for custom polygon shape
+function CustomShapeSVG({ segments, className = "" }: { segments: WallSegment[]; className?: string }) {
+  if (segments.length < 3) return null;
+  const verts = wallSegmentsToVertices(segments);
+  const bb = verticesBBox(verts);
+  const pad = 30;
+  const scale = Math.min(200 / (bb.w || 1), 160 / (bb.h || 1));
+  const points = verts.map(v => `${(v.x - bb.minX) * scale + pad},${(v.y - bb.minY) * scale + pad}`).join(" ");
+  const svgW = bb.w * scale + pad * 2;
+  const svgH = bb.h * scale + pad * 2;
+
+  return (
+    <svg viewBox={`0 0 ${svgW} ${svgH}`} className={className}>
+      <polygon
+        points={points}
+        fill="hsl(var(--primary) / 0.08)"
+        stroke="hsl(var(--primary))"
+        strokeWidth={2}
+      />
+      {/* Label each wall with length */}
+      {verts.slice(0, -1).map((v, i) => {
+        const next = verts[i + 1];
+        const mx = ((v.x - bb.minX + next.x - bb.minX) / 2) * scale + pad;
+        const my = ((v.y - bb.minY + next.y - bb.minY) / 2) * scale + pad;
+        return (
+          <text key={i} x={mx} y={my - 4} textAnchor="middle" fontSize={9} fill="hsl(var(--muted-foreground))">
+            {segments[i].length_m}m
+          </text>
+        );
+      })}
+    </svg>
+  );
+}
 
 // Opening types
 type OpeningType = "door" | "window" | "balcony";
