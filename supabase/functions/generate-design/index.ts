@@ -351,6 +351,12 @@ serve(async (req) => {
         contentParts.push({ type: "image_url", image_url: { url: imgUrl } });
       }
       addDebug("Scene layout image", `Added scene reference after product images`);
+    } else if (enrichedRequestData.modificationPrompt) {
+      // Modification mode: ONLY send the source design image so the edit is applied verbatim
+      if (enrichedRequestData.sourceImageUrl) {
+        contentParts.push({ type: "image_url", image_url: { url: enrichedRequestData.sourceImageUrl } });
+        addDebug("Modification mode", "Sending ONLY source image — feedback applied verbatim, no extra context");
+      }
     } else {
       // Normal mode: existing room images first, then products
       if (enrichedRequestData.existingRoomImages && enrichedRequestData.existingRoomImages.length > 0) {
@@ -661,9 +667,9 @@ function buildImagePrompt(
     }
   }
 
-  // Modification: send ONLY the user's submitted feedback as the prompt — no wrappers, no context.
+  // Modification: edit the attached source image applying ONLY the user's feedback. Preserve everything else.
   if (data.modificationPrompt) {
-    return data.modificationPrompt;
+    return `Edit the attached image. Apply EXACTLY and ONLY this change: "${data.modificationPrompt}". Keep every other element (camera angle, composition, lighting, walls, floor, all other furniture, colors, materials, decor) IDENTICAL to the original. Do not add, remove, restyle, or rearrange anything beyond the requested change. Output the full edited image at the same aspect ratio and resolution.`;
   }
 
   // Scene preview refinement - reproduce the exact scene with the exact same products
