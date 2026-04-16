@@ -1524,18 +1524,39 @@ const FloorPlan = () => {
                         <h3 className="font-semibold text-lg">{layout.name}</h3>
                         <div className="bg-muted/30 rounded-lg p-3 flex items-center justify-center border border-border/30">
                           {(() => {
-                            const canvasW = 400;
-                            const canvasH = 320;
+                            const padding = 30;
+                            const verts = selectedShape
+                              ? getShapeVertices(selectedShape.id, dimensions, padding, customWalls)
+                              : [];
+                            const bb = verts.length ? verticesBBox(verts) : { minX: 0, minY: 0, maxX: 400, maxY: 320, w: 400, h: 320 };
+                            const svgW = bb.maxX + padding;
+                            const svgH = bb.maxY + padding;
+                            const shapePath = verts.length
+                              ? verts.map((v, i) => `${i === 0 ? "M" : "L"}${v.x},${v.y}`).join(" ") + " Z"
+                              : "";
                             return (
-                              <svg viewBox={`0 0 ${canvasW} ${canvasH}`} className="w-full h-auto max-h-[350px]">
+                              <svg viewBox={`0 0 ${svgW} ${svgH}`} className="w-full h-auto max-h-[350px]">
                                 <defs>
                                   <pattern id="grid-single" width="15" height="15" patternUnits="userSpaceOnUse">
                                     <path d="M 15 0 L 0 0 0 15" fill="none" stroke="hsl(var(--border) / 0.3)" strokeWidth="0.3" />
                                   </pattern>
+                                  <clipPath id="room-clip">
+                                    <path d={shapePath} />
+                                  </clipPath>
                                 </defs>
-                                <rect x={10} y={10} width={canvasW - 20} height={canvasH - 20} fill="url(#grid-single)" stroke="hsl(var(--foreground) / 0.4)" strokeWidth={2} rx={1} />
-                                <rect x={8} y={8} width={canvasW - 16} height={canvasH - 16} fill="none" stroke="hsl(var(--foreground) / 0.15)" strokeWidth={5} rx={2} />
-                                <ArchFurnitureOverlay items={layout.items} canvasW={canvasW - 20} canvasH={canvasH - 20} />
+                                {/* Room polygon */}
+                                <path d={shapePath} fill="url(#grid-single)" stroke="hsl(var(--foreground) / 0.4)" strokeWidth={2} />
+                                <path d={shapePath} fill="none" stroke="hsl(var(--foreground) / 0.15)" strokeWidth={5} />
+                                {/* Furniture clipped to room polygon */}
+                                <g clipPath="url(#room-clip)">
+                                  {layout.items.map((item, i) => {
+                                    const x = (item.x / 100) * (bb.w) + bb.minX;
+                                    const y = (item.y / 100) * (bb.h) + bb.minY;
+                                    const w = (item.w / 100) * (bb.w);
+                                    const h = (item.h / 100) * (bb.h);
+                                    return <ArchFurniture key={i} x={x} y={y} w={w} h={h} label={item.label} />;
+                                  })}
+                                </g>
                               </svg>
                             );
                           })()}
