@@ -576,7 +576,7 @@ const FloorPlan = () => {
   const { user, loading: authLoading } = useAuth();
   const { updateQuizData } = useQuiz();
 
-  // Steps: 0=shape, 1=dimensions, 2=room type & furniture, 3=openings, 4=style, 5=layout
+  // Steps: 0=shape, 1=dimensions, 2=room type & furniture, 3=openings, 4=layout, 5=style
   const [step, setStep] = useState(0);
   const [selectedShape, setSelectedShape] = useState<RoomShape | null>(null);
   const [dimensions, setDimensions] = useState<Record<string, number>>({});
