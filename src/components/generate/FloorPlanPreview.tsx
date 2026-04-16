@@ -9,6 +9,7 @@ interface LayoutItem {
   y: number;
   w: number;
   h: number;
+  reason?: string;
 }
 
 interface FloorPlanContext {
