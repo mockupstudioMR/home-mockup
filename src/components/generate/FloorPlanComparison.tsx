@@ -40,7 +40,7 @@ export default function FloorPlanComparison({
   isRealigning,
 }: Props) {
   const [ctx, setCtx] = useState<FloorPlanContext | null>(null);
-  const [detected, setDetected] = useState<LayoutItem[] | null>(null);
+  const [topViewUrl, setTopViewUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
@@ -51,14 +51,14 @@ export default function FloorPlanComparison({
     } catch {}
   }, []);
 
-  // Auto-detect when design image is available
+  // Auto-generate realistic top-down photo when design image is available
   useEffect(() => {
     if (!designImageUrl || !ctx?.layout) return;
-    // Skip data: URIs — too large for edge function body. Wait for storage URL.
-    if (designImageUrl.startsWith("data:")) return;
+    if (designImageUrl.startsWith("data:")) return; // wait for storage URL
     let cancelled = false;
     (async () => {
       setLoading(true);
+      setTopViewUrl(null);
       try {
         const { data, error } = await supabase.functions.invoke(
           "detect-top-view",
@@ -73,11 +73,13 @@ export default function FloorPlanComparison({
         );
         if (cancelled) return;
         if (error) throw error;
-        setDetected(data?.items || []);
+        if (data?.error) throw new Error(data.error);
+        setTopViewUrl(data?.imageUrl || null);
       } catch (e: any) {
-        console.error("Top-view detection failed:", e);
+        if (cancelled) return;
+        console.error("Top-view generation failed:", e);
         toast({
-          title: "Couldn't analyze design top view",
+          title: "Couldn't generate top view",
           description: e?.message || "Try again later.",
           variant: "destructive",
         });
@@ -93,9 +95,6 @@ export default function FloorPlanComparison({
   if (!ctx?.layout) return null;
 
   const planned = ctx.layout.items;
-  const allLabels = Array.from(
-    new Set([...planned.map((i) => i.label), ...(detected || []).map((i) => i.label)])
-  );
 
   return (
     <Card className="max-w-5xl mx-auto">
@@ -122,7 +121,7 @@ export default function FloorPlanComparison({
             ) : (
               <Wand2 className="w-4 h-4 mr-2" />
             )}
-            Re-align design to plan
+            Re-align design to plan (1:1)
           </Button>
         </div>
 
@@ -138,21 +137,23 @@ export default function FloorPlanComparison({
 
           <div className="space-y-2">
             <div className="text-xs text-muted-foreground flex items-center gap-1.5">
-              <Eye className="w-3 h-3" /> Detected from design
+              <Eye className="w-3 h-3" /> Top view of the design (photorealistic)
             </div>
-            <div className="bg-muted/30 rounded-lg p-2 border border-border/30 min-h-[200px] flex items-center justify-center">
+            <div className="bg-muted/30 rounded-lg p-2 border border-border/30 min-h-[220px] flex items-center justify-center overflow-hidden">
               {loading && (
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <Loader2 className="w-3 h-3 animate-spin" /> Reading design…
+                  <Loader2 className="w-3 h-3 animate-spin" /> Rendering top view…
                 </div>
               )}
-              {!loading && detected && detected.length > 0 && (
-                <IllustratedRoomPlan items={detected} shape={ctx.shape} dimensions={ctx.dimensions} />
+              {!loading && topViewUrl && (
+                <img
+                  src={topViewUrl}
+                  alt="Top-down photorealistic view of the design"
+                  className="w-full h-auto rounded-md object-contain"
+                  loading="lazy"
+                />
               )}
-              {!loading && detected && detected.length === 0 && (
-                <span className="text-xs text-muted-foreground">No furniture detected.</span>
-              )}
-              {!loading && !detected && (
+              {!loading && !topViewUrl && (
                 <span className="text-xs text-muted-foreground">Waiting for design…</span>
               )}
             </div>
@@ -167,7 +168,7 @@ export default function FloorPlanComparison({
           · {ctx.roomType?.replace(/_/g, " ")}
         </p>
 
-        <IllustratedLegend items={allLabels} />
+        <IllustratedLegend items={planned.map((it) => it.label)} />
       </CardContent>
     </Card>
   );

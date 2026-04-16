@@ -1460,7 +1460,21 @@ const Generate = () => {
       const layoutLines = plannedItems
         .map((it) => `- ${it.label} at ${Math.round(it.x)}%,${Math.round(it.y)}% size ${Math.round(it.w)}%×${Math.round(it.h)}%`)
         .join("\n");
-      const modPrompt = `Re-render this exact room as a ${shape} with dimensions ${dimsLabel}. Strictly preserve the planned top-down furniture layout (positions and footprints relative to the room's bounding box):\n${layoutLines}\nKeep the same style, colors, and materials as the current image. Adjust camera and proportions so the room geometry matches the floor plan.`;
+      const modPrompt = `RE-RENDER THIS EXACT ROOM with a STRICT 1:1 mapping to the floor plan. This is a hard constraint, not a suggestion.
+
+ROOM SHELL (must match exactly):
+- Shape: ${shape}
+- Dimensions: ${dimsLabel}
+- The room's wall lengths, corners, and proportions in the new image must precisely match these dimensions. Aspect ratio of the visible floor area must equal the floor-plan aspect ratio.
+
+FURNITURE LAYOUT (top-down percentages relative to the room bounding box, 0,0 = back-left wall corner, 100,100 = front-right wall corner):
+${layoutLines}
+
+RULES:
+- Place every listed item at the specified position and footprint size. Do NOT move, rotate, omit, duplicate, or add furniture.
+- Keep the SAME style, colors, materials, lighting, and finishes as the current image. Only camera angle, room geometry and furniture placement are adjusted.
+- Choose a camera angle (eye-level perspective) that clearly shows the room matching the planned layout 1:1.
+- The result must look like the top-down floor plan extruded into a real photographic 3D room.`;
 
       const response = await supabase.functions.invoke("generate-design", {
         body: {

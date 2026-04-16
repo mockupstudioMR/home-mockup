@@ -1,6 +1,5 @@
-// Detect top-down furniture layout from a rendered design image.
-// Returns { items: [{label, x, y, w, h}] } in 0-100 percentage coordinates,
-// matching the same schema used by the floor-plan layout step.
+// Generate a realistic TOP-DOWN photographic view of the room based on the
+// rendered design image. Returns { imageUrl } as a data URI (PNG/JPEG).
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -37,49 +36,23 @@ Deno.serve(async (req) => {
       ? `Expected furniture from the user's plan: ${expectedFurniture.join(", ")}.`
       : "";
 
-    const systemPrompt = `You are an interior architect. Look at the perspective design image of a room and infer a TOP-DOWN floor plan of the visible furniture.
+    const prompt = `Generate a PHOTOREALISTIC TOP-DOWN (bird's-eye, orthographic) view of the EXACT same room shown in the reference image. 
 
-Room shape: ${roomShape || "rectangle"}. Dimensions: ${dimsLabel}.
-${expected}
+ROOM GEOMETRY:
+- Shape: ${roomShape || "rectangle"}
+- Dimensions: ${dimsLabel}
+- The room outline must fill the frame and match this exact shape.
 
-Return positions as percentages (0-100) of the room's bounding box where:
-- x,y = top-left corner of the furniture footprint
-- w,h = furniture footprint size
-- (0,0) is the room's top-left, (100,100) is bottom-right
-Estimate footprint sizes realistically (e.g. a double bed ≈ 160x200 cm).
-Only include furniture you can actually see in the image. Use simple labels like "bed", "nightstand", "wardrobe", "sofa", "coffee table", "rug", "armchair", "desk", "chair", "tv unit", "bookshelf", "plant", "lamp".`;
+CONTENT RULES:
+- Same furniture, same colors, same materials, same textures as the reference image, just viewed from directly above.
+- ${expected}
+- Show the floor (rugs, wood/tile pattern), and the TOPS of all furniture (bed covers, table tops, sofa cushions, etc.).
+- No walls visible from the side — only seen as edges around the room.
+- No people, no perspective distortion, no tilt. Pure 90° top-down camera.
 
-    const tools = [
-      {
-        type: "function",
-        function: {
-          name: "return_top_view",
-          description: "Return detected furniture positions in top-down view.",
-          parameters: {
-            type: "object",
-            properties: {
-              items: {
-                type: "array",
-                items: {
-                  type: "object",
-                  properties: {
-                    label: { type: "string" },
-                    x: { type: "number" },
-                    y: { type: "number" },
-                    w: { type: "number" },
-                    h: { type: "number" },
-                  },
-                  required: ["label", "x", "y", "w", "h"],
-                  additionalProperties: false,
-                },
-              },
-            },
-            required: ["items"],
-            additionalProperties: false,
-          },
-        },
-      },
-    ];
+STYLE:
+- Photorealistic interior photography, soft natural daylight, magazine quality.
+- 1:1 or 4:3 aspect ratio framed tightly to the room.`;
 
     const resp = await fetch(
       "https://ai.gateway.lovable.dev/v1/chat/completions",
@@ -90,25 +63,17 @@ Only include furniture you can actually see in the image. Use simple labels like
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "google/gemini-2.5-flash",
+          model: "google/gemini-2.5-flash-image",
           messages: [
-            { role: "system", content: systemPrompt },
             {
               role: "user",
               content: [
-                {
-                  type: "text",
-                  text: "Infer the top-down furniture layout from this design image and return it via the tool.",
-                },
+                { type: "text", text: prompt },
                 { type: "image_url", image_url: { url: imageUrl } },
               ],
             },
           ],
-          tools,
-          tool_choice: {
-            type: "function",
-            function: { name: "return_top_view" },
-          },
+          modalities: ["image", "text"],
         }),
       }
     );
@@ -132,20 +97,22 @@ Only include furniture you can actually see in the image. Use simple labels like
     }
 
     const data = await resp.json();
-    const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
-    const args = toolCall?.function?.arguments;
-    const parsed = args ? JSON.parse(args) : { items: [] };
+    const message = data.choices?.[0]?.message;
+    // Gemini image responses include images in message.images[].image_url.url
+    const imgUrl: string | undefined =
+      message?.images?.[0]?.image_url?.url ||
+      message?.images?.[0]?.url ||
+      undefined;
 
-    // Clamp coords to 0-100
-    const items = (parsed.items || []).map((it: any) => ({
-      label: String(it.label || "item"),
-      x: Math.max(0, Math.min(100, Number(it.x) || 0)),
-      y: Math.max(0, Math.min(100, Number(it.y) || 0)),
-      w: Math.max(2, Math.min(100, Number(it.w) || 10)),
-      h: Math.max(2, Math.min(100, Number(it.h) || 10)),
-    }));
+    if (!imgUrl) {
+      console.error("No image returned:", JSON.stringify(message)?.slice(0, 500));
+      return new Response(
+        JSON.stringify({ error: "No top-view image returned by AI." }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
-    return new Response(JSON.stringify({ items }), {
+    return new Response(JSON.stringify({ imageUrl: imgUrl }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
