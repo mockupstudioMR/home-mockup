@@ -1630,7 +1630,7 @@ const FloorPlan = () => {
                     </div>
                   </div>
 
-                  <div className="flex justify-center gap-3 pt-4">
+                  <div className="flex justify-center gap-3 pt-4 flex-wrap">
                     <Button variant="outline" onClick={() => { setStep(3); }}>
                       <ArrowLeft className="w-4 h-4 mr-2" /> Back to Openings
                     </Button>
@@ -1638,6 +1638,11 @@ const FloorPlan = () => {
                       {generating ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <RotateCcw className="w-4 h-4 mr-2" />}
                       Regenerate
                     </Button>
+                    {previousLayout && (
+                      <Button variant="secondary" onClick={undoLayout} disabled={generating}>
+                        <RotateCcw className="w-4 h-4 mr-2 -scale-x-100" /> Undo
+                      </Button>
+                    )}
                     <Button onClick={() => setStep(5)} disabled={!layout}>
                       Next: Style <ArrowRight className="w-4 h-4 ml-2" />
                     </Button>
