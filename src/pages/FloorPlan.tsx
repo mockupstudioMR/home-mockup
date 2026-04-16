@@ -476,8 +476,8 @@ function RoomWithOpenings({
             )}
             {opening.type === "balcony" && (
               <rect
-                x={pos.x - pos.ux * pos.size / 2 + pos.nx * 0}
-                y={pos.y - pos.uy * pos.size / 2 + pos.ny * 0}
+                x={pos.x - pos.ux * pos.size / 2}
+                y={pos.y - pos.uy * pos.size / 2}
                 width={pos.horizontal ? pos.size : 10}
                 height={pos.horizontal ? 10 : pos.size}
                 fill={color}
