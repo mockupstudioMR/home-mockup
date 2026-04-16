@@ -414,16 +414,16 @@ function RoomWithOpenings({
     return { x, y, ux, uy, nx, ny, size, horizontal, edge };
   };
 
-  // Distinct wall colors
+  // Soft brand-palette wall colors (salmon, lilac, sage, muted variants)
   const WALL_COLORS = [
-    "hsl(var(--primary))",
-    "hsl(25 80% 55%)",
-    "hsl(150 50% 45%)",
-    "hsl(280 60% 55%)",
-    "hsl(200 70% 50%)",
-    "hsl(350 65% 50%)",
-    "hsl(45 80% 50%)",
-    "hsl(170 60% 40%)",
+    "hsl(15 55% 70%)",    // salmon / peach
+    "hsl(280 30% 68%)",   // lilac / mauve
+    "hsl(140 25% 58%)",   // sage green
+    "hsl(25 45% 65%)",    // warm sand
+    "hsl(300 25% 72%)",   // soft rose
+    "hsl(160 28% 55%)",   // muted teal
+    "hsl(10 40% 72%)",    // blush
+    "hsl(260 22% 65%)",   // lavender
   ];
 
   return (
