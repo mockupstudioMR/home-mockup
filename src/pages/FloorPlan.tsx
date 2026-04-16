@@ -450,6 +450,45 @@ function RoomWithOpenings({
           </g>
         );
       })}
+
+      {/* Clickable wall hit areas — rendered last so on top of everything */}
+      {(["top", "bottom", "left", "right"] as WallSide[]).map((wall) => {
+        const wallProps =
+          wall === "top"
+            ? { x1: padding, y1: padding, x2: padding + w, y2: padding }
+            : wall === "bottom"
+            ? { x1: padding, y1: padding + h, x2: padding + w, y2: padding + h }
+            : wall === "left"
+            ? { x1: padding, y1: padding, x2: padding, y2: padding + h }
+            : { x1: padding + w, y1: padding, x2: padding + w, y2: padding + h };
+        return (
+          <line
+            key={`hit-${wall}`}
+            {...wallProps}
+            stroke="transparent"
+            strokeWidth={28}
+            className="cursor-crosshair"
+            onClick={(e) => {
+              const svg = e.currentTarget.closest("svg");
+              if (!svg) return;
+              const rect = svg.getBoundingClientRect();
+              const vb = svg.viewBox.baseVal;
+              const scaleX = vb.width / rect.width;
+              const scaleY = vb.height / rect.height;
+              const svgX = (e.clientX - rect.left) * scaleX;
+              const svgY = (e.clientY - rect.top) * scaleY;
+              let pct = 0;
+              if (wall === "top" || wall === "bottom") {
+                pct = Math.round(((svgX - padding) / w) * 100);
+              } else {
+                pct = Math.round(((svgY - padding) / h) * 100);
+              }
+              pct = Math.max(10, Math.min(90, pct));
+              onWallClick(wall, pct);
+            }}
+          />
+        );
+      })}
     </svg>
   );
 }
