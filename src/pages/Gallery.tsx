@@ -130,6 +130,52 @@ const Gallery = () => {
     document.body.removeChild(link);
   };
 
+  const handleExportRoom = async (design: Design) => {
+    try {
+      let spec: RoomSpec | null = null;
+      if (design.room_id) {
+        const { data } = await supabase
+          .from("rooms" as any)
+          .select("*")
+          .eq("id", design.room_id)
+          .maybeSingle();
+        if (data) {
+          const d: any = data;
+          spec = {
+            id: d.id,
+            user_id: d.user_id,
+            name: d.name,
+            room_type: d.room_type,
+            shape: d.shape,
+            dimensions: d.dimensions ?? {},
+            custom_walls: d.custom_walls ?? undefined,
+            walls: d.walls ?? [],
+            style: d.style ?? { preference: "", colorPalette: "neutral", budgetFeel: "mid-range", mustHaveElements: [] },
+            furniture: d.furniture ?? { selectedItems: [] },
+            layout: d.layout ?? undefined,
+            schema_version: d.schema_version ?? 1,
+            created_at: d.created_at,
+            updated_at: d.updated_at,
+          };
+        }
+      }
+      if (!spec) spec = fromLegacySession();
+      if (!spec) {
+        toast({
+          title: "No room data",
+          description: "This design has no saved Room Spec to export.",
+          variant: "destructive",
+        });
+        return;
+      }
+      exportRoomSpec(spec);
+      toast({ title: "Room exported", description: `${spec.name}.room.json downloaded` });
+    } catch (e) {
+      console.error(e);
+      toast({ title: "Export failed", description: "Could not export room", variant: "destructive" });
+    }
+  };
+
   const handleContinueDesign = async (design: Design) => {
     setResumingId(design.id);
     try {
