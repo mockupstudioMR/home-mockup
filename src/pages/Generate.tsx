@@ -810,10 +810,16 @@ const Generate = () => {
 
       const existingRoomRef = existingRoomImagesFromState;
 
-      // Pull floor plan context (shape, dimensions, openings, walls, layout)
-      // so the AI can render the room with the planned architecture & placements.
+      // Pull canonical RoomSpec first; fall back to legacy floor_plan_context
       let floorPlanContext: any = null;
+      let activeRoomId: string | null = null;
       try {
+        const { loadActiveRoomSpec, toLegacyFloorPlanContext, getActiveRoomId } = await import("@/services/roomSpec");
+        const spec = await loadActiveRoomSpec();
+        if (spec) {
+          toLegacyFloorPlanContext(spec);
+          activeRoomId = getActiveRoomId();
+        }
         const raw = sessionStorage.getItem("floor_plan_context");
         if (raw) floorPlanContext = JSON.parse(raw);
       } catch { /* ignore */ }
@@ -860,6 +866,7 @@ const Generate = () => {
           source_image_url: quizData.sourceImageUrl,
           quiz_response_id: quizResponseId,
           title: designTitle,
+          room_id: activeRoomId,
         } as any)
         .select()
         .single();
@@ -916,7 +923,14 @@ const Generate = () => {
     const run = async () => {
       try {
         let floorPlanContext: any = null;
+        let activeRoomId: string | null = null;
         try {
+          const { loadActiveRoomSpec, toLegacyFloorPlanContext, getActiveRoomId } = await import("@/services/roomSpec");
+          const spec = await loadActiveRoomSpec();
+          if (spec) {
+            toLegacyFloorPlanContext(spec);
+            activeRoomId = getActiveRoomId();
+          }
           const raw = sessionStorage.getItem("floor_plan_context");
           if (raw) floorPlanContext = JSON.parse(raw);
         } catch { /* ignore */ }
@@ -953,6 +967,7 @@ const Generate = () => {
             prompt: usedPrompt,
             source_image_url: overriddenQuiz.sourceImageUrl,
             title: styleTitle,
+            room_id: activeRoomId,
           } as any)
           .select()
           .single();

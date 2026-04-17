@@ -903,6 +903,50 @@ const FloorPlan = () => {
     const stylePreference = selectedStyle || "modern_minimal";
     updateQuizData({ roomType, stylePreference });
 
+    // Persist canonical RoomSpec (DB source of truth + cache + legacy mirror)
+    try {
+      const { saveRoomSpec, loadActiveRoomSpec } = await import("@/services/roomSpec");
+      const { emptyRoomSpec } = await import("@/types/roomSpec");
+      const existing = await loadActiveRoomSpec();
+      const wallsClockwise = buildWallsClockwise();
+      const spec = {
+        ...(existing ?? emptyRoomSpec()),
+        name: `${(roomType || "room").replace(/[-_]/g, " ")} — ${selectedShape.id}`,
+        room_type: roomType,
+        shape: selectedShape.id,
+        dimensions,
+        custom_walls: (selectedShape.id === "custom" ? (existing?.custom_walls) : undefined),
+        walls: (wallsClockwise as any[]).map((w) => ({
+          id: w.wall,
+          length_m: w.length_m,
+          surface: w.surface ?? "plain",
+          openings: (w.openings ?? []).map((o: any) => ({
+            type: o.type,
+            position_pct: o.position_pct ?? o.position ?? 50,
+          })),
+        })),
+        style: {
+          preference: stylePreference,
+          colorPalette: "neutral",
+          budgetFeel: "mid-range",
+          mustHaveElements: selectedFurniture,
+          referenceImageUrl: referenceImageUrl || undefined,
+        },
+        furniture: { selectedItems: selectedFurniture },
+        layout: {
+          name: layout.name,
+          description: layout.description,
+          items: layout.items,
+          feedback: layout.items.map((item, i) => ({
+            item: item.label,
+            agreed: itemScores[i] ?? null,
+            note: itemNotes[i] || null,
+          })),
+        },
+      };
+      await saveRoomSpec(spec as any);
+    } catch (e) { console.warn("[roomSpec] save failed", e); }
+
     try {
       await supabase.from("quiz_responses").insert({
         user_id: user.id,
