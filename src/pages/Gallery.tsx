@@ -13,7 +13,10 @@ import {
   Plus,
   Loader2,
   Play,
+  FileJson,
 } from "lucide-react";
+import { exportRoomSpec, fromLegacySession } from "@/services/roomSpec";
+import type { RoomSpec } from "@/types/roomSpec";
 
 interface Design {
   id: string;
@@ -22,6 +25,7 @@ interface Design {
   is_favorite: boolean;
   created_at: string;
   quiz_response_id: string | null;
+  room_id: string | null;
 }
 
 const Gallery = () => {
