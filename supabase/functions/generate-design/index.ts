@@ -38,6 +38,21 @@ interface GenerateRequest {
   moodboardDescription?: string;
   keepElements?: string[];
   changeElements?: string[];
+  floorPlanContext?: {
+    shape?: string;
+    dimensions?: Record<string, number>;
+    roomType?: string;
+    furnitureItems?: string[];
+    openings?: { type: string; wall: string; position: number }[];
+    walls?: { wall: string; surface?: string; openings?: { type: string; position_pct: number }[] }[];
+    style?: string;
+    layout?: {
+      name?: string;
+      description?: string;
+      items?: { label: string; x: number; y: number; w: number; h: number; reason?: string }[];
+    };
+    feedback?: { item: string; agreed?: boolean | null; note?: string | null }[];
+  };
 }
 
 interface DebugStep {
@@ -627,6 +642,65 @@ function buildImagePrompt(
 
   const isExistingRoomRedesign = !!(data.existingRoomImages && data.existingRoomImages.length > 0);
 
+  // Build a strong architectural directive from the floor plan context
+  // (room shape, dimensions, walls, doors/windows/balconies, planned furniture
+  // placements with reasons + user feedback).
+  let floorPlanDirective = "";
+  const fp = data.floorPlanContext;
+  if (fp && !isExistingRoomRedesign) {
+    const parts: string[] = [];
+    parts.push("ARCHITECTURAL FLOOR PLAN DIRECTIVE — the rendered room MUST match this exact plan:");
+
+    if (fp.shape) parts.push(`Room shape: ${fp.shape}.`);
+    if (fp.dimensions) {
+      const dims = Object.entries(fp.dimensions).map(([k, v]) => `${k}=${v}m`).join(", ");
+      parts.push(`Dimensions: ${dims}.`);
+    }
+
+    // Walls + openings (preferred richer description)
+    if (fp.walls && fp.walls.length > 0) {
+      const wallLines = fp.walls.map((w) => {
+        const ops = (w.openings || []).map((o) => `${o.type} at ~${Math.round(o.position_pct)}% along this wall`).join(", ");
+        const surf = w.surface && w.surface !== "flat" ? `, surface: ${w.surface}` : "";
+        return `- ${w.wall} wall${surf}${ops ? `, openings: ${ops}` : ", no openings"}`;
+      });
+      parts.push(`Walls (clockwise from north/top):\n${wallLines.join("\n")}`);
+    } else if (fp.openings && fp.openings.length > 0) {
+      const ops = fp.openings.map((o) => `${o.type} on ${o.wall} wall at ~${Math.round(o.position)}% along the wall`).join("; ");
+      parts.push(`Openings: ${ops}.`);
+    }
+
+    // Planned furniture placements with reasons
+    if (fp.layout?.items && fp.layout.items.length > 0) {
+      const placement = fp.layout.items.map((it) => {
+        const horiz = it.x < 33 ? "left" : it.x > 66 ? "right" : "center";
+        const vert = it.y < 33 ? "back/north" : it.y > 66 ? "front/south" : "middle";
+        const reason = it.reason ? ` — ${it.reason}` : "";
+        return `- ${it.label}: placed at ${horiz}-${vert} of the room (x≈${Math.round(it.x)}%, y≈${Math.round(it.y)}%, size ≈${Math.round(it.w)}%×${Math.round(it.h)}%)${reason}`;
+      });
+      parts.push(`Planned furniture placements (top-down):\n${placement.join("\n")}`);
+      if (fp.layout.name || fp.layout.description) {
+        parts.push(`Layout concept: ${fp.layout.name || ""}${fp.layout.description ? ` — ${fp.layout.description}` : ""}`);
+      }
+    }
+
+    // Incorporate user feedback (disagreements & notes)
+    const fb = (fp.feedback || []).filter((f) => f.agreed === false || (f.note && f.note.trim()));
+    if (fb.length > 0) {
+      const fbLines = fb.map((f) => {
+        const flag = f.agreed === false ? "[user disagreed]" : "[user note]";
+        return `- ${flag} ${f.item}${f.note ? `: "${f.note}"` : ""}`;
+      });
+      parts.push(`User feedback to honor when placing items:\n${fbLines.join("\n")}`);
+    }
+
+    parts.push(
+      "Render a photorealistic interior view that faithfully matches this plan: place every listed piece of furniture in the indicated position relative to the walls and openings. Respect doors (keep clear), windows (let natural light in), and balconies (clear access). Do NOT invent extra furniture and do NOT relocate items."
+    );
+
+    floorPlanDirective = parts.join("\n") + "\n\n";
+  }
+
   // Build product inclusion instructions
   let productInstructions = "";
   if (!isExistingRoomRedesign && data.selectedProducts && data.selectedProducts.length > 0) {
@@ -714,16 +788,16 @@ function buildImagePrompt(
   if (hasProductImages) {
     const tpl = templates["with_product_images"] || 
       `Create a stunning {{style}} {{room}} interior design that prominently features ALL the products shown in the reference images. {{product_instructions}} {{detected_colors}}{{detected_keywords}}{{moodboard_context}}{{inspiration_context}}Use {{colors}}. Create a {{budget}} aesthetic. {{elements}} The products must appear EXACTLY as they look in the reference images - same colors, textures, and design details. Ultra high resolution, photorealistic interior design photography, professional lighting, magazine quality, 16:9 aspect ratio.`;
-    return furnitureContext + fillTemplate(tpl);
+    return furnitureContext + floorPlanDirective + fillTemplate(tpl);
   }
 
   if (data.sourceImageUrl) {
     const tpl = templates["with_source_image"] || 
       `Transform this room into a beautiful {{style}} {{room}} design. {{detected_colors}}{{detected_keywords}}{{moodboard_context}}{{inspiration_context}}Use {{colors}}. Create a {{budget}} aesthetic. {{elements}} {{product_instructions}} Ultra high resolution, photorealistic interior design photography, professional lighting, magazine quality.`;
-    return furnitureContext + fillTemplate(tpl);
+    return furnitureContext + floorPlanDirective + fillTemplate(tpl);
   }
 
   const tpl = templates["default"] || 
     `Generate a stunning {{style}} {{room}} interior design. {{detected_colors}}{{detected_keywords}}{{moodboard_context}}{{inspiration_context}}Use {{colors}}. Create a {{budget}} aesthetic. {{elements}} {{product_instructions}} Ultra high resolution, photorealistic interior design photography, professional lighting, magazine quality, 16:9 aspect ratio.`;
-  return furnitureContext + fillTemplate(tpl);
+  return furnitureContext + floorPlanDirective + fillTemplate(tpl);
 }
