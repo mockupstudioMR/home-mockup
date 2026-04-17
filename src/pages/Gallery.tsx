@@ -374,6 +374,14 @@ const Gallery = () => {
                     <Button
                       size="icon"
                       variant="secondary"
+                      onClick={() => handleExportRoom(design)}
+                      title="Export Room Spec as JSON"
+                    >
+                      <FileJson className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      size="icon"
+                      variant="secondary"
                       onClick={() => handleDelete(design.id)}
                     >
                       <Trash2 className="w-4 h-4" />
