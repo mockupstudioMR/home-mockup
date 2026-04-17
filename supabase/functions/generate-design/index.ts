@@ -642,6 +642,65 @@ function buildImagePrompt(
 
   const isExistingRoomRedesign = !!(data.existingRoomImages && data.existingRoomImages.length > 0);
 
+  // Build a strong architectural directive from the floor plan context
+  // (room shape, dimensions, walls, doors/windows/balconies, planned furniture
+  // placements with reasons + user feedback).
+  let floorPlanDirective = "";
+  const fp = data.floorPlanContext;
+  if (fp && !isExistingRoomRedesign) {
+    const parts: string[] = [];
+    parts.push("ARCHITECTURAL FLOOR PLAN DIRECTIVE — the rendered room MUST match this exact plan:");
+
+    if (fp.shape) parts.push(`Room shape: ${fp.shape}.`);
+    if (fp.dimensions) {
+      const dims = Object.entries(fp.dimensions).map(([k, v]) => `${k}=${v}m`).join(", ");
+      parts.push(`Dimensions: ${dims}.`);
+    }
+
+    // Walls + openings (preferred richer description)
+    if (fp.walls && fp.walls.length > 0) {
+      const wallLines = fp.walls.map((w) => {
+        const ops = (w.openings || []).map((o) => `${o.type} at ~${Math.round(o.position_pct)}% along this wall`).join(", ");
+        const surf = w.surface && w.surface !== "flat" ? `, surface: ${w.surface}` : "";
+        return `- ${w.wall} wall${surf}${ops ? `, openings: ${ops}` : ", no openings"}`;
+      });
+      parts.push(`Walls (clockwise from north/top):\n${wallLines.join("\n")}`);
+    } else if (fp.openings && fp.openings.length > 0) {
+      const ops = fp.openings.map((o) => `${o.type} on ${o.wall} wall at ~${Math.round(o.position)}% along the wall`).join("; ");
+      parts.push(`Openings: ${ops}.`);
+    }
+
+    // Planned furniture placements with reasons
+    if (fp.layout?.items && fp.layout.items.length > 0) {
+      const placement = fp.layout.items.map((it) => {
+        const horiz = it.x < 33 ? "left" : it.x > 66 ? "right" : "center";
+        const vert = it.y < 33 ? "back/north" : it.y > 66 ? "front/south" : "middle";
+        const reason = it.reason ? ` — ${it.reason}` : "";
+        return `- ${it.label}: placed at ${horiz}-${vert} of the room (x≈${Math.round(it.x)}%, y≈${Math.round(it.y)}%, size ≈${Math.round(it.w)}%×${Math.round(it.h)}%)${reason}`;
+      });
+      parts.push(`Planned furniture placements (top-down):\n${placement.join("\n")}`);
+      if (fp.layout.name || fp.layout.description) {
+        parts.push(`Layout concept: ${fp.layout.name || ""}${fp.layout.description ? ` — ${fp.layout.description}` : ""}`);
+      }
+    }
+
+    // Incorporate user feedback (disagreements & notes)
+    const fb = (fp.feedback || []).filter((f) => f.agreed === false || (f.note && f.note.trim()));
+    if (fb.length > 0) {
+      const fbLines = fb.map((f) => {
+        const flag = f.agreed === false ? "[user disagreed]" : "[user note]";
+        return `- ${flag} ${f.item}${f.note ? `: "${f.note}"` : ""}`;
+      });
+      parts.push(`User feedback to honor when placing items:\n${fbLines.join("\n")}`);
+    }
+
+    parts.push(
+      "Render a photorealistic interior view that faithfully matches this plan: place every listed piece of furniture in the indicated position relative to the walls and openings. Respect doors (keep clear), windows (let natural light in), and balconies (clear access). Do NOT invent extra furniture and do NOT relocate items."
+    );
+
+    floorPlanDirective = parts.join("\n") + "\n\n";
+  }
+
   // Build product inclusion instructions
   let productInstructions = "";
   if (!isExistingRoomRedesign && data.selectedProducts && data.selectedProducts.length > 0) {
