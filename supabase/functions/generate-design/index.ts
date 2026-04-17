@@ -788,16 +788,16 @@ function buildImagePrompt(
   if (hasProductImages) {
     const tpl = templates["with_product_images"] || 
       `Create a stunning {{style}} {{room}} interior design that prominently features ALL the products shown in the reference images. {{product_instructions}} {{detected_colors}}{{detected_keywords}}{{moodboard_context}}{{inspiration_context}}Use {{colors}}. Create a {{budget}} aesthetic. {{elements}} The products must appear EXACTLY as they look in the reference images - same colors, textures, and design details. Ultra high resolution, photorealistic interior design photography, professional lighting, magazine quality, 16:9 aspect ratio.`;
-    return furnitureContext + fillTemplate(tpl);
+    return furnitureContext + floorPlanDirective + fillTemplate(tpl);
   }
 
   if (data.sourceImageUrl) {
     const tpl = templates["with_source_image"] || 
       `Transform this room into a beautiful {{style}} {{room}} design. {{detected_colors}}{{detected_keywords}}{{moodboard_context}}{{inspiration_context}}Use {{colors}}. Create a {{budget}} aesthetic. {{elements}} {{product_instructions}} Ultra high resolution, photorealistic interior design photography, professional lighting, magazine quality.`;
-    return furnitureContext + fillTemplate(tpl);
+    return furnitureContext + floorPlanDirective + fillTemplate(tpl);
   }
 
   const tpl = templates["default"] || 
     `Generate a stunning {{style}} {{room}} interior design. {{detected_colors}}{{detected_keywords}}{{moodboard_context}}{{inspiration_context}}Use {{colors}}. Create a {{budget}} aesthetic. {{elements}} {{product_instructions}} Ultra high resolution, photorealistic interior design photography, professional lighting, magazine quality, 16:9 aspect ratio.`;
-  return furnitureContext + fillTemplate(tpl);
+  return furnitureContext + floorPlanDirective + fillTemplate(tpl);
 }
