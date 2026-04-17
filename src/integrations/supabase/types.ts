@@ -256,6 +256,7 @@ export type Database = {
           parent_design_id: string | null
           prompt: string
           quiz_response_id: string | null
+          room_id: string | null
           source_image_url: string | null
           title: string | null
           user_id: string
@@ -273,6 +274,7 @@ export type Database = {
           parent_design_id?: string | null
           prompt: string
           quiz_response_id?: string | null
+          room_id?: string | null
           source_image_url?: string | null
           title?: string | null
           user_id: string
@@ -290,6 +292,7 @@ export type Database = {
           parent_design_id?: string | null
           prompt?: string
           quiz_response_id?: string | null
+          room_id?: string | null
           source_image_url?: string | null
           title?: string | null
           user_id?: string
@@ -307,6 +310,13 @@ export type Database = {
             columns: ["quiz_response_id"]
             isOneToOne: false
             referencedRelation: "quiz_responses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "generated_designs_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "rooms"
             referencedColumns: ["id"]
           },
         ]
@@ -752,6 +762,57 @@ export type Database = {
           room_label?: string
           room_type?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      rooms: {
+        Row: {
+          created_at: string
+          custom_walls: Json | null
+          dimensions: Json
+          furniture: Json
+          id: string
+          layout: Json | null
+          name: string
+          room_type: string
+          schema_version: number
+          shape: string
+          style: Json
+          updated_at: string
+          user_id: string
+          walls: Json
+        }
+        Insert: {
+          created_at?: string
+          custom_walls?: Json | null
+          dimensions?: Json
+          furniture?: Json
+          id?: string
+          layout?: Json | null
+          name?: string
+          room_type?: string
+          schema_version?: number
+          shape?: string
+          style?: Json
+          updated_at?: string
+          user_id: string
+          walls?: Json
+        }
+        Update: {
+          created_at?: string
+          custom_walls?: Json | null
+          dimensions?: Json
+          furniture?: Json
+          id?: string
+          layout?: Json | null
+          name?: string
+          room_type?: string
+          schema_version?: number
+          shape?: string
+          style?: Json
+          updated_at?: string
+          user_id?: string
+          walls?: Json
         }
         Relationships: []
       }
