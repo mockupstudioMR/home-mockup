@@ -38,6 +38,21 @@ interface GenerateRequest {
   moodboardDescription?: string;
   keepElements?: string[];
   changeElements?: string[];
+  floorPlanContext?: {
+    shape?: string;
+    dimensions?: Record<string, number>;
+    roomType?: string;
+    furnitureItems?: string[];
+    openings?: { type: string; wall: string; position: number }[];
+    walls?: { wall: string; surface?: string; openings?: { type: string; position_pct: number }[] }[];
+    style?: string;
+    layout?: {
+      name?: string;
+      description?: string;
+      items?: { label: string; x: number; y: number; w: number; h: number; reason?: string }[];
+    };
+    feedback?: { item: string; agreed?: boolean | null; note?: string | null }[];
+  };
 }
 
 interface DebugStep {
