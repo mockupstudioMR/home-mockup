@@ -810,6 +810,14 @@ const Generate = () => {
 
       const existingRoomRef = existingRoomImagesFromState;
 
+      // Pull floor plan context (shape, dimensions, openings, walls, layout)
+      // so the AI can render the room with the planned architecture & placements.
+      let floorPlanContext: any = null;
+      try {
+        const raw = sessionStorage.getItem("floor_plan_context");
+        if (raw) floorPlanContext = JSON.parse(raw);
+      } catch { /* ignore */ }
+
       const response = await supabase.functions.invoke("generate-design", {
         body: {
           ...quizData,
@@ -826,6 +834,7 @@ const Generate = () => {
             ?.filter(s => s.styleName.toLowerCase().replace(/[&\s]+/g, '-').replace(/-+/g, '-') === quizData.stylePreference.replace(/_/g, '-'))
             ?.flatMap(s => s.keywords) || [],
           moodboardDescription: analysisResult?.moodboardDescription,
+          floorPlanContext,
         },
       });
 
