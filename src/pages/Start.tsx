@@ -120,81 +120,113 @@ const Start = () => {
       </header>
 
       {/* Main Content */}
-      <main className="relative z-10 px-4 pb-12">
-        <div className="max-w-4xl mx-auto space-y-8">
+      <main className="relative z-10 px-4 pb-16">
+        <div className="max-w-6xl mx-auto">
           {/* Title */}
-          <div className="text-center space-y-3 py-8">
-            <h1 className="text-3xl md:text-4xl font-bold tracking-tight">
-              How would you like to start?
+          <div className="text-center space-y-3 py-8 md:py-12">
+            <p className="text-xs md:text-sm uppercase tracking-[0.2em] text-muted-foreground">
+              Start your journey
+            </p>
+            <h1 className="text-4xl md:text-5xl font-bold tracking-tight">
+              How would you like to begin?
             </h1>
-            <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-              Choose your creative journey to design your perfect space
+            <p className="text-muted-foreground text-base md:text-lg max-w-xl mx-auto">
+              Pick the path that matches what you have today
             </p>
           </div>
 
-          {/* Entry Options */}
-          <div className="grid gap-6">
-            {entryOptions.map((option) => (
-              <Card
-                key={option.id}
-                className="group cursor-pointer border-border/50 bg-card/80 backdrop-blur-sm hover:bg-card hover:border-primary/30 transition-all duration-300"
-                onClick={() => navigate(option.path)}
+          {/* Hero option (first) */}
+          {(() => {
+            const hero = entryOptions[0];
+            return (
+              <button
+                onClick={() => navigate(hero.path)}
+                className="group relative block w-full mb-6 rounded-2xl overflow-hidden border border-border/50 bg-card shadow-sm hover:shadow-xl hover:border-primary/30 transition-all duration-500 text-left"
               >
-                <CardContent className="p-0 overflow-hidden">
-                  <div className="flex items-stretch gap-0">
-                    {/* Visual rail — photo or style collage */}
-                    <div
-                      className={`relative w-28 md:w-44 shrink-0 bg-gradient-to-br ${option.gradient} overflow-hidden flex items-center justify-center`}
-                    >
-                      {option.visual ? (
-                        <img
-                          src={option.visual}
-                          alt={option.visualAlt}
-                          loading="lazy"
-                          width={512}
-                          height={512}
-                          className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                        />
-                      ) : option.preview ? (
-                        <div className="absolute inset-0 grid grid-cols-2 grid-rows-2 gap-0.5 p-0.5">
-                          {option.preview.slice(0, 3).map((img, idx) => (
-                            <img
-                              key={idx}
-                              src={img}
-                              alt=""
-                              loading="lazy"
-                              className={`w-full h-full object-cover ${idx === 0 ? "row-span-2" : ""}`}
-                            />
-                          ))}
-                          <div className="w-full h-full bg-background/80 backdrop-blur-sm flex items-center justify-center text-[10px] md:text-xs font-medium text-muted-foreground">
-                            +more
-                          </div>
-                        </div>
-                      ) : null}
-                      <div className="absolute inset-0 bg-gradient-to-tr from-background/30 via-transparent to-transparent" aria-hidden="true" />
-                      <div className={`relative z-10 w-12 h-12 md:w-14 md:h-14 rounded-2xl ${option.iconBg} backdrop-blur-md flex items-center justify-center shadow-lg`}>
-                        {option.icon}
-                      </div>
-                    </div>
-
-                    {/* Content */}
-                    <div className="flex-1 min-w-0 p-6">
-                      <div className="flex items-center justify-between gap-4">
-                        <div>
-                          <h3 className="text-xl font-semibold mb-1 group-hover:text-primary transition-colors">
-                            {option.title}
-                          </h3>
-                          <p className="text-muted-foreground">
-                            {option.description}
-                          </p>
-                        </div>
-                        <ArrowRight className="w-6 h-6 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all shrink-0" />
-                      </div>
-
-                    </div>
+                <div className="grid md:grid-cols-2 items-stretch min-h-[280px] md:min-h-[340px]">
+                  <div className={`relative overflow-hidden bg-gradient-to-br ${hero.gradient} order-1 md:order-2`}>
+                    {hero.visual && (
+                      <img
+                        src={hero.visual}
+                        alt={hero.visualAlt}
+                        loading="lazy"
+                        className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                      />
+                    )}
+                    <div className="absolute inset-0 bg-gradient-to-r from-card/80 via-card/0 to-transparent md:block hidden" aria-hidden="true" />
                   </div>
-                </CardContent>
-              </Card>
+                  <div className="relative p-6 md:p-10 flex flex-col justify-center order-2 md:order-1">
+                    <div className={`w-12 h-12 md:w-14 md:h-14 rounded-2xl ${hero.iconBg} flex items-center justify-center shadow-md mb-4`}>
+                      {hero.icon}
+                    </div>
+                    <p className="text-[11px] uppercase tracking-[0.18em] text-primary font-medium mb-2">
+                      Most popular
+                    </p>
+                    <h2 className="text-2xl md:text-3xl font-bold tracking-tight mb-3 group-hover:text-primary transition-colors">
+                      {hero.title}
+                    </h2>
+                    <p className="text-muted-foreground md:text-lg leading-relaxed mb-5 max-w-md">
+                      {hero.description}
+                    </p>
+                    <span className="inline-flex items-center gap-2 text-sm font-semibold text-foreground group-hover:text-primary transition-colors">
+                      Get started
+                      <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                    </span>
+                  </div>
+                </div>
+              </button>
+            );
+          })()}
+
+          {/* Grid of remaining options */}
+          <div className="grid md:grid-cols-2 gap-6">
+            {entryOptions.slice(1).map((option) => (
+              <button
+                key={option.id}
+                onClick={() => navigate(option.path)}
+                className="group relative block rounded-2xl overflow-hidden border border-border/50 bg-card shadow-sm hover:shadow-xl hover:border-primary/30 transition-all duration-500 text-left"
+              >
+                {/* Visual */}
+                <div className={`relative aspect-[16/10] overflow-hidden bg-gradient-to-br ${option.gradient}`}>
+                  {option.visual ? (
+                    <img
+                      src={option.visual}
+                      alt={option.visualAlt}
+                      loading="lazy"
+                      className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                    />
+                  ) : option.preview ? (
+                    <div className="absolute inset-0 grid grid-cols-3 gap-1 p-1">
+                      {option.preview.map((img, idx) => (
+                        <img
+                          key={idx}
+                          src={img}
+                          alt=""
+                          loading="lazy"
+                          className="w-full h-full object-cover"
+                        />
+                      ))}
+                    </div>
+                  ) : null}
+                  <div className="absolute inset-0 bg-gradient-to-t from-card/90 via-card/10 to-transparent" aria-hidden="true" />
+                  <div className={`absolute top-4 left-4 w-11 h-11 rounded-xl ${option.iconBg} backdrop-blur-md flex items-center justify-center shadow-lg`}>
+                    {option.icon}
+                  </div>
+                </div>
+
+                {/* Content */}
+                <div className="p-5 md:p-6">
+                  <div className="flex items-start justify-between gap-3 mb-2">
+                    <h3 className="text-lg md:text-xl font-semibold tracking-tight group-hover:text-primary transition-colors">
+                      {option.title}
+                    </h3>
+                    <ArrowRight className="w-5 h-5 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all shrink-0 mt-1" />
+                  </div>
+                  <p className="text-sm text-muted-foreground leading-relaxed">
+                    {option.description}
+                  </p>
+                </div>
+              </button>
             ))}
           </div>
         </div>
