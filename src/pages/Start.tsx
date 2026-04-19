@@ -13,6 +13,12 @@ import mediterranean from "@/assets/styles/mediterranean.png";
 import bohemianEclectic from "@/assets/styles/bohemian-eclectic.png";
 import glamLuxe from "@/assets/styles/glam-luxe.png";
 
+// Starting-point visuals
+import existingRoomVisual from "@/assets/start/existing-room.jpg";
+import floorPlanVisual from "@/assets/start/floor-plan.jpg";
+import uploadRoomVisual from "@/assets/start/upload-room.jpg";
+import uploadProductsVisual from "@/assets/start/upload-products.jpg";
+
 const Start = () => {
   const navigate = useNavigate();
   const { user, loading } = useAuth();
@@ -26,53 +32,63 @@ const Start = () => {
   const entryOptions = [
     {
       id: "existing-room",
-      icon: <Home className="w-8 h-8" />,
+      icon: <Home className="w-7 h-7" />,
       title: "Start with Your Room",
       description: "Upload a photo of your existing room and we'll redesign it while keeping your space's layout",
+      visual: existingRoomVisual,
+      visualAlt: "Photo of an existing living room ready to be redesigned",
       preview: null,
       path: "/existing-room",
-      gradient: "from-primary via-primary/70 to-accent/60",
-      iconBg: "bg-primary/15 text-primary",
+      gradient: "from-primary/40 to-accent/30",
+      iconBg: "bg-background/90 text-primary",
     },
     {
       id: "floor-plan",
-      icon: <Ruler className="w-8 h-8" />,
+      icon: <Ruler className="w-7 h-7" />,
       title: "Start from a Floor Plan",
       description: "Draw your room shape, set dimensions, and get AI-generated furniture layouts tailored to your space",
+      visual: floorPlanVisual,
+      visualAlt: "Top-down floor plan illustration",
       preview: null,
       path: "/floor-plan",
-      gradient: "from-accent via-accent/70 to-secondary/80",
-      iconBg: "bg-accent/25 text-accent-foreground",
+      gradient: "from-accent/40 to-secondary/40",
+      iconBg: "bg-background/90 text-accent-foreground",
     },
     {
       id: "style-tree",
-      icon: <Palette className="w-8 h-8" />,
+      icon: <Palette className="w-7 h-7" />,
       title: "Explore Design Styles",
       description: "Discover curated interior styles and find the perfect look for your space",
+      visual: null,
+      visualAlt: "",
       preview: [modernMinimal, rusticNature, glamLuxe],
       path: "/style-tree",
-      gradient: "from-secondary via-primary/50 to-accent/60",
-      iconBg: "bg-secondary/40 text-secondary-foreground",
+      gradient: "from-secondary/40 to-primary/30",
+      iconBg: "bg-background/90 text-secondary-foreground",
     },
     {
       id: "upload-room",
-      icon: <Upload className="w-8 h-8" />,
+      icon: <Upload className="w-7 h-7" />,
       title: "Upload Room Images",
       description: "Upload photos of rooms you love and we'll detect the styles to create your moodboard",
+      visual: uploadRoomVisual,
+      visualAlt: "Moodboard collage of inspiration room photos",
       preview: null,
       path: "/analyze-room",
-      gradient: "from-primary/60 via-secondary/70 to-accent/50",
-      iconBg: "bg-primary/10 text-primary",
+      gradient: "from-primary/30 to-secondary/40",
+      iconBg: "bg-background/90 text-primary",
     },
     {
       id: "upload-products",
-      icon: <Package className="w-8 h-8" />,
+      icon: <Package className="w-7 h-7" />,
       title: "Start with Products",
       description: "Upload furniture or decor items and we'll design a room around them",
+      visual: uploadProductsVisual,
+      visualAlt: "Flat-lay of furniture and decor products",
       preview: null,
       path: "/analyze-products",
-      gradient: "from-accent/70 via-primary/40 to-secondary/60",
-      iconBg: "bg-accent/20 text-accent-foreground",
+      gradient: "from-accent/30 to-primary/30",
+      iconBg: "bg-background/90 text-accent-foreground",
     },
   ];
 
@@ -126,13 +142,37 @@ const Start = () => {
               >
                 <CardContent className="p-0 overflow-hidden">
                   <div className="flex items-stretch gap-0">
-                    {/* Colored visual rail */}
+                    {/* Visual rail — photo or style collage */}
                     <div
-                      className={`relative w-24 md:w-32 shrink-0 bg-gradient-to-br ${option.gradient} flex items-center justify-center`}
-                      aria-hidden="true"
+                      className={`relative w-28 md:w-44 shrink-0 bg-gradient-to-br ${option.gradient} overflow-hidden flex items-center justify-center`}
                     >
-                      <div className="absolute inset-0 opacity-30 mix-blend-overlay bg-[radial-gradient(circle_at_30%_20%,white,transparent_60%)]" />
-                      <div className={`relative w-14 h-14 md:w-16 md:h-16 rounded-2xl ${option.iconBg} backdrop-blur-sm flex items-center justify-center shadow-md`}>
+                      {option.visual ? (
+                        <img
+                          src={option.visual}
+                          alt={option.visualAlt}
+                          loading="lazy"
+                          width={512}
+                          height={512}
+                          className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                        />
+                      ) : option.preview ? (
+                        <div className="absolute inset-0 grid grid-cols-2 grid-rows-2 gap-0.5 p-0.5">
+                          {option.preview.slice(0, 3).map((img, idx) => (
+                            <img
+                              key={idx}
+                              src={img}
+                              alt=""
+                              loading="lazy"
+                              className={`w-full h-full object-cover ${idx === 0 ? "row-span-2" : ""}`}
+                            />
+                          ))}
+                          <div className="w-full h-full bg-background/80 backdrop-blur-sm flex items-center justify-center text-[10px] md:text-xs font-medium text-muted-foreground">
+                            +more
+                          </div>
+                        </div>
+                      ) : null}
+                      <div className="absolute inset-0 bg-gradient-to-tr from-background/30 via-transparent to-transparent" aria-hidden="true" />
+                      <div className={`relative z-10 w-12 h-12 md:w-14 md:h-14 rounded-2xl ${option.iconBg} backdrop-blur-md flex items-center justify-center shadow-lg`}>
                         {option.icon}
                       </div>
                     </div>
@@ -151,26 +191,6 @@ const Start = () => {
                         <ArrowRight className="w-6 h-6 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all shrink-0" />
                       </div>
 
-                      {/* Style Preview (only for style-tree) */}
-                      {option.preview && (
-                        <div className="flex gap-3 mt-4 overflow-hidden">
-                          {option.preview.map((img, idx) => (
-                            <div
-                              key={idx}
-                              className="w-20 h-20 rounded-lg overflow-hidden border border-border/50 shrink-0"
-                            >
-                              <img
-                                src={img}
-                                alt="Style preview"
-                                className="w-full h-full object-cover"
-                              />
-                            </div>
-                          ))}
-                          <div className="w-20 h-20 rounded-lg border border-dashed border-border/50 flex items-center justify-center text-muted-foreground text-sm shrink-0">
-                            +3 more
-                          </div>
-                        </div>
-                      )}
                     </div>
                   </div>
                 </CardContent>
