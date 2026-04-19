@@ -18,6 +18,7 @@ import existingRoomVisual from "@/assets/start/existing-room.jpg";
 import floorPlanVisual from "@/assets/start/floor-plan.jpg";
 import uploadRoomVisual from "@/assets/start/upload-room.jpg";
 import uploadProductsVisual from "@/assets/start/upload-products.jpg";
+import exploreStylesVisual from "@/assets/start/explore-styles.jpg";
 
 
 const Start = () => {
@@ -60,9 +61,9 @@ const Start = () => {
       icon: <Palette className="w-7 h-7" />,
       title: "Explore Design Styles",
       description: "Discover curated interior styles and find the perfect look for your space",
-      visual: null,
-      visualAlt: "",
-      preview: [modernMinimal, rusticNature, glamLuxe],
+      visual: exploreStylesVisual,
+      visualAlt: "Editorial collage of multiple interior design styles",
+      preview: null,
       path: "/style-tree",
       gradient: "from-secondary/40 to-primary/30",
       iconBg: "bg-background/90 text-secondary-foreground",
