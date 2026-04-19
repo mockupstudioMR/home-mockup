@@ -31,6 +31,8 @@ const Start = () => {
       description: "Upload a photo of your existing room and we'll redesign it while keeping your space's layout",
       preview: null,
       path: "/existing-room",
+      gradient: "from-primary via-primary/70 to-accent/60",
+      iconBg: "bg-primary/15 text-primary",
     },
     {
       id: "floor-plan",
@@ -39,6 +41,8 @@ const Start = () => {
       description: "Draw your room shape, set dimensions, and get AI-generated furniture layouts tailored to your space",
       preview: null,
       path: "/floor-plan",
+      gradient: "from-accent via-accent/70 to-secondary/80",
+      iconBg: "bg-accent/25 text-accent-foreground",
     },
     {
       id: "style-tree",
@@ -47,6 +51,8 @@ const Start = () => {
       description: "Discover curated interior styles and find the perfect look for your space",
       preview: [modernMinimal, rusticNature, glamLuxe],
       path: "/style-tree",
+      gradient: "from-secondary via-primary/50 to-accent/60",
+      iconBg: "bg-secondary/40 text-secondary-foreground",
     },
     {
       id: "upload-room",
@@ -55,6 +61,8 @@ const Start = () => {
       description: "Upload photos of rooms you love and we'll detect the styles to create your moodboard",
       preview: null,
       path: "/analyze-room",
+      gradient: "from-primary/60 via-secondary/70 to-accent/50",
+      iconBg: "bg-primary/10 text-primary",
     },
     {
       id: "upload-products",
@@ -63,6 +71,8 @@ const Start = () => {
       description: "Upload furniture or decor items and we'll design a room around them",
       preview: null,
       path: "/analyze-products",
+      gradient: "from-accent/70 via-primary/40 to-secondary/60",
+      iconBg: "bg-accent/20 text-accent-foreground",
     },
   ];
 
@@ -114,15 +124,21 @@ const Start = () => {
                 className="group cursor-pointer border-border/50 bg-card/80 backdrop-blur-sm hover:bg-card hover:border-primary/30 transition-all duration-300"
                 onClick={() => navigate(option.path)}
               >
-                <CardContent className="p-6">
-                  <div className="flex items-start gap-6">
-                    {/* Icon */}
-                    <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center text-primary shrink-0 group-hover:bg-primary/20 transition-colors">
-                      {option.icon}
+                <CardContent className="p-0 overflow-hidden">
+                  <div className="flex items-stretch gap-0">
+                    {/* Colored visual rail */}
+                    <div
+                      className={`relative w-24 md:w-32 shrink-0 bg-gradient-to-br ${option.gradient} flex items-center justify-center`}
+                      aria-hidden="true"
+                    >
+                      <div className="absolute inset-0 opacity-30 mix-blend-overlay bg-[radial-gradient(circle_at_30%_20%,white,transparent_60%)]" />
+                      <div className={`relative w-14 h-14 md:w-16 md:h-16 rounded-2xl ${option.iconBg} backdrop-blur-sm flex items-center justify-center shadow-md`}>
+                        {option.icon}
+                      </div>
                     </div>
 
                     {/* Content */}
-                    <div className="flex-1 min-w-0">
+                    <div className="flex-1 min-w-0 p-6">
                       <div className="flex items-center justify-between gap-4">
                         <div>
                           <h3 className="text-xl font-semibold mb-1 group-hover:text-primary transition-colors">
