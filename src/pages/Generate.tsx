@@ -794,6 +794,17 @@ const Generate = () => {
 
         trackEvent("output_generated", "generate", { source: "scene_preview", design_id: savedDesign?.id });
 
+        const newDesign: GeneratedDesign = {
+          id: savedDesign?.id || `design-${Date.now()}`,
+          imageUrl: storedImageUrl,
+          title: designTitle,
+          description: "Design based on your selected scene preview",
+          isFavorite: false,
+        };
+
+        setDesign(newDesign);
+        generateHighlights(storedImageUrl);
+
         toast({
           title: "Design ready!",
           description: "Your selected scene is ready for refinement",
