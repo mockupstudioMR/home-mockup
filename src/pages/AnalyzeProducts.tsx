@@ -13,6 +13,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import QuizOption from "@/components/quiz/QuizOption";
+import { trackEvent } from "@/lib/analytics";
 
 // ── Types ──────────────────────────────────────────────
 interface AnalyzedProduct {
@@ -191,6 +192,7 @@ const AnalyzeProducts = () => {
     setIsAnalyzing(true);
     setAnalysisResult(null);
     try {
+      trackEvent("ai_call", "analyze-products", { fn: "analyze-style" });
       const { data, error } = await supabase.functions.invoke("analyze-style", {
         body: { images, mode: "products" },
       });
@@ -239,6 +241,7 @@ const AnalyzeProducts = () => {
     const productDescs = analysisResult.products.map((p) => `${p.productName} (${p.category})`);
 
     try {
+      trackEvent("ai_call", "analyze-products", { fn: "generate-scene-previews" });
       const { data, error } = await supabase.functions.invoke("generate-scene-previews", {
         body: {
           roomType: selectedRoom,

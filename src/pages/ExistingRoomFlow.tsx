@@ -12,6 +12,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { trackEvent } from "@/lib/analytics";
 
 // Style images
 import classicHistorical from "@/assets/styles/classic-historical.png";
@@ -128,6 +129,7 @@ const ExistingRoomFlow = () => {
     if (!images.length) return;
     setStep("analyzing");
     try {
+      trackEvent("ai_call", "existing-room", { fn: "analyze-style" });
       const { data, error } = await supabase.functions.invoke("analyze-style", {
         body: { images, mode: "room" },
       });

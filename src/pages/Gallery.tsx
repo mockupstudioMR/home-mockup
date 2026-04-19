@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { exportRoomSpec, fromLegacySession } from "@/services/roomSpec";
 import type { RoomSpec } from "@/types/roomSpec";
+import { trackEvent } from "@/lib/analytics";
 
 interface Design {
   id: string;
@@ -106,6 +107,10 @@ const Gallery = () => {
         .eq("id", id);
 
       if (error) throw error;
+
+      if (!currentValue) {
+        trackEvent("satisfied", "gallery", { design_id: id });
+      }
 
       setDesigns((prev) =>
         prev.map((d) =>

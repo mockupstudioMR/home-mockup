@@ -4,6 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent } from "@/components/ui/card";
 import { Home, Palette, Upload, Package, ArrowRight, Ruler } from "lucide-react";
 import Logo from "@/components/Logo";
+import { trackEvent } from "@/lib/analytics";
 
 // Style moodboard images
 import classicHistorical from "@/assets/styles/classic-historical.png";
@@ -119,6 +120,12 @@ const Start = () => {
           <Logo size={32} />
           <span className="font-semibold text-lg tracking-tight text-foreground">HomeMockUp</span>
         </button>
+        <button
+          onClick={() => navigate("/my-stats")}
+          className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
+        >
+          My Stats
+        </button>
       </header>
 
       {/* Main Content */}
@@ -142,7 +149,10 @@ const Start = () => {
             const hero = entryOptions[0];
             return (
               <button
-                onClick={() => navigate(hero.path)}
+                onClick={() => {
+                  trackEvent("journey_start", hero.id, { from: "start", path: hero.path });
+                  navigate(hero.path);
+                }}
                 className="group relative block w-full mb-6 rounded-2xl overflow-hidden border border-border/50 bg-card shadow-sm hover:shadow-xl hover:border-primary/30 transition-all duration-500 text-left"
               >
                 <div className="grid md:grid-cols-2 items-stretch min-h-[280px] md:min-h-[340px]">
@@ -185,7 +195,10 @@ const Start = () => {
             {entryOptions.slice(1).map((option) => (
               <button
                 key={option.id}
-                onClick={() => navigate(option.path)}
+                onClick={() => {
+                  trackEvent("journey_start", option.id, { from: "start", path: option.path });
+                  navigate(option.path);
+                }}
                 className="group relative block rounded-2xl overflow-hidden border border-border/50 bg-card shadow-sm hover:shadow-xl hover:border-primary/30 transition-all duration-500 text-left"
               >
                 {/* Visual */}

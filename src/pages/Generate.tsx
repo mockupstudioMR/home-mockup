@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import type { QuizData } from "@/contexts/QuizContext";
 import DesignImage from "@/components/generate/DesignImage";
+import { trackEvent } from "@/lib/analytics";
 
 import PersonalizedStyleProfile from "@/components/generate/PersonalizedStyleProfile";
 import DesignItemsList from "@/components/generate/DesignItemsList";
@@ -791,6 +792,8 @@ const Generate = () => {
           .select()
           .single();
 
+        trackEvent("output_generated", "generate", { source: "scene_preview", design_id: savedDesign?.id });
+
         const newDesign: GeneratedDesign = {
           id: savedDesign?.id || `design-${Date.now()}`,
           imageUrl: storedImageUrl,
@@ -825,6 +828,7 @@ const Generate = () => {
         if (raw) floorPlanContext = JSON.parse(raw);
       } catch { /* ignore */ }
 
+      trackEvent("ai_call", "generate", { fn: "generate-design" });
       const response = await supabase.functions.invoke("generate-design", {
         body: {
           ...quizData,
@@ -872,6 +876,8 @@ const Generate = () => {
         } as any)
         .select()
         .single();
+
+      trackEvent("output_generated", "generate", { source: "ai_generate", design_id: savedDesign?.id, style: quizData.stylePreference });
 
       const newDesign: GeneratedDesign = {
         id: savedDesign?.id || `design-${Date.now()}`,
@@ -974,6 +980,8 @@ const Generate = () => {
           } as any)
           .select()
           .single();
+
+        trackEvent("output_generated", "generate", { source: "try_another_style", design_id: savedDesign?.id, style: newStyle });
 
         const newDesign: GeneratedDesign = {
           id: savedDesign?.id || `design-${Date.now()}`,
@@ -1656,13 +1664,18 @@ RULES:
   const handleFavorite = async () => {
     if (!design) return;
 
-    setDesign({ ...design, isFavorite: !design.isFavorite });
+    const newValue = !design.isFavorite;
+    setDesign({ ...design, isFavorite: newValue });
+
+    if (newValue) {
+      trackEvent("satisfied", "generate", { design_id: design.id });
+    }
 
     // Update in database if it's a real ID
     if (!design.id.startsWith("design-")) {
       await supabase
         .from("generated_designs")
-        .update({ is_favorite: !design.isFavorite })
+        .update({ is_favorite: newValue })
         .eq("id", design.id);
     }
   };

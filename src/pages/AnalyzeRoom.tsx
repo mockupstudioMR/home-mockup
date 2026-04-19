@@ -8,6 +8,7 @@ import { Home, ArrowLeft, Upload, X, Loader2, Sparkles, Plus } from "lucide-reac
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import StyleInspirationCards, { type InspirationDetail } from "@/components/analyze/StyleInspirationCards";
+import { trackEvent } from "@/lib/analytics";
 
 interface AnalyzedStyle {
   styleName: string;
@@ -146,6 +147,7 @@ const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(() =
 
     setIsAnalyzing(true);
     try {
+      trackEvent("ai_call", "analyze-room", { fn: "analyze-style" });
       const { data, error } = await supabase.functions.invoke("analyze-style", {
         body: { images: uploadedImages, mode: "room" },
       });

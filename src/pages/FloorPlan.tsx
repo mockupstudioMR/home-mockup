@@ -13,6 +13,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import Logo from "@/components/Logo";
 import { ArrowLeft, ArrowRight, Loader2, RotateCcw, X, Sofa, Bed, UtensilsCrossed, Monitor, Bath, ThumbsUp, ThumbsDown, Save, Upload, Image as ImageIcon } from "lucide-react";
+import { trackEvent } from "@/lib/analytics";
 import { Textarea } from "@/components/ui/textarea";
 import { IllustratedFurniture, IllustratedLegend } from "@/components/floorplan/IllustratedFurniture";
 import RoomOpenings from "@/components/floorplan/RoomOpenings";
@@ -682,6 +683,7 @@ const FloorPlan = () => {
       setFloorPlanAnalyzing(true);
 
       // Call AI to analyze the floor plan
+      trackEvent("ai_call", "floor-plan", { fn: "analyze-floorplan" });
       const { data, error } = await supabase.functions.invoke("analyze-floorplan", {
         body: { imageUrl: urlData.publicUrl },
       });
@@ -814,6 +816,7 @@ const FloorPlan = () => {
       if (selectedShape.id === "custom") {
         body.customWalls = customWalls;
       }
+      trackEvent("ai_call", "floor-plan", { fn: "generate-layout" });
       const { data, error } = await supabase.functions.invoke("generate-layout", {
         body,
       });
