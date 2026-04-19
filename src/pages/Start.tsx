@@ -189,7 +189,10 @@ const Start = () => {
             {entryOptions.slice(1).map((option) => (
               <button
                 key={option.id}
-                onClick={() => navigate(option.path)}
+                onClick={() => {
+                  trackEvent("journey_start", option.id, { from: "start", path: option.path });
+                  navigate(option.path);
+                }}
                 className="group relative block rounded-2xl overflow-hidden border border-border/50 bg-card shadow-sm hover:shadow-xl hover:border-primary/30 transition-all duration-500 text-left"
               >
                 {/* Visual */}
