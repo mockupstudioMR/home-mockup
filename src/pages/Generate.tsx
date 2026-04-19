@@ -38,6 +38,7 @@ import TryAnotherStyle from "@/components/generate/TryAnotherStyle";
 import WallExtractionPanel from "@/components/generate/WallExtractionPanel";
 import type { ExtractedWall } from "@/components/generate/WallExtractionPanel";
 import FloorPlanComparison from "@/components/generate/FloorPlanComparison";
+import { getStyleMoodboardUrls } from "@/lib/styleMoodboards";
 
 interface GeneratedDesign {
   id: string;
@@ -840,6 +841,7 @@ const Generate = () => {
             ?.filter(s => s.styleName.toLowerCase().replace(/[&\s]+/g, '-').replace(/-+/g, '-') === quizData.stylePreference.replace(/_/g, '-'))
             ?.flatMap(s => s.keywords) || [],
           moodboardDescription: analysisResult?.moodboardDescription,
+          styleImageUrls: getStyleMoodboardUrls(quizData.stylePreference),
           floorPlanContext,
         },
       });
@@ -948,6 +950,7 @@ const Generate = () => {
               ?.filter(s => s.styleName.toLowerCase().replace(/[&\s]+/g, '-').replace(/-+/g, '-') === overriddenQuiz.stylePreference.replace(/_/g, '-'))
               ?.flatMap(s => s.keywords) || [],
             moodboardDescription: analysisResult?.moodboardDescription,
+            styleImageUrls: getStyleMoodboardUrls(overriddenQuiz.stylePreference),
             floorPlanContext,
           },
         });
