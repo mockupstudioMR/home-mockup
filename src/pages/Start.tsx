@@ -216,17 +216,19 @@ const Start = () => {
                 </div>
 
                 {/* Content */}
-                <div className="p-5 md:p-6">
-                  <div className="flex items-start justify-between gap-3 mb-2">
-                    <h3 className="text-lg md:text-xl font-semibold tracking-tight group-hover:text-primary transition-colors">
-                      {option.title}
-                    </h3>
-                    <ArrowRight className="w-5 h-5 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all shrink-0 mt-1" />
+                {option.id !== "style-tree" && (
+                  <div className="p-5 md:p-6">
+                    <div className="flex items-start justify-between gap-3 mb-2">
+                      <h3 className="text-lg md:text-xl font-semibold tracking-tight group-hover:text-primary transition-colors">
+                        {option.title}
+                      </h3>
+                      <ArrowRight className="w-5 h-5 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all shrink-0 mt-1" />
+                    </div>
+                    <p className="text-sm text-muted-foreground leading-relaxed">
+                      {option.description}
+                    </p>
                   </div>
-                  <p className="text-sm text-muted-foreground leading-relaxed">
-                    {option.description}
-                  </p>
-                </div>
+                )}
               </button>
             ))}
           </div>
