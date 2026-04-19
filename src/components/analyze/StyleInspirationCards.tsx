@@ -40,13 +40,37 @@ const styleSlugMap: Record<string, string> = {
   "Glam & Luxe": "glam-luxe",
 };
 
-const furnitureForStyle: Record<string, { name: string; description: string }> = {
-  "modern-minimal": { name: "Sculptural Lounge Chair", description: "A sleek, sculptural accent chair with clean lines and minimal form" },
-  "classic-historical": { name: "Antique Armoire", description: "An ornate period armoire with rich wood tones and carved details" },
-  "bohemian-eclectic": { name: "Rattan Peacock Chair", description: "A statement rattan peacock chair with bohemian flair" },
-  "rustic-nature": { name: "Live Edge Wood Table", description: "A raw live-edge wood table showcasing natural grain patterns" },
-  "mediterranean": { name: "Wrought Iron Daybed", description: "A Mediterranean wrought iron daybed with flowing fabric drapes" },
-  "glam-luxe": { name: "Velvet Statement Sofa", description: "A luxurious tufted velvet sofa with gold accents" },
+const furnitureForStyle: Record<string, { name: string; description: string }[]> = {
+  "modern-minimal": [
+    { name: "Sculptural Lounge Chair", description: "A sleek, sculptural accent chair with clean lines and minimal form" },
+    { name: "Floating Console Table", description: "A wall-mounted minimalist console with hidden storage" },
+    { name: "Architectural Floor Lamp", description: "A geometric, slim-profile floor lamp with diffused light" },
+  ],
+  "classic-historical": [
+    { name: "Antique Armoire", description: "An ornate period armoire with rich wood tones and carved details" },
+    { name: "Chesterfield Sofa", description: "A tufted leather Chesterfield with rolled arms and nailhead trim" },
+    { name: "Crystal Chandelier", description: "A multi-tiered crystal chandelier with brass accents" },
+  ],
+  "bohemian-eclectic": [
+    { name: "Rattan Peacock Chair", description: "A statement rattan peacock chair with bohemian flair" },
+    { name: "Macramé Wall Hanging", description: "A large fringed macramé tapestry with layered textures" },
+    { name: "Vintage Persian Rug", description: "A worn-in Persian rug with rich jewel tones and patterns" },
+  ],
+  "rustic-nature": [
+    { name: "Live Edge Wood Table", description: "A raw live-edge wood table showcasing natural grain patterns" },
+    { name: "Reclaimed Barn Door", description: "A sliding reclaimed wood barn door with iron hardware" },
+    { name: "Stone Fireplace Mantel", description: "A rough-hewn stone mantel with rustic character" },
+  ],
+  "mediterranean": [
+    { name: "Wrought Iron Daybed", description: "A Mediterranean wrought iron daybed with flowing fabric drapes" },
+    { name: "Terracotta Urn Planter", description: "A large hand-thrown terracotta urn with olive branches" },
+    { name: "Carved Wood Console", description: "A Spanish-style carved wood console with turned legs" },
+  ],
+  "glam-luxe": [
+    { name: "Velvet Statement Sofa", description: "A luxurious tufted velvet sofa with gold accents" },
+    { name: "Mirrored Cocktail Table", description: "A faceted mirrored cocktail table with brass trim" },
+    { name: "Crystal Pendant Light", description: "A cascading crystal pendant with polished gold frame" },
+  ],
 };
 
 const StyleInspirationCards = ({
