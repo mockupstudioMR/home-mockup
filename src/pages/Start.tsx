@@ -18,7 +18,7 @@ import existingRoomVisual from "@/assets/start/existing-room.jpg";
 import floorPlanVisual from "@/assets/start/floor-plan.jpg";
 import uploadRoomVisual from "@/assets/start/upload-room.jpg";
 import uploadProductsVisual from "@/assets/start/upload-products.jpg";
-import phoneOverlay from "@/assets/start/phone-overlay.png";
+
 
 const Start = () => {
   const navigate = useNavigate();
@@ -155,14 +155,6 @@ const Start = () => {
                       />
                     )}
                     <div className="absolute inset-0 bg-gradient-to-r from-card/80 via-card/0 to-transparent md:block hidden" aria-hidden="true" />
-                    {/* Phone-photographing-room overlay */}
-                    <img
-                      src={phoneOverlay}
-                      alt=""
-                      aria-hidden="true"
-                      loading="lazy"
-                      className="absolute right-2 bottom-2 md:right-6 md:bottom-6 w-32 md:w-48 lg:w-56 drop-shadow-2xl pointer-events-none group-hover:-translate-y-1 transition-transform duration-500"
-                    />
                   </div>
                   <div className="relative p-6 md:p-10 flex flex-col justify-center order-2 md:order-1">
                     <div className={`w-12 h-12 md:w-14 md:h-14 rounded-2xl ${hero.iconBg} flex items-center justify-center shadow-md mb-4`}>
