@@ -980,6 +980,8 @@ const Generate = () => {
           .select()
           .single();
 
+        trackEvent("output_generated", "generate", { source: "try_another_style", design_id: savedDesign?.id, style: newStyle });
+
         const newDesign: GeneratedDesign = {
           id: savedDesign?.id || `design-${Date.now()}`,
           imageUrl,
@@ -1661,13 +1663,18 @@ RULES:
   const handleFavorite = async () => {
     if (!design) return;
 
-    setDesign({ ...design, isFavorite: !design.isFavorite });
+    const newValue = !design.isFavorite;
+    setDesign({ ...design, isFavorite: newValue });
+
+    if (newValue) {
+      trackEvent("satisfied", "generate", { design_id: design.id });
+    }
 
     // Update in database if it's a real ID
     if (!design.id.startsWith("design-")) {
       await supabase
         .from("generated_designs")
-        .update({ is_favorite: !design.isFavorite })
+        .update({ is_favorite: newValue })
         .eq("id", design.id);
     }
   };
