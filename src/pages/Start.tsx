@@ -191,26 +191,6 @@ const Start = () => {
                         <ArrowRight className="w-6 h-6 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all shrink-0" />
                       </div>
 
-                      {/* Style Preview (only for style-tree) */}
-                      {option.preview && (
-                        <div className="flex gap-3 mt-4 overflow-hidden">
-                          {option.preview.map((img, idx) => (
-                            <div
-                              key={idx}
-                              className="w-20 h-20 rounded-lg overflow-hidden border border-border/50 shrink-0"
-                            >
-                              <img
-                                src={img}
-                                alt="Style preview"
-                                className="w-full h-full object-cover"
-                              />
-                            </div>
-                          ))}
-                          <div className="w-20 h-20 rounded-lg border border-dashed border-border/50 flex items-center justify-center text-muted-foreground text-sm shrink-0">
-                            +3 more
-                          </div>
-                        </div>
-                      )}
                     </div>
                   </div>
                 </CardContent>
