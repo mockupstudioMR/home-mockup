@@ -395,6 +395,16 @@ serve(async (req) => {
       if (validProductImageUrls.length > 0) {
         addDebug("Product images", `Added ${validProductImageUrls.length}/${enrichedRequestData.productImageUrls!.length} product images to request`);
       }
+
+      // Style moodboard images for the user-selected style(s) — visual references
+      // for color palette, materials and furniture vibe. Cap at 3 to avoid context bloat.
+      if (enrichedRequestData.styleImageUrls && enrichedRequestData.styleImageUrls.length > 0) {
+        const styleImgs = enrichedRequestData.styleImageUrls.slice(0, 3);
+        for (const imgUrl of styleImgs) {
+          contentParts.push({ type: "image_url", image_url: { url: imgUrl } });
+        }
+        addDebug("Style moodboard images", `Added ${styleImgs.length} style reference image(s) to request`);
+      }
     }
 
     const messages: any[] = [
