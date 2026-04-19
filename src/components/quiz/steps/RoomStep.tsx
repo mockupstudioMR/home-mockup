@@ -33,6 +33,24 @@ const rooms = [
     description: "A spa-like sanctuary for self-care",
     icon: <Bath className="w-6 h-6" />,
   },
+  {
+    value: "open-space-kitchen-dining-living",
+    label: "Open Space (Kitchen + Dining + Living)",
+    description: "An open-plan area combining cooking, dining, and lounging",
+    icon: <LayoutGrid className="w-6 h-6" />,
+  },
+  {
+    value: "dining-living",
+    label: "Dining + Living",
+    description: "A combined space for meals and relaxation",
+    icon: <Utensils className="w-6 h-6" />,
+  },
+  {
+    value: "studio-apartment",
+    label: "Studio Apartment",
+    description: "A single open space combining living, sleeping, and cooking",
+    icon: <Home className="w-6 h-6" />,
+  },
 ];
 
 const RoomStep = () => {
