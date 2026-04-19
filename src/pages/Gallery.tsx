@@ -108,6 +108,10 @@ const Gallery = () => {
 
       if (error) throw error;
 
+      if (!currentValue) {
+        trackEvent("satisfied", "gallery", { design_id: id });
+      }
+
       setDesigns((prev) =>
         prev.map((d) =>
           d.id === id ? { ...d, is_favorite: !currentValue } : d
