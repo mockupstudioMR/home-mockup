@@ -396,6 +396,11 @@ const AdminDashboard = () => {
               </CardContent>
             </Card>
           </TabsContent>
+
+          {/* Analytics Tab */}
+          <TabsContent value="analytics" className="space-y-6">
+            <AnalyticsDashboard scope="admin" />
+          </TabsContent>
         </Tabs>
       </main>
     </div>
