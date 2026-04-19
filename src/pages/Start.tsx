@@ -142,13 +142,37 @@ const Start = () => {
               >
                 <CardContent className="p-0 overflow-hidden">
                   <div className="flex items-stretch gap-0">
-                    {/* Colored visual rail */}
+                    {/* Visual rail — photo or style collage */}
                     <div
-                      className={`relative w-24 md:w-32 shrink-0 bg-gradient-to-br ${option.gradient} flex items-center justify-center`}
-                      aria-hidden="true"
+                      className={`relative w-28 md:w-44 shrink-0 bg-gradient-to-br ${option.gradient} overflow-hidden flex items-center justify-center`}
                     >
-                      <div className="absolute inset-0 opacity-30 mix-blend-overlay bg-[radial-gradient(circle_at_30%_20%,white,transparent_60%)]" />
-                      <div className={`relative w-14 h-14 md:w-16 md:h-16 rounded-2xl ${option.iconBg} backdrop-blur-sm flex items-center justify-center shadow-md`}>
+                      {option.visual ? (
+                        <img
+                          src={option.visual}
+                          alt={option.visualAlt}
+                          loading="lazy"
+                          width={512}
+                          height={512}
+                          className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                        />
+                      ) : option.preview ? (
+                        <div className="absolute inset-0 grid grid-cols-2 grid-rows-2 gap-0.5 p-0.5">
+                          {option.preview.slice(0, 3).map((img, idx) => (
+                            <img
+                              key={idx}
+                              src={img}
+                              alt=""
+                              loading="lazy"
+                              className={`w-full h-full object-cover ${idx === 0 ? "row-span-2" : ""}`}
+                            />
+                          ))}
+                          <div className="w-full h-full bg-background/80 backdrop-blur-sm flex items-center justify-center text-[10px] md:text-xs font-medium text-muted-foreground">
+                            +more
+                          </div>
+                        </div>
+                      ) : null}
+                      <div className="absolute inset-0 bg-gradient-to-tr from-background/30 via-transparent to-transparent" aria-hidden="true" />
+                      <div className={`relative z-10 w-12 h-12 md:w-14 md:h-14 rounded-2xl ${option.iconBg} backdrop-blur-md flex items-center justify-center shadow-lg`}>
                         {option.icon}
                       </div>
                     </div>
