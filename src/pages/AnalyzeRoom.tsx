@@ -52,6 +52,8 @@ const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(() =
   const [selectedInspirations, setSelectedInspirations] = useState<string[]>([]);
   const [inspirationDetailsMap, setInspirationDetailsMap] = useState<Record<string, { label: string; description: string; type: string }>>({});
   const [editableColors, setEditableColors] = useState<string[]>(() => getInitialState().result?.dominantColors || []);
+  const [refreshKeys, setRefreshKeys] = useState<Record<number, number>>({});
+  const [isDetectingMore, setIsDetectingMore] = useState(false);
 
   // Persist state to sessionStorage - URLs are small so they fit
   useEffect(() => {
