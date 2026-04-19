@@ -17,10 +17,23 @@ interface AnalyzedStyle {
   keywords: string[];
 }
 
+interface PerImageAnalysis {
+  imageIndex: number;
+  style: { styleName: string; confidence: number; reason: string };
+  colorTheme: {
+    colors: string[];
+    paletteType: string;
+    contrast: "low" | "medium" | "high" | string;
+    notes?: string;
+  };
+  textures: string[];
+}
+
 interface AnalysisResult {
   styles: AnalyzedStyle[];
   moodboardDescription: string;
   dominantColors: string[];
+  perImage?: PerImageAnalysis[];
 }
 
 const STORAGE_KEY = "analyze_room_cache";
