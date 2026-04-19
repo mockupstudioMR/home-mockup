@@ -17,10 +17,23 @@ interface AnalyzedStyle {
   keywords: string[];
 }
 
+interface PerImageAnalysis {
+  imageIndex: number;
+  style: { styleName: string; confidence: number; reason: string };
+  colorTheme: {
+    colors: string[];
+    paletteType: string;
+    contrast: "low" | "medium" | "high" | string;
+    notes?: string;
+  };
+  textures: string[];
+}
+
 interface AnalysisResult {
   styles: AnalyzedStyle[];
   moodboardDescription: string;
   dominantColors: string[];
+  perImage?: PerImageAnalysis[];
 }
 
 const STORAGE_KEY = "analyze_room_cache";
@@ -364,8 +377,94 @@ const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(() =
           {analysisResult && (
             <Card className="border-primary/30 bg-card/80 backdrop-blur-sm">
               <CardContent className="p-6 space-y-6">
+                {/* Per-image breakdown */}
+                {analysisResult.perImage && analysisResult.perImage.length > 0 && (
+                  <div>
+                    <h2 className="text-xl font-semibold mb-1">Per-Image Analysis</h2>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Style, color theme and textures detected in each image you uploaded
+                    </p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {analysisResult.perImage.map((pi) => {
+                        const img = uploadedImages[pi.imageIndex];
+                        return (
+                          <div
+                            key={pi.imageIndex}
+                            className="rounded-xl border border-border/50 bg-secondary/30 overflow-hidden"
+                          >
+                            {img && (
+                              <img
+                                src={img}
+                                alt={`Uploaded ${pi.imageIndex + 1}`}
+                                className="w-full h-32 object-cover"
+                              />
+                            )}
+                            <div className="p-3 space-y-2.5">
+                              <div className="flex items-center justify-between gap-2">
+                                <span className="font-semibold text-sm">{pi.style.styleName}</span>
+                                <span className="text-xs text-muted-foreground">
+                                  {Math.round((pi.style.confidence || 0) * 100)}%
+                                </span>
+                              </div>
+                              {pi.style.reason && (
+                                <p className="text-xs text-muted-foreground leading-snug">
+                                  {pi.style.reason}
+                                </p>
+                              )}
+
+                              <div>
+                                <p className="text-[11px] uppercase tracking-wide text-muted-foreground mb-1">
+                                  Color theme
+                                </p>
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                  {(pi.colorTheme?.colors || []).slice(0, 8).map((c, i) => (
+                                    <span
+                                      key={i}
+                                      className="w-5 h-5 rounded border border-border"
+                                      style={{ backgroundColor: c }}
+                                      title={c}
+                                    />
+                                  ))}
+                                </div>
+                                <p className="text-[11px] text-muted-foreground mt-1">
+                                  {pi.colorTheme?.paletteType}
+                                  {pi.colorTheme?.contrast ? ` · ${pi.colorTheme.contrast} contrast` : ""}
+                                  {pi.colorTheme?.notes ? ` — ${pi.colorTheme.notes}` : ""}
+                                </p>
+                              </div>
+
+                              {pi.textures && pi.textures.length > 0 && (
+                                <div>
+                                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground mb-1">
+                                    Textures
+                                  </p>
+                                  <div className="flex flex-wrap gap-1">
+                                    {pi.textures.map((t, i) => (
+                                      <span
+                                        key={i}
+                                        className="text-[10px] px-2 py-0.5 rounded-full bg-background border border-border/50"
+                                      >
+                                        {t}
+                                      </span>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
                 <div>
-                  <h2 className="text-xl font-semibold mb-4">Detected Styles</h2>
+                  <h2 className="text-xl font-semibold mb-1">Overall Conclusion</h2>
+                  {analysisResult.moodboardDescription && (
+                    <p className="text-sm text-muted-foreground mb-4">
+                      {analysisResult.moodboardDescription}
+                    </p>
+                  )}
                   <div className="space-y-4">
                     {analysisResult.styles.map((style, index) => (
                       <button

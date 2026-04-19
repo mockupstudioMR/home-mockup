@@ -14,35 +14,41 @@ interface AnalyzeRequest {
 }
 
 // Default prompts (fallbacks if DB templates not found)
-const DEFAULT_ROOM_PROMPT = `Analyze these interior design images and identify the dominant styles. For each detected style, provide:
-1. Style name (e.g., "Modern & Minimal", "Bohemian Eclectic", "Mediterranean", "Classic Historical", "Rustic Nature", "Glam & Luxe")
-2. Confidence score (0-1)
-3. Brief description of why this style matches
-4. 3-5 keywords that define this style
+const DEFAULT_ROOM_PROMPT = `Analyze these interior design images. The images are provided in the same order as in the "perImage" array you must return.
 
-Also identify:
-- Dominant colors (as hex codes)
-- Overall moodboard description
-- ALL visible room elements: every piece of furniture, wall treatment, flooring, lighting fixture, window treatment, rug, decorative item, and architectural feature. For each element provide a short label, a category, and a brief visual description (color, material, condition).
+STEP 1 — For EACH image individually, analyze:
+  a) Style: dominant interior style name (e.g., "Modern & Minimal", "Bohemian Eclectic", "Mediterranean", "Classic Historical", "Rustic Nature", "Glam & Luxe") + confidence (0-1) + 1-2 sentence reason.
+  b) Color theme: list of dominant colors as hex codes, the palette type ("monochrome" | "analogous" | "complementary" | "neutral" | "warm" | "cool" | "earthy" | "jewel-tones" | "pastel"), and a contrast level ("low" | "medium" | "high"). If monochrome, describe the contrast (e.g., "soft tonal" or "high contrast black & white").
+  c) Textures & materials: 3-6 short labels of the dominant textures/materials visible (e.g., "natural linen", "polished marble", "rough oak", "brushed brass", "boucle wool").
 
-Respond in this exact JSON format:
+STEP 2 — Then synthesize a CONCLUSION across ALL images. The conclusion CAN be mixed (multiple styles blended). Provide:
+  - styles[]: 1-3 dominant styles with confidence, description, and 3-5 keywords. If the images mix styles, include each one and call it out as a mix in the moodboardDescription.
+  - dominantColors[]: combined palette across all images (hex codes).
+  - moodboardDescription: 1-3 sentences. If mixed, explicitly say "This is a mix of X and Y…".
+  - roomElements[]: notable furniture/architectural items visible across images (label, category, description).
+
+Respond in this EXACT JSON format:
 {
-  "styles": [
+  "perImage": [
     {
-      "styleName": "string",
-      "confidence": number,
-      "description": "string",
-      "keywords": ["string"]
+      "imageIndex": 0,
+      "style": { "styleName": "string", "confidence": 0.0, "reason": "string" },
+      "colorTheme": {
+        "colors": ["#hex"],
+        "paletteType": "string",
+        "contrast": "low | medium | high",
+        "notes": "string"
+      },
+      "textures": ["string"]
     }
+  ],
+  "styles": [
+    { "styleName": "string", "confidence": 0.0, "description": "string", "keywords": ["string"] }
   ],
   "dominantColors": ["#hex"],
   "moodboardDescription": "string",
   "roomElements": [
-    {
-      "label": "string (e.g. 'Gray fabric sofa')",
-      "category": "furniture | wall | flooring | lighting | window | rug | decor | architectural",
-      "description": "string (brief visual description)"
-    }
+    { "label": "string", "category": "furniture | wall | flooring | lighting | window | rug | decor | architectural", "description": "string" }
   ]
 }`;
 
