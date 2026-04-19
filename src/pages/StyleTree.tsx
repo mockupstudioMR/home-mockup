@@ -163,7 +163,7 @@ const StyleTree = () => {
               <Card
                 key={style.id}
                 className={`group cursor-pointer overflow-hidden transition-all duration-300 ${
-                  selectedStyle === style.id
+                  selectedStyles.includes(style.id)
                     ? "ring-2 ring-primary border-primary"
                     : "border-border/50 hover:border-primary/30"
                 }`}
