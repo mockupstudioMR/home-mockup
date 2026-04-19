@@ -90,16 +90,28 @@ const StyleStep = () => {
     <div className="space-y-6">
       <div className="text-center space-y-2">
         <h2 className="text-2xl font-bold">What's your design style?</h2>
-        <p className="text-muted-foreground">Choose the aesthetic that speaks to you</p>
+        <p className="text-muted-foreground">Choose one or more aesthetics — we'll blend them</p>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-        {styles.map((style) => (
+        {styles.map((style) => {
+          const selected = (quizData.stylePreference || "")
+            .split(",")
+            .map((s) => s.trim())
+            .filter(Boolean);
+          const isSelected = selected.includes(style.value);
+          const toggle = () => {
+            const next = isSelected
+              ? selected.filter((s) => s !== style.value)
+              : [...selected, style.value];
+            updateQuizData({ stylePreference: next.join(",") });
+          };
+          return (
           <button
             key={style.value}
-            onClick={() => updateQuizData({ stylePreference: style.value })}
+            onClick={toggle}
             className={`relative group overflow-hidden rounded-xl border-2 transition-all ${
-              quizData.stylePreference === style.value
+              isSelected
                 ? "border-primary ring-2 ring-primary/20"
                 : "border-border hover:border-primary/50"
             }`}
