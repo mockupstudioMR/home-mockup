@@ -4,6 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent } from "@/components/ui/card";
 import { Home, Palette, Upload, Package, ArrowRight, Ruler } from "lucide-react";
 import Logo from "@/components/Logo";
+import { trackEvent } from "@/lib/analytics";
 
 // Style moodboard images
 import classicHistorical from "@/assets/styles/classic-historical.png";
