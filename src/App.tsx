@@ -22,6 +22,7 @@ const B2BSolutions = lazy(() => import("./pages/B2BSolutions"));
 const Quiz = lazy(() => import("./pages/Quiz"));
 const Generate = lazy(() => import("./pages/Generate"));
 const Gallery = lazy(() => import("./pages/Gallery"));
+const MyStats = lazy(() => import("./pages/MyStats"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
 const DesignerDashboard = lazy(() => import("./pages/DesignerDashboard"));
@@ -94,6 +95,11 @@ const App = () => (
               <Route path="/gallery" element={
                 <ProtectedRoute allowedRoles={["user"]}>
                   <Gallery />
+                </ProtectedRoute>
+              } />
+              <Route path="/my-stats" element={
+                <ProtectedRoute allowedRoles={["user"]}>
+                  <MyStats />
                 </ProtectedRoute>
               } />
 
