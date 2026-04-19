@@ -683,6 +683,7 @@ const FloorPlan = () => {
       setFloorPlanAnalyzing(true);
 
       // Call AI to analyze the floor plan
+      trackEvent("ai_call", "floor-plan", { fn: "analyze-floorplan" });
       const { data, error } = await supabase.functions.invoke("analyze-floorplan", {
         body: { imageUrl: urlData.publicUrl },
       });
@@ -815,6 +816,7 @@ const FloorPlan = () => {
       if (selectedShape.id === "custom") {
         body.customWalls = customWalls;
       }
+      trackEvent("ai_call", "floor-plan", { fn: "generate-layout" });
       const { data, error } = await supabase.functions.invoke("generate-layout", {
         body,
       });

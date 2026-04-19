@@ -129,6 +129,7 @@ const ExistingRoomFlow = () => {
     if (!images.length) return;
     setStep("analyzing");
     try {
+      trackEvent("ai_call", "existing-room", { fn: "analyze-style" });
       const { data, error } = await supabase.functions.invoke("analyze-style", {
         body: { images, mode: "room" },
       });

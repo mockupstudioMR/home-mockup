@@ -147,6 +147,7 @@ const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(() =
 
     setIsAnalyzing(true);
     try {
+      trackEvent("ai_call", "analyze-room", { fn: "analyze-style" });
       const { data, error } = await supabase.functions.invoke("analyze-style", {
         body: { images: uploadedImages, mode: "room" },
       });
