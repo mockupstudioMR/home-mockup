@@ -613,6 +613,17 @@ function buildImagePrompt(
     moodboardContext = `STYLE NARRATIVE: ${data.moodboardDescription} `;
   }
 
+  // Style moodboard images directive — tells the model how to read the attached
+  // style reference images (palette, materials, furniture vibe) without copying them literally.
+  let styleImagesDirective = "";
+  if (data.styleImageUrls && data.styleImageUrls.length > 0) {
+    const n = Math.min(data.styleImageUrls.length, 3);
+    styleImagesDirective =
+      n > 1
+        ? `STYLE INSPIRATION IMAGES: ${n} reference moodboards are attached representing the user's chosen styles. Study them carefully and FUSE their dominant color palettes, materials (wood tones, metals, textiles), patterns, lighting mood and characteristic furniture silhouettes into a single cohesive design. Do NOT replicate any single image — synthesize the shared spirit across all of them. `
+        : `STYLE INSPIRATION IMAGE: A reference moodboard is attached representing the user's chosen style. Use it as the primary visual guide for color palette, materials, textiles, lighting mood and characteristic furniture silhouettes. Do NOT copy it literally — translate its spirit into the user's room. `;
+  }
+
   // Build inspiration context from selected moodboard/furniture items
   let inspirationContext = "";
   if (data.selectedInspirations && data.selectedInspirations.length > 0) {
