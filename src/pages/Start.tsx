@@ -120,6 +120,12 @@ const Start = () => {
           <Logo size={32} />
           <span className="font-semibold text-lg tracking-tight text-foreground">HomeMockUp</span>
         </button>
+        <button
+          onClick={() => navigate("/my-stats")}
+          className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
+        >
+          My Stats
+        </button>
       </header>
 
       {/* Main Content */}
