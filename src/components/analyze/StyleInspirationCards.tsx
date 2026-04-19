@@ -144,7 +144,7 @@ const StyleInspirationCards = ({
           setItems((prev) => prev.map((i) => (i.id === item.id ? { ...i, loading: false } : i)));
         });
     });
-  }, [styleIndex, styleName, keywords, roomType]);
+  }, [styleIndex, styleName, keywords, roomType, refreshKey]);
 
   return (
     <div className="grid grid-cols-2 gap-2 mt-3">
