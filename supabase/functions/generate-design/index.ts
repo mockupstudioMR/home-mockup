@@ -36,6 +36,9 @@ interface GenerateRequest {
   detectedColors?: string[];
   detectedKeywords?: string[];
   moodboardDescription?: string;
+  /** Public URLs of the moodboard images for the user-selected style(s). The model
+   * uses these as visual references for color palette, materials and furniture vibe. */
+  styleImageUrls?: string[];
   keepElements?: string[];
   changeElements?: string[];
   floorPlanContext?: {
