@@ -563,7 +563,17 @@ function buildImagePrompt(
     luxury: "luxurious high-end designer",
   };
 
-  const style = styleMap[data.stylePreference] || data.stylePreference;
+  // Support multiple style preferences (comma-separated). Fuse all selected styles into the prompt.
+  const styleTokens = (data.stylePreference || "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+  const mappedStyles = styleTokens.length > 0
+    ? styleTokens.map((s) => styleMap[s] || s.replace(/[-_]/g, " "))
+    : [styleMap[data.stylePreference] || data.stylePreference];
+  const style = mappedStyles.length > 1
+    ? `a thoughtful fusion of ${mappedStyles.slice(0, -1).join(", ")} and ${mappedStyles[mappedStyles.length - 1]} — blend characteristic elements from each style cohesively`
+    : mappedStyles[0];
   const colors = colorMap[data.colorPalette] || data.colorPalette;
   const room = roomMap[data.roomType] || data.roomType;
   const budget = budgetMap[data.budgetFeel] || data.budgetFeel;
