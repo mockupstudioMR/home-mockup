@@ -73,7 +73,7 @@ const StyleTree = () => {
   const { updateQuizData } = useQuiz();
   const [searchParams] = useSearchParams();
   const source = searchParams.get("source");
-  const [selectedStyle, setSelectedStyle] = useState<string | null>(null);
+  const [selectedStyles, setSelectedStyles] = useState<string[]>([]);
 
   if (loading) {
     return (
@@ -89,19 +89,19 @@ const StyleTree = () => {
   }
 
   const handleStyleSelect = (styleId: string) => {
-    setSelectedStyle(styleId === selectedStyle ? null : styleId);
+    setSelectedStyles((prev) =>
+      prev.includes(styleId) ? prev.filter((s) => s !== styleId) : [...prev, styleId]
+    );
   };
 
   const handleContinue = () => {
-    if (selectedStyle) {
-      const style = styles.find(s => s.id === selectedStyle);
-      if (style) {
-        updateQuizData({ 
-          stylePreference: selectedStyle,
-          colorPalette: getDefaultColorForStyle(selectedStyle),
-        });
-        navigate("/generate", { state: { selectedStyle: style, source } });
-      }
+    if (selectedStyles.length > 0) {
+      const firstStyle = styles.find((s) => s.id === selectedStyles[0]);
+      updateQuizData({
+        stylePreference: selectedStyles.join(","),
+        colorPalette: getDefaultColorForStyle(selectedStyles[0]),
+      });
+      navigate("/generate", { state: { selectedStyle: firstStyle, selectedStyles, source } });
     }
   };
 
@@ -163,7 +163,7 @@ const StyleTree = () => {
               <Card
                 key={style.id}
                 className={`group cursor-pointer overflow-hidden transition-all duration-300 ${
-                  selectedStyle === style.id
+                  selectedStyles.includes(style.id)
                     ? "ring-2 ring-primary border-primary"
                     : "border-border/50 hover:border-primary/30"
                 }`}
@@ -177,7 +177,7 @@ const StyleTree = () => {
                     className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                   />
                   {/* Selection Indicator */}
-                  {selectedStyle === style.id && (
+                  {selectedStyles.includes(style.id) && (
                     <div className="absolute top-4 right-4 w-10 h-10 rounded-full bg-primary flex items-center justify-center">
                       <Check className="w-6 h-6 text-primary-foreground" />
                     </div>
@@ -213,14 +213,14 @@ const StyleTree = () => {
       </main>
 
       {/* Fixed Bottom CTA */}
-      {selectedStyle && (
+      {selectedStyles.length > 0 && (
         <div className="fixed bottom-0 inset-x-0 p-4 bg-background/80 backdrop-blur-lg border-t border-border z-20">
           <div className="max-w-6xl mx-auto flex items-center justify-between">
             <div>
               <p className="font-medium">
-                {styles.find(s => s.id === selectedStyle)?.title}
+                {selectedStyles.map((id) => styles.find((s) => s.id === id)?.title).filter(Boolean).join(" + ")}
               </p>
-              <p className="text-sm text-muted-foreground">Selected style</p>
+              <p className="text-sm text-muted-foreground">{selectedStyles.length} style{selectedStyles.length > 1 ? "s" : ""} selected — we'll blend them</p>
             </div>
             <Button size="lg" onClick={handleContinue}>
               Continue

@@ -90,16 +90,28 @@ const StyleStep = () => {
     <div className="space-y-6">
       <div className="text-center space-y-2">
         <h2 className="text-2xl font-bold">What's your design style?</h2>
-        <p className="text-muted-foreground">Choose the aesthetic that speaks to you</p>
+        <p className="text-muted-foreground">Choose one or more aesthetics — we'll blend them</p>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-        {styles.map((style) => (
+        {styles.map((style) => {
+          const selected = (quizData.stylePreference || "")
+            .split(",")
+            .map((s) => s.trim())
+            .filter(Boolean);
+          const isSelected = selected.includes(style.value);
+          const toggle = () => {
+            const next = isSelected
+              ? selected.filter((s) => s !== style.value)
+              : [...selected, style.value];
+            updateQuizData({ stylePreference: next.join(",") });
+          };
+          return (
           <button
             key={style.value}
-            onClick={() => updateQuizData({ stylePreference: style.value })}
+            onClick={toggle}
             className={`relative group overflow-hidden rounded-xl border-2 transition-all ${
-              quizData.stylePreference === style.value
+              isSelected
                 ? "border-primary ring-2 ring-primary/20"
                 : "border-border hover:border-primary/50"
             }`}
@@ -122,7 +134,7 @@ const StyleStep = () => {
                 <p className="text-white/70 text-xs line-clamp-2">{style.description}</p>
               )}
             </div>
-            {quizData.stylePreference === style.value && (
+            {isSelected && (
               <div className="absolute top-2 right-2 bg-primary text-primary-foreground rounded-full p-1">
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
@@ -130,7 +142,8 @@ const StyleStep = () => {
               </div>
             )}
           </button>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

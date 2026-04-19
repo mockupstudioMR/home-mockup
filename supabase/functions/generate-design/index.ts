@@ -563,7 +563,17 @@ function buildImagePrompt(
     luxury: "luxurious high-end designer",
   };
 
-  const style = styleMap[data.stylePreference] || data.stylePreference;
+  // Support multiple style preferences (comma-separated). Fuse all selected styles into the prompt.
+  const styleTokens = (data.stylePreference || "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+  const mappedStyles = styleTokens.length > 0
+    ? styleTokens.map((s) => styleMap[s] || s.replace(/[-_]/g, " "))
+    : [styleMap[data.stylePreference] || data.stylePreference];
+  const style = mappedStyles.length > 1
+    ? `a thoughtful fusion of ${mappedStyles.slice(0, -1).join(", ")} and ${mappedStyles[mappedStyles.length - 1]} — blend characteristic elements from each style cohesively`
+    : mappedStyles[0];
   const colors = colorMap[data.colorPalette] || data.colorPalette;
   const room = roomMap[data.roomType] || data.roomType;
   const budget = budgetMap[data.budgetFeel] || data.budgetFeel;
@@ -770,7 +780,7 @@ function buildImagePrompt(
       keepChangeDirective += `ELEMENTS TO KEEP EXACTLY AS-IS (do NOT alter these in any way — same color, material, texture, position): ${data.keepElements.join("; ")}. `;
     }
     if (data.changeElements && data.changeElements.length > 0) {
-      keepChangeDirective += `ELEMENTS TO RESTYLE (apply the new ${styleMap[data.stylePreference] || data.stylePreference} aesthetic to these — change their color, material, texture, or finish to match the target style): ${data.changeElements.join("; ")}. `;
+      keepChangeDirective += `ELEMENTS TO RESTYLE (apply the new ${style} aesthetic to these — change their color, material, texture, or finish to match the target style): ${data.changeElements.join("; ")}. `;
     }
     if (!data.keepElements?.length && !data.changeElements?.length) {
       keepChangeDirective = "Re-skin ALL surface treatments (walls, floors, fabrics, textiles) with the new style while keeping every item in place. ";
