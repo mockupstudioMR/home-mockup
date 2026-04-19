@@ -9,6 +9,8 @@ const corsHeaders = {
 interface AnalyzeRequest {
   images: string[];
   mode: "room" | "products";
+  excludeStyles?: string[];
+  onlyOneStyle?: boolean;
 }
 
 // Default prompts (fallbacks if DB templates not found)
