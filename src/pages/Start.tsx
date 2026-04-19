@@ -31,6 +31,8 @@ const Start = () => {
       description: "Upload a photo of your existing room and we'll redesign it while keeping your space's layout",
       preview: null,
       path: "/existing-room",
+      gradient: "from-primary via-primary/70 to-accent/60",
+      iconBg: "bg-primary/15 text-primary",
     },
     {
       id: "floor-plan",
@@ -39,6 +41,8 @@ const Start = () => {
       description: "Draw your room shape, set dimensions, and get AI-generated furniture layouts tailored to your space",
       preview: null,
       path: "/floor-plan",
+      gradient: "from-accent via-accent/70 to-secondary/80",
+      iconBg: "bg-accent/25 text-accent-foreground",
     },
     {
       id: "style-tree",
@@ -47,6 +51,8 @@ const Start = () => {
       description: "Discover curated interior styles and find the perfect look for your space",
       preview: [modernMinimal, rusticNature, glamLuxe],
       path: "/style-tree",
+      gradient: "from-secondary via-primary/50 to-accent/60",
+      iconBg: "bg-secondary/40 text-secondary-foreground",
     },
     {
       id: "upload-room",
@@ -55,6 +61,8 @@ const Start = () => {
       description: "Upload photos of rooms you love and we'll detect the styles to create your moodboard",
       preview: null,
       path: "/analyze-room",
+      gradient: "from-primary/60 via-secondary/70 to-accent/50",
+      iconBg: "bg-primary/10 text-primary",
     },
     {
       id: "upload-products",
@@ -63,6 +71,8 @@ const Start = () => {
       description: "Upload furniture or decor items and we'll design a room around them",
       preview: null,
       path: "/analyze-products",
+      gradient: "from-accent/70 via-primary/40 to-secondary/60",
+      iconBg: "bg-accent/20 text-accent-foreground",
     },
   ];
 
