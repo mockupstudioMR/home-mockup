@@ -1,6 +1,6 @@
 import { useQuiz } from "@/contexts/QuizContext";
 import QuizOption from "../QuizOption";
-import { Sofa, Bed, UtensilsCrossed, Monitor, Bath } from "lucide-react";
+import { Sofa, Bed, UtensilsCrossed, Monitor, Bath, LayoutGrid, Utensils, Home } from "lucide-react";
 
 const rooms = [
   {
