@@ -397,6 +397,7 @@ const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(() =
                           styleIndex={index}
                           styleName={style.styleName}
                           keywords={style.keywords}
+                          refreshKey={refreshKeys[index] || 0}
                           selectedItems={selectedInspirations}
                           onToggle={(id) => {
                             // Auto-select this style when toggling its inspiration
@@ -415,8 +416,48 @@ const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(() =
                             });
                           }}
                         />
+
+                        <div className="mt-3 flex justify-end">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="text-xs h-7"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setRefreshKeys((prev) => ({ ...prev, [index]: (prev[index] || 0) + 1 }));
+                              trackEvent("ai_call", "analyze-room", { fn: "show-more-of-style", style: style.styleName });
+                            }}
+                          >
+                            <RefreshCw className="w-3 h-3 mr-1.5" />
+                            Show more of this style
+                          </Button>
+                        </div>
                       </button>
                     ))}
+                  </div>
+
+                  {/* Detect another style */}
+                  <div className="mt-4 flex justify-center">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={handleDetectAnotherStyle}
+                      disabled={isDetectingMore}
+                    >
+                      {isDetectingMore ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Detecting...
+                        </>
+                      ) : (
+                        <>
+                          <Plus className="w-4 h-4 mr-2" />
+                          Detect another style
+                        </>
+                      )}
+                    </Button>
                   </div>
                 </div>
 
