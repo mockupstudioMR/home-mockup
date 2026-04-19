@@ -124,15 +124,21 @@ const Start = () => {
                 className="group cursor-pointer border-border/50 bg-card/80 backdrop-blur-sm hover:bg-card hover:border-primary/30 transition-all duration-300"
                 onClick={() => navigate(option.path)}
               >
-                <CardContent className="p-6">
-                  <div className="flex items-start gap-6">
-                    {/* Icon */}
-                    <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center text-primary shrink-0 group-hover:bg-primary/20 transition-colors">
-                      {option.icon}
+                <CardContent className="p-0 overflow-hidden">
+                  <div className="flex items-stretch gap-0">
+                    {/* Colored visual rail */}
+                    <div
+                      className={`relative w-24 md:w-32 shrink-0 bg-gradient-to-br ${option.gradient} flex items-center justify-center`}
+                      aria-hidden="true"
+                    >
+                      <div className="absolute inset-0 opacity-30 mix-blend-overlay bg-[radial-gradient(circle_at_30%_20%,white,transparent_60%)]" />
+                      <div className={`relative w-14 h-14 md:w-16 md:h-16 rounded-2xl ${option.iconBg} backdrop-blur-sm flex items-center justify-center shadow-md`}>
+                        {option.icon}
+                      </div>
                     </div>
 
                     {/* Content */}
-                    <div className="flex-1 min-w-0">
+                    <div className="flex-1 min-w-0 p-6">
                       <div className="flex items-center justify-between gap-4">
                         <div>
                           <h3 className="text-xl font-semibold mb-1 group-hover:text-primary transition-colors">
