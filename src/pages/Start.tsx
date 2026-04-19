@@ -143,7 +143,10 @@ const Start = () => {
             const hero = entryOptions[0];
             return (
               <button
-                onClick={() => navigate(hero.path)}
+                onClick={() => {
+                  trackEvent("journey_start", hero.id, { from: "start", path: hero.path });
+                  navigate(hero.path);
+                }}
                 className="group relative block w-full mb-6 rounded-2xl overflow-hidden border border-border/50 bg-card shadow-sm hover:shadow-xl hover:border-primary/30 transition-all duration-500 text-left"
               >
                 <div className="grid md:grid-cols-2 items-stretch min-h-[280px] md:min-h-[340px]">
