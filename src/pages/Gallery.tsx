@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { exportRoomSpec, fromLegacySession } from "@/services/roomSpec";
 import type { RoomSpec } from "@/types/roomSpec";
+import { trackEvent } from "@/lib/analytics";
 
 interface Design {
   id: string;
