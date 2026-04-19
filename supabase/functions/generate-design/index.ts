@@ -766,7 +766,7 @@ function buildImagePrompt(
       .replace(/\{\{inspiration_context\}\}/g, inspirationContext)
       .replace(/\{\{detected_colors\}\}/g, detectedColorsContext)
       .replace(/\{\{detected_keywords\}\}/g, detectedKeywordsContext)
-      .replace(/\{\{moodboard_context\}\}/g, moodboardContext);
+      .replace(/\{\{moodboard_context\}\}/g, styleImagesDirective + moodboardContext);
   };
 
   // Add furniture context prefix if we have furniture items from DB
