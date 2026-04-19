@@ -18,7 +18,7 @@ import existingRoomVisual from "@/assets/start/existing-room.jpg";
 import floorPlanVisual from "@/assets/start/floor-plan.jpg";
 import uploadRoomVisual from "@/assets/start/upload-room.jpg";
 import uploadProductsVisual from "@/assets/start/upload-products.jpg";
-import phoneOverlay from "@/assets/start/phone-overlay.png";
+
 
 const Start = () => {
   const navigate = useNavigate();
