@@ -73,7 +73,7 @@ const StyleTree = () => {
   const { updateQuizData } = useQuiz();
   const [searchParams] = useSearchParams();
   const source = searchParams.get("source");
-  const [selectedStyle, setSelectedStyle] = useState<string | null>(null);
+  const [selectedStyles, setSelectedStyles] = useState<string[]>([]);
 
   if (loading) {
     return (
@@ -89,19 +89,19 @@ const StyleTree = () => {
   }
 
   const handleStyleSelect = (styleId: string) => {
-    setSelectedStyle(styleId === selectedStyle ? null : styleId);
+    setSelectedStyles((prev) =>
+      prev.includes(styleId) ? prev.filter((s) => s !== styleId) : [...prev, styleId]
+    );
   };
 
   const handleContinue = () => {
-    if (selectedStyle) {
-      const style = styles.find(s => s.id === selectedStyle);
-      if (style) {
-        updateQuizData({ 
-          stylePreference: selectedStyle,
-          colorPalette: getDefaultColorForStyle(selectedStyle),
-        });
-        navigate("/generate", { state: { selectedStyle: style, source } });
-      }
+    if (selectedStyles.length > 0) {
+      const firstStyle = styles.find((s) => s.id === selectedStyles[0]);
+      updateQuizData({
+        stylePreference: selectedStyles.join(","),
+        colorPalette: getDefaultColorForStyle(selectedStyles[0]),
+      });
+      navigate("/generate", { state: { selectedStyle: firstStyle, selectedStyles, source } });
     }
   };
 
