@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import type { QuizData } from "@/contexts/QuizContext";
 import DesignImage from "@/components/generate/DesignImage";
+import { trackEvent } from "@/lib/analytics";
 
 import PersonalizedStyleProfile from "@/components/generate/PersonalizedStyleProfile";
 import DesignItemsList from "@/components/generate/DesignItemsList";
