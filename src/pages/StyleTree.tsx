@@ -213,14 +213,14 @@ const StyleTree = () => {
       </main>
 
       {/* Fixed Bottom CTA */}
-      {selectedStyle && (
+      {selectedStyles.length > 0 && (
         <div className="fixed bottom-0 inset-x-0 p-4 bg-background/80 backdrop-blur-lg border-t border-border z-20">
           <div className="max-w-6xl mx-auto flex items-center justify-between">
             <div>
               <p className="font-medium">
-                {styles.find(s => s.id === selectedStyle)?.title}
+                {selectedStyles.map((id) => styles.find((s) => s.id === id)?.title).filter(Boolean).join(" + ")}
               </p>
-              <p className="text-sm text-muted-foreground">Selected style</p>
+              <p className="text-sm text-muted-foreground">{selectedStyles.length} style{selectedStyles.length > 1 ? "s" : ""} selected — we'll blend them</p>
             </div>
             <Button size="lg" onClick={handleContinue}>
               Continue
