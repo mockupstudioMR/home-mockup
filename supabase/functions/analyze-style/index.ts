@@ -116,7 +116,7 @@ serve(async (req) => {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
-    const { images, mode }: AnalyzeRequest = await req.json();
+    const { images, mode, excludeStyles, onlyOneStyle }: AnalyzeRequest = await req.json();
 
     if (!images || images.length === 0) {
       throw new Error("No images provided");
