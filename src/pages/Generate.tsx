@@ -828,6 +828,7 @@ const Generate = () => {
         if (raw) floorPlanContext = JSON.parse(raw);
       } catch { /* ignore */ }
 
+      trackEvent("ai_call", "generate", { fn: "generate-design" });
       const response = await supabase.functions.invoke("generate-design", {
         body: {
           ...quizData,
