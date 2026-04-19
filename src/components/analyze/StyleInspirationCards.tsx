@@ -81,12 +81,14 @@ const StyleInspirationCards = ({
   selectedItems,
   onToggle,
   onItemsReady,
+  refreshKey = 0,
 }: StyleInspirationCardsProps) => {
   const [items, setItems] = useState<InspirationItem[]>([]);
 
   useEffect(() => {
     const slug = styleSlugMap[styleName] || styleName.toLowerCase().replace(/\s+/g, "-");
-    const furniture = furnitureForStyle[slug] || { name: "Designer Accent Piece", description: "A statement furniture piece" };
+    const variants = furnitureForStyle[slug] || [{ name: "Designer Accent Piece", description: "A statement furniture piece" }];
+    const furniture = variants[refreshKey % variants.length];
 
     const newItems: InspirationItem[] = [
       {
