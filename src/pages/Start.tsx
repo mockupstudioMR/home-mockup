@@ -18,6 +18,7 @@ import existingRoomVisual from "@/assets/start/existing-room.jpg";
 import floorPlanVisual from "@/assets/start/floor-plan.jpg";
 import uploadRoomVisual from "@/assets/start/upload-room.jpg";
 import uploadProductsVisual from "@/assets/start/upload-products.jpg";
+import phoneOverlay from "@/assets/start/phone-overlay.png";
 
 const Start = () => {
   const navigate = useNavigate();
@@ -69,8 +70,8 @@ const Start = () => {
     {
       id: "upload-room",
       icon: <Upload className="w-7 h-7" />,
-      title: "Upload Room Images",
-      description: "Upload photos of rooms you love and we'll detect the styles to create your moodboard",
+      title: "Show Us Your Inspiration",
+      description: "Upload photos of rooms you love and we'll detect the styles to build your personal moodboard",
       visual: uploadRoomVisual,
       visualAlt: "Moodboard collage of inspiration room photos",
       preview: null,
