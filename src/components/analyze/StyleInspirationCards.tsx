@@ -28,6 +28,7 @@ interface StyleInspirationCardsProps {
   selectedItems: string[];
   onToggle: (id: string) => void;
   onItemsReady?: (items: InspirationDetail[]) => void;
+  refreshKey?: number;
 }
 
 const styleSlugMap: Record<string, string> = {
