@@ -1964,6 +1964,7 @@ RULES:
               isLocked={design.isLocked || false}
               isLoading={extractingItems}
               onLock={handleLockDesign}
+              designId={design.id}
             />
             <OtherAnglesButton
               key={design?.id}

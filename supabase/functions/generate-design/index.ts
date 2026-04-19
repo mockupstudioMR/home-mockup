@@ -775,7 +775,7 @@ function buildImagePrompt(
     if (templates["furniture_context"]) {
       furnitureContext = fillTemplate(templates["furniture_context"]) + " ";
     } else {
-      furnitureContext = `STRICT FURNITURE CONSTRAINT: The ${room} must ONLY contain furniture from this approved list: ${furnitureList}. Do NOT add any furniture items that are not on this list. `;
+      furnitureContext = `STRICT FURNITURE CONSTRAINT (HARD RULE): The ${room} must contain EXACTLY ONE of each item from this approved list and NOTHING ELSE: ${furnitureList}. Do NOT duplicate any item (e.g. only ONE sofa, only ONE coffee table, only ONE armchair — never two sofas, never a sectional plus an extra couch, never multiple chairs unless the list explicitly says so). Do NOT add any furniture not on the list (no extra ottomans, side tables, benches, poufs, accent chairs, stools, etc. unless listed). Count the items in your output before finalizing — the total furniture count must match the list length. `;
     }
   }
 
