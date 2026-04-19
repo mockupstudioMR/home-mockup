@@ -134,7 +134,7 @@ const StyleStep = () => {
                 <p className="text-white/70 text-xs line-clamp-2">{style.description}</p>
               )}
             </div>
-            {quizData.stylePreference === style.value && (
+            {isSelected && (
               <div className="absolute top-2 right-2 bg-primary text-primary-foreground rounded-full p-1">
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
@@ -142,7 +142,8 @@ const StyleStep = () => {
               </div>
             )}
           </button>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
