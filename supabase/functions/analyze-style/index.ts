@@ -9,6 +9,8 @@ const corsHeaders = {
 interface AnalyzeRequest {
   images: string[];
   mode: "room" | "products";
+  excludeStyles?: string[];
+  onlyOneStyle?: boolean;
 }
 
 // Default prompts (fallbacks if DB templates not found)
@@ -114,7 +116,7 @@ serve(async (req) => {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
-    const { images, mode }: AnalyzeRequest = await req.json();
+    const { images, mode, excludeStyles, onlyOneStyle }: AnalyzeRequest = await req.json();
 
     if (!images || images.length === 0) {
       throw new Error("No images provided");
@@ -139,7 +141,14 @@ serve(async (req) => {
     }
 
     // Build content array with all images
-    const content: any[] = [{ type: "text", text: prompt }];
+    let effectivePrompt = prompt;
+    if (excludeStyles && excludeStyles.length > 0) {
+      effectivePrompt += `\n\nIMPORTANT: Do NOT include these styles (already detected): ${excludeStyles.join(", ")}. Identify a DIFFERENT style that's also present in the image(s) but not in the excluded list.`;
+    }
+    if (onlyOneStyle) {
+      effectivePrompt += `\n\nReturn ONLY ONE style in the "styles" array (the single best new match).`;
+    }
+    const content: any[] = [{ type: "text", text: effectivePrompt }];
     for (const imageUrl of images) {
       content.push({
         type: "image_url",

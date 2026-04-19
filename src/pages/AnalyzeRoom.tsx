@@ -4,7 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useQuiz } from "@/contexts/QuizContext";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Home, ArrowLeft, Upload, X, Loader2, Sparkles, Plus } from "lucide-react";
+import { Home, ArrowLeft, Upload, X, Loader2, Sparkles, Plus, RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import StyleInspirationCards, { type InspirationDetail } from "@/components/analyze/StyleInspirationCards";
@@ -52,6 +52,8 @@ const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(() =
   const [selectedInspirations, setSelectedInspirations] = useState<string[]>([]);
   const [inspirationDetailsMap, setInspirationDetailsMap] = useState<Record<string, { label: string; description: string; type: string }>>({});
   const [editableColors, setEditableColors] = useState<string[]>(() => getInitialState().result?.dominantColors || []);
+  const [refreshKeys, setRefreshKeys] = useState<Record<number, number>>({});
+  const [isDetectingMore, setIsDetectingMore] = useState(false);
 
   // Persist state to sessionStorage - URLs are small so they fit
   useEffect(() => {
@@ -192,6 +194,35 @@ const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(() =
           inspirationDetails: selectedInspirations.map(id => inspirationDetailsMap[id]).filter(Boolean),
         } 
       });
+    }
+  };
+
+  const handleDetectAnotherStyle = async () => {
+    if (!analysisResult || uploadedImages.length === 0) return;
+    setIsDetectingMore(true);
+    try {
+      trackEvent("ai_call", "analyze-room", { fn: "analyze-style", action: "detect-another" });
+      const { data, error } = await supabase.functions.invoke("analyze-style", {
+        body: {
+          images: uploadedImages,
+          mode: "room",
+          excludeStyles: analysisResult.styles.map((s) => s.styleName),
+          onlyOneStyle: true,
+        },
+      });
+      if (error) throw error;
+      const newStyle = data?.styles?.[0];
+      if (!newStyle) {
+        toast({ title: "No new styles found", description: "We couldn't detect another distinct style." });
+        return;
+      }
+      setAnalysisResult((prev) => prev ? { ...prev, styles: [...prev.styles, newStyle] } : prev);
+      toast({ title: "New style detected!", description: newStyle.styleName });
+    } catch (err) {
+      console.error("Detect another style error:", err);
+      toast({ title: "Couldn't detect another style", description: "Please try again", variant: "destructive" });
+    } finally {
+      setIsDetectingMore(false);
     }
   };
 
@@ -366,6 +397,7 @@ const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(() =
                           styleIndex={index}
                           styleName={style.styleName}
                           keywords={style.keywords}
+                          refreshKey={refreshKeys[index] || 0}
                           selectedItems={selectedInspirations}
                           onToggle={(id) => {
                             // Auto-select this style when toggling its inspiration
@@ -384,8 +416,48 @@ const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(() =
                             });
                           }}
                         />
+
+                        <div className="mt-3 flex justify-end">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="text-xs h-7"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setRefreshKeys((prev) => ({ ...prev, [index]: (prev[index] || 0) + 1 }));
+                              trackEvent("ai_call", "analyze-room", { fn: "show-more-of-style", style: style.styleName });
+                            }}
+                          >
+                            <RefreshCw className="w-3 h-3 mr-1.5" />
+                            Show more of this style
+                          </Button>
+                        </div>
                       </button>
                     ))}
+                  </div>
+
+                  {/* Detect another style */}
+                  <div className="mt-4 flex justify-center">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={handleDetectAnotherStyle}
+                      disabled={isDetectingMore}
+                    >
+                      {isDetectingMore ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Detecting...
+                        </>
+                      ) : (
+                        <>
+                          <Plus className="w-4 h-4 mr-2" />
+                          Detect another style
+                        </>
+                      )}
+                    </Button>
                   </div>
                 </div>
 
