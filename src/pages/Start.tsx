@@ -13,6 +13,12 @@ import mediterranean from "@/assets/styles/mediterranean.png";
 import bohemianEclectic from "@/assets/styles/bohemian-eclectic.png";
 import glamLuxe from "@/assets/styles/glam-luxe.png";
 
+// Starting-point visuals
+import existingRoomVisual from "@/assets/start/existing-room.jpg";
+import floorPlanVisual from "@/assets/start/floor-plan.jpg";
+import uploadRoomVisual from "@/assets/start/upload-room.jpg";
+import uploadProductsVisual from "@/assets/start/upload-products.jpg";
+
 const Start = () => {
   const navigate = useNavigate();
   const { user, loading } = useAuth();
