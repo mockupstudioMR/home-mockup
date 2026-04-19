@@ -876,6 +876,8 @@ const Generate = () => {
         .select()
         .single();
 
+      trackEvent("output_generated", "generate", { source: "ai_generate", design_id: savedDesign?.id, style: quizData.stylePreference });
+
       const newDesign: GeneratedDesign = {
         id: savedDesign?.id || `design-${Date.now()}`,
         imageUrl,
