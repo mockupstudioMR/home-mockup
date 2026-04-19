@@ -177,7 +177,7 @@ const StyleTree = () => {
                     className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                   />
                   {/* Selection Indicator */}
-                  {selectedStyle === style.id && (
+                  {selectedStyles.includes(style.id) && (
                     <div className="absolute top-4 right-4 w-10 h-10 rounded-full bg-primary flex items-center justify-center">
                       <Check className="w-6 h-6 text-primary-foreground" />
                     </div>
