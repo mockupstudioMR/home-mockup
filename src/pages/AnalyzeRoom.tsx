@@ -197,7 +197,34 @@ const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(() =
     }
   };
 
-  if (loading) {
+  const handleDetectAnotherStyle = async () => {
+    if (!analysisResult || uploadedImages.length === 0) return;
+    setIsDetectingMore(true);
+    try {
+      trackEvent("ai_call", "analyze-room", { fn: "analyze-style", action: "detect-another" });
+      const { data, error } = await supabase.functions.invoke("analyze-style", {
+        body: {
+          images: uploadedImages,
+          mode: "room",
+          excludeStyles: analysisResult.styles.map((s) => s.styleName),
+          onlyOneStyle: true,
+        },
+      });
+      if (error) throw error;
+      const newStyle = data?.styles?.[0];
+      if (!newStyle) {
+        toast({ title: "No new styles found", description: "We couldn't detect another distinct style." });
+        return;
+      }
+      setAnalysisResult((prev) => prev ? { ...prev, styles: [...prev.styles, newStyle] } : prev);
+      toast({ title: "New style detected!", description: newStyle.styleName });
+    } catch (err) {
+      console.error("Detect another style error:", err);
+      toast({ title: "Couldn't detect another style", description: "Please try again", variant: "destructive" });
+    } finally {
+      setIsDetectingMore(false);
+    }
+  };
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="animate-pulse text-muted-foreground">Loading...</div>
