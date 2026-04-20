@@ -40,6 +40,12 @@ interface GenerateRequest {
   moodboardMaterials?: { label: string; imageUrl?: string }[];
   /** User-curated moodboard style references (with optional reference images). */
   moodboardReferences?: { label: string; imageUrl?: string }[];
+  /** Furniture inspiration uploads — "use similar furniture in style/silhouette". */
+  furnitureReferences?: { label: string; imageUrl?: string }[];
+  /** Decor inspiration uploads — accessories, textiles, lighting, art. "Use similar decor". */
+  decorReferences?: { label: string; imageUrl?: string }[];
+  /** Items the user marked as MUST-INCLUDE — exact match required (same color, material, shape). */
+  mustIncludeItems?: { label: string; imageUrl?: string }[];
   /** Public URLs of the moodboard images for the user-selected style(s). The model
    * uses these as visual references for color palette, materials and furniture vibe. */
   styleImageUrls?: string[];
