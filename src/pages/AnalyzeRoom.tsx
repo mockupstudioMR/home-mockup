@@ -462,10 +462,12 @@ const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(() =
                   <h3 className="text-sm font-semibold mb-2">Style Matches</h3>
                   <div className="space-y-3">
                     {analysisResult.styles.map((style, index) => (
-                      <button
-                        type="button"
+                      <div
+                        role="button"
+                        tabIndex={0}
                         key={index}
                         onClick={() => setSelectedStyleIndex(index)}
+                        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setSelectedStyleIndex(index); } }}
                         className={`w-full text-left p-4 rounded-xl transition-all cursor-pointer ${selectedStyleIndex === index ? "bg-primary/10 border-2 border-primary ring-2 ring-primary/20" : "bg-secondary/50 border-2 border-transparent hover:border-primary/30"}`}
                       >
                         <div className="flex items-center justify-between mb-3">
@@ -498,7 +500,7 @@ const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(() =
                             );
                           })}
                         </div>
-                      </button>
+                      </div>
                     ))}
                   </div>
 

@@ -47,10 +47,13 @@ const TagVisual = ({ tag, styleName, roomType = "living room", selected, onToggl
   };
 
   const handleDragStart = (e: React.DragEvent) => {
+    e.stopPropagation();
     const payload = JSON.stringify({ label: tag, imageUrl: imageUrl || null, source: "tag" });
     e.dataTransfer.setData(MOODBOARD_DRAG_MIME, payload);
     e.dataTransfer.setData("text/plain", tag);
     e.dataTransfer.effectAllowed = "copy";
+    // eslint-disable-next-line no-console
+    console.log("[TagVisual] dragstart", { tag, hasImage: !!imageUrl });
   };
 
   return (
