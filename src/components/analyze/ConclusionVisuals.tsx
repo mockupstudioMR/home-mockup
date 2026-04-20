@@ -23,6 +23,8 @@ interface VisualChipProps {
   kind: VisualKind;
   styleSlug: string;
   roomType: string;
+  /** For style references: the iconic item to render (e.g., "Wassily chair"). */
+  iconicItem?: string;
   imageUrl?: string;
   onImageReady: (url: string) => void;
   onRename: (next: string) => void;
@@ -36,6 +38,7 @@ const VisualChip = ({
   kind,
   styleSlug,
   roomType,
+  iconicItem,
   imageUrl,
   onImageReady,
   onRename,
@@ -50,6 +53,7 @@ const VisualChip = ({
     if (loading || imageUrl) return;
     setLoading(true);
     try {
+      const itemForStyle = iconicItem || `signature ${label} furniture piece`;
       const body =
         kind === "material"
           ? {
@@ -60,10 +64,11 @@ const VisualChip = ({
               furnitureDescription: `Macro detail shot of the material/texture "${label}". Show the surface up close: weave, grain, finish, light reflection. Editorial close-up photography on a neutral background.`,
             }
           : {
-              type: "moodboard",
+              type: "accentFurniture",
               style: label.toLowerCase().replace(/\s+/g, "-"),
               room: roomType,
-              elements: [`Hero reference image embodying the "${label}" interior style`],
+              furnitureName: itemForStyle,
+              furnitureDescription: `A single iconic ${label} furniture or decor piece — "${itemForStyle}" — shown alone as a hero product shot on a clean neutral background. ONE item only, no full room, no collage.`,
             };
       const { data, error } = await supabase.functions.invoke(
         "generate-highlight-visuals",
