@@ -198,31 +198,67 @@ const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(() =
   };
 
   const handleContinue = () => {
-    if (analysisResult && selectedStyleIndex !== null) {
-      const selectedStyle = analysisResult.styles[selectedStyleIndex];
-      updateQuizData({
-        stylePreference: selectedStyle.styleName.toLowerCase().replace(/\s+/g, "-"),
-        colorPalette: "neutral",
-      });
-      navigate("/generate", {
-        state: {
-          selectedStyle: {
-            id: selectedStyle.styleName.toLowerCase().replace(/\s+/g, "-"),
-            title: selectedStyle.styleName,
-            description: selectedStyle.description,
-          },
-          analysisResult: { ...analysisResult, dominantColors: editableColors },
-          sourceImages: uploadedImages,
-          selectedInspirations,
-          inspirationDetails: selectedInspirations.map(id => inspirationDetailsMap[id]).filter(Boolean),
-          moodboard: {
-            colors: editableColors,
-            materials: moodboard.materials,
-            references: moodboard.references,
-          },
+    if (!analysisResult) return;
+    const styleIdx = selectedStyleIndex ?? 0;
+    const selectedStyle = analysisResult.styles[styleIdx];
+    if (!selectedStyle) return;
+
+    // Aggregate all moodboard items: user-toggled inspirations + every suggested
+    // keyword across all detected styles + iconic items (deduped).
+    const aggregatedDetailsMap: Record<string, { label: string; description: string; type: string }> = {
+      ...inspirationDetailsMap,
+    };
+    const aggregatedIds = new Set<string>(selectedInspirations);
+
+    analysisResult.styles.forEach((style, sIdx) => {
+      (style.keywords || []).forEach((keyword: string, kIdx: number) => {
+        const id = `${sIdx}-${kIdx}-${keyword}`;
+        aggregatedIds.add(id);
+        if (!aggregatedDetailsMap[id]) {
+          aggregatedDetailsMap[id] = {
+            label: keyword,
+            description: `${style.styleName}: ${keyword}`,
+            type: "tag",
+          };
         }
       });
-    }
+      if (style.iconicItem) {
+        const id = `iconic-${sIdx}-${style.iconicItem}`;
+        aggregatedIds.add(id);
+        if (!aggregatedDetailsMap[id]) {
+          aggregatedDetailsMap[id] = {
+            label: style.iconicItem,
+            description: `${style.styleName}: ${style.iconicItem}`,
+            type: "iconic",
+          };
+        }
+      }
+    });
+
+    const allInspirations = Array.from(aggregatedIds);
+
+    updateQuizData({
+      stylePreference: selectedStyle.styleName.toLowerCase().replace(/\s+/g, "-"),
+      colorPalette: "neutral",
+    });
+    navigate("/generate", {
+      state: {
+        selectedStyle: {
+          id: selectedStyle.styleName.toLowerCase().replace(/\s+/g, "-"),
+          title: selectedStyle.styleName,
+          description: selectedStyle.description,
+        },
+        analysisResult: { ...analysisResult, dominantColors: editableColors },
+        sourceImages: uploadedImages,
+        selectedInspirations: allInspirations,
+        inspirationDetails: allInspirations.map(id => aggregatedDetailsMap[id]).filter(Boolean),
+        moodboard: {
+          colors: editableColors,
+          materials: moodboard.materials,
+          references: moodboard.references,
+        },
+      }
+    });
   };
 
   const handleDetectAnotherStyle = async () => {
@@ -580,11 +616,8 @@ const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(() =
                   size="lg"
                   className="w-full"
                   onClick={handleContinue}
-                  disabled={selectedStyleIndex === null}
                 >
-                  {selectedStyleIndex !== null
-                    ? "Continue with your own unique moodboard"
-                    : "Select a style to continue"}
+                  Continue with your own unique moodboard
                 </Button>
               </CardContent>
             </Card>
