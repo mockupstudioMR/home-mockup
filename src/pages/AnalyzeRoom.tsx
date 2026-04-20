@@ -72,6 +72,7 @@ const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(() =
   const [refreshKeys, setRefreshKeys] = useState<Record<number, number>>({});
   // (conclusion moodboard manages its own regeneration internally)
   const [isDetectingMore, setIsDetectingMore] = useState(false);
+  const [moodboardExtras, setMoodboardExtras] = useState<string[]>([]);
 
   // Persist state to sessionStorage - URLs are small so they fit
   useEffect(() => {
