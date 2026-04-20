@@ -524,11 +524,6 @@ const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(() =
                                 styleName={style.styleName}
                                 selected={selectedInspirations.includes(id)}
                                 inMoodboard={moodboardExtras.includes(keyword)}
-                                onAddToMoodboard={() =>
-                                  setMoodboardExtras((prev) =>
-                                    prev.includes(keyword) ? prev : [...prev, keyword],
-                                  )
-                                }
                                 onToggle={() => {
                                   setSelectedStyleIndex(index);
                                   setSelectedInspirations((prev) =>
