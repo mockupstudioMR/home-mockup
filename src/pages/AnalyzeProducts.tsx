@@ -16,6 +16,7 @@ import QuizOption from "@/components/quiz/QuizOption";
 import ConclusionVisuals from "@/components/analyze/ConclusionVisuals";
 import TagVisual from "@/components/analyze/TagVisual";
 import { trackEvent } from "@/lib/analytics";
+import { optimizeImageSourceToDataUrl } from "@/lib/imageOptimization";
 
 // ── Types ──────────────────────────────────────────────
 interface AnalyzedProduct {
@@ -150,19 +151,11 @@ const AnalyzeProducts = () => {
       const files = e.target.files;
       if (!files) return;
 
-      const newImages: string[] = [];
-      for (const file of Array.from(files)) {
-        if (file.type.startsWith("image/")) {
-          const reader = new FileReader();
-          await new Promise<void>((resolve) => {
-            reader.onload = (event) => {
-              if (event.target?.result) newImages.push(event.target.result as string);
-              resolve();
-            };
-            reader.readAsDataURL(file);
-          });
-        }
-      }
+      const newImages = await Promise.all(
+        Array.from(files)
+          .filter((file) => file.type.startsWith("image/"))
+          .map((file) => optimizeImageSourceToDataUrl(file, { maxDimension: 1024 })),
+      );
 
       const updated = [...uploadedImages, ...newImages].slice(0, 8);
       setUploadedImages(updated);

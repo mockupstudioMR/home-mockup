@@ -4,6 +4,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { X, Plus, Check, Pencil, Sparkles, Image as ImageIcon, Blend, Upload, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
+import { getThumbnailImageUrl, optimizeImageFile } from "@/lib/imageOptimization";
 import { MOODBOARD_DRAG_MIME } from "./TagVisual";
 
 interface DraggedItem { label: string; imageUrl?: string | null; source?: string }
@@ -231,20 +232,24 @@ const ConclusionVisuals = ({
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
-      for (const file of files) {
-        if (!file.type.startsWith("image/")) continue;
-        const ext = file.name.split(".").pop() || "jpg";
-        const path = `${user.id}/must-include/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
-        const { error: upErr } = await supabase.storage.from("room-photos").upload(path, file);
-        if (upErr) { console.error("upload failed", upErr); continue; }
+      await Promise.all(files.map(async (file) => {
+        if (!file.type.startsWith("image/")) return;
+        const optimizedFile = await optimizeImageFile(file, { maxDimension: 2048 });
+        const path = `${user.id}/must-include/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.webp`;
+        const { error: upErr } = await supabase.storage
+          .from("room-photos")
+          .upload(path, optimizedFile, { contentType: optimizedFile.type });
+        if (upErr) { console.error("upload failed", upErr); return; }
         const { data: urlData } = supabase.storage.from("room-photos").getPublicUrl(path);
         const baseLabel = file.name.replace(/\.[^.]+$/, "").slice(0, 40) || "Uploaded item";
-        let label = baseLabel; let i = 2;
-        while (mustInclude.some((m) => m.label.toLowerCase() === label.toLowerCase())) {
-          label = `${baseLabel} ${i++}`;
-        }
-        setMustInclude((prev) => [...prev, { label, imageUrl: urlData.publicUrl }]);
-      }
+        setMustInclude((prev) => {
+          let label = baseLabel; let i = 2;
+          while (prev.some((m) => m.label.toLowerCase() === label.toLowerCase())) {
+            label = `${baseLabel} ${i++}`;
+          }
+          return [...prev, { label, imageUrl: urlData.publicUrl }];
+        });
+      }));
     } finally {
       setUploadingMustInclude(false);
     }
@@ -421,7 +426,7 @@ const ConclusionVisuals = ({
               // Uploaded product (or already-generated visual): keep the original tile with image
               <div key={item.label} className="group relative w-24">
                 <div className="aspect-square rounded-lg overflow-hidden border-2 border-primary/40 bg-secondary/30 relative">
-                  <img src={item.imageUrl} alt={item.label} className="w-full h-full object-cover" />
+                  <img src={getThumbnailImageUrl(item.imageUrl)} alt={item.label} className="w-full h-full object-cover" loading="lazy" decoding="async" />
                   <button
                     type="button"
                     onClick={() => removeMustInclude(item.label)}

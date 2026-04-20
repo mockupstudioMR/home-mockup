@@ -18,6 +18,7 @@ import {
 import { exportRoomSpec, fromLegacySession } from "@/services/roomSpec";
 import type { RoomSpec } from "@/types/roomSpec";
 import { trackEvent } from "@/lib/analytics";
+import { getThumbnailImageUrl } from "@/lib/imageOptimization";
 
 interface Design {
   id: string;
@@ -336,7 +337,7 @@ const Gallery = () => {
               >
                 <div className="relative aspect-video">
                   <img
-                    src={design.image_url}
+                    src={getThumbnailImageUrl(design.image_url)}
                     alt="Room design"
                     loading="lazy"
                     decoding="async"

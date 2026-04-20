@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { Upload, Image, Check, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { getThumbnailImageUrl, optimizeImageFile } from "@/lib/imageOptimization";
 
 const inspirationImages = [
   {
@@ -55,12 +56,12 @@ const ImageStep = () => {
 
       setUploading(true);
       try {
-        const fileExt = file.name.split(".").pop();
-        const fileName = `${user.id}/${Date.now()}.${fileExt}`;
+        const optimizedFile = await optimizeImageFile(file, { maxDimension: 2048 });
+        const fileName = `${user.id}/${Date.now()}.webp`;
 
         const { error: uploadError } = await supabase.storage
           .from("room-photos")
-          .upload(fileName, file);
+          .upload(fileName, optimizedFile, { contentType: optimizedFile.type });
 
         if (uploadError) throw uploadError;
 
@@ -112,9 +113,11 @@ const ImageStep = () => {
           !inspirationImages.find((i) => i.url === quizData.sourceImageUrl) ? (
           <div className="relative w-full h-full">
             <img
-              src={quizData.sourceImageUrl}
+              src={getThumbnailImageUrl(quizData.sourceImageUrl)}
               alt="Uploaded"
               className="w-full h-full object-cover rounded-xl"
+              loading="lazy"
+              decoding="async"
             />
             <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-primary flex items-center justify-center">
               <Check className="w-4 h-4 text-primary-foreground" />
