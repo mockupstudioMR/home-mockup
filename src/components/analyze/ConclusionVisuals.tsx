@@ -6,12 +6,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 
 interface ConclusionVisualsProps {
-  moodboardDescription: string;
   dominantColors: string[];
   onDominantColorsChange: (colors: string[]) => void;
   styleNames: string[];
   /** Optional seed materials/textures extracted from analysis. */
   seedElements?: string[];
+  /** Map of styleName -> iconic item label (e.g., "Wassily chair") for single-item style ref visuals. */
+  iconicItems?: Record<string, string>;
   roomType?: string;
 }
 
