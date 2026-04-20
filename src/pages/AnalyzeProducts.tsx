@@ -438,6 +438,7 @@ const AnalyzeProducts = () => {
           </div>
 
           {/* Upload Area */}
+          {step === "detect" && (
           <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
             <CardContent className="p-6">
               {uploadedImages.length === 0 ? (
