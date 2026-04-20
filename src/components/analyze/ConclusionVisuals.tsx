@@ -39,6 +39,8 @@ interface ConclusionVisualsProps {
   onMoodboardChange?: (mb: {
     materials: { label: string; imageUrl?: string }[];
     references: { label: string; imageUrl?: string }[];
+    furnitureReferences: { label: string; imageUrl?: string }[];
+    decorReferences: { label: string; imageUrl?: string }[];
     mustInclude: { label: string; imageUrl?: string }[];
   }) => void;
 }
