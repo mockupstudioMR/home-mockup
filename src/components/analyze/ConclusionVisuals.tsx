@@ -197,7 +197,8 @@ const ConclusionVisuals = ({
     [styleNames],
   );
 
-  // Must-include items (e.g., uploaded products) — kept here so user can remove
+  // Must-include items (uploaded products OR user-added furniture).
+  // Items added via the "+" tile start without an imageUrl and auto-generate one.
   const initialMustInclude = useMemo(
     () => (mustIncludeItems || []).filter((m) => m.label),
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -207,6 +208,20 @@ const ConclusionVisuals = ({
   useEffect(() => setMustInclude(initialMustInclude), [initialMustInclude]);
   const removeMustInclude = (label: string) =>
     setMustInclude((prev) => prev.filter((m) => m.label !== label));
+  const renameMustInclude = (oldLabel: string, next: string) =>
+    setMustInclude((prev) => prev.map((m) => (m.label === oldLabel ? { ...m, label: next } : m)));
+  const setMustIncludeImage = (label: string, url: string) =>
+    setMustInclude((prev) => prev.map((m) => (m.label === label ? { ...m, imageUrl: url } : m)));
+  const [newMustInclude, setNewMustInclude] = useState("");
+  const [addingMustInclude, setAddingMustInclude] = useState(false);
+  const commitNewMustInclude = () => {
+    const v = newMustInclude.trim();
+    if (v && !mustInclude.some((m) => m.label.toLowerCase() === v.toLowerCase())) {
+      setMustInclude((prev) => [...prev, { label: v }]);
+    }
+    setNewMustInclude("");
+    setAddingMustInclude(false);
+  };
 
   // Materials & Textures
   const initialMaterials = useMemo(
@@ -368,23 +383,18 @@ const ConclusionVisuals = ({
 
   return (
     <div className="rounded-xl border border-border/50 bg-secondary/20 p-4 space-y-5">
-      {/* Must-Include Furniture (e.g., the user's uploaded products) */}
-      {mustInclude.length > 0 && (
-        <div>
-          <p className="text-[11px] uppercase tracking-wide text-muted-foreground mb-2 font-medium">
-            Must-Include Furniture <span className="normal-case text-muted-foreground/70">— we'll design the room around these</span>
-          </p>
-          <div className="flex flex-wrap gap-3 items-start">
-            {mustInclude.map((item) => (
+      {/* Must-Include Furniture — uploaded products + user-added items */}
+      <div>
+        <p className="text-[11px] uppercase tracking-wide text-muted-foreground mb-2 font-medium">
+          Must-Include Furniture <span className="normal-case text-muted-foreground/70">— we'll design the room around these (optional)</span>
+        </p>
+        <div className="flex flex-wrap gap-3 items-start">
+          {mustInclude.map((item) => (
+            item.imageUrl ? (
+              // Uploaded product (or already-generated visual): keep the original tile with image
               <div key={item.label} className="group relative w-24">
                 <div className="aspect-square rounded-lg overflow-hidden border-2 border-primary/40 bg-secondary/30 relative">
-                  {item.imageUrl ? (
-                    <img src={item.imageUrl} alt={item.label} className="w-full h-full object-cover" />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-[10px] text-muted-foreground">
-                      {item.label}
-                    </div>
-                  )}
+                  <img src={item.imageUrl} alt={item.label} className="w-full h-full object-cover" />
                   <button
                     type="button"
                     onClick={() => removeMustInclude(item.label)}
@@ -401,10 +411,54 @@ const ConclusionVisuals = ({
                   {item.label}
                 </div>
               </div>
-            ))}
-          </div>
+            ) : (
+              // User-added item: use VisualChip so it auto-generates an image and is renameable
+              <VisualChip
+                key={item.label}
+                label={item.label}
+                kind="material"
+                styleSlug={styleSlug}
+                roomType={roomType}
+                imageUrl={undefined}
+                onImageReady={(url) => setMustIncludeImage(item.label, url)}
+                onRename={(next) => renameMustInclude(item.label, next)}
+                onRemove={() => removeMustInclude(item.label)}
+                autoGenerate
+              />
+            )
+          ))}
+
+          {addingMustInclude ? (
+            <div className="w-24">
+              <div className="aspect-square rounded-lg border-2 border-dashed border-primary/40 bg-secondary/30 flex items-center justify-center p-1">
+                <Input
+                  autoFocus
+                  value={newMustInclude}
+                  onChange={(e) => setNewMustInclude(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") { e.preventDefault(); commitNewMustInclude(); }
+                    if (e.key === "Escape") { setNewMustInclude(""); setAddingMustInclude(false); }
+                  }}
+                  onBlur={commitNewMustInclude}
+                  placeholder="e.g. sofa"
+                  className="h-7 text-[11px] px-1.5 py-0"
+                />
+              </div>
+              <div className="mt-1 text-[11px] text-muted-foreground">Press Enter</div>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setAddingMustInclude(true)}
+              className="w-24 aspect-square rounded-lg border-2 border-dashed border-border hover:border-primary/50 hover:bg-primary/5 text-muted-foreground hover:text-primary transition-colors flex flex-col items-center justify-center gap-1"
+              title="Add must-include furniture"
+            >
+              <Plus className="w-4 h-4" />
+              <span className="text-[10px]">Add item</span>
+            </button>
+          )}
         </div>
-      )}
+      </div>
 
       {/* Dominant Colors */}
       <div>
