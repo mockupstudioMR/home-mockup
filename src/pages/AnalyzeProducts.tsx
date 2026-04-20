@@ -100,8 +100,10 @@ const AnalyzeProducts = () => {
   const [moodboard, setMoodboard] = useState<{
     materials: { label: string; imageUrl?: string }[];
     references: { label: string; imageUrl?: string }[];
+    furnitureReferences: { label: string; imageUrl?: string }[];
+    decorReferences: { label: string; imageUrl?: string }[];
     mustInclude: { label: string; imageUrl?: string }[];
-  }>({ materials: [], references: [], mustInclude: [] });
+  }>({ materials: [], references: [], furnitureReferences: [], decorReferences: [], mustInclude: [] });
 
   // Two-step flow: 'detect' (products + room) → 'moodboard' (editor)
   const [step, setStep] = useState<"detect" | "moodboard">("detect");
@@ -362,6 +364,8 @@ const AnalyzeProducts = () => {
           colors: editableColors,
           materials: moodboard.materials,
           references: mergedReferences,
+          furnitureReferences: moodboard.furnitureReferences,
+          decorReferences: moodboard.decorReferences,
           mustInclude: moodboard.mustInclude,
         },
       },
