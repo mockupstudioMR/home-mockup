@@ -30,6 +30,7 @@ interface AnalyzedStyle {
   confidence: number;
   description: string;
   keywords: string[];
+  iconicItem?: string;
 }
 
 interface MissingProduct {
