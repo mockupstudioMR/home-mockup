@@ -598,10 +598,17 @@ function buildImagePrompt(
     ? `Include these elements: ${data.mustHaveElements.join(", ")}.` 
     : "";
 
-  // Build detected colors context
+  // Build detected colors context — the user's curated moodboard palette is the
+  // single source of truth for color. It overrides any palette implied by the
+  // attached style reference images.
   let detectedColorsContext = "";
   if (data.detectedColors && data.detectedColors.length > 0) {
-    detectedColorsContext = `COLOR PALETTE DIRECTIVE: Use these specific colors as the dominant palette throughout the design: ${data.detectedColors.join(", ")}. These colors should be prominently visible in walls, textiles, furniture, and accents. `;
+    const colorList = data.detectedColors.join(", ");
+    detectedColorsContext =
+      `MANDATORY COLOR PALETTE (HIGHEST PRIORITY — overrides any palette from attached reference images): ` +
+      `The final design MUST use ONLY this exact palette: ${colorList}. ` +
+      `Distribute these hex colors across walls, large textiles (rugs, sofas, curtains), upholstery, accents and decor so the palette is unmistakable at first glance. ` +
+      `Do NOT introduce colors outside this palette. If a reference image shows a different color scheme, IGNORE its colors and recolor everything to match this palette. `;
   }
 
   // Build detected keywords/visual elements context
@@ -630,10 +637,13 @@ function buildImagePrompt(
   let styleImagesDirective = "";
   if (data.styleImageUrls && data.styleImageUrls.length > 0) {
     const n = Math.min(data.styleImageUrls.length, 3);
+    const paletteOverride = (data.detectedColors && data.detectedColors.length > 0)
+      ? `Use these images for materials, textures, lighting mood and furniture silhouettes ONLY — do NOT copy their colors. The MANDATORY COLOR PALETTE above takes absolute priority over any colors visible in these references. `
+      : "";
     styleImagesDirective =
       n > 1
-        ? `STYLE INSPIRATION IMAGES: ${n} reference moodboards are attached representing the user's chosen styles. Study them carefully and FUSE their dominant color palettes, materials (wood tones, metals, textiles), patterns, lighting mood and characteristic furniture silhouettes into a single cohesive design. Do NOT replicate any single image — synthesize the shared spirit across all of them. `
-        : `STYLE INSPIRATION IMAGE: A reference moodboard is attached representing the user's chosen style. Use it as the primary visual guide for color palette, materials, textiles, lighting mood and characteristic furniture silhouettes. Do NOT copy it literally — translate its spirit into the user's room. `;
+        ? `STYLE INSPIRATION IMAGES: ${n} reference moodboards are attached representing the user's chosen styles. Study them carefully and FUSE their materials (wood tones, metals, textiles), patterns, lighting mood and characteristic furniture silhouettes into a single cohesive design. ${paletteOverride}Do NOT replicate any single image — synthesize the shared spirit across all of them. `
+        : `STYLE INSPIRATION IMAGE: A reference moodboard is attached representing the user's chosen style. Use it as the primary visual guide for materials, textiles, lighting mood and characteristic furniture silhouettes. ${paletteOverride}Do NOT copy it literally — translate its spirit into the user's room. `;
   }
 
   // Build inspiration context from selected moodboard/furniture items
