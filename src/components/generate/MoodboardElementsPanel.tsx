@@ -161,6 +161,12 @@ const MoodboardElementsPanel = ({ items, onAction, disabled }: MoodboardElements
                         className="w-full h-full object-cover"
                         loading="lazy"
                       />
+                    ) : /^#[0-9a-fA-F]{6}$/.test(item.label) ? (
+                      <div
+                        className="w-full h-full"
+                        style={{ backgroundColor: item.label }}
+                        title={item.label}
+                      />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center text-muted-foreground">
                         <Icon className="w-5 h-5" />
