@@ -36,6 +36,10 @@ interface GenerateRequest {
   detectedColors?: string[];
   detectedKeywords?: string[];
   moodboardDescription?: string;
+  /** User-curated moodboard materials/textures (with optional reference images). */
+  moodboardMaterials?: { label: string; imageUrl?: string }[];
+  /** User-curated moodboard style references (with optional reference images). */
+  moodboardReferences?: { label: string; imageUrl?: string }[];
   /** Public URLs of the moodboard images for the user-selected style(s). The model
    * uses these as visual references for color palette, materials and furniture vibe. */
   styleImageUrls?: string[];
@@ -611,6 +615,14 @@ function buildImagePrompt(
   let moodboardContext = "";
   if (data.moodboardDescription) {
     moodboardContext = `STYLE NARRATIVE: ${data.moodboardDescription} `;
+  }
+  const mbMaterials = (data.moodboardMaterials || []).map((m) => m.label).filter(Boolean);
+  const mbReferences = (data.moodboardReferences || []).map((r) => r.label).filter(Boolean);
+  if (mbMaterials.length > 0) {
+    moodboardContext += `MOODBOARD MATERIALS (must be visibly used in surfaces, textiles and finishes): ${mbMaterials.join(", ")}. `;
+  }
+  if (mbReferences.length > 0) {
+    moodboardContext += `MOODBOARD STYLE REFERENCES (mirror their look & feel and signature pieces): ${mbReferences.join(", ")}. `;
   }
 
   // Style moodboard images directive — tells the model how to read the attached

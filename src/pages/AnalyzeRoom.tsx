@@ -73,6 +73,10 @@ const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(() =
   // (conclusion moodboard manages its own regeneration internally)
   const [isDetectingMore, setIsDetectingMore] = useState(false);
   const [moodboardExtras, setMoodboardExtras] = useState<string[]>([]);
+  const [moodboard, setMoodboard] = useState<{
+    materials: { label: string; imageUrl?: string }[];
+    references: { label: string; imageUrl?: string }[];
+  }>({ materials: [], references: [] });
 
   // Persist state to sessionStorage - URLs are small so they fit
   useEffect(() => {
@@ -200,8 +204,8 @@ const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(() =
         stylePreference: selectedStyle.styleName.toLowerCase().replace(/\s+/g, "-"),
         colorPalette: "neutral",
       });
-      navigate("/generate", { 
-        state: { 
+      navigate("/generate", {
+        state: {
           selectedStyle: {
             id: selectedStyle.styleName.toLowerCase().replace(/\s+/g, "-"),
             title: selectedStyle.styleName,
@@ -211,7 +215,12 @@ const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(() =
           sourceImages: uploadedImages,
           selectedInspirations,
           inspirationDetails: selectedInspirations.map(id => inspirationDetailsMap[id]).filter(Boolean),
-        } 
+          moodboard: {
+            colors: editableColors,
+            materials: moodboard.materials,
+            references: moodboard.references,
+          },
+        }
       });
     }
   };
@@ -494,6 +503,7 @@ const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(() =
                           .map((s) => [s.styleName, s.iconicItem as string]),
                       )}
                       extraMaterials={moodboardExtras}
+                      onMoodboardChange={setMoodboard}
                     />
                   </div>
 
@@ -566,10 +576,15 @@ const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(() =
                   </div>
                 </div>
 
-                <Button size="lg" className="w-full" onClick={handleContinue} disabled={selectedStyleIndex === null || selectedInspirations.length < 1}>
-                  {selectedInspirations.length > 0 && selectedStyleIndex !== null
-                    ? `Select elements and colors to continue with ${analysisResult.styles[selectedStyleIndex]?.styleName}`
-                    : "Select at least one element to continue"}
+                <Button
+                  size="lg"
+                  className="w-full"
+                  onClick={handleContinue}
+                  disabled={selectedStyleIndex === null}
+                >
+                  {selectedStyleIndex !== null
+                    ? `Continue with moodboard — ${analysisResult.styles[selectedStyleIndex]?.styleName}`
+                    : "Select a style to continue"}
                 </Button>
               </CardContent>
             </Card>

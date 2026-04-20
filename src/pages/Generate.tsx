@@ -760,6 +760,9 @@ const Generate = () => {
     if (!quizData || !user) return;
 
     const { productAnalysis, sourceImages, includeProducts, scenePreviewImage } = location.state || {};
+    const moodboard = location.state?.moodboard as
+      | { colors?: string[]; materials?: { label: string; imageUrl?: string }[]; references?: { label: string; imageUrl?: string }[] }
+      | undefined;
     const shouldIncludeProducts = !!includeProducts && !isExistingRoomFlow;
 
     setGenerating(true);
@@ -840,12 +843,18 @@ const Generate = () => {
           changeElements: changeElementsFromState,
           selectedInspirations,
           inspirationDetails,
-          detectedColors: analysisResult?.dominantColors,
+          detectedColors: moodboard?.colors?.length ? moodboard.colors : analysisResult?.dominantColors,
           detectedKeywords: analysisResult?.styles
             ?.filter(s => s.styleName.toLowerCase().replace(/[&\s]+/g, '-').replace(/-+/g, '-') === quizData.stylePreference.replace(/_/g, '-'))
             ?.flatMap(s => s.keywords) || [],
           moodboardDescription: analysisResult?.moodboardDescription,
-          styleImageUrls: getStyleMoodboardUrls(quizData.stylePreference),
+          moodboardMaterials: moodboard?.materials || [],
+          moodboardReferences: moodboard?.references || [],
+          styleImageUrls: [
+            ...((moodboard?.references?.map((r) => r.imageUrl).filter(Boolean) as string[]) || []),
+            ...((moodboard?.materials?.map((m) => m.imageUrl).filter(Boolean) as string[]) || []),
+            ...getStyleMoodboardUrls(quizData.stylePreference),
+          ],
           floorPlanContext,
         },
       });
