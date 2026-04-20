@@ -69,27 +69,34 @@ const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(() =
     try { sessionStorage.removeItem(STORAGE_KEY); } catch { /* ignore */ }
   }, [uploadedImages, analysisResult]);
 
-  // Upload optimized image to storage and return public URL
+  // Upload optimized image to storage and return public URL (with retry on transient errors)
   const uploadToStorage = async (file: File): Promise<string | null> => {
     if (!user) return null;
 
     const optimizedFile = await optimizeImageFile(file, { maxDimension: 2048 });
     const fileName = `${user.id}/${Date.now()}-${Math.random().toString(36).substring(7)}.webp`;
 
-    const { error } = await supabase.storage
-      .from('room-photos')
-      .upload(fileName, optimizedFile, { contentType: optimizedFile.type });
+    let lastError: unknown = null;
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      const { error } = await supabase.storage
+        .from('room-photos')
+        .upload(fileName, optimizedFile, { contentType: optimizedFile.type });
 
-    if (error) {
-      console.error('Upload error:', error);
-      return null;
+      if (!error) {
+        const { data: urlData } = supabase.storage.from('room-photos').getPublicUrl(fileName);
+        return urlData.publicUrl;
+      }
+
+      lastError = error;
+      const status = (error as { statusCode?: string | number; status?: number }).statusCode;
+      const code = String(status ?? '');
+      const isTransient = code.startsWith('5') || code === '408' || code === '429';
+      if (!isTransient || attempt === 3) break;
+      await new Promise((r) => setTimeout(r, 600 * attempt));
     }
 
-    const { data: urlData } = supabase.storage
-      .from('room-photos')
-      .getPublicUrl(fileName);
-
-    return urlData.publicUrl;
+    console.error('Upload error after retries:', lastError);
+    return null;
   };
 
   const handleFileUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -105,18 +112,28 @@ const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(() =
         .filter((file) => file.type.startsWith("image/"))
         .slice(0, remainingSlots)
         .map((file) => uploadToStorage(file));
-      const newUrls = (await Promise.all(uploads)).filter(Boolean) as string[];
+      const results = await Promise.all(uploads);
+      const newUrls = results.filter(Boolean) as string[];
+      const failedCount = results.length - newUrls.length;
 
       if (newUrls.length > 0) {
         setUploadedImages(prev => [...prev, ...newUrls].slice(0, 6));
         setAnalysisResult(null);
         setSelectedStyleIndex(null);
       }
+
+      if (failedCount > 0) {
+        toast({
+          title: newUrls.length > 0 ? "Some uploads failed" : "Upload failed",
+          description: "Server was busy. Please try the failed photo(s) again in a moment.",
+          variant: "destructive",
+        });
+      }
     } catch (error) {
       console.error('Upload failed:', error);
       toast({
         title: "Upload failed",
-        description: "Please try again",
+        description: "Please try again in a moment",
         variant: "destructive",
       });
     } finally {
