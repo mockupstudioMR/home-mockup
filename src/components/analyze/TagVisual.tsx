@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Sparkles, X, Plus, Check } from "lucide-react";
+import { Sparkles, X, GripVertical } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 
@@ -10,11 +10,12 @@ interface TagVisualProps {
   roomType?: string;
   selected?: boolean;
   onToggle?: () => void;
-  onAddToMoodboard?: () => void;
   inMoodboard?: boolean;
 }
 
-const TagVisual = ({ tag, styleName, roomType = "living room", selected, onToggle, onAddToMoodboard, inMoodboard }: TagVisualProps) => {
+export const MOODBOARD_DRAG_MIME = "application/x-moodboard-item";
+
+const TagVisual = ({ tag, styleName, roomType = "living room", selected, onToggle, inMoodboard }: TagVisualProps) => {
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
@@ -45,9 +46,27 @@ const TagVisual = ({ tag, styleName, roomType = "living room", selected, onToggl
     }
   };
 
+  const handleDragStart = (e: React.DragEvent) => {
+    const payload = JSON.stringify({ label: tag, imageUrl: imageUrl || null, source: "tag" });
+    e.dataTransfer.setData(MOODBOARD_DRAG_MIME, payload);
+    e.dataTransfer.setData("text/plain", tag);
+    e.dataTransfer.effectAllowed = "copy";
+  };
+
   return (
     <div className="inline-flex flex-col">
-      <div className="inline-flex items-center gap-1 rounded-full bg-background border border-border overflow-hidden">
+      <div
+        draggable
+        onDragStart={handleDragStart}
+        title="Drag to moodboard"
+        className={cn(
+          "inline-flex items-center gap-1 rounded-full bg-background border border-border overflow-hidden cursor-grab active:cursor-grabbing",
+          inMoodboard && "ring-1 ring-primary/40",
+        )}
+      >
+        <span className="pl-1.5 pr-0 py-1 text-muted-foreground">
+          <GripVertical className="w-3 h-3" />
+        </span>
         <button
           type="button"
           onClick={(e) => {
@@ -55,7 +74,7 @@ const TagVisual = ({ tag, styleName, roomType = "living room", selected, onToggl
             onToggle?.();
           }}
           className={cn(
-            "text-xs pl-2.5 pr-1.5 py-1 transition-colors",
+            "text-xs px-1.5 py-1 transition-colors",
             selected ? "bg-primary/15 text-primary font-medium" : "hover:bg-secondary",
           )}
         >
@@ -76,24 +95,6 @@ const TagVisual = ({ tag, styleName, roomType = "living room", selected, onToggl
         >
           <Sparkles className="w-3 h-3" />
         </button>
-        {onAddToMoodboard && (
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              if (!inMoodboard) onAddToMoodboard();
-            }}
-            title={inMoodboard ? "In moodboard" : "Add to moodboard"}
-            className={cn(
-              "px-1.5 py-1 border-l border-border transition-colors",
-              inMoodboard
-                ? "text-primary bg-primary/10"
-                : "text-muted-foreground hover:text-primary hover:bg-secondary",
-            )}
-          >
-            {inMoodboard ? <Check className="w-3 h-3" /> : <Plus className="w-3 h-3" />}
-          </button>
-        )}
       </div>
 
       {open && (
@@ -108,11 +109,15 @@ const TagVisual = ({ tag, styleName, roomType = "living room", selected, onToggl
           >
             <X className="w-3 h-3" />
           </button>
-          <div className="aspect-square">
+          <div
+            className="aspect-square"
+            draggable={!!imageUrl}
+            onDragStart={imageUrl ? handleDragStart : undefined}
+          >
             {loading ? (
               <Skeleton className="w-full h-full" />
             ) : imageUrl ? (
-              <img src={imageUrl} alt={tag} className="w-full h-full object-cover" />
+              <img src={imageUrl} alt={tag} className="w-full h-full object-cover cursor-grab active:cursor-grabbing" />
             ) : (
               <div className="w-full h-full flex items-center justify-center text-[10px] text-muted-foreground">
                 Failed
