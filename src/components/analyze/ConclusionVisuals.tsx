@@ -388,10 +388,7 @@ const ConclusionVisuals = ({
   // Add new material/reference state
   const [newMaterial, setNewMaterial] = useState("");
   const [addingMaterial, setAddingMaterial] = useState(false);
-  const [newReference, setNewReference] = useState("");
-  const [addingReference, setAddingReference] = useState(false);
   const [isDropActive, setIsDropActive] = useState(false);
-  const [isRefDropActive, setIsRefDropActive] = useState(false);
 
   const renameMaterial = (oldName: string, next: string) => {
     setMaterials((prev) => prev.map((m) => (m === oldName ? next : m)));
