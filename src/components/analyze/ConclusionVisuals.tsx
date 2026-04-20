@@ -673,9 +673,17 @@ const ConclusionVisuals = ({
       {/* Furniture References — AI-generated + uploads, inspiration, "use similar" */}
       <div>
         <p className="text-[11px] uppercase tracking-wide text-muted-foreground mb-2 font-medium">
-          Furniture References <span className="normal-case text-muted-foreground/70">— AI examples of sofas, beds, tables, chairs in your style (we'll use similar pieces)</span>
+          Furniture References <span className="normal-case text-muted-foreground/70">— drag tags or images here · AI examples of sofas, beds, tables, chairs in your style</span>
         </p>
-        <div className="flex flex-wrap gap-3 items-start">
+        <div
+          onDragOver={(e) => handleReferenceDragOver(e, "furniture")}
+          onDragLeave={() => setIsFurnitureDropActive(false)}
+          onDrop={(e) => handleReferenceDrop(e, "furniture", setFurnitureReferences, setUploadingFurnitureRef)}
+          className={cn(
+            "flex flex-wrap gap-3 items-start rounded-lg p-2 -m-2 transition-colors",
+            isFurnitureDropActive && "bg-primary/5 ring-2 ring-primary/40 ring-dashed",
+          )}
+        >
           {furnitureReferences.map((item) => (
             <div key={item.label} className="group relative w-24">
               <div className="aspect-square rounded-lg overflow-hidden border border-border bg-secondary/30 relative">
