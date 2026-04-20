@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import {
   Home, ArrowLeft, ArrowRight, Upload, X, Loader2, Sparkles, Check,
   Sofa, Bed, UtensilsCrossed, Monitor, Bath, Camera, Eye, Lock, Paintbrush,
+  LayoutGrid, Utensils,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
