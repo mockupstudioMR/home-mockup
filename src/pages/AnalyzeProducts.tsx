@@ -666,7 +666,9 @@ const AnalyzeProducts = () => {
                       dominantColors={editableColors}
                       onDominantColorsChange={setEditableColors}
                       styleNames={analysisResult.styles.map((s) => s.styleName)}
-                      seedElements={analysisResult.products.map((p) => p.productName)}
+                      seedElements={analysisResult.products
+                        .filter((_, i) => selectedProductIndices.has(i))
+                        .map((p) => p.productName)}
                       iconicItems={Object.fromEntries(
                         analysisResult.styles
                           .filter((s) => s.iconicItem)
