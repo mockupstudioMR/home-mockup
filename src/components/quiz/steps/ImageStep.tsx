@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { Upload, Image, Check, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { getThumbnailImageUrl, optimizeImageFile } from "@/lib/imageOptimization";
 
 const inspirationImages = [
   {

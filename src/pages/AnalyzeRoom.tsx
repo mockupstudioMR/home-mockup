@@ -11,6 +11,7 @@ import ConclusionVisuals from "@/components/analyze/ConclusionVisuals";
 import TagVisual from "@/components/analyze/TagVisual";
 import { RefreshCw as RefreshIcon } from "lucide-react";
 import { trackEvent } from "@/lib/analytics";
+import { getAiOptimizedImageUrl, getThumbnailImageUrl, optimizeImageFile } from "@/lib/imageOptimization";
 
 interface AnalyzedStyle {
   styleName: string;

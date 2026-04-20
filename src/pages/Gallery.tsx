@@ -18,6 +18,7 @@ import {
 import { exportRoomSpec, fromLegacySession } from "@/services/roomSpec";
 import type { RoomSpec } from "@/types/roomSpec";
 import { trackEvent } from "@/lib/analytics";
+import { getThumbnailImageUrl } from "@/lib/imageOptimization";
 
 interface Design {
   id: string;

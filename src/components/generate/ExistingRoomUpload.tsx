@@ -6,6 +6,7 @@ import { Upload, X, Loader2, Camera, Wand2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { getThumbnailImageUrl, optimizeImageFile } from "@/lib/imageOptimization";
 
 interface ExistingRoomUploadProps {
   images: string[];
