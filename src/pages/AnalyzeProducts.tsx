@@ -484,23 +484,49 @@ const AnalyzeProducts = () => {
           {/* ── STEP 1: Detected Products ─────────────────── */}
           {analysisResult && (
             <div className="space-y-8">
-              {/* "We detected" summary */}
+              {/* "We detected" — selectable */}
               <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
-                <CardContent className="p-6 space-y-4">
-                  <h2 className="text-2xl font-bold">We detected</h2>
-                  <div className="flex flex-wrap gap-3">
-                    {analysisResult.products.map((product, index) => (
-                      <div key={index} className="flex items-center gap-3 px-4 py-3 rounded-xl bg-secondary/70 border border-border/50">
-                        <div className="w-12 h-12 rounded-lg overflow-hidden shrink-0">
-                          <img src={uploadedImages[index]} alt={product.productName} className="w-full h-full object-cover" />
-                        </div>
-                        <div>
-                          <p className="font-semibold text-sm">{product.productName}</p>
-                          <p className="text-xs text-muted-foreground">{product.category}</p>
-                        </div>
-                      </div>
-                    ))}
+                <CardContent className="p-6 space-y-3">
+                  <div className="flex items-baseline justify-between gap-2 flex-wrap">
+                    <h2 className="text-2xl font-bold">We detected</h2>
+                    <p className="text-xs text-muted-foreground">
+                      Tap to keep only the items you want to design around
+                    </p>
                   </div>
+                  <div className="flex flex-wrap gap-3">
+                    {analysisResult.products.map((product, index) => {
+                      const isSelected = selectedProductIndices.has(index);
+                      return (
+                        <button
+                          type="button"
+                          key={index}
+                          onClick={() => toggleProduct(index)}
+                          aria-pressed={isSelected}
+                          className={`relative flex items-center gap-3 px-4 py-3 rounded-xl border transition-all text-left ${
+                            isSelected
+                              ? "bg-primary/10 border-primary ring-2 ring-primary/30"
+                              : "bg-secondary/40 border-border/50 opacity-60 hover:opacity-90"
+                          }`}
+                        >
+                          <div className="w-12 h-12 rounded-lg overflow-hidden shrink-0">
+                            <img src={uploadedImages[index]} alt={product.productName} className="w-full h-full object-cover" />
+                          </div>
+                          <div>
+                            <p className="font-semibold text-sm">{product.productName}</p>
+                            <p className="text-xs text-muted-foreground">{product.category}</p>
+                          </div>
+                          {isSelected && (
+                            <div className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow">
+                              <Check className="w-3 h-3" />
+                            </div>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {selectedProductIndices.size === 0 && (
+                    <p className="text-xs text-destructive">Select at least one item to continue.</p>
+                  )}
                 </CardContent>
               </Card>
 
