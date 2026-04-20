@@ -469,23 +469,30 @@ const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(() =
                     </p>
                   )}
 
-                  {/* Single editable moodboard generated from the overall conclusion */}
-                  {analysisResult.moodboardDescription && (
-                    <div className="mb-6">
-                      <h3 className="text-sm font-semibold mb-2">Conclusion Moodboard</h3>
-                      <ConclusionVisuals
-                        moodboardDescription={analysisResult.moodboardDescription}
-                        dominantColors={editableColors}
-                        onDominantColorsChange={setEditableColors}
-                        styleNames={analysisResult.styles.map((s) => s.styleName)}
-                        seedElements={Array.from(
-                          new Set(
-                            (analysisResult.perImage || []).flatMap((p) => p.textures || []),
-                          ),
-                        )}
-                      />
-                    </div>
-                  )}
+                  {/* Conclusion Moodboard — colors, materials, and style references */}
+                  <div className="mb-6">
+                    <h3 className="text-sm font-semibold mb-2">Conclusion Moodboard</h3>
+                    <ConclusionVisuals
+                      dominantColors={editableColors}
+                      onDominantColorsChange={setEditableColors}
+                      styleNames={analysisResult.styles.map((s) => s.styleName)}
+                      seedElements={
+                        analysisResult.materials && analysisResult.materials.length > 0
+                          ? analysisResult.materials
+                          : Array.from(
+                              new Set(
+                                (analysisResult.perImage || []).flatMap((p) => p.textures || []),
+                              ),
+                            )
+                      }
+                      iconicItems={Object.fromEntries(
+                        analysisResult.styles
+                          .filter((s) => s.iconicItem)
+                          .map((s) => [s.styleName, s.iconicItem as string]),
+                      )}
+                    />
+                  </div>
+
 
 
                   <h3 className="text-sm font-semibold mb-2">Style Matches</h3>
