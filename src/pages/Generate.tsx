@@ -2006,32 +2006,17 @@ RULES:
 
             {/* Moodboard elements editor — replace/remove/add inline (in-place refinement). */}
             {(() => {
-              type MB = {
-                materials?: { label: string; imageUrl?: string }[];
-                furnitureReferences?: { label: string; imageUrl?: string }[];
-                decorReferences?: { label: string; imageUrl?: string }[];
-                mustInclude?: { label: string; imageUrl?: string }[];
-              };
-              let mb = location.state?.moodboard as MB | undefined;
-              if (mb) {
-                try { sessionStorage.setItem('generate_moodboard_cache', JSON.stringify(mb)); } catch { /* ignore */ }
-              } else {
-                try {
-                  const cached = sessionStorage.getItem('generate_moodboard_cache');
-                  if (cached) mb = JSON.parse(cached) as MB;
-                } catch { /* ignore */ }
-              }
               const items: MoodboardItem[] = [
-                ...((mb?.mustInclude || []).map((m) => ({ ...m, kind: "must-include" as const }))),
-                ...((mb?.furnitureReferences || []).map((m) => ({ ...m, kind: "furniture" as const }))),
-                ...((mb?.decorReferences || []).map((m) => ({ ...m, kind: "decor" as const }))),
-                ...((mb?.materials || []).map((m) => ({ ...m, kind: "material" as const }))),
+                ...((currentMoodboard?.mustInclude || []).map((m) => ({ ...m, kind: "must-include" as const }))),
+                ...((currentMoodboard?.furnitureReferences || []).map((m) => ({ ...m, kind: "furniture" as const }))),
+                ...((currentMoodboard?.decorReferences || []).map((m) => ({ ...m, kind: "decor" as const }))),
+                ...((currentMoodboard?.materials || []).map((m) => ({ ...m, kind: "material" as const }))),
               ];
               if (items.length === 0) return null;
               const handleMbAction = async (action: MoodboardAction) => {
                 let modType: "swap_item" | "color_material" | "add_remove" = "color_material";
                 let prompt = "";
-                let refUrl: string | null | undefined = undefined; // undefined = leave unchanged
+                let refUrl: string | null | undefined = undefined;
                 if (action.type === "swap") {
                   modType = "swap_item";
                   prompt = action.newImageUrl
