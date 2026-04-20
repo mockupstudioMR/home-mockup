@@ -2004,14 +2004,6 @@ RULES:
                   if (cached) mb = JSON.parse(cached) as MB;
                 } catch { /* ignore */ }
               }
-              const _ignored = mb as
-                | {
-                    materials?: { label: string; imageUrl?: string }[];
-                    furnitureReferences?: { label: string; imageUrl?: string }[];
-                    decorReferences?: { label: string; imageUrl?: string }[];
-                    mustInclude?: { label: string; imageUrl?: string }[];
-                  }
-                | undefined;
               const items: MoodboardItem[] = [
                 ...((mb?.mustInclude || []).map((m) => ({ ...m, kind: "must-include" as const }))),
                 ...((mb?.furnitureReferences || []).map((m) => ({ ...m, kind: "furniture" as const }))),
