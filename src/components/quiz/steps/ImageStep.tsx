@@ -56,12 +56,12 @@ const ImageStep = () => {
 
       setUploading(true);
       try {
-        const fileExt = file.name.split(".").pop();
-        const fileName = `${user.id}/${Date.now()}.${fileExt}`;
+        const optimizedFile = await optimizeImageFile(file, { maxDimension: 2048 });
+        const fileName = `${user.id}/${Date.now()}.webp`;
 
         const { error: uploadError } = await supabase.storage
           .from("room-photos")
-          .upload(fileName, file);
+          .upload(fileName, optimizedFile, { contentType: optimizedFile.type });
 
         if (uploadError) throw uploadError;
 

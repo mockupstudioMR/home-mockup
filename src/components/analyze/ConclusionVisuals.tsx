@@ -232,20 +232,24 @@ const ConclusionVisuals = ({
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
-      for (const file of files) {
-        if (!file.type.startsWith("image/")) continue;
-        const ext = file.name.split(".").pop() || "jpg";
-        const path = `${user.id}/must-include/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
-        const { error: upErr } = await supabase.storage.from("room-photos").upload(path, file);
-        if (upErr) { console.error("upload failed", upErr); continue; }
+      await Promise.all(files.map(async (file) => {
+        if (!file.type.startsWith("image/")) return;
+        const optimizedFile = await optimizeImageFile(file, { maxDimension: 2048 });
+        const path = `${user.id}/must-include/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.webp`;
+        const { error: upErr } = await supabase.storage
+          .from("room-photos")
+          .upload(path, optimizedFile, { contentType: optimizedFile.type });
+        if (upErr) { console.error("upload failed", upErr); return; }
         const { data: urlData } = supabase.storage.from("room-photos").getPublicUrl(path);
         const baseLabel = file.name.replace(/\.[^.]+$/, "").slice(0, 40) || "Uploaded item";
-        let label = baseLabel; let i = 2;
-        while (mustInclude.some((m) => m.label.toLowerCase() === label.toLowerCase())) {
-          label = `${baseLabel} ${i++}`;
-        }
-        setMustInclude((prev) => [...prev, { label, imageUrl: urlData.publicUrl }]);
-      }
+        setMustInclude((prev) => {
+          let label = baseLabel; let i = 2;
+          while (prev.some((m) => m.label.toLowerCase() === label.toLowerCase())) {
+            label = `${baseLabel} ${i++}`;
+          }
+          return [...prev, { label, imageUrl: urlData.publicUrl }];
+        });
+      }));
     } finally {
       setUploadingMustInclude(false);
     }

@@ -16,6 +16,7 @@ import QuizOption from "@/components/quiz/QuizOption";
 import ConclusionVisuals from "@/components/analyze/ConclusionVisuals";
 import TagVisual from "@/components/analyze/TagVisual";
 import { trackEvent } from "@/lib/analytics";
+import { optimizeImageFile } from "@/lib/imageOptimization";
 
 // ── Types ──────────────────────────────────────────────
 interface AnalyzedProduct {

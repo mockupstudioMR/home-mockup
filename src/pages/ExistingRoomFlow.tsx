@@ -102,21 +102,24 @@ const ExistingRoomFlow = () => {
 
   const handleUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
+    e.target.value = "";
     if (!files.length || !user) return;
     const imageFiles = files.filter(f => f.type.startsWith("image/"));
     if (!imageFiles.length) return;
 
     setUploading(true);
     try {
-      const urls: string[] = [];
-      for (const file of imageFiles.slice(0, 4 - images.length)) {
-        const ext = file.name.split(".").pop();
-        const fileName = `${user.id}/existing-${Date.now()}-${Math.random().toString(36).slice(2, 6)}.${ext}`;
-        const { error } = await supabase.storage.from("room-photos").upload(fileName, file);
+      const uploads = imageFiles.slice(0, 4 - images.length).map(async (file) => {
+        const optimizedFile = await optimizeImageFile(file, { maxDimension: 2048 });
+        const fileName = `${user.id}/existing-${Date.now()}-${Math.random().toString(36).slice(2, 6)}.webp`;
+        const { error } = await supabase.storage
+          .from("room-photos")
+          .upload(fileName, optimizedFile, { contentType: optimizedFile.type });
         if (error) throw error;
         const { data } = supabase.storage.from("room-photos").getPublicUrl(fileName);
-        urls.push(data.publicUrl);
-      }
+        return data.publicUrl;
+      });
+      const urls = await Promise.all(uploads);
       setImages(prev => [...prev, ...urls]);
       toast({ title: "Photos uploaded!", description: `${urls.length} photo(s) added` });
     } catch {
@@ -124,7 +127,7 @@ const ExistingRoomFlow = () => {
     } finally {
       setUploading(false);
     }
-  }, [user, images, toast]);
+  }, [user, images.length, toast]);
 
   const removeImage = (index: number) => {
     setImages(prev => prev.filter((_, i) => i !== index));

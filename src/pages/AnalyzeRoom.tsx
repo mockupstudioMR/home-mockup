@@ -69,45 +69,43 @@ const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(() =
     try { sessionStorage.removeItem(STORAGE_KEY); } catch { /* ignore */ }
   }, [uploadedImages, analysisResult]);
 
-  // Upload file to Supabase storage and return public URL
+  // Upload optimized image to storage and return public URL
   const uploadToStorage = async (file: File): Promise<string | null> => {
     if (!user) return null;
-    
-    const fileExt = file.name.split('.').pop();
-    const fileName = `${user.id}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
-    
+
+    const optimizedFile = await optimizeImageFile(file, { maxDimension: 2048 });
+    const fileName = `${user.id}/${Date.now()}-${Math.random().toString(36).substring(7)}.webp`;
+
     const { error } = await supabase.storage
       .from('room-photos')
-      .upload(fileName, file);
-    
+      .upload(fileName, optimizedFile, { contentType: optimizedFile.type });
+
     if (error) {
       console.error('Upload error:', error);
       return null;
     }
-    
+
     const { data: urlData } = supabase.storage
       .from('room-photos')
       .getPublicUrl(fileName);
-    
+
     return urlData.publicUrl;
   };
 
   const handleFileUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files || !user) return;
+    const files = Array.from(e.target.files || []);
+    e.target.value = "";
+    if (!files.length || !user) return;
 
     setIsUploading(true);
-    const newUrls: string[] = [];
-    
+
     try {
-      for (const file of Array.from(files)) {
-        if (file.type.startsWith("image/")) {
-          const url = await uploadToStorage(file);
-          if (url) {
-            newUrls.push(url);
-          }
-        }
-      }
+      const remainingSlots = Math.max(0, 6 - uploadedImages.length);
+      const uploads = files
+        .filter((file) => file.type.startsWith("image/"))
+        .slice(0, remainingSlots)
+        .map((file) => uploadToStorage(file));
+      const newUrls = (await Promise.all(uploads)).filter(Boolean) as string[];
 
       if (newUrls.length > 0) {
         setUploadedImages(prev => [...prev, ...newUrls].slice(0, 6));
@@ -124,7 +122,7 @@ const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(() =
     } finally {
       setIsUploading(false);
     }
-  }, [user, toast]);
+  }, [user, uploadedImages.length, toast]);
 
   const removeImage = async (index: number) => {
     const imageUrl = uploadedImages[index];
