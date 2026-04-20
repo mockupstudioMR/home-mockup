@@ -24,6 +24,8 @@ interface ConclusionVisualsProps {
   styleNames: string[];
   /** Optional seed materials/textures extracted from analysis. */
   seedElements?: string[];
+  /** Extra materials added externally (e.g., from style match tags). Merged into materials. */
+  extraMaterials?: string[];
   /** Map of styleName -> iconic item label (e.g., "Wassily chair") for single-item style ref visuals. */
   iconicItems?: Record<string, string>;
   roomType?: string;
@@ -173,6 +175,7 @@ const ConclusionVisuals = ({
   onDominantColorsChange,
   styleNames,
   seedElements,
+  extraMaterials,
   iconicItems,
   roomType = "living room",
 }: ConclusionVisualsProps) => {
@@ -190,6 +193,20 @@ const ConclusionVisuals = ({
   const [materials, setMaterials] = useState<string[]>(initialMaterials);
   const [materialImages, setMaterialImages] = useState<Record<string, string>>({});
   useEffect(() => setMaterials(initialMaterials), [initialMaterials]);
+
+  // Merge external additions (e.g., from style match tags) without dropping user edits
+  const extraKey = (extraMaterials || []).join("|");
+  useEffect(() => {
+    if (!extraMaterials || extraMaterials.length === 0) return;
+    setMaterials((prev) => {
+      const set = new Set(prev);
+      let changed = false;
+      for (const m of extraMaterials) {
+        if (m && !set.has(m)) { set.add(m); changed = true; }
+      }
+      return changed ? Array.from(set) : prev;
+    });
+  }, [extraKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Style References (only the actual detected style names — visuals)
   const initialReferences = useMemo(

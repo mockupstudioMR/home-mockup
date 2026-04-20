@@ -72,6 +72,7 @@ const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(() =
   const [refreshKeys, setRefreshKeys] = useState<Record<number, number>>({});
   // (conclusion moodboard manages its own regeneration internally)
   const [isDetectingMore, setIsDetectingMore] = useState(false);
+  const [moodboardExtras, setMoodboardExtras] = useState<string[]>([]);
 
   // Persist state to sessionStorage - URLs are small so they fit
   useEffect(() => {
@@ -492,6 +493,7 @@ const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(() =
                           .filter((s) => s.iconicItem)
                           .map((s) => [s.styleName, s.iconicItem as string]),
                       )}
+                      extraMaterials={moodboardExtras}
                     />
                   </div>
 
@@ -521,6 +523,12 @@ const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(() =
                                 tag={keyword}
                                 styleName={style.styleName}
                                 selected={selectedInspirations.includes(id)}
+                                inMoodboard={moodboardExtras.includes(keyword)}
+                                onAddToMoodboard={() =>
+                                  setMoodboardExtras((prev) =>
+                                    prev.includes(keyword) ? prev : [...prev, keyword],
+                                  )
+                                }
                                 onToggle={() => {
                                   setSelectedStyleIndex(index);
                                   setSelectedInspirations((prev) =>
