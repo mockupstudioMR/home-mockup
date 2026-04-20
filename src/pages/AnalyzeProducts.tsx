@@ -658,7 +658,7 @@ const AnalyzeProducts = () => {
               })()}
 
               {/* ── STEP 3: Moodboard editor (built around the products) ── */}
-              {step === "moodboard" && selectedRoom && analysisResult.styles && analysisResult.styles.length > 0 && (
+              {step === "moodboard" && selectedRoom && (
                 <Card className="border-primary/30 bg-card/80 backdrop-blur-sm">
                   <CardContent className="p-6 space-y-6">
                     <div className="text-center space-y-2">
@@ -672,12 +672,14 @@ const AnalyzeProducts = () => {
                     <ConclusionVisuals
                       dominantColors={editableColors}
                       onDominantColorsChange={setEditableColors}
-                      styleNames={analysisResult.styles.map((s) => s.styleName)}
+                      styleNames={(analysisResult.styles && analysisResult.styles.length > 0
+                        ? analysisResult.styles.map((s) => s.styleName)
+                        : [analysisResult.recommendedStyle || "modern minimal"])}
                       seedElements={analysisResult.products
                         .filter((_, i) => selectedProductIndices.has(i))
                         .map((p) => p.productName)}
                       iconicItems={Object.fromEntries(
-                        analysisResult.styles
+                        (analysisResult.styles || [])
                           .filter((s) => s.iconicItem)
                           .map((s) => [s.styleName, s.iconicItem as string]),
                       )}
@@ -687,6 +689,7 @@ const AnalyzeProducts = () => {
                     />
 
                     {/* Style Matches with editable tags */}
+                    {analysisResult.styles && analysisResult.styles.length > 0 && (
                     <div>
                       <h3 className="text-sm font-semibold mb-2">Style Matches</h3>
                       <div className="space-y-3">
@@ -741,6 +744,7 @@ const AnalyzeProducts = () => {
                         ))}
                       </div>
                     </div>
+                    )}
                   </CardContent>
                 </Card>
               )}
