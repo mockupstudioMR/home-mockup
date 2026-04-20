@@ -89,10 +89,17 @@ const AnalyzeProducts = () => {
   const [roomConfigs, setRoomConfigs] = useState<RoomConfig[]>([]);
   const [selectedRoom, setSelectedRoom] = useState<string>("");
 
-  // Scene preview state
-  const [scenePreviews, setScenePreviews] = useState<Array<{ styleId: string; imageUrl: string | null; description?: string; error?: string }>>([]);
-  const [generatingPreviews, setGeneratingPreviews] = useState(false);
-  const [selectedScene, setSelectedScene] = useState<number | null>(null);
+  // Moodboard editing state (mirrors AnalyzeRoom)
+  const [selectedStyleIndex, setSelectedStyleIndex] = useState<number | null>(null);
+  const [selectedInspirations, setSelectedInspirations] = useState<string[]>([]);
+  const [inspirationDetailsMap, setInspirationDetailsMap] = useState<
+    Record<string, { label: string; description: string; type: string }>
+  >({});
+  const [moodboardExtras] = useState<string[]>([]);
+  const [moodboard, setMoodboard] = useState<{
+    materials: { label: string; imageUrl?: string }[];
+    references: { label: string; imageUrl?: string }[];
+  }>({ materials: [], references: [] });
 
   // Fetch room configs on mount
   useEffect(() => {
