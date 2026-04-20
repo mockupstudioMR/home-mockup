@@ -52,6 +52,7 @@ export default function FloorPlanComparison({
   // 2) Otherwise fall back to the active session floor_plan_context (fresh wizard run).
   useEffect(() => {
     let cancelled = false;
+    setCtx(null);
     (async () => {
       // helper: read session fallback
       const readSession = (): FloorPlanContext | null => {
@@ -79,7 +80,7 @@ export default function FloorPlanComparison({
         if (cancelled) return;
         const roomId = (design as any)?.room_id;
         if (!roomId) {
-          setCtx(readSession());
+          setCtx(null);
           return;
         }
 
@@ -91,7 +92,7 @@ export default function FloorPlanComparison({
 
         if (cancelled) return;
         if (!room || !(room as any).layout) {
-          setCtx(readSession());
+          setCtx(null);
           return;
         }
 
@@ -113,7 +114,7 @@ export default function FloorPlanComparison({
           layout: r.layout,
         });
       } catch (e) {
-        if (!cancelled) setCtx(readSession());
+        if (!cancelled) setCtx(null);
       }
     })();
     return () => {

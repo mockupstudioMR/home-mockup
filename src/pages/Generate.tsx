@@ -939,18 +939,7 @@ const Generate = () => {
 
     const run = async () => {
       try {
-        let floorPlanContext: any = null;
-        let activeRoomId: string | null = null;
-        try {
-          const { loadActiveRoomSpec, toLegacyFloorPlanContext, getActiveRoomId } = await import("@/services/roomSpec");
-          const spec = await loadActiveRoomSpec();
-          if (spec) {
-            toLegacyFloorPlanContext(spec);
-            activeRoomId = getActiveRoomId();
-          }
-          const raw = sessionStorage.getItem("floor_plan_context");
-          if (raw) floorPlanContext = JSON.parse(raw);
-        } catch { /* ignore */ }
+        const { floorPlanContext, activeRoomId } = await resolveActiveRoomContext();
         const response = await supabase.functions.invoke("generate-design", {
           body: {
             ...overriddenQuiz,
