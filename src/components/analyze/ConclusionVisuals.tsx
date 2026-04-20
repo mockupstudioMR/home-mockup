@@ -426,7 +426,7 @@ const ConclusionVisuals = ({
               // Uploaded product (or already-generated visual): keep the original tile with image
               <div key={item.label} className="group relative w-24">
                 <div className="aspect-square rounded-lg overflow-hidden border-2 border-primary/40 bg-secondary/30 relative">
-                  <img src={item.imageUrl} alt={item.label} className="w-full h-full object-cover" />
+                  <img src={getThumbnailImageUrl(item.imageUrl)} alt={item.label} className="w-full h-full object-cover" loading="lazy" decoding="async" />
                   <button
                     type="button"
                     onClick={() => removeMustInclude(item.label)}

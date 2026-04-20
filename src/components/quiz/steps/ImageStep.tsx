@@ -113,9 +113,11 @@ const ImageStep = () => {
           !inspirationImages.find((i) => i.url === quizData.sourceImageUrl) ? (
           <div className="relative w-full h-full">
             <img
-              src={quizData.sourceImageUrl}
+              src={getThumbnailImageUrl(quizData.sourceImageUrl)}
               alt="Uploaded"
               className="w-full h-full object-cover rounded-xl"
+              loading="lazy"
+              decoding="async"
             />
             <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-primary flex items-center justify-center">
               <Check className="w-4 h-4 text-primary-foreground" />
