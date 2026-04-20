@@ -7,7 +7,9 @@ import { Button } from "@/components/ui/button";
 import { Home, ArrowLeft, Upload, X, Loader2, Sparkles, Plus, RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import StyleInspirationCards, { type InspirationDetail } from "@/components/analyze/StyleInspirationCards";
+import ConclusionVisuals from "@/components/analyze/ConclusionVisuals";
+import TagVisual from "@/components/analyze/TagVisual";
+import { RefreshCw as RefreshIcon } from "lucide-react";
 import { trackEvent } from "@/lib/analytics";
 
 interface AnalyzedStyle {
