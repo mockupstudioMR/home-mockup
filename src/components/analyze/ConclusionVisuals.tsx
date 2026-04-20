@@ -156,11 +156,11 @@ const VisualChip = ({
 };
 
 const ConclusionVisuals = ({
-  moodboardDescription,
   dominantColors,
   onDominantColorsChange,
   styleNames,
   seedElements,
+  iconicItems,
   roomType = "living room",
 }: ConclusionVisualsProps) => {
   const styleSlug = useMemo(
