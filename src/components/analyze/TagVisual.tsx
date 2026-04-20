@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Sparkles, X } from "lucide-react";
+import { Sparkles, X, Plus, Check } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 
@@ -10,9 +10,11 @@ interface TagVisualProps {
   roomType?: string;
   selected?: boolean;
   onToggle?: () => void;
+  onAddToMoodboard?: () => void;
+  inMoodboard?: boolean;
 }
 
-const TagVisual = ({ tag, styleName, roomType = "living room", selected, onToggle }: TagVisualProps) => {
+const TagVisual = ({ tag, styleName, roomType = "living room", selected, onToggle, onAddToMoodboard, inMoodboard }: TagVisualProps) => {
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
@@ -74,6 +76,24 @@ const TagVisual = ({ tag, styleName, roomType = "living room", selected, onToggl
         >
           <Sparkles className="w-3 h-3" />
         </button>
+        {onAddToMoodboard && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              if (!inMoodboard) onAddToMoodboard();
+            }}
+            title={inMoodboard ? "In moodboard" : "Add to moodboard"}
+            className={cn(
+              "px-1.5 py-1 border-l border-border transition-colors",
+              inMoodboard
+                ? "text-primary bg-primary/10"
+                : "text-muted-foreground hover:text-primary hover:bg-secondary",
+            )}
+          >
+            {inMoodboard ? <Check className="w-3 h-3" /> : <Plus className="w-3 h-3" />}
+          </button>
+        )}
       </div>
 
       {open && (
