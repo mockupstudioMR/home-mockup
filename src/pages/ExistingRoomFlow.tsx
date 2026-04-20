@@ -29,6 +29,9 @@ const rooms = [
   { value: "kitchen", label: "Kitchen", icon: <UtensilsCrossed className="w-6 h-6" /> },
   { value: "office", label: "Home Office", icon: <Monitor className="w-6 h-6" /> },
   { value: "bathroom", label: "Bathroom", icon: <Bath className="w-6 h-6" /> },
+  { value: "open-space-kitchen-dining-living", label: "Open Space (Kitchen + Dining + Living)", icon: <LayoutGrid className="w-6 h-6" /> },
+  { value: "dining-living", label: "Dining + Living", icon: <Utensils className="w-6 h-6" /> },
+  { value: "studio-apartment", label: "Studio Apartment", icon: <Home className="w-6 h-6" /> },
 ];
 
 const styleImages: Record<string, string> = {
