@@ -4,6 +4,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { X, Plus, Check, Pencil, Sparkles, Image as ImageIcon, Blend } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
+import { MOODBOARD_DRAG_MIME } from "./TagVisual";
+
+interface DraggedItem { label: string; imageUrl?: string | null; source?: string }
 
 // Average two hex colors in RGB space → new hex
 const mixHex = (a: string, b: string): string => {
