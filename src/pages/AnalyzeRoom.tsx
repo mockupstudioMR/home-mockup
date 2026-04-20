@@ -583,7 +583,7 @@ const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(() =
                   disabled={selectedStyleIndex === null}
                 >
                   {selectedStyleIndex !== null
-                    ? `Continue with moodboard — ${analysisResult.styles[selectedStyleIndex]?.styleName}`
+                    ? `Continue with your own unique moodboard — ${analysisResult.styles[selectedStyleIndex]?.styleName}`
                     : "Select a style to continue"}
                 </Button>
               </CardContent>
