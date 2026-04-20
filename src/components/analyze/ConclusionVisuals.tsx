@@ -238,21 +238,50 @@ const ConclusionVisuals = ({
     });
   };
 
+  // Color mixing selection
+  const [mixSelection, setMixSelection] = useState<number[]>([]);
+  const toggleMixPick = (index: number) => {
+    setMixSelection((prev) => {
+      if (prev.includes(index)) return prev.filter((i) => i !== index);
+      const next = [...prev, index];
+      if (next.length === 2) {
+        const mixed = mixHex(dominantColors[next[0]], dominantColors[next[1]]);
+        onDominantColorsChange([...dominantColors, mixed]);
+        return [];
+      }
+      return next;
+    });
+  };
+
   return (
     <div className="rounded-xl border border-border/50 bg-secondary/20 p-4 space-y-5">
       {/* Dominant Colors */}
       <div>
-        <p className="text-[11px] uppercase tracking-wide text-muted-foreground mb-2 font-medium">
-          Dominant Colors
-        </p>
+        <div className="flex items-center justify-between mb-2">
+          <p className="text-[11px] uppercase tracking-wide text-muted-foreground font-medium">
+            Dominant Colors
+          </p>
+          <p className="text-[10px] text-muted-foreground flex items-center gap-1">
+            <Blend className="w-3 h-3" />
+            {mixSelection.length === 1 ? "Pick a 2nd color to mix" : "Click 2 colors to blend"}
+          </p>
+        </div>
         <div className="flex flex-wrap gap-2 items-center">
-          {dominantColors.map((color, index) => (
-            <div key={index} className="relative group">
-              <label className="block cursor-pointer">
-                <div
-                  className="w-10 h-10 rounded-lg border-2 border-border hover:border-primary/50 transition-colors"
+          {dominantColors.map((color, index) => {
+            const picked = mixSelection.includes(index);
+            return (
+              <div key={index} className="relative group">
+                <button
+                  type="button"
+                  onClick={() => toggleMixPick(index)}
+                  className={cn(
+                    "w-10 h-10 rounded-lg border-2 transition-all",
+                    picked
+                      ? "border-primary ring-2 ring-primary/40 scale-105"
+                      : "border-border hover:border-primary/50",
+                  )}
                   style={{ backgroundColor: color }}
-                  title={color}
+                  title={`${color} — click to mix`}
                 />
                 <input
                   type="color"
@@ -262,19 +291,23 @@ const ConclusionVisuals = ({
                       dominantColors.map((c, i) => (i === index ? e.target.value : c)),
                     )
                   }
-                  className="sr-only"
+                  className="absolute inset-0 w-10 h-10 opacity-0 cursor-pointer pointer-events-none"
+                  aria-hidden
                 />
-              </label>
-              <button
-                type="button"
-                onClick={() => onDominantColorsChange(dominantColors.filter((_, i) => i !== index))}
-                className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                aria-label="Remove color"
-              >
-                <X className="w-2.5 h-2.5" />
-              </button>
-            </div>
-          ))}
+                <button
+                  type="button"
+                  onClick={() => {
+                    onDominantColorsChange(dominantColors.filter((_, i) => i !== index));
+                    setMixSelection([]);
+                  }}
+                  className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                  aria-label="Remove color"
+                >
+                  <X className="w-2.5 h-2.5" />
+                </button>
+              </div>
+            );
+          })}
           <label className="w-10 h-10 rounded-lg border-2 border-dashed border-border hover:border-primary/50 flex items-center justify-center cursor-pointer transition-colors">
             <Plus className="w-4 h-4 text-muted-foreground" />
             <input
