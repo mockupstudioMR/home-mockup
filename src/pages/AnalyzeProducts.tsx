@@ -120,6 +120,18 @@ const AnalyzeProducts = () => {
       return next;
     });
 
+  // Auto-seed material/texture suggestions from matching style keywords
+  useEffect(() => {
+    if (!analysisResult?.styles) return;
+    const idx = selectedStyleIndex ?? 0;
+    const top = analysisResult.styles[idx];
+    if (!top) return;
+    const suggestions = (top.keywords || [])
+      .filter((k) => k && k.length < 30)
+      .slice(0, 6);
+    setMoodboardExtras(suggestions);
+  }, [analysisResult, selectedStyleIndex]);
+
   // Fetch room configs on mount
   useEffect(() => {
     const fetchRooms = async () => {
