@@ -20,37 +20,21 @@ interface AnalyzedStyle {
   iconicItem?: string;
 }
 
-interface PerImageAnalysis {
-  imageIndex: number;
-  style: { styleName: string; confidence: number; reason: string };
-  colorTheme: {
-    colors: string[];
-    paletteType: string;
-    contrast: "low" | "medium" | "high" | string;
-    notes?: string;
-  };
-  textures: string[];
-}
-
 interface AnalysisResult {
   styles: AnalyzedStyle[];
   moodboardDescription: string;
   dominantColors: string[];
   materials?: string[];
-  perImage?: PerImageAnalysis[];
 }
 
 const STORAGE_KEY = "analyze_room_cache";
 
-// Store only metadata (URLs), not base64 data
+// Always start fresh — clear any cached images/results from previous journeys.
 const getInitialState = (): { images: string[]; result: AnalysisResult | null } => {
   try {
-    const cached = sessionStorage.getItem(STORAGE_KEY);
-    if (cached) {
-      return JSON.parse(cached);
-    }
+    sessionStorage.removeItem(STORAGE_KEY);
   } catch {
-    // Ignore parse errors
+    // ignore
   }
   return { images: [], result: null };
 };
@@ -430,86 +414,7 @@ const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(() =
           {analysisResult && (
             <Card className="border-primary/30 bg-card/80 backdrop-blur-sm">
               <CardContent className="p-6 space-y-6">
-                {/* Per-image breakdown */}
-                {analysisResult.perImage && analysisResult.perImage.length > 0 && (
-                  <div>
-                    <h2 className="text-xl font-semibold mb-1">Per-Image Analysis</h2>
-                    <p className="text-sm text-muted-foreground mb-4">
-                      Style, color theme and textures detected in each image you uploaded
-                    </p>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {analysisResult.perImage.map((pi) => {
-                        const img = uploadedImages[pi.imageIndex];
-                        return (
-                          <div
-                            key={pi.imageIndex}
-                            className="rounded-xl border border-border/50 bg-secondary/30 overflow-hidden"
-                          >
-                            {img && (
-                              <img
-                                src={img}
-                                alt={`Uploaded ${pi.imageIndex + 1}`}
-                                className="w-full h-32 object-cover"
-                              />
-                            )}
-                            <div className="p-3 space-y-2.5">
-                              <div className="flex items-center justify-between gap-2">
-                                <span className="font-semibold text-sm">{pi.style.styleName}</span>
-                                <span className="text-xs text-muted-foreground">
-                                  {Math.round((pi.style.confidence || 0) * 100)}%
-                                </span>
-                              </div>
-                              {pi.style.reason && (
-                                <p className="text-xs text-muted-foreground leading-snug">
-                                  {pi.style.reason}
-                                </p>
-                              )}
-
-                              <div>
-                                <p className="text-[11px] uppercase tracking-wide text-muted-foreground mb-1">
-                                  Color theme
-                                </p>
-                                <div className="flex items-center gap-1.5 flex-wrap">
-                                  {(pi.colorTheme?.colors || []).slice(0, 8).map((c, i) => (
-                                    <span
-                                      key={i}
-                                      className="w-5 h-5 rounded border border-border"
-                                      style={{ backgroundColor: c }}
-                                      title={c}
-                                    />
-                                  ))}
-                                </div>
-                                <p className="text-[11px] text-muted-foreground mt-1">
-                                  {pi.colorTheme?.paletteType}
-                                  {pi.colorTheme?.contrast ? ` · ${pi.colorTheme.contrast} contrast` : ""}
-                                  {pi.colorTheme?.notes ? ` — ${pi.colorTheme.notes}` : ""}
-                                </p>
-                              </div>
-
-                              {pi.textures && pi.textures.length > 0 && (
-                                <div>
-                                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground mb-1">
-                                    Textures
-                                  </p>
-                                  <div className="flex flex-wrap gap-1">
-                                    {pi.textures.map((t, i) => (
-                                      <span
-                                        key={i}
-                                        className="text-[10px] px-2 py-0.5 rounded-full bg-background border border-border/50"
-                                      >
-                                        {t}
-                                      </span>
-                                    ))}
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
+                {/* Per-image breakdown removed per request */}
 
                 <div>
                   <h2 className="text-xl font-semibold mb-1">Overall Conclusion</h2>
@@ -526,15 +431,7 @@ const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(() =
                       dominantColors={editableColors}
                       onDominantColorsChange={setEditableColors}
                       styleNames={analysisResult.styles.map((s) => s.styleName)}
-                      seedElements={
-                        analysisResult.materials && analysisResult.materials.length > 0
-                          ? analysisResult.materials
-                          : Array.from(
-                              new Set(
-                                (analysisResult.perImage || []).flatMap((p) => p.textures || []),
-                              ),
-                            )
-                      }
+                      seedElements={analysisResult.materials || []}
                       iconicItems={Object.fromEntries(
                         analysisResult.styles
                           .filter((s) => s.iconicItem)
