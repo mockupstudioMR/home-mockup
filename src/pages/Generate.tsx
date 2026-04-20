@@ -2071,6 +2071,15 @@ RULES:
             onAction={handleMoodboardAction}
             designDescription={[design?.description, fullDescription].filter(Boolean).join(" ")}
             extractedItemNames={designItems.map((i) => i.item_name)}
+            extractedItems={designItems.map((i) => ({
+              item_name: i.item_name,
+              item_type: i.item_type,
+              item_description: i.item_description,
+              color: i.color,
+              hex_code: i.hex_code,
+              material: i.material,
+              product_photo_url: i.product_photo_url,
+            }))}
             modificationInput={modificationInput}
             onModificationInputChange={setModificationInput}
             onModify={(type, prefill) => handleModify(type, prefill)}
