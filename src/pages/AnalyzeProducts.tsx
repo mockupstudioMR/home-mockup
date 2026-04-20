@@ -744,7 +744,7 @@ const AnalyzeProducts = () => {
               )}
 
               {/* Missing products */}
-              {analysisResult.missingProducts && analysisResult.missingProducts.length > 0 && (
+              {step === "detect" && analysisResult.missingProducts && analysisResult.missingProducts.length > 0 && (
                 <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
                   <CardContent className="p-5 space-y-3">
                     <div className="flex items-center gap-2">
