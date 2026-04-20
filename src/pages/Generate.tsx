@@ -1985,6 +1985,65 @@ RULES:
               roomType={quizData?.roomType}
               mustHaveElements={quizData?.mustHaveElements}
             />
+
+            {/* Moodboard elements editor — replace/remove/add inline (in-place refinement). */}
+            {(() => {
+              const mb = location.state?.moodboard as
+                | {
+                    materials?: { label: string; imageUrl?: string }[];
+                    furnitureReferences?: { label: string; imageUrl?: string }[];
+                    decorReferences?: { label: string; imageUrl?: string }[];
+                    mustInclude?: { label: string; imageUrl?: string }[];
+                  }
+                | undefined;
+              const items: MoodboardItem[] = [
+                ...((mb?.mustInclude || []).map((m) => ({ ...m, kind: "must-include" as const }))),
+                ...((mb?.furnitureReferences || []).map((m) => ({ ...m, kind: "furniture" as const }))),
+                ...((mb?.decorReferences || []).map((m) => ({ ...m, kind: "decor" as const }))),
+                ...((mb?.materials || []).map((m) => ({ ...m, kind: "material" as const }))),
+              ];
+              if (items.length === 0) return null;
+              const handleMbAction = async (action: MoodboardAction) => {
+                let modType: "swap_item" | "color_material" | "add_remove" = "color_material";
+                let prompt = "";
+                if (action.type === "swap") {
+                  modType = "swap_item";
+                  prompt = action.newImageUrl
+                    ? `Replace the existing "${action.item.label}" in the design with the new item shown in the attached reference image (labeled "${action.newLabel}"). Keep the SAME placement, scale and orientation. Preserve every other furniture piece, wall, floor, lighting, decor and color exactly as in the source image.`
+                    : `Replace the existing "${action.item.label}" with "${action.newLabel}". Match the same placement, scale and orientation. Preserve every other element of the room exactly as in the source image.`;
+                  setReferenceImageUrl(action.newImageUrl || null);
+                } else if (action.type === "color_material") {
+                  modType = "color_material";
+                  prompt = `Modify the "${action.item.label}" only: ${action.description}. Apply this change exactly where this element appears in the room. Do NOT change anything else — same furniture, same placement, same lighting, same other colors and materials.`;
+                } else if (action.type === "remove") {
+                  modType = "add_remove";
+                  prompt = `Remove the "${action.item.label}" from the room entirely. Keep every other element exactly where it is — do not rearrange or restyle anything else.`;
+                } else if (action.type === "add") {
+                  modType = "add_remove";
+                  const placement = action.kind === "decor"
+                    ? "Place it as a decor accent in a natural empty spot (a side table, shelf, wall or floor area)."
+                    : action.kind === "furniture"
+                      ? "Place it in a logical empty area of the room without moving existing furniture."
+                      : "Place it naturally in the room without disturbing existing items.";
+                  prompt = action.imageUrl
+                    ? `Add a new ${action.kind === "must-include" ? "must-include item" : action.kind} to the design: "${action.label}" — match the style/material/color of the attached reference image exactly. ${placement} Keep every existing element unchanged.`
+                    : `Add a new ${action.kind === "must-include" ? "must-include item" : action.kind} to the design: "${action.label}". ${placement} Keep every existing element unchanged.`;
+                  if (action.imageUrl) setReferenceImageUrl(action.imageUrl);
+                }
+                setModificationInput(prompt);
+                // give state a tick to flush, then trigger
+                setTimeout(() => handleModify(modType), 0);
+              };
+              return (
+                <div className="mt-6">
+                  <MoodboardElementsPanel
+                    items={items}
+                    onAction={handleMbAction}
+                    disabled={generating || design.isLocked}
+                  />
+                </div>
+              );
+            })()}
           </div>
         )}
 
