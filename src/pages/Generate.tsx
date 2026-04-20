@@ -2064,7 +2064,8 @@ RULES:
           </div>
         )}
 
-        {/* Unified Moodboard + Refine */}
+        {/* Unified Moodboard + Refine — only visible after the user opts into refinement */}
+        {design?.isLocked && (
         <div className="max-w-3xl mx-auto">
           <MoodboardRefinePanel
             items={moodboardItems}
@@ -2087,9 +2088,10 @@ RULES:
             onUndo={handleUndoDesign}
             canUndo={imageHistoryStack.length > 0}
             generating={generating}
-            disabled={!design || generating || !!design?.isLocked}
+            disabled={!design || generating}
           />
         </div>
+        )}
 
         {/* Debug Panel - Testing */}
         {design && (debugSteps.length > 0 || debugPrompt) && (
