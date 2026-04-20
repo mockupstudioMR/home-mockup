@@ -1913,6 +1913,7 @@ RULES:
         {/* Floor Plan vs Design comparison */}
         <FloorPlanComparison
           designImageUrl={design?.imageUrl ?? null}
+          designId={design?.id ?? null}
           isRealigning={generating}
           onRealign={handleRealignToPlan}
         />
