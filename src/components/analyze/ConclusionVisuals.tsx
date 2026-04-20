@@ -1,9 +1,22 @@
 import { useEffect, useMemo, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import { X, Plus, Check, Pencil, Sparkles, Image as ImageIcon } from "lucide-react";
+import { X, Plus, Check, Pencil, Sparkles, Image as ImageIcon, Blend } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
+
+// Average two hex colors in RGB space → new hex
+const mixHex = (a: string, b: string): string => {
+  const parse = (h: string) => {
+    const s = h.replace("#", "");
+    const n = s.length === 3 ? s.split("").map((c) => c + c).join("") : s;
+    return [parseInt(n.slice(0, 2), 16), parseInt(n.slice(2, 4), 16), parseInt(n.slice(4, 6), 16)];
+  };
+  const [r1, g1, b1] = parse(a);
+  const [r2, g2, b2] = parse(b);
+  const toHex = (n: number) => Math.round(n).toString(16).padStart(2, "0");
+  return `#${toHex((r1 + r2) / 2)}${toHex((g1 + g2) / 2)}${toHex((b1 + b2) / 2)}`;
+};
 
 interface ConclusionVisualsProps {
   dominantColors: string[];
