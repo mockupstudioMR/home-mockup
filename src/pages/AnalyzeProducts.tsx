@@ -607,92 +607,90 @@ const AnalyzeProducts = () => {
                 );
               })()}
 
-              {/* ── STEP 3: Scene Previews ──────────────────── */}
-              {selectedRoom && !scenePreviews.length && !generatingPreviews && (
-                <div className="text-center">
-                  <Button size="lg" onClick={generateScenePreviews} className="px-8">
-                    <Sparkles className="w-5 h-5 mr-2" />
-                    Show me 3 design setups
-                  </Button>
-                  <p className="text-xs text-muted-foreground mt-2">
-                    We'll generate 3 different styles featuring your exact products
-                  </p>
-                </div>
-              )}
+              {/* ── STEP 3: Moodboard editor (built around the products) ── */}
+              {selectedRoom && analysisResult.styles && analysisResult.styles.length > 0 && (
+                <Card className="border-primary/30 bg-card/80 backdrop-blur-sm">
+                  <CardContent className="p-6 space-y-6">
+                    <div className="text-center space-y-2">
+                      <h2 className="text-2xl font-bold">Build your moodboard</h2>
+                      <p className="text-muted-foreground">
+                        We've started a moodboard around your products — edit colors, materials and style references before we generate
+                      </p>
+                    </div>
 
-              {generatingPreviews && (
-                <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
-                  <CardContent className="p-8">
-                    <div className="flex flex-col items-center justify-center gap-4 py-8">
-                      <div className="relative">
-                        <Loader2 className="w-10 h-10 animate-spin text-primary" />
-                        <Sparkles className="w-4 h-4 text-primary absolute -top-1 -right-1 animate-pulse" />
-                      </div>
-                      <div className="text-center space-y-1">
-                        <p className="font-semibold text-lg">Creating 3 scene previews…</p>
-                        <p className="text-sm text-muted-foreground">
-                          Each one features your exact products in a different style
-                        </p>
+                    {/* Conclusion Moodboard — colors, materials, references (incl. uploaded products) */}
+                    <ConclusionVisuals
+                      dominantColors={editableColors}
+                      onDominantColorsChange={setEditableColors}
+                      styleNames={analysisResult.styles.map((s) => s.styleName)}
+                      seedElements={analysisResult.products.map((p) => p.productName)}
+                      iconicItems={Object.fromEntries(
+                        analysisResult.styles
+                          .filter((s) => s.iconicItem)
+                          .map((s) => [s.styleName, s.iconicItem as string]),
+                      )}
+                      extraMaterials={moodboardExtras}
+                      roomType={selectedRoom}
+                      onMoodboardChange={setMoodboard}
+                    />
+
+                    {/* Style Matches with editable tags */}
+                    <div>
+                      <h3 className="text-sm font-semibold mb-2">Style Matches</h3>
+                      <div className="space-y-3">
+                        {analysisResult.styles.map((style, index) => (
+                          <button
+                            type="button"
+                            key={index}
+                            onClick={() => setSelectedStyleIndex(index)}
+                            className={`w-full text-left p-4 rounded-xl transition-all cursor-pointer ${
+                              (selectedStyleIndex ?? 0) === index
+                                ? "bg-primary/10 border-2 border-primary ring-2 ring-primary/20"
+                                : "bg-secondary/50 border-2 border-transparent hover:border-primary/30"
+                            }`}
+                          >
+                            <div className="flex items-center justify-between mb-3">
+                              <h3 className="font-semibold">{style.styleName}</h3>
+                              <span className="text-sm text-muted-foreground">
+                                {Math.round((style.confidence || 0) * 100)}% match
+                              </span>
+                            </div>
+                            <div className="flex flex-wrap gap-2">
+                              {style.keywords.map((keyword) => {
+                                const id = `tag-${index}-${keyword}`;
+                                return (
+                                  <TagVisual
+                                    key={id}
+                                    tag={keyword}
+                                    styleName={style.styleName}
+                                    roomType={selectedRoom}
+                                    selected={selectedInspirations.includes(id)}
+                                    onToggle={() => {
+                                      setSelectedStyleIndex(index);
+                                      setSelectedInspirations((prev) =>
+                                        prev.includes(id)
+                                          ? prev.filter((i) => i !== id)
+                                          : [...prev, id],
+                                      );
+                                      setInspirationDetailsMap((prev) => ({
+                                        ...prev,
+                                        [id]: {
+                                          label: keyword,
+                                          description: `${style.styleName}: ${keyword}`,
+                                          type: "tag",
+                                        },
+                                      }));
+                                    }}
+                                  />
+                                );
+                              })}
+                            </div>
+                          </button>
+                        ))}
                       </div>
                     </div>
                   </CardContent>
                 </Card>
-              )}
-
-              {scenePreviews.length > 0 && (
-                <div className="space-y-4">
-                  <div className="text-center space-y-2">
-                    <h2 className="text-2xl font-bold">Pick your favorite setup</h2>
-                    <p className="text-muted-foreground">
-                      3 designs featuring your exact products — select one to refine
-                    </p>
-                  </div>
-                  <div className="grid gap-4">
-                    {scenePreviews.map((scene, index) => {
-                      const STYLE_LABELS: Record<string, string> = {
-                        "modern-minimal": "Modern & Minimal",
-                        "bohemian-eclectic": "Bohemian Eclectic",
-                        "glam-luxe": "Glam & Luxe",
-                        "rustic-nature": "Rustic Nature",
-                        "mediterranean": "Mediterranean",
-                        "classic-historical": "Classic Historical",
-                      };
-                      const label = STYLE_LABELS[scene.styleId] || scene.styleId;
-
-                      if (!scene.imageUrl) return null;
-
-                      return (
-                        <button
-                          key={index}
-                          onClick={() => setSelectedScene(index)}
-                          className={`relative rounded-2xl overflow-hidden border-2 transition-all text-left ${
-                            selectedScene === index
-                              ? "border-primary ring-2 ring-primary/30 scale-[1.01]"
-                              : "border-border/50 hover:border-primary/40"
-                          }`}
-                        >
-                          <div className="aspect-video">
-                            <img
-                              src={scene.imageUrl}
-                              alt={`${label} setup`}
-                              className="w-full h-full object-cover"
-                            />
-                          </div>
-                          <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-4">
-                            <div className="flex items-center justify-between">
-                              <span className="text-white font-bold text-lg">{label}</span>
-                              {selectedScene === index && (
-                                <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center">
-                                  <Check className="w-5 h-5 text-primary-foreground" />
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
               )}
 
               {/* Missing products */}
