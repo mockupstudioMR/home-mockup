@@ -356,14 +356,48 @@ const ConclusionVisuals = ({
       <div>
         <div className="flex items-center justify-between mb-2">
           <p className="text-[11px] uppercase tracking-wide text-muted-foreground font-medium">
-            Dominant Colors
+            Dominant Colors <span className="normal-case text-muted-foreground/70">— drag tags here to add their colors</span>
           </p>
           <p className="text-[10px] text-muted-foreground flex items-center gap-1">
             <Blend className="w-3 h-3" />
-            {mixSelection.length === 1 ? "Pick a 2nd color to mix" : "Click 2 colors to blend"}
+            {extractingColors
+              ? "Extracting colors…"
+              : mixSelection.length === 1
+                ? "Pick a 2nd color to mix"
+                : "Click 2 colors to blend"}
           </p>
         </div>
-        <div className="flex flex-wrap gap-2 items-center">
+        <div
+          onDragOver={(e) => {
+            if (
+              e.dataTransfer.types.includes(MOODBOARD_DRAG_MIME) ||
+              e.dataTransfer.types.includes("text/plain")
+            ) {
+              e.preventDefault();
+              e.dataTransfer.dropEffect = "copy";
+              setIsColorDropActive(true);
+            }
+          }}
+          onDragLeave={() => setIsColorDropActive(false)}
+          onDrop={(e) => {
+            e.preventDefault();
+            setIsColorDropActive(false);
+            const raw = e.dataTransfer.getData(MOODBOARD_DRAG_MIME);
+            let imageUrl: string | null = null;
+            if (raw) {
+              try {
+                const parsed = JSON.parse(raw) as DraggedItem;
+                imageUrl = parsed.imageUrl || null;
+              } catch { /* ignore */ }
+            }
+            if (!imageUrl) return;
+            handleColorDrop(imageUrl);
+          }}
+          className={cn(
+            "flex flex-wrap gap-2 items-center rounded-lg p-2 -m-2 transition-colors",
+            isColorDropActive && "bg-primary/5 ring-2 ring-primary/40 ring-dashed",
+          )}
+        >
           {dominantColors.map((color, index) => {
             const picked = mixSelection.includes(index);
             return (
