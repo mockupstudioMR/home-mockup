@@ -101,6 +101,21 @@ const AnalyzeProducts = () => {
     references: { label: string; imageUrl?: string }[];
   }>({ materials: [], references: [] });
 
+  // Which detected products the user wants to keep (defaults to all)
+  const [selectedProductIndices, setSelectedProductIndices] = useState<Set<number>>(new Set());
+  useEffect(() => {
+    if (analysisResult?.products) {
+      setSelectedProductIndices(new Set(analysisResult.products.map((_, i) => i)));
+    }
+  }, [analysisResult]);
+  const toggleProduct = (i: number) =>
+    setSelectedProductIndices((prev) => {
+      const next = new Set(prev);
+      if (next.has(i)) next.delete(i);
+      else next.add(i);
+      return next;
+    });
+
   // Fetch room configs on mount
   useEffect(() => {
     const fetchRooms = async () => {
@@ -239,6 +254,11 @@ const AnalyzeProducts = () => {
 
   const handleContinue = () => {
     if (!analysisResult || !selectedRoom) return;
+    if (selectedProductIndices.size === 0) return;
+
+    // Only the products the user kept selected
+    const keptProducts = analysisResult.products.filter((_, i) => selectedProductIndices.has(i));
+    const keptImages = uploadedImages.filter((_, i) => selectedProductIndices.has(i));
 
     const styleIdx = selectedStyleIndex ?? 0;
     const selectedStyle = analysisResult.styles?.[styleIdx];
@@ -247,8 +267,6 @@ const AnalyzeProducts = () => {
     const styleTitle = STYLE_LABELS[styleId] || detectedStyleName;
     const styleDescription = selectedStyle?.description || "";
 
-    // Aggregate moodboard items: user-toggled inspirations + every suggested
-    // keyword across all detected styles + iconic items + uploaded products.
     const aggregatedDetailsMap: Record<string, { label: string; description: string; type: string }> = {
       ...inspirationDetailsMap,
     };
@@ -279,8 +297,8 @@ const AnalyzeProducts = () => {
       }
     });
 
-    // Add detected products as iconic moodboard references (the couch etc.)
-    analysisResult.products.forEach((p, pIdx) => {
+    // Add ONLY the selected products as iconic moodboard references
+    keptProducts.forEach((p, pIdx) => {
       const id = `product-${pIdx}-${p.productName}`;
       aggregatedIds.add(id);
       aggregatedDetailsMap[id] = {
@@ -292,10 +310,8 @@ const AnalyzeProducts = () => {
 
     const allInspirations = Array.from(aggregatedIds);
 
-    // Build references: user-curated references from the moodboard editor,
-    // PLUS the uploaded product photos (always included as visual seeds).
-    const productReferences = uploadedImages.map((url, idx) => ({
-      label: analysisResult.products[idx]?.productName || `Product ${idx + 1}`,
+    const productReferences = keptImages.map((url, idx) => ({
+      label: keptProducts[idx]?.productName || `Product ${idx + 1}`,
       imageUrl: url,
     }));
     const mergedReferences = [
@@ -328,8 +344,8 @@ const AnalyzeProducts = () => {
               moodboardDescription: analysisResult.moodboardSuggestion,
             }
           : undefined,
-        productAnalysis: analysisResult,
-        sourceImages: uploadedImages,
+        productAnalysis: { ...analysisResult, products: keptProducts },
+        sourceImages: keptImages,
         includeProducts: true,
         selectedInspirations: allInspirations,
         inspirationDetails: allInspirations.map((id) => aggregatedDetailsMap[id]).filter(Boolean),
@@ -469,23 +485,49 @@ const AnalyzeProducts = () => {
           {/* ── STEP 1: Detected Products ─────────────────── */}
           {analysisResult && (
             <div className="space-y-8">
-              {/* "We detected" summary */}
+              {/* "We detected" — selectable */}
               <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
-                <CardContent className="p-6 space-y-4">
-                  <h2 className="text-2xl font-bold">We detected</h2>
-                  <div className="flex flex-wrap gap-3">
-                    {analysisResult.products.map((product, index) => (
-                      <div key={index} className="flex items-center gap-3 px-4 py-3 rounded-xl bg-secondary/70 border border-border/50">
-                        <div className="w-12 h-12 rounded-lg overflow-hidden shrink-0">
-                          <img src={uploadedImages[index]} alt={product.productName} className="w-full h-full object-cover" />
-                        </div>
-                        <div>
-                          <p className="font-semibold text-sm">{product.productName}</p>
-                          <p className="text-xs text-muted-foreground">{product.category}</p>
-                        </div>
-                      </div>
-                    ))}
+                <CardContent className="p-6 space-y-3">
+                  <div className="flex items-baseline justify-between gap-2 flex-wrap">
+                    <h2 className="text-2xl font-bold">We detected</h2>
+                    <p className="text-xs text-muted-foreground">
+                      Tap to keep only the items you want to design around
+                    </p>
                   </div>
+                  <div className="flex flex-wrap gap-3">
+                    {analysisResult.products.map((product, index) => {
+                      const isSelected = selectedProductIndices.has(index);
+                      return (
+                        <button
+                          type="button"
+                          key={index}
+                          onClick={() => toggleProduct(index)}
+                          aria-pressed={isSelected}
+                          className={`relative flex items-center gap-3 px-4 py-3 rounded-xl border transition-all text-left ${
+                            isSelected
+                              ? "bg-primary/10 border-primary ring-2 ring-primary/30"
+                              : "bg-secondary/40 border-border/50 opacity-60 hover:opacity-90"
+                          }`}
+                        >
+                          <div className="w-12 h-12 rounded-lg overflow-hidden shrink-0">
+                            <img src={uploadedImages[index]} alt={product.productName} className="w-full h-full object-cover" />
+                          </div>
+                          <div>
+                            <p className="font-semibold text-sm">{product.productName}</p>
+                            <p className="text-xs text-muted-foreground">{product.category}</p>
+                          </div>
+                          {isSelected && (
+                            <div className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow">
+                              <Check className="w-3 h-3" />
+                            </div>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {selectedProductIndices.size === 0 && (
+                    <p className="text-xs text-destructive">Select at least one item to continue.</p>
+                  )}
                 </CardContent>
               </Card>
 
@@ -517,13 +559,14 @@ const AnalyzeProducts = () => {
                 };
 
                 // Tokenize product names into individual words + full names
+                // (only for products the user kept selected)
+                const keptProducts = analysisResult.products.filter((_, i) => selectedProductIndices.has(i));
                 const allTokens = new Set<string>();
-                analysisResult.products.forEach((p) => {
+                keptProducts.forEach((p) => {
                   const name = p.productName.toLowerCase();
                   const cat = p.category.toLowerCase();
                   allTokens.add(name);
                   allTokens.add(cat);
-                  // Add individual words (skip short ones like "6", "pc", "a")
                   name.split(/[\s,.\-/]+/).forEach((w) => {
                     if (w.length > 2) allTokens.add(w);
                   });
@@ -568,7 +611,7 @@ const AnalyzeProducts = () => {
                       <div className="grid gap-3">
                         {roomsToShow.map((room) => {
                           // Show which detected products match this room
-                          const matchedProducts = analysisResult.products.filter((p) => {
+                          const matchedProducts = keptProducts.filter((p) => {
                             const pTokens = new Set<string>();
                             const pName = p.productName.toLowerCase();
                             const pCat = p.category.toLowerCase();
@@ -623,7 +666,9 @@ const AnalyzeProducts = () => {
                       dominantColors={editableColors}
                       onDominantColorsChange={setEditableColors}
                       styleNames={analysisResult.styles.map((s) => s.styleName)}
-                      seedElements={analysisResult.products.map((p) => p.productName)}
+                      seedElements={analysisResult.products
+                        .filter((_, i) => selectedProductIndices.has(i))
+                        .map((p) => p.productName)}
                       iconicItems={Object.fromEntries(
                         analysisResult.styles
                           .filter((s) => s.iconicItem)
@@ -741,7 +786,7 @@ const AnalyzeProducts = () => {
       {analysisResult && selectedRoom && (
         <div className="fixed bottom-0 left-0 right-0 z-20 bg-background/80 backdrop-blur-md border-t border-border p-4">
           <div className="max-w-3xl mx-auto">
-            <Button size="lg" className="w-full" onClick={handleContinue}>
+            <Button size="lg" className="w-full" onClick={handleContinue} disabled={selectedProductIndices.size === 0}>
               <Sparkles className="w-5 h-5 mr-2" />
               Complete your moodboard
             </Button>
