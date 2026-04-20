@@ -638,6 +638,27 @@ function buildImagePrompt(
     moodboardContext += `MOODBOARD STYLE REFERENCES (mirror their look & feel and signature pieces): ${mbReferences.join(", ")}. `;
   }
 
+  // Furniture references — INSPIRATION (use similar pieces in style/silhouette/material)
+  const furnRefs = (data.furnitureReferences || []).filter((f) => f.label || f.imageUrl);
+  if (furnRefs.length > 0) {
+    const labels = furnRefs.map((f) => f.label).filter(Boolean).join(", ");
+    moodboardContext += `FURNITURE INSPIRATION (use SIMILAR furniture pieces — match the style, silhouette, proportions, materials and overall vibe of the attached furniture reference image(s)${labels ? ` labeled: ${labels}` : ""}. Do NOT copy them exactly — translate their character into pieces that fit this room): treat the attached furniture reference images as the primary guide for sofa/chair/table/bed/storage selection. `;
+  }
+
+  // Decor references — INSPIRATION (use similar accessories, textiles, lighting)
+  const decorRefs = (data.decorReferences || []).filter((d) => d.label || d.imageUrl);
+  if (decorRefs.length > 0) {
+    const labels = decorRefs.map((d) => d.label).filter(Boolean).join(", ");
+    moodboardContext += `DECOR INSPIRATION (use SIMILAR accessories, textiles and lighting — lamps, vases, art, cushions, rugs, throws — matching the style, color story and material feel of the attached decor reference image(s)${labels ? ` labeled: ${labels}` : ""}): the room's accessories, soft furnishings and lighting should clearly echo the spirit of these decor references. `;
+  }
+
+  // Must-include — EXACT match required
+  const mustHaves = (data.mustIncludeItems || []).filter((m) => m.label || m.imageUrl);
+  if (mustHaves.length > 0) {
+    const labels = mustHaves.map((m) => m.label).filter(Boolean).join(", ");
+    moodboardContext += `MUST-INCLUDE ITEMS — CRITICAL: The following items MUST appear in the final design EXACTLY as shown in their attached reference image(s) — same color, same material, same shape, same finish. Do NOT substitute, restyle or reinterpret them. Place them naturally in the room. Items: ${labels}. `;
+  }
+
   // Style moodboard images directive — tells the model how to read the attached
   // style reference images (palette, materials, furniture vibe) without copying them literally.
   let styleImagesDirective = "";
