@@ -2002,14 +2002,14 @@ RULES:
         {/* Generation Progress */}
         {generating && <GenerationCountdown />}
 
-        {/* Personalized Style Profile */}
-        {styleProfile && (
+        {/* Personalized Style Profile - Hidden */}
+        {/* {styleProfile && (
           <PersonalizedStyleProfile
             styleMatches={styleProfile.matches}
             profileName={styleProfile.name}
             profileDescription={styleProfile.description}
           />
-        )}
+        )} */}
 
         {/* Floor Plan vs Design comparison */}
         <FloorPlanComparison
@@ -2081,13 +2081,13 @@ RULES:
         </div>
         )}
 
-        {/* Debug Panel - Testing */}
-        {design && (debugSteps.length > 0 || debugPrompt) && (
+        {/* Debug Panel - Hidden */}
+        {/* {design && (debugSteps.length > 0 || debugPrompt) && (
           <DebugPanel steps={debugSteps} prompt={debugPrompt} />
-        )}
+        )} */}
 
-        {/* Existing Room Photos Upload + Adjust Button */}
-        {design && !generating && !design.isLocked && (
+        {/* Existing Room Photos Upload - Hidden */}
+        {/* {design && !generating && !design.isLocked && (
           <ExistingRoomUpload
             images={existingRoomImages}
             onImagesChange={setExistingRoomImages}
@@ -2095,7 +2095,7 @@ RULES:
             onAdjustToRoom={handleAdjustToRoom}
             adjusting={generating}
           />
-        )}
+        )} */}
 
         {/* Love This Button - Under Main Design */}
         {design && !generating && !design.isLocked && (
