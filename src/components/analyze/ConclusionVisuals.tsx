@@ -410,7 +410,12 @@ const ConclusionVisuals = ({
       const furnitureExamples = ["sofa", "armchair", "dining table", "bed frame", "sideboard"];
       const decorExamples = ["floor lamp", "vase", "wall art", "cushion", "area rug", "pendant light"];
       const pool = kind === "furniture" ? furnitureExamples : decorExamples;
-      const pick = pool[Math.floor(Math.random() * pool.length)];
+      const existing = (kind === "furniture" ? furnitureReferences : decorReferences).map((r) =>
+        r.label.toLowerCase(),
+      );
+      const available = pool.filter((p) => !existing.some((l) => l.includes(p.toLowerCase())));
+      const candidates = available.length > 0 ? available : pool;
+      const pick = candidates[Math.floor(Math.random() * candidates.length)];
       const label = `${styleNames[0]} ${pick}`;
       const body = {
         type: "accentFurniture",
