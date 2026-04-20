@@ -484,8 +484,19 @@ const Generate = () => {
     // switch / refresh that re-reads from sessionStorage), always treat it as a new generation
     // request so we never silently reuse a stale cached design.
     const hasScenePreview = !!location.state?.scenePreviewImage;
-    const arrivedWithFreshQuiz = !!location.state?.quizData && !resumeDesignId;
+    // Only treat as "fresh quiz arrival" the FIRST time this nonce is seen.
+    // Without this, switching tabs/windows re-runs this effect with the same
+    // location.state and would trigger a brand-new generation every focus.
+    const consumedNonceKey = 'generate_consumed_quiz_nonce';
+    const consumedNonce = sessionStorage.getItem(consumedNonceKey);
+    const arrivedWithFreshQuiz =
+      !!location.state?.quizData &&
+      !resumeDesignId &&
+      consumedNonce !== quizNonce;
     const isNewQuiz = (storedHash !== null && storedHash !== fullHash) || hasScenePreview || arrivedWithFreshQuiz;
+    if (arrivedWithFreshQuiz) {
+      sessionStorage.setItem(consumedNonceKey, quizNonce);
+    }
     
     if (isNewQuiz) {
       // Clear all caches for fresh start

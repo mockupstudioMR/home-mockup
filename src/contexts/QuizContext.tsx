@@ -110,6 +110,7 @@ export const QuizProvider = ({ children }: { children: React.ReactNode }) => {
       'generate_debug_prompt_cache',
       'generate_quiz_hash',
       'generate_quiz_nonce',
+      'generate_consumed_quiz_nonce',
       'generate_inspirations_cache',
       'generate_inspiration_details_cache',
       // Floor plan / room spec caches — must clear so a new quiz doesn't show the previous room's plan
