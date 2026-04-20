@@ -369,6 +369,7 @@ const AnalyzeProducts = () => {
           colors: editableColors,
           materials: moodboard.materials,
           references: mergedReferences,
+          mustInclude: moodboard.mustInclude,
         },
       },
     });
