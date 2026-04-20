@@ -164,4 +164,13 @@
   .gradient-warm {
     background: linear-gradient(180deg, hsl(30 33% 96%) 0%, hsl(30 25% 92%) 100%);
   }
+
+  /* Hide scrollbar (used for horizontally-scrollable tab strips on mobile) */
+  .scrollbar-none {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
 }
