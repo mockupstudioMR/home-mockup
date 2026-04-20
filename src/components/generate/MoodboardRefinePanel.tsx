@@ -214,6 +214,18 @@ const MoodboardRefinePanel = ({
     detectUsed(it, designDescription, extractedItemNames),
   ).length;
 
+  const DECOR_TYPE_RE = /(lamp|light|rug|art|plant|pillow|cushion|throw|mirror|vase|accessor|decor|textile|curtain|drape|sconce|chandelier|pendant|candle|book|frame)/i;
+  const inDesign = useMemo(() => {
+    const furniture: typeof extractedItems = [];
+    const decor: typeof extractedItems = [];
+    for (const it of extractedItems) {
+      const blob = `${it.item_type || ""} ${it.item_name || ""}`;
+      if (DECOR_TYPE_RE.test(blob)) decor.push(it);
+      else furniture.push(it);
+    }
+    return { furniture, decor };
+  }, [extractedItems]);
+
   const uploadOne = async (
     file: File,
     folder: string,
