@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { Input } from "@/components/ui/input";
-import { X, Plus, Check, Pencil } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { X, Plus, Check, Pencil, Sparkles, Image as ImageIcon } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 
 interface ConclusionVisualsProps {
@@ -10,115 +12,139 @@ interface ConclusionVisualsProps {
   styleNames: string[];
   /** Optional seed materials/textures extracted from analysis. */
   seedElements?: string[];
+  roomType?: string;
 }
 
-type EditableListProps = {
-  items: string[];
-  onChange: (next: string[]) => void;
-  placeholder?: string;
-};
+type VisualKind = "material" | "styleReference";
 
-const EditableChips = ({ items, onChange, placeholder = "add" }: EditableListProps) => {
-  const [editingIndex, setEditingIndex] = useState<number | null>(null);
-  const [editValue, setEditValue] = useState("");
-  const [adding, setAdding] = useState(false);
-  const [newValue, setNewValue] = useState("");
+interface VisualChipProps {
+  label: string;
+  kind: VisualKind;
+  styleSlug: string;
+  roomType: string;
+  imageUrl?: string;
+  onImageReady: (url: string) => void;
+  onRename: (next: string) => void;
+  onRemove: () => void;
+  /** Auto-generate visual on mount. */
+  autoGenerate?: boolean;
+}
 
-  const startEdit = (i: number) => {
-    setEditingIndex(i);
-    setEditValue(items[i]);
+const VisualChip = ({
+  label,
+  kind,
+  styleSlug,
+  roomType,
+  imageUrl,
+  onImageReady,
+  onRename,
+  onRemove,
+  autoGenerate,
+}: VisualChipProps) => {
+  const [loading, setLoading] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [value, setValue] = useState(label);
+
+  const generate = async () => {
+    if (loading || imageUrl) return;
+    setLoading(true);
+    try {
+      const body =
+        kind === "material"
+          ? {
+              type: "accentFurniture",
+              style: styleSlug,
+              room: roomType,
+              furnitureName: label,
+              furnitureDescription: `Macro detail shot of the material/texture "${label}". Show the surface up close: weave, grain, finish, light reflection. Editorial close-up photography on a neutral background.`,
+            }
+          : {
+              type: "moodboard",
+              style: label.toLowerCase().replace(/\s+/g, "-"),
+              room: roomType,
+              elements: [`Hero reference image embodying the "${label}" interior style`],
+            };
+      const { data, error } = await supabase.functions.invoke(
+        "generate-highlight-visuals",
+        { body },
+      );
+      if (!error && data?.imageUrl) onImageReady(data.imageUrl);
+    } catch {
+      /* ignore */
+    } finally {
+      setLoading(false);
+    }
   };
-  const commitEdit = () => {
-    if (editingIndex === null) return;
-    const v = editValue.trim();
-    onChange(v ? items.map((el, idx) => (idx === editingIndex ? v : el)) : items.filter((_, idx) => idx !== editingIndex));
-    setEditingIndex(null);
-    setEditValue("");
-  };
-  const removeAt = (i: number) => onChange(items.filter((_, idx) => idx !== i));
-  const addNew = () => {
-    const v = newValue.trim();
-    if (v) onChange([...items, v]);
-    setNewValue("");
-    setAdding(false);
+
+  useEffect(() => {
+    if (autoGenerate && !imageUrl && !loading) generate();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoGenerate, label]);
+
+  const commitRename = () => {
+    const v = value.trim();
+    if (!v) {
+      onRemove();
+    } else if (v !== label) {
+      onRename(v);
+    }
+    setEditing(false);
   };
 
   return (
-    <div className="flex flex-wrap gap-1.5 items-center">
-      {items.map((el, i) =>
-        editingIndex === i ? (
-          <span key={i} className="inline-flex items-center gap-1 rounded-full border border-primary bg-background pl-1 pr-0.5 py-0.5">
-            <Input
-              autoFocus
-              value={editValue}
-              onChange={(e) => setEditValue(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") { e.preventDefault(); commitEdit(); }
-                if (e.key === "Escape") { setEditingIndex(null); setEditValue(""); }
-              }}
-              onBlur={commitEdit}
-              className="h-6 text-xs px-2 py-0 w-32 border-0 focus-visible:ring-0"
-            />
-            <button
-              type="button"
-              onMouseDown={(e) => e.preventDefault()}
-              onClick={commitEdit}
-              className="w-5 h-5 rounded-full text-primary hover:bg-primary/10 flex items-center justify-center"
-            >
-              <Check className="w-3 h-3" />
-            </button>
-          </span>
+    <div className="group relative w-24">
+      <div className="aspect-square rounded-lg overflow-hidden border border-border bg-secondary/30 relative">
+        {loading ? (
+          <Skeleton className="w-full h-full" />
+        ) : imageUrl ? (
+          <img src={imageUrl} alt={label} className="w-full h-full object-cover" />
         ) : (
-          <span
-            key={i}
-            className="group inline-flex items-center gap-1 rounded-full border border-border bg-background pl-2.5 pr-1 py-0.5 text-xs hover:border-primary/50 transition-colors"
+          <button
+            type="button"
+            onClick={generate}
+            className="w-full h-full flex flex-col items-center justify-center gap-1 text-muted-foreground hover:text-primary hover:bg-primary/5 transition-colors"
+            title="Generate visual"
           >
-            <button
-              type="button"
-              onClick={() => startEdit(i)}
-              className="inline-flex items-center gap-1"
-              title="Edit"
-            >
-              <span>{el}</span>
-              <Pencil className="w-2.5 h-2.5 text-muted-foreground opacity-0 group-hover:opacity-100" />
-            </button>
-            <button
-              type="button"
-              onClick={() => removeAt(i)}
-              className="w-4 h-4 rounded-full text-muted-foreground hover:text-destructive hover:bg-destructive/10 flex items-center justify-center"
-              title="Remove"
-            >
-              <X className="w-3 h-3" />
-            </button>
-          </span>
-        ),
-      )}
+            <Sparkles className="w-4 h-4" />
+            <span className="text-[10px]">Generate</span>
+          </button>
+        )}
 
-      {adding ? (
-        <span className="inline-flex items-center gap-1 rounded-full border border-primary bg-background pl-1 pr-0.5 py-0.5">
-          <Input
-            autoFocus
-            value={newValue}
-            onChange={(e) => setNewValue(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") { e.preventDefault(); addNew(); }
-              if (e.key === "Escape") { setAdding(false); setNewValue(""); }
-            }}
-            onBlur={addNew}
-            placeholder={placeholder}
-            className="h-6 text-xs px-2 py-0 w-32 border-0 focus-visible:ring-0"
-          />
-        </span>
-      ) : (
         <button
           type="button"
-          onClick={() => setAdding(true)}
-          className="inline-flex items-center gap-1 rounded-full border border-dashed border-border px-2.5 py-0.5 text-xs text-muted-foreground hover:border-primary/50 hover:text-foreground"
+          onClick={onRemove}
+          className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/50 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+          aria-label="Remove"
         >
-          <Plus className="w-3 h-3" />
-          Add
+          <X className="w-3 h-3" />
         </button>
-      )}
+      </div>
+
+      <div className="mt-1">
+        {editing ? (
+          <Input
+            autoFocus
+            value={value}
+            onChange={(e) => setValue(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") { e.preventDefault(); commitRename(); }
+              if (e.key === "Escape") { setValue(label); setEditing(false); }
+            }}
+            onBlur={commitRename}
+            className="h-6 text-[11px] px-1.5 py-0"
+          />
+        ) : (
+          <button
+            type="button"
+            onClick={() => setEditing(true)}
+            className="w-full text-[11px] leading-tight text-left flex items-center gap-1 hover:text-primary"
+            title="Rename"
+          >
+            <span className="truncate">{label}</span>
+            <Pencil className="w-2.5 h-2.5 opacity-0 group-hover:opacity-100 shrink-0" />
+          </button>
+        )}
+      </div>
     </div>
   );
 };
@@ -129,26 +155,69 @@ const ConclusionVisuals = ({
   onDominantColorsChange,
   styleNames,
   seedElements,
+  roomType = "living room",
 }: ConclusionVisualsProps) => {
-  // Materials & Textures (editable, seeded from analysis)
+  const styleSlug = useMemo(
+    () => styleNames[0]?.toLowerCase().replace(/\s+/g, "-") || "modern-minimal",
+    [styleNames],
+  );
+
+  // Materials & Textures
   const initialMaterials = useMemo(
     () => Array.from(new Set((seedElements || []).filter(Boolean))),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [(seedElements || []).join("|")],
   );
   const [materials, setMaterials] = useState<string[]>(initialMaterials);
+  const [materialImages, setMaterialImages] = useState<Record<string, string>>({});
   useEffect(() => setMaterials(initialMaterials), [initialMaterials]);
 
-  // Style References (editable, seeded from detected styles)
-  const initialReferences = useMemo(() => {
-    const refs: string[] = [];
-    if (styleNames.length > 1) refs.push(`Blend: ${styleNames.join(" + ")}`);
-    refs.push(...styleNames);
-    return Array.from(new Set(refs));
+  // Style References (only the actual detected style names — visuals)
+  const initialReferences = useMemo(
+    () => Array.from(new Set(styleNames.filter(Boolean))),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [styleNames.join("|")]);
+    [styleNames.join("|")],
+  );
   const [references, setReferences] = useState<string[]>(initialReferences);
+  const [referenceImages, setReferenceImages] = useState<Record<string, string>>({});
   useEffect(() => setReferences(initialReferences), [initialReferences]);
+
+  // Add new material/reference state
+  const [newMaterial, setNewMaterial] = useState("");
+  const [addingMaterial, setAddingMaterial] = useState(false);
+  const [newReference, setNewReference] = useState("");
+  const [addingReference, setAddingReference] = useState(false);
+
+  const renameMaterial = (oldName: string, next: string) => {
+    setMaterials((prev) => prev.map((m) => (m === oldName ? next : m)));
+    setMaterialImages((prev) => {
+      const { [oldName]: img, ...rest } = prev;
+      return img ? { ...rest, [next]: img } : rest;
+    });
+  };
+  const removeMaterial = (name: string) => {
+    setMaterials((prev) => prev.filter((m) => m !== name));
+    setMaterialImages((prev) => {
+      const { [name]: _, ...rest } = prev;
+      return rest;
+    });
+  };
+
+  const renameReference = (oldName: string, next: string) => {
+    setReferences((prev) => prev.map((m) => (m === oldName ? next : m)));
+    setReferenceImages((prev) => {
+      const { [oldName]: img, ...rest } = prev;
+      // Renamed reference points to a different style — drop image so it regenerates
+      return rest;
+    });
+  };
+  const removeReference = (name: string) => {
+    setReferences((prev) => prev.filter((m) => m !== name));
+    setReferenceImages((prev) => {
+      const { [name]: _, ...rest } = prev;
+      return rest;
+    });
+  };
 
   return (
     <div className="rounded-xl border border-border/50 bg-secondary/20 p-4 space-y-5">
@@ -203,20 +272,130 @@ const ConclusionVisuals = ({
         </div>
       </div>
 
-      {/* Materials & Textures */}
+      {/* Materials & Textures with visuals */}
       <div>
         <p className="text-[11px] uppercase tracking-wide text-muted-foreground mb-2 font-medium">
           Materials &amp; Textures
         </p>
-        <EditableChips items={materials} onChange={setMaterials} placeholder="boucle, oak…" />
+        <div className="flex flex-wrap gap-3 items-start">
+          {materials.map((m) => (
+            <VisualChip
+              key={m}
+              label={m}
+              kind="material"
+              styleSlug={styleSlug}
+              roomType={roomType}
+              imageUrl={materialImages[m]}
+              autoGenerate
+              onImageReady={(url) => setMaterialImages((prev) => ({ ...prev, [m]: url }))}
+              onRename={(next) => renameMaterial(m, next)}
+              onRemove={() => removeMaterial(m)}
+            />
+          ))}
+
+          {addingMaterial ? (
+            <div className="w-24">
+              <div className="aspect-square rounded-lg border-2 border-dashed border-primary/50 flex items-center justify-center">
+                <ImageIcon className="w-5 h-5 text-muted-foreground" />
+              </div>
+              <Input
+                autoFocus
+                value={newMaterial}
+                onChange={(e) => setNewMaterial(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    const v = newMaterial.trim();
+                    if (v && !materials.includes(v)) setMaterials((prev) => [...prev, v]);
+                    setNewMaterial("");
+                    setAddingMaterial(false);
+                  }
+                  if (e.key === "Escape") { setNewMaterial(""); setAddingMaterial(false); }
+                }}
+                onBlur={() => {
+                  const v = newMaterial.trim();
+                  if (v && !materials.includes(v)) setMaterials((prev) => [...prev, v]);
+                  setNewMaterial("");
+                  setAddingMaterial(false);
+                }}
+                placeholder="oak, linen…"
+                className="mt-1 h-6 text-[11px] px-1.5 py-0"
+              />
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setAddingMaterial(true)}
+              className="w-24 aspect-square rounded-lg border-2 border-dashed border-border flex flex-col items-center justify-center gap-1 text-muted-foreground hover:border-primary/50 hover:text-foreground transition-colors"
+            >
+              <Plus className="w-5 h-5" />
+              <span className="text-[10px]">Add material</span>
+            </button>
+          )}
+        </div>
       </div>
 
-      {/* Style References */}
+      {/* Style References with visuals */}
       <div>
         <p className="text-[11px] uppercase tracking-wide text-muted-foreground mb-2 font-medium">
           Style References
         </p>
-        <EditableChips items={references} onChange={setReferences} placeholder="Japandi, Art Deco…" />
+        <div className="flex flex-wrap gap-3 items-start">
+          {references.map((r) => (
+            <VisualChip
+              key={r}
+              label={r}
+              kind="styleReference"
+              styleSlug={r.toLowerCase().replace(/\s+/g, "-")}
+              roomType={roomType}
+              imageUrl={referenceImages[r]}
+              autoGenerate
+              onImageReady={(url) => setReferenceImages((prev) => ({ ...prev, [r]: url }))}
+              onRename={(next) => renameReference(r, next)}
+              onRemove={() => removeReference(r)}
+            />
+          ))}
+
+          {addingReference ? (
+            <div className="w-24">
+              <div className="aspect-square rounded-lg border-2 border-dashed border-primary/50 flex items-center justify-center">
+                <ImageIcon className="w-5 h-5 text-muted-foreground" />
+              </div>
+              <Input
+                autoFocus
+                value={newReference}
+                onChange={(e) => setNewReference(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    const v = newReference.trim();
+                    if (v && !references.includes(v)) setReferences((prev) => [...prev, v]);
+                    setNewReference("");
+                    setAddingReference(false);
+                  }
+                  if (e.key === "Escape") { setNewReference(""); setAddingReference(false); }
+                }}
+                onBlur={() => {
+                  const v = newReference.trim();
+                  if (v && !references.includes(v)) setReferences((prev) => [...prev, v]);
+                  setNewReference("");
+                  setAddingReference(false);
+                }}
+                placeholder="Japandi…"
+                className="mt-1 h-6 text-[11px] px-1.5 py-0"
+              />
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setAddingReference(true)}
+              className="w-24 aspect-square rounded-lg border-2 border-dashed border-border flex flex-col items-center justify-center gap-1 text-muted-foreground hover:border-primary/50 hover:text-foreground transition-colors"
+            >
+              <Plus className="w-5 h-5" />
+              <span className="text-[10px]">Add style</span>
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );
