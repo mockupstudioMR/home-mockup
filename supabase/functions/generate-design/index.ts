@@ -415,6 +415,24 @@ serve(async (req) => {
         }
         addDebug("Style moodboard images", `Added ${styleImgs.length} style reference image(s) to request`);
       }
+
+      // Furniture references — inspiration
+      const furnImgs = (enrichedRequestData.furnitureReferences || [])
+        .map((f) => f.imageUrl).filter(Boolean).slice(0, 3) as string[];
+      for (const u of furnImgs) contentParts.push({ type: "image_url", image_url: { url: u } });
+      if (furnImgs.length > 0) addDebug("Furniture references", `Added ${furnImgs.length} furniture inspiration image(s)`);
+
+      // Decor references — inspiration
+      const decorImgs = (enrichedRequestData.decorReferences || [])
+        .map((d) => d.imageUrl).filter(Boolean).slice(0, 3) as string[];
+      for (const u of decorImgs) contentParts.push({ type: "image_url", image_url: { url: u } });
+      if (decorImgs.length > 0) addDebug("Decor references", `Added ${decorImgs.length} decor inspiration image(s)`);
+
+      // Must-include items — exact match
+      const mustImgs = (enrichedRequestData.mustIncludeItems || [])
+        .map((m) => m.imageUrl).filter(Boolean).slice(0, 4) as string[];
+      for (const u of mustImgs) contentParts.push({ type: "image_url", image_url: { url: u } });
+      if (mustImgs.length > 0) addDebug("Must-include images", `Added ${mustImgs.length} must-include exact-match image(s)`);
     }
 
     const messages: any[] = [

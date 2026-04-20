@@ -809,7 +809,14 @@ const Generate = () => {
 
     const { productAnalysis, sourceImages, includeProducts, scenePreviewImage } = location.state || {};
     const moodboard = location.state?.moodboard as
-      | { colors?: string[]; materials?: { label: string; imageUrl?: string }[]; references?: { label: string; imageUrl?: string }[] }
+      | {
+          colors?: string[];
+          materials?: { label: string; imageUrl?: string }[];
+          references?: { label: string; imageUrl?: string }[];
+          furnitureReferences?: { label: string; imageUrl?: string }[];
+          decorReferences?: { label: string; imageUrl?: string }[];
+          mustInclude?: { label: string; imageUrl?: string }[];
+        }
       | undefined;
     const shouldIncludeProducts = !!includeProducts && !isExistingRoomFlow;
 
@@ -887,6 +894,9 @@ const Generate = () => {
           moodboardDescription: analysisResult?.moodboardDescription,
           moodboardMaterials: moodboard?.materials || [],
           moodboardReferences: moodboard?.references || [],
+          furnitureReferences: moodboard?.furnitureReferences || [],
+          decorReferences: moodboard?.decorReferences || [],
+          mustIncludeItems: moodboard?.mustInclude || [],
           styleImageUrls: [
             ...((moodboard?.references?.map((r) => r.imageUrl).filter(Boolean) as string[]) || []),
             ...((moodboard?.materials?.map((m) => m.imageUrl).filter(Boolean) as string[]) || []),
