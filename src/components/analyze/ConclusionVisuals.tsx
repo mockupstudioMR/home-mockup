@@ -278,6 +278,65 @@ const ConclusionVisuals = ({
 
   // Color mixing selection
   const [mixSelection, setMixSelection] = useState<number[]>([]);
+  const [isColorDropActive, setIsColorDropActive] = useState(false);
+  const [extractingColors, setExtractingColors] = useState(false);
+
+  // Extract dominant colors from an image URL using a canvas (client-side, no API call)
+  const extractDominantColorsFromImage = async (url: string, count = 4): Promise<string[]> => {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+      img.onload = () => {
+        try {
+          const size = 64;
+          const canvas = document.createElement("canvas");
+          canvas.width = size;
+          canvas.height = size;
+          const ctx = canvas.getContext("2d");
+          if (!ctx) return resolve([]);
+          ctx.drawImage(img, 0, 0, size, size);
+          const { data } = ctx.getImageData(0, 0, size, size);
+          const buckets = new Map<string, { r: number; g: number; b: number; n: number }>();
+          for (let i = 0; i < data.length; i += 4) {
+            const a = data[i + 3];
+            if (a < 200) continue;
+            const r = data[i], g = data[i + 1], b = data[i + 2];
+            // Skip near-white/black backgrounds
+            const max = Math.max(r, g, b), min = Math.min(r, g, b);
+            if (max > 245 && min > 245) continue;
+            if (max < 15) continue;
+            // Quantize to buckets of 32
+            const key = `${r >> 5}-${g >> 5}-${b >> 5}`;
+            const cur = buckets.get(key);
+            if (cur) { cur.r += r; cur.g += g; cur.b += b; cur.n += 1; }
+            else buckets.set(key, { r, g, b, n: 1 });
+          }
+          const sorted = Array.from(buckets.values()).sort((a, b) => b.n - a.n).slice(0, count);
+          const toHex = (n: number) => Math.round(n).toString(16).padStart(2, "0");
+          resolve(sorted.map((c) => `#${toHex(c.r / c.n)}${toHex(c.g / c.n)}${toHex(c.b / c.n)}`));
+        } catch {
+          resolve([]);
+        }
+      };
+      img.onerror = () => resolve([]);
+      img.src = url;
+    });
+  };
+
+  const handleColorDrop = async (imageUrl: string) => {
+    setExtractingColors(true);
+    try {
+      const colors = await extractDominantColorsFromImage(imageUrl, 4);
+      if (colors.length) {
+        const merged = [...dominantColors];
+        for (const c of colors) if (!merged.includes(c)) merged.push(c);
+        onDominantColorsChange(merged);
+      }
+    } finally {
+      setExtractingColors(false);
+    }
+  };
+
   const toggleMixPick = (index: number) => {
     setMixSelection((prev) => {
       if (prev.includes(index)) return prev.filter((i) => i !== index);
@@ -297,14 +356,48 @@ const ConclusionVisuals = ({
       <div>
         <div className="flex items-center justify-between mb-2">
           <p className="text-[11px] uppercase tracking-wide text-muted-foreground font-medium">
-            Dominant Colors
+            Dominant Colors <span className="normal-case text-muted-foreground/70">— drag tags here to add their colors</span>
           </p>
           <p className="text-[10px] text-muted-foreground flex items-center gap-1">
             <Blend className="w-3 h-3" />
-            {mixSelection.length === 1 ? "Pick a 2nd color to mix" : "Click 2 colors to blend"}
+            {extractingColors
+              ? "Extracting colors…"
+              : mixSelection.length === 1
+                ? "Pick a 2nd color to mix"
+                : "Click 2 colors to blend"}
           </p>
         </div>
-        <div className="flex flex-wrap gap-2 items-center">
+        <div
+          onDragOver={(e) => {
+            if (
+              e.dataTransfer.types.includes(MOODBOARD_DRAG_MIME) ||
+              e.dataTransfer.types.includes("text/plain")
+            ) {
+              e.preventDefault();
+              e.dataTransfer.dropEffect = "copy";
+              setIsColorDropActive(true);
+            }
+          }}
+          onDragLeave={() => setIsColorDropActive(false)}
+          onDrop={(e) => {
+            e.preventDefault();
+            setIsColorDropActive(false);
+            const raw = e.dataTransfer.getData(MOODBOARD_DRAG_MIME);
+            let imageUrl: string | null = null;
+            if (raw) {
+              try {
+                const parsed = JSON.parse(raw) as DraggedItem;
+                imageUrl = parsed.imageUrl || null;
+              } catch { /* ignore */ }
+            }
+            if (!imageUrl) return;
+            handleColorDrop(imageUrl);
+          }}
+          className={cn(
+            "flex flex-wrap gap-2 items-center rounded-lg p-2 -m-2 transition-colors",
+            isColorDropActive && "bg-primary/5 ring-2 ring-primary/40 ring-dashed",
+          )}
+        >
           {dominantColors.map((color, index) => {
             const picked = mixSelection.includes(index);
             return (
