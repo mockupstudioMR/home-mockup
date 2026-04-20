@@ -756,9 +756,17 @@ const ConclusionVisuals = ({
       {/* Decor References — AI-generated + uploads, accessories, textiles, lighting */}
       <div>
         <p className="text-[11px] uppercase tracking-wide text-muted-foreground mb-2 font-medium">
-          Decor References <span className="normal-case text-muted-foreground/70">— AI examples of lamps, vases, art, cushions, rugs in your style</span>
+          Decor References <span className="normal-case text-muted-foreground/70">— drag tags or images here · AI examples of lamps, vases, art, cushions, rugs in your style</span>
         </p>
-        <div className="flex flex-wrap gap-3 items-start">
+        <div
+          onDragOver={(e) => handleReferenceDragOver(e, "decor")}
+          onDragLeave={() => setIsDecorDropActive(false)}
+          onDrop={(e) => handleReferenceDrop(e, "decor", setDecorReferences, setUploadingDecorRef)}
+          className={cn(
+            "flex flex-wrap gap-3 items-start rounded-lg p-2 -m-2 transition-colors",
+            isDecorDropActive && "bg-primary/5 ring-2 ring-primary/40 ring-dashed",
+          )}
+        >
           {decorReferences.map((item) => (
             <div key={item.label} className="group relative w-24">
               <div className="aspect-square rounded-lg overflow-hidden border border-border bg-secondary/30 relative">
