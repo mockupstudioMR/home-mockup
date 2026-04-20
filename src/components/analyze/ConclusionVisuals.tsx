@@ -32,6 +32,11 @@ interface ConclusionVisualsProps {
   /** Map of styleName -> iconic item label (e.g., "Wassily chair") for single-item style ref visuals. */
   iconicItems?: Record<string, string>;
   roomType?: string;
+  /** Emit the current moodboard (materials + references with images) so the parent can use it downstream. */
+  onMoodboardChange?: (mb: {
+    materials: { label: string; imageUrl?: string }[];
+    references: { label: string; imageUrl?: string }[];
+  }) => void;
 }
 
 type VisualKind = "material" | "styleReference";
@@ -181,6 +186,7 @@ const ConclusionVisuals = ({
   extraMaterials,
   iconicItems,
   roomType = "living room",
+  onMoodboardChange,
 }: ConclusionVisualsProps) => {
   const styleSlug = useMemo(
     () => styleNames[0]?.toLowerCase().replace(/\s+/g, "-") || "modern-minimal",
