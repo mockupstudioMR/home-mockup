@@ -31,7 +31,9 @@ export default defineConfig(({ mode }) => ({
       workbox: {
         navigateFallbackDenylist: [/^\/~oauth/, /^\/auth/],
         cleanupOutdatedCaches: true,
-        globPatterns: ["**/*.{js,css,html,svg,png,ico,webp,woff2}"],
+        globPatterns: ["**/*.{js,css,html,svg,ico,woff2}"],
+        // Raise precache limit to 5 MiB so large style images don't break the build
+        maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
       },
     }),
   ].filter(Boolean),
