@@ -262,22 +262,63 @@ const AnalyzeProducts = () => {
   };
 
   // ── Continue to generate ─────────────────────────────
+  const STYLE_LABELS: Record<string, string> = {
+    "modern-minimal": "Modern & Minimal",
+    "bohemian-eclectic": "Bohemian Eclectic",
+    "glam-luxe": "Glam & Luxe",
+    "rustic-nature": "Rustic Nature",
+    "mediterranean": "Mediterranean",
+    "classic-historical": "Classic Historical",
+  };
+
   const handleContinue = () => {
-    if (!analysisResult || !selectedRoom || selectedScene === null) return;
+    if (!analysisResult || !selectedRoom) return;
 
-    const chosen = scenePreviews[selectedScene];
-    if (!chosen || !chosen.imageUrl) return;
+    // If a scene preview was chosen, prefer it. Otherwise fall back to the
+    // top detected style so the user can always continue from the product.
+    const chosen = selectedScene !== null ? scenePreviews[selectedScene] : null;
+    const detectedStyleName = analysisResult.styles?.[0]?.styleName || "modern minimal";
+    const fallbackStyleId = detectedStyleName.toLowerCase().replace(/[\s&]+/g, "-");
+    const styleId = chosen?.styleId || fallbackStyleId;
+    const styleTitle = STYLE_LABELS[styleId] || analysisResult.styles?.[0]?.styleName || styleId;
+    const styleDescription = chosen?.description || analysisResult.styles?.[0]?.description || "";
 
-    const styleId = chosen.styleId;
-    const STYLE_LABELS: Record<string, string> = {
-      "modern-minimal": "Modern & Minimal",
-      "bohemian-eclectic": "Bohemian Eclectic",
-      "glam-luxe": "Glam & Luxe",
-      "rustic-nature": "Rustic Nature",
-      "mediterranean": "Mediterranean",
-      "classic-historical": "Classic Historical",
-    };
-    const styleTitle = STYLE_LABELS[styleId] || styleId;
+    // Aggregate moodboard items (mirrors AnalyzeRoom): every suggested keyword
+    // across all detected styles + iconic items, deduped.
+    const aggregatedDetailsMap: Record<string, { label: string; description: string; type: string }> = {};
+    const aggregatedIds = new Set<string>();
+
+    (analysisResult.styles || []).forEach((style, sIdx) => {
+      (style.keywords || []).forEach((keyword, kIdx) => {
+        const id = `${sIdx}-${kIdx}-${keyword}`;
+        aggregatedIds.add(id);
+        aggregatedDetailsMap[id] = {
+          label: keyword,
+          description: `${style.styleName}: ${keyword}`,
+          type: "tag",
+        };
+      });
+    });
+
+    // Add detected products as iconic moodboard references (the couch etc.)
+    analysisResult.products.forEach((p, pIdx) => {
+      const id = `product-${pIdx}-${p.productName}`;
+      aggregatedIds.add(id);
+      aggregatedDetailsMap[id] = {
+        label: p.productName,
+        description: p.description || `${p.category} — must include`,
+        type: "iconic",
+      };
+    });
+
+    const allInspirations = Array.from(aggregatedIds);
+
+    // Build moodboard references from the uploaded product images so they
+    // appear as visual references the user can edit.
+    const productReferences = uploadedImages.map((url, idx) => ({
+      label: analysisResult.products[idx]?.productName || `Product ${idx + 1}`,
+      imageUrl: url,
+    }));
 
     const updatedQuizData = {
       ...quizData,
@@ -294,14 +335,21 @@ const AnalyzeProducts = () => {
     navigate("/generate", {
       state: {
         quizData: updatedQuizData,
-        selectedStyle: { id: styleId, title: styleTitle, description: chosen.description || "" },
+        selectedStyle: { id: styleId, title: styleTitle, description: styleDescription },
         analysisResult: analysisResult.styles
           ? { styles: analysisResult.styles, dominantColors: editableColors, moodboardDescription: analysisResult.moodboardSuggestion }
           : undefined,
         productAnalysis: analysisResult,
         sourceImages: uploadedImages,
         includeProducts: true,
-        scenePreviewImage: chosen.imageUrl,
+        scenePreviewImage: chosen?.imageUrl || null,
+        selectedInspirations: allInspirations,
+        inspirationDetails: allInspirations.map((id) => aggregatedDetailsMap[id]).filter(Boolean),
+        moodboard: {
+          colors: editableColors,
+          materials: [],
+          references: productReferences,
+        },
       },
     });
   };
