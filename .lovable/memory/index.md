@@ -40,3 +40,4 @@
 - [Resilience](mem://constraints/error-handling-and-resilience) — Multi-layered AI retries, auth flags, and fetch backoffs
 - [Room Analysis Flow](mem://features/design-journey/room-analysis-flow) — "Start with Your Room" wizard and absolute room preservation model
 - [B2B Solutions](mem://features/b2b/solutions-onboarding) — 60-Second Onboarding wizard for professional showrooms
+- [Mobile & PWA Setup](mem://features/mobile-and-pwa-setup) — Installable PWA, global mobile CSS rules, SW disabled in preview/iframe
