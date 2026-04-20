@@ -1837,6 +1837,21 @@ RULES:
     ...((currentMoodboard?.materials || []).map((item) => ({ ...item, kind: "material" as const }))),
   ];
 
+  // Fallback: derive material/color chips from the style analysis so the moodboard
+  // always reflects something meaningful, even when no explicit references were passed.
+  const MATERIAL_KEYWORDS = ["wood", "walnut", "oak", "linen", "velvet", "brass", "marble", "travertine", "rattan", "leather", "stone", "concrete", "ceramic", "terracotta", "boucle", "bouclé", "glass", "metal"];
+  if (!currentMoodboard?.materials?.length) {
+    const colors = (analysisResult?.dominantColors || []).slice(0, 5);
+    colors.forEach((hex) => {
+      moodboardItems.push({ kind: "material", label: hex.toUpperCase() });
+    });
+    const keywordPool = (analysisResult?.styles || []).flatMap((s) => s.keywords || []);
+    const materialKws = Array.from(new Set(keywordPool.filter((k) =>
+      MATERIAL_KEYWORDS.some((m) => k.toLowerCase().includes(m))
+    ))).slice(0, 4);
+    materialKws.forEach((label) => moodboardItems.push({ kind: "material", label }));
+  }
+
   const handleMoodboardAction = async (action: MoodboardAction) => {
     if (!design) return;
 
