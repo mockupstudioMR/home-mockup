@@ -248,9 +248,10 @@ const ConclusionVisuals = ({
     onMoodboardChange({
       materials: materials.map((m) => ({ label: m, imageUrl: materialImages[m] })),
       references: references.map((r) => ({ label: r, imageUrl: referenceImages[r] })),
+      mustInclude,
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [materials, references, materialImages, referenceImages]);
+  }, [materials, references, materialImages, referenceImages, mustInclude]);
 
   // Add new material/reference state
   const [newMaterial, setNewMaterial] = useState("");
