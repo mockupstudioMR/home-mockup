@@ -204,8 +204,8 @@ const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(() =
         stylePreference: selectedStyle.styleName.toLowerCase().replace(/\s+/g, "-"),
         colorPalette: "neutral",
       });
-      navigate("/generate", { 
-        state: { 
+      navigate("/generate", {
+        state: {
           selectedStyle: {
             id: selectedStyle.styleName.toLowerCase().replace(/\s+/g, "-"),
             title: selectedStyle.styleName,
@@ -215,7 +215,12 @@ const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(() =
           sourceImages: uploadedImages,
           selectedInspirations,
           inspirationDetails: selectedInspirations.map(id => inspirationDetailsMap[id]).filter(Boolean),
-        } 
+          moodboard: {
+            colors: editableColors,
+            materials: moodboard.materials,
+            references: moodboard.references,
+          },
+        }
       });
     }
   };
