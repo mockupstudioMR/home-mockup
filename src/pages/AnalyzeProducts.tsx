@@ -95,11 +95,12 @@ const AnalyzeProducts = () => {
   const [inspirationDetailsMap, setInspirationDetailsMap] = useState<
     Record<string, { label: string; description: string; type: string }>
   >({});
-  const [moodboardExtras] = useState<string[]>([]);
+  const [moodboardExtras, setMoodboardExtras] = useState<string[]>([]);
   const [moodboard, setMoodboard] = useState<{
     materials: { label: string; imageUrl?: string }[];
     references: { label: string; imageUrl?: string }[];
-  }>({ materials: [], references: [] });
+    mustInclude: { label: string; imageUrl?: string }[];
+  }>({ materials: [], references: [], mustInclude: [] });
 
   // Two-step flow: 'detect' (products + room) → 'moodboard' (editor)
   const [step, setStep] = useState<"detect" | "moodboard">("detect");
