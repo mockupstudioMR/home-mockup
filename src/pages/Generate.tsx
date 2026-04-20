@@ -1390,14 +1390,6 @@ const Generate = () => {
   const handleModify = async (modificationType?: string, explicitPrompt?: string, explicitReferenceUrl?: string | null) => {
     const promptToUse = (explicitPrompt ?? modificationInput).trim();
     if (!promptToUse || !quizData || !design) return;
-    if (design.isLocked) {
-      toast({
-        title: "Design is locked",
-        description: "This design has been finalized and cannot be modified",
-        variant: "destructive",
-      });
-      return;
-    }
 
     setGenerating(true);
     try {
