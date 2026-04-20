@@ -559,13 +559,14 @@ const AnalyzeProducts = () => {
                 };
 
                 // Tokenize product names into individual words + full names
+                // (only for products the user kept selected)
+                const keptProducts = analysisResult.products.filter((_, i) => selectedProductIndices.has(i));
                 const allTokens = new Set<string>();
-                analysisResult.products.forEach((p) => {
+                keptProducts.forEach((p) => {
                   const name = p.productName.toLowerCase();
                   const cat = p.category.toLowerCase();
                   allTokens.add(name);
                   allTokens.add(cat);
-                  // Add individual words (skip short ones like "6", "pc", "a")
                   name.split(/[\s,.\-/]+/).forEach((w) => {
                     if (w.length > 2) allTokens.add(w);
                   });
