@@ -786,7 +786,7 @@ const AnalyzeProducts = () => {
       {analysisResult && selectedRoom && (
         <div className="fixed bottom-0 left-0 right-0 z-20 bg-background/80 backdrop-blur-md border-t border-border p-4">
           <div className="max-w-3xl mx-auto">
-            <Button size="lg" className="w-full" onClick={handleContinue}>
+            <Button size="lg" className="w-full" onClick={handleContinue} disabled={selectedProductIndices.size === 0}>
               <Sparkles className="w-5 h-5 mr-2" />
               Complete your moodboard
             </Button>
