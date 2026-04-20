@@ -503,6 +503,7 @@ const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(() =
                           .map((s) => [s.styleName, s.iconicItem as string]),
                       )}
                       extraMaterials={moodboardExtras}
+                      onMoodboardChange={setMoodboard}
                     />
                   </div>
 
@@ -575,10 +576,15 @@ const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(() =
                   </div>
                 </div>
 
-                <Button size="lg" className="w-full" onClick={handleContinue} disabled={selectedStyleIndex === null || selectedInspirations.length < 1}>
-                  {selectedInspirations.length > 0 && selectedStyleIndex !== null
-                    ? `Select elements and colors to continue with ${analysisResult.styles[selectedStyleIndex]?.styleName}`
-                    : "Select at least one element to continue"}
+                <Button
+                  size="lg"
+                  className="w-full"
+                  onClick={handleContinue}
+                  disabled={selectedStyleIndex === null}
+                >
+                  {selectedStyleIndex !== null
+                    ? `Continue with moodboard — ${analysisResult.styles[selectedStyleIndex]?.styleName}`
+                    : "Select a style to continue"}
                 </Button>
               </CardContent>
             </Card>
