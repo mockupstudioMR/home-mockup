@@ -479,9 +479,13 @@ const Generate = () => {
     // Get the last quiz hash from sessionStorage
     const storedHash = sessionStorage.getItem('generate_quiz_hash');
     
-    // Check if this is a NEW quiz (different from stored one) or a scene preview flow
+    // Check if this is a NEW quiz (different from stored one) or a scene preview flow.
+    // Also: if the user arrived here with fresh quizData in navigation state (not just a tab
+    // switch / refresh that re-reads from sessionStorage), always treat it as a new generation
+    // request so we never silently reuse a stale cached design.
     const hasScenePreview = !!location.state?.scenePreviewImage;
-    const isNewQuiz = (storedHash !== null && storedHash !== fullHash) || hasScenePreview;
+    const arrivedWithFreshQuiz = !!location.state?.quizData && !resumeDesignId;
+    const isNewQuiz = (storedHash !== null && storedHash !== fullHash) || hasScenePreview || arrivedWithFreshQuiz;
     
     if (isNewQuiz) {
       // Clear all caches for fresh start
