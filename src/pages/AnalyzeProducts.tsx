@@ -227,50 +227,6 @@ const AnalyzeProducts = () => {
     autoAnalyze(uploadedImages);
   };
 
-  // ── Generate scene previews ──────────────────────────
-  const generateScenePreviews = async () => {
-    if (!analysisResult || !selectedRoom) return;
-
-    setGeneratingPreviews(true);
-    setScenePreviews([]);
-    setSelectedScene(null);
-
-    // Pick top 3 styles from analysis, fallback to defaults
-    const ALL_STYLES = ["modern-minimal", "bohemian-eclectic", "glam-luxe", "rustic-nature", "mediterranean", "classic-historical"];
-    const detectedStyles = (analysisResult.styles || [])
-      .map((s) => s.styleName.toLowerCase().replace(/[\s&]+/g, "-"))
-      .filter((id) => ALL_STYLES.includes(id));
-
-    // Fill up to 3 with styles not already in the list
-    const stylesToGenerate = [...new Set(detectedStyles)].slice(0, 3);
-    for (const s of ALL_STYLES) {
-      if (stylesToGenerate.length >= 3) break;
-      if (!stylesToGenerate.includes(s)) stylesToGenerate.push(s);
-    }
-
-    const productDescs = analysisResult.products.map((p) => `${p.productName} (${p.category})`);
-
-    try {
-      trackEvent("ai_call", "analyze-products", { fn: "generate-scene-previews" });
-      const { data, error } = await supabase.functions.invoke("generate-scene-previews", {
-        body: {
-          roomType: selectedRoom,
-          productImages: uploadedImages,
-          productDescriptions: productDescs,
-          styles: stylesToGenerate.slice(0, 3),
-        },
-      });
-
-      if (error) throw error;
-      setScenePreviews(data.scenes || []);
-    } catch (error) {
-      console.error("Scene preview error:", error);
-      toast({ title: "Preview generation failed", description: "Please try again", variant: "destructive" });
-    } finally {
-      setGeneratingPreviews(false);
-    }
-  };
-
   // ── Continue to generate ─────────────────────────────
   const STYLE_LABELS: Record<string, string> = {
     "modern-minimal": "Modern & Minimal",
@@ -284,30 +240,43 @@ const AnalyzeProducts = () => {
   const handleContinue = () => {
     if (!analysisResult || !selectedRoom) return;
 
-    // If a scene preview was chosen, prefer it. Otherwise fall back to the
-    // top detected style so the user can always continue from the product.
-    const chosen = selectedScene !== null ? scenePreviews[selectedScene] : null;
-    const detectedStyleName = analysisResult.styles?.[0]?.styleName || "modern minimal";
-    const fallbackStyleId = detectedStyleName.toLowerCase().replace(/[\s&]+/g, "-");
-    const styleId = chosen?.styleId || fallbackStyleId;
-    const styleTitle = STYLE_LABELS[styleId] || analysisResult.styles?.[0]?.styleName || styleId;
-    const styleDescription = chosen?.description || analysisResult.styles?.[0]?.description || "";
+    const styleIdx = selectedStyleIndex ?? 0;
+    const selectedStyle = analysisResult.styles?.[styleIdx];
+    const detectedStyleName = selectedStyle?.styleName || "modern minimal";
+    const styleId = detectedStyleName.toLowerCase().replace(/[\s&]+/g, "-");
+    const styleTitle = STYLE_LABELS[styleId] || detectedStyleName;
+    const styleDescription = selectedStyle?.description || "";
 
-    // Aggregate moodboard items (mirrors AnalyzeRoom): every suggested keyword
-    // across all detected styles + iconic items, deduped.
-    const aggregatedDetailsMap: Record<string, { label: string; description: string; type: string }> = {};
-    const aggregatedIds = new Set<string>();
+    // Aggregate moodboard items: user-toggled inspirations + every suggested
+    // keyword across all detected styles + iconic items + uploaded products.
+    const aggregatedDetailsMap: Record<string, { label: string; description: string; type: string }> = {
+      ...inspirationDetailsMap,
+    };
+    const aggregatedIds = new Set<string>(selectedInspirations);
 
     (analysisResult.styles || []).forEach((style, sIdx) => {
       (style.keywords || []).forEach((keyword, kIdx) => {
         const id = `${sIdx}-${kIdx}-${keyword}`;
         aggregatedIds.add(id);
-        aggregatedDetailsMap[id] = {
-          label: keyword,
-          description: `${style.styleName}: ${keyword}`,
-          type: "tag",
-        };
+        if (!aggregatedDetailsMap[id]) {
+          aggregatedDetailsMap[id] = {
+            label: keyword,
+            description: `${style.styleName}: ${keyword}`,
+            type: "tag",
+          };
+        }
       });
+      if (style.iconicItem) {
+        const id = `iconic-${sIdx}-${style.iconicItem}`;
+        aggregatedIds.add(id);
+        if (!aggregatedDetailsMap[id]) {
+          aggregatedDetailsMap[id] = {
+            label: style.iconicItem,
+            description: `${style.styleName}: ${style.iconicItem}`,
+            type: "iconic",
+          };
+        }
+      }
     });
 
     // Add detected products as iconic moodboard references (the couch etc.)
@@ -323,12 +292,18 @@ const AnalyzeProducts = () => {
 
     const allInspirations = Array.from(aggregatedIds);
 
-    // Build moodboard references from the uploaded product images so they
-    // appear as visual references the user can edit.
+    // Build references: user-curated references from the moodboard editor,
+    // PLUS the uploaded product photos (always included as visual seeds).
     const productReferences = uploadedImages.map((url, idx) => ({
       label: analysisResult.products[idx]?.productName || `Product ${idx + 1}`,
       imageUrl: url,
     }));
+    const mergedReferences = [
+      ...productReferences,
+      ...moodboard.references.filter(
+        (r) => !productReferences.some((pr) => pr.label === r.label),
+      ),
+    ];
 
     const updatedQuizData = {
       ...quizData,
@@ -347,18 +322,21 @@ const AnalyzeProducts = () => {
         quizData: updatedQuizData,
         selectedStyle: { id: styleId, title: styleTitle, description: styleDescription },
         analysisResult: analysisResult.styles
-          ? { styles: analysisResult.styles, dominantColors: editableColors, moodboardDescription: analysisResult.moodboardSuggestion }
+          ? {
+              styles: analysisResult.styles,
+              dominantColors: editableColors,
+              moodboardDescription: analysisResult.moodboardSuggestion,
+            }
           : undefined,
         productAnalysis: analysisResult,
         sourceImages: uploadedImages,
         includeProducts: true,
-        scenePreviewImage: chosen?.imageUrl || null,
         selectedInspirations: allInspirations,
         inspirationDetails: allInspirations.map((id) => aggregatedDetailsMap[id]).filter(Boolean),
         moodboard: {
           colors: editableColors,
-          materials: [],
-          references: productReferences,
+          materials: moodboard.materials,
+          references: mergedReferences,
         },
       },
     });
