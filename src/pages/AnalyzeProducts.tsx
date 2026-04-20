@@ -101,6 +101,9 @@ const AnalyzeProducts = () => {
     references: { label: string; imageUrl?: string }[];
   }>({ materials: [], references: [] });
 
+  // Two-step flow: 'detect' (products + room) → 'moodboard' (editor)
+  const [step, setStep] = useState<"detect" | "moodboard">("detect");
+
   // Which detected products the user wants to keep (defaults to all)
   const [selectedProductIndices, setSelectedProductIndices] = useState<Set<number>>(new Set());
   useEffect(() => {
@@ -435,6 +438,7 @@ const AnalyzeProducts = () => {
           </div>
 
           {/* Upload Area */}
+          {step === "detect" && (
           <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
             <CardContent className="p-6">
               {uploadedImages.length === 0 ? (
@@ -481,11 +485,13 @@ const AnalyzeProducts = () => {
               )}
             </CardContent>
           </Card>
+          )}
 
           {/* ── STEP 1: Detected Products ─────────────────── */}
           {analysisResult && (
             <div className="space-y-8">
               {/* "We detected" — selectable */}
+              {step === "detect" && (
               <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
                 <CardContent className="p-6 space-y-3">
                   <div className="flex items-baseline justify-between gap-2 flex-wrap">
@@ -530,9 +536,10 @@ const AnalyzeProducts = () => {
                   )}
                 </CardContent>
               </Card>
+              )}
 
               {/* ── STEP 2: Matching Room Types ──────────────── */}
-              {(() => {
+              {step === "detect" && (() => {
                 // Synonym map: detected word → room config terms it should match
                 const SYNONYMS: Record<string, string[]> = {
                   sectional: ["sofa"],
@@ -651,7 +658,7 @@ const AnalyzeProducts = () => {
               })()}
 
               {/* ── STEP 3: Moodboard editor (built around the products) ── */}
-              {selectedRoom && analysisResult.styles && analysisResult.styles.length > 0 && (
+              {step === "moodboard" && selectedRoom && analysisResult.styles && analysisResult.styles.length > 0 && (
                 <Card className="border-primary/30 bg-card/80 backdrop-blur-sm">
                   <CardContent className="p-6 space-y-6">
                     <div className="text-center space-y-2">
@@ -739,7 +746,7 @@ const AnalyzeProducts = () => {
               )}
 
               {/* Missing products */}
-              {analysisResult.missingProducts && analysisResult.missingProducts.length > 0 && (
+              {step === "detect" && analysisResult.missingProducts && analysisResult.missingProducts.length > 0 && (
                 <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
                   <CardContent className="p-5 space-y-3">
                     <div className="flex items-center gap-2">
@@ -785,15 +792,35 @@ const AnalyzeProducts = () => {
       {/* Sticky bottom CTA - active as soon as a room is picked */}
       {analysisResult && selectedRoom && (
         <div className="fixed bottom-0 left-0 right-0 z-20 bg-background/80 backdrop-blur-md border-t border-border p-4">
-          <div className="max-w-3xl mx-auto">
-            <Button size="lg" className="w-full" onClick={handleContinue} disabled={selectedProductIndices.size === 0}>
+          <div className="max-w-3xl mx-auto flex items-center gap-3">
+            {step === "moodboard" && (
+              <Button size="lg" variant="outline" onClick={() => setStep("detect")}>
+                <ArrowLeft className="w-4 h-4 mr-1" />
+                Back
+              </Button>
+            )}
+            <Button
+              size="lg"
+              className="flex-1"
+              onClick={() => {
+                if (step === "detect") {
+                  setStep("moodboard");
+                  window.scrollTo({ top: 0, behavior: "smooth" });
+                } else {
+                  handleContinue();
+                }
+              }}
+              disabled={selectedProductIndices.size === 0}
+            >
               <Sparkles className="w-5 h-5 mr-2" />
-              Complete your moodboard
+              {step === "detect" ? "Complete your moodboard" : "Generate my design"}
             </Button>
-            <p className="text-xs text-muted-foreground text-center mt-2">
-              We'll build the moodboard around your products — edit suggested styles on the next step
-            </p>
           </div>
+          <p className="text-xs text-muted-foreground text-center mt-2">
+            {step === "detect"
+              ? "We'll build the moodboard around your products — edit suggested styles on the next step"
+              : "Edit colors, materials and style references, then generate your design"}
+          </p>
         </div>
       )}
     </div>
