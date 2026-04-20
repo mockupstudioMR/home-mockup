@@ -227,6 +227,16 @@ const ConclusionVisuals = ({
   const [referenceImages, setReferenceImages] = useState<Record<string, string>>({});
   useEffect(() => setReferences(initialReferences), [initialReferences]);
 
+  // Emit moodboard upward whenever it changes
+  useEffect(() => {
+    if (!onMoodboardChange) return;
+    onMoodboardChange({
+      materials: materials.map((m) => ({ label: m, imageUrl: materialImages[m] })),
+      references: references.map((r) => ({ label: r, imageUrl: referenceImages[r] })),
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [materials, references, materialImages, referenceImages]);
+
   // Add new material/reference state
   const [newMaterial, setNewMaterial] = useState("");
   const [addingMaterial, setAddingMaterial] = useState(false);
