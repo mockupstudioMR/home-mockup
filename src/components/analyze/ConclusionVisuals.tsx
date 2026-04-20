@@ -291,14 +291,61 @@ const ConclusionVisuals = ({
   const [referenceImages, setReferenceImages] = useState<Record<string, string>>({});
   useEffect(() => setReferences(initialReferences), [initialReferences]);
 
-  // Furniture References — user uploads images of furniture they like the look of.
-  // Treated as STYLE INSPIRATION (use similar pieces), not exact match.
+  // Furniture References — AI-generated examples of furniture pieces matching the detected style.
+  // Treated as STYLE INSPIRATION (use similar pieces), not exact match. Users can also upload.
   const [furnitureReferences, setFurnitureReferences] = useState<{ label: string; imageUrl?: string }[]>([]);
   const [uploadingFurnitureRef, setUploadingFurnitureRef] = useState(false);
+  const [generatingFurnitureRef, setGeneratingFurnitureRef] = useState(false);
 
-  // Decor References — accessories, textiles, lighting (lamps, vases, art, cushions, rugs).
+  // Decor References — AI-generated accessories, textiles, lighting (lamps, vases, art, cushions, rugs).
   const [decorReferences, setDecorReferences] = useState<{ label: string; imageUrl?: string }[]>([]);
   const [uploadingDecorRef, setUploadingDecorRef] = useState(false);
+  const [generatingDecorRef, setGeneratingDecorRef] = useState(false);
+
+  // Auto-generate AI references for furniture & decor when style is known
+  const generateAiReference = async (
+    kind: "furniture" | "decor",
+    setter: React.Dispatch<React.SetStateAction<{ label: string; imageUrl?: string }[]>>,
+    setBusy: React.Dispatch<React.SetStateAction<boolean>>,
+  ) => {
+    if (!styleNames[0]) return;
+    setBusy(true);
+    try {
+      const furnitureExamples = ["sofa", "armchair", "dining table", "bed frame", "sideboard"];
+      const decorExamples = ["floor lamp", "vase", "wall art", "cushion", "area rug", "pendant light"];
+      const pool = kind === "furniture" ? furnitureExamples : decorExamples;
+      const pick = pool[Math.floor(Math.random() * pool.length)];
+      const label = `${styleNames[0]} ${pick}`;
+      const body = {
+        type: "accentFurniture",
+        style: styleSlug,
+        room: roomType,
+        furnitureName: pick,
+        furnitureDescription:
+          kind === "furniture"
+            ? `A single ${styleNames[0]}-style ${pick} as a hero product shot on a clean neutral background. ONE item only, no full room, no collage.`
+            : `A single ${styleNames[0]}-style ${pick} (decor/accessory) as a hero product shot on a clean neutral background. ONE item only, no full room, no collage.`,
+      };
+      const { data, error } = await supabase.functions.invoke("generate-highlight-visuals", { body });
+      if (!error && data?.imageUrl) {
+        setter((prev) => [...prev, { label, imageUrl: data.imageUrl }]);
+      }
+    } catch { /* ignore */ } finally {
+      setBusy(false);
+    }
+  };
+
+  // Auto-seed one AI reference of each kind once style is detected
+  useEffect(() => {
+    if (!styleNames[0]) return;
+    if (furnitureReferences.length === 0 && !generatingFurnitureRef) {
+      generateAiReference("furniture", setFurnitureReferences, setGeneratingFurnitureRef);
+    }
+    if (decorReferences.length === 0 && !generatingDecorRef) {
+      generateAiReference("decor", setDecorReferences, setGeneratingDecorRef);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [styleNames[0]]);
 
   const uploadInspirationImages = async (
     files: File[],
