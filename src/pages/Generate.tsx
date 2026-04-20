@@ -1390,14 +1390,6 @@ const Generate = () => {
   const handleModify = async (modificationType?: string, explicitPrompt?: string, explicitReferenceUrl?: string | null) => {
     const promptToUse = (explicitPrompt ?? modificationInput).trim();
     if (!promptToUse || !quizData || !design) return;
-    if (design.isLocked) {
-      toast({
-        title: "Design is locked",
-        description: "This design has been finalized and cannot be modified",
-        variant: "destructive",
-      });
-      return;
-    }
 
     setGenerating(true);
     try {
@@ -1556,10 +1548,6 @@ const Generate = () => {
     dimensions: Record<string, number>;
   }) => {
     if (!quizData || !design || !user) return;
-    if (design.isLocked) {
-      toast({ title: "Design is locked", variant: "destructive" });
-      return;
-    }
     setGenerating(true);
     try {
       const dimsLabel = Object.entries(dimensions).map(([k, v]) => `${k}=${v}m`).join(", ");
@@ -2064,7 +2052,8 @@ RULES:
           </div>
         )}
 
-        {/* Unified Moodboard + Refine */}
+        {/* Unified Moodboard + Refine — only visible after the user opts into refinement */}
+        {design?.isLocked && (
         <div className="max-w-3xl mx-auto">
           <MoodboardRefinePanel
             items={moodboardItems}
@@ -2087,9 +2076,10 @@ RULES:
             onUndo={handleUndoDesign}
             canUndo={imageHistoryStack.length > 0}
             generating={generating}
-            disabled={!design || generating || !!design?.isLocked}
+            disabled={!design || generating}
           />
         </div>
+        )}
 
         {/* Debug Panel - Testing */}
         {design && (debugSteps.length > 0 || debugPrompt) && (

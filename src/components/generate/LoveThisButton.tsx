@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { Heart, Loader2, Lock, Sparkles, ThumbsDown } from "lucide-react";
+import { Loader2, Lock, Sparkles, ThumbsDown, Wand2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
 import { trackEvent } from "@/lib/analytics";
@@ -20,7 +20,7 @@ const LoveThisButton = ({ isLocked, isLoading, onLock, designId }: LoveThisButto
     return (
       <div className="flex items-center justify-center gap-2 py-3 px-6 rounded-full bg-primary/10 text-primary border border-primary/30">
         <Lock className="w-4 h-4" />
-        <span className="font-medium">Design Locked & Saved</span>
+        <span className="font-medium">Refining this design</span>
       </div>
     );
   }
@@ -51,12 +51,12 @@ const LoveThisButton = ({ isLocked, isLoading, onLock, designId }: LoveThisButto
         {isLoading ? (
           <>
             <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-            Analyzing your design...
+            Preparing refinements...
           </>
         ) : (
           <>
-            <Heart className="w-5 h-5 mr-2 group-hover:scale-110 transition-transform" />
-            Love this enough — let's dig deeper
+            <Wand2 className="w-5 h-5 mr-2 group-hover:scale-110 transition-transform" />
+            Let us refine this design
             <Sparkles className="w-5 h-5 ml-2 group-hover:rotate-12 transition-transform" />
           </>
         )}
