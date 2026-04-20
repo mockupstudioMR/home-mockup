@@ -1369,8 +1369,9 @@ const Generate = () => {
     [user, toast]
   );
 
-  const handleModify = async (modificationType?: string) => {
-    if (!modificationInput.trim() || !quizData || !design) return;
+  const handleModify = async (modificationType?: string, explicitPrompt?: string, explicitReferenceUrl?: string | null) => {
+    const promptToUse = (explicitPrompt ?? modificationInput).trim();
+    if (!promptToUse || !quizData || !design) return;
     if (design.isLocked) {
       toast({
         title: "Design is locked",
@@ -1385,10 +1386,10 @@ const Generate = () => {
       const response = await supabase.functions.invoke("generate-design", {
         body: {
           ...quizData,
-          modificationPrompt: modificationInput,
+          modificationPrompt: promptToUse,
           modificationType: modificationType || "color_material",
           sourceImageUrl: design.imageUrl,
-          referenceImageUrl: referenceImageUrl,
+          referenceImageUrl: explicitReferenceUrl !== undefined ? explicitReferenceUrl : referenceImageUrl,
           existingRoomImages: existingRoomImages.length > 0 ? existingRoomImages : undefined,
         },
       });
