@@ -31,11 +31,14 @@ interface ConclusionVisualsProps {
   extraMaterials?: string[];
   /** Map of styleName -> iconic item label (e.g., "Wassily chair") for single-item style ref visuals. */
   iconicItems?: Record<string, string>;
+  /** Items the user MUST keep — appear in their own section with their actual images. */
+  mustIncludeItems?: { label: string; imageUrl?: string }[];
   roomType?: string;
-  /** Emit the current moodboard (materials + references with images) so the parent can use it downstream. */
+  /** Emit the current moodboard (materials + references + must-include with images) so the parent can use it downstream. */
   onMoodboardChange?: (mb: {
     materials: { label: string; imageUrl?: string }[];
     references: { label: string; imageUrl?: string }[];
+    mustInclude: { label: string; imageUrl?: string }[];
   }) => void;
 }
 
