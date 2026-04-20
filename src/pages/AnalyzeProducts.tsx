@@ -95,11 +95,12 @@ const AnalyzeProducts = () => {
   const [inspirationDetailsMap, setInspirationDetailsMap] = useState<
     Record<string, { label: string; description: string; type: string }>
   >({});
-  const [moodboardExtras] = useState<string[]>([]);
+  const [moodboardExtras, setMoodboardExtras] = useState<string[]>([]);
   const [moodboard, setMoodboard] = useState<{
     materials: { label: string; imageUrl?: string }[];
     references: { label: string; imageUrl?: string }[];
-  }>({ materials: [], references: [] });
+    mustInclude: { label: string; imageUrl?: string }[];
+  }>({ materials: [], references: [], mustInclude: [] });
 
   // Two-step flow: 'detect' (products + room) → 'moodboard' (editor)
   const [step, setStep] = useState<"detect" | "moodboard">("detect");
@@ -118,6 +119,18 @@ const AnalyzeProducts = () => {
       else next.add(i);
       return next;
     });
+
+  // Auto-seed material/texture suggestions from matching style keywords
+  useEffect(() => {
+    if (!analysisResult?.styles) return;
+    const idx = selectedStyleIndex ?? 0;
+    const top = analysisResult.styles[idx];
+    if (!top) return;
+    const suggestions = (top.keywords || [])
+      .filter((k) => k && k.length < 30)
+      .slice(0, 6);
+    setMoodboardExtras(suggestions);
+  }, [analysisResult, selectedStyleIndex]);
 
   // Fetch room configs on mount
   useEffect(() => {
@@ -356,6 +369,7 @@ const AnalyzeProducts = () => {
           colors: editableColors,
           materials: moodboard.materials,
           references: mergedReferences,
+          mustInclude: moodboard.mustInclude,
         },
       },
     });
@@ -683,6 +697,9 @@ const AnalyzeProducts = () => {
                           .filter((s) => s.iconicItem)
                           .map((s) => [s.styleName, s.iconicItem as string]),
                       )}
+                      mustIncludeItems={analysisResult.products
+                        .map((p, i) => ({ label: p.productName, imageUrl: uploadedImages[i] }))
+                        .filter((_, i) => selectedProductIndices.has(i))}
                       extraMaterials={moodboardExtras}
                       roomType={selectedRoom}
                       onMoodboardChange={setMoodboard}
