@@ -534,9 +534,10 @@ const AnalyzeProducts = () => {
                   )}
                 </CardContent>
               </Card>
+              )}
 
               {/* ── STEP 2: Matching Room Types ──────────────── */}
-              {(() => {
+              {step === "detect" && (() => {
                 // Synonym map: detected word → room config terms it should match
                 const SYNONYMS: Record<string, string[]> = {
                   sectional: ["sofa"],
