@@ -368,6 +368,44 @@ const ConclusionVisuals = ({
 
   return (
     <div className="rounded-xl border border-border/50 bg-secondary/20 p-4 space-y-5">
+      {/* Must-Include Furniture (e.g., the user's uploaded products) */}
+      {mustInclude.length > 0 && (
+        <div>
+          <p className="text-[11px] uppercase tracking-wide text-muted-foreground mb-2 font-medium">
+            Must-Include Furniture <span className="normal-case text-muted-foreground/70">— we'll design the room around these</span>
+          </p>
+          <div className="flex flex-wrap gap-3 items-start">
+            {mustInclude.map((item) => (
+              <div key={item.label} className="group relative w-24">
+                <div className="aspect-square rounded-lg overflow-hidden border-2 border-primary/40 bg-secondary/30 relative">
+                  {item.imageUrl ? (
+                    <img src={item.imageUrl} alt={item.label} className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-[10px] text-muted-foreground">
+                      {item.label}
+                    </div>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => removeMustInclude(item.label)}
+                    className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/50 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                    aria-label="Remove"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                  <div className="absolute bottom-1 left-1 px-1.5 py-0.5 rounded bg-primary/90 text-primary-foreground text-[9px] font-medium">
+                    Must-have
+                  </div>
+                </div>
+                <div className="mt-1 text-[11px] leading-tight truncate" title={item.label}>
+                  {item.label}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Dominant Colors */}
       <div>
         <div className="flex items-center justify-between mb-2">
