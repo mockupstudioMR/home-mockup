@@ -171,36 +171,46 @@ const AdminDashboard = () => {
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 py-8">
         <Tabs defaultValue="products" className="space-y-6">
-          <TabsList className="grid w-full max-w-4xl grid-cols-7">
-            <TabsTrigger value="products" className="flex items-center gap-2">
-              <Package className="w-4 h-4" />
-              <span className="hidden sm:inline">Products</span>
-            </TabsTrigger>
-            <TabsTrigger value="design-config" className="flex items-center gap-2">
-              <Settings2 className="w-4 h-4" />
-              <span className="hidden sm:inline">Design Config</span>
-            </TabsTrigger>
-            <TabsTrigger value="invites" className="flex items-center gap-2">
-              <Users className="w-4 h-4" />
-              <span className="hidden sm:inline">Invites</span>
-            </TabsTrigger>
-            <TabsTrigger value="users" className="flex items-center gap-2">
-              <Users className="w-4 h-4" />
-              <span className="hidden sm:inline">Users</span>
-            </TabsTrigger>
-            <TabsTrigger value="cms" className="flex items-center gap-2">
-              <FileText className="w-4 h-4" />
-              <span className="hidden sm:inline">CMS</span>
-            </TabsTrigger>
-            <TabsTrigger value="billing" className="flex items-center gap-2">
-              <CreditCard className="w-4 h-4" />
-              <span className="hidden sm:inline">Billing</span>
-            </TabsTrigger>
-            <TabsTrigger value="analytics" className="flex items-center gap-2">
-              <BarChart3 className="w-4 h-4" />
-              <span className="hidden sm:inline">Analytics</span>
-            </TabsTrigger>
-          </TabsList>
+          {/* Horizontally scrollable on mobile so all 7 tabs stay reachable */}
+          <div className="-mx-4 px-4 overflow-x-auto scrollbar-none">
+            <TabsList className="inline-flex w-max sm:grid sm:w-full sm:max-w-4xl sm:grid-cols-7">
+              <TabsTrigger value="products" className="flex items-center gap-2 whitespace-nowrap">
+                <Package className="w-4 h-4" />
+                <span className="hidden sm:inline">Products</span>
+                <span className="sm:hidden">Products</span>
+              </TabsTrigger>
+              <TabsTrigger value="design-config" className="flex items-center gap-2 whitespace-nowrap">
+                <Settings2 className="w-4 h-4" />
+                <span className="hidden sm:inline">Design Config</span>
+                <span className="sm:hidden">Design</span>
+              </TabsTrigger>
+              <TabsTrigger value="invites" className="flex items-center gap-2 whitespace-nowrap">
+                <Users className="w-4 h-4" />
+                <span className="hidden sm:inline">Invites</span>
+                <span className="sm:hidden">Invites</span>
+              </TabsTrigger>
+              <TabsTrigger value="users" className="flex items-center gap-2 whitespace-nowrap">
+                <Users className="w-4 h-4" />
+                <span className="hidden sm:inline">Users</span>
+                <span className="sm:hidden">Users</span>
+              </TabsTrigger>
+              <TabsTrigger value="cms" className="flex items-center gap-2 whitespace-nowrap">
+                <FileText className="w-4 h-4" />
+                <span className="hidden sm:inline">CMS</span>
+                <span className="sm:hidden">CMS</span>
+              </TabsTrigger>
+              <TabsTrigger value="billing" className="flex items-center gap-2 whitespace-nowrap">
+                <CreditCard className="w-4 h-4" />
+                <span className="hidden sm:inline">Billing</span>
+                <span className="sm:hidden">Billing</span>
+              </TabsTrigger>
+              <TabsTrigger value="analytics" className="flex items-center gap-2 whitespace-nowrap">
+                <BarChart3 className="w-4 h-4" />
+                <span className="hidden sm:inline">Analytics</span>
+                <span className="sm:hidden">Stats</span>
+              </TabsTrigger>
+            </TabsList>
+          </div>
 
           {/* Products Tab */}
           <TabsContent value="products">

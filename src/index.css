@@ -109,9 +109,45 @@
     @apply border-border;
   }
 
+  html,
+  body {
+    /* Prevent horizontal scroll caused by stray oversized elements on small screens */
+    overflow-x: hidden;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+
   body {
     @apply bg-background text-foreground;
     font-feature-settings: "rlig" 1, "calt" 1;
+    /* Honor iOS safe areas (notch / home indicator) when installed as PWA */
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+    /* Smoother momentum scrolling on iOS */
+    -webkit-overflow-scrolling: touch;
+    /* Prevent iOS from auto-zooming on input focus */
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* iOS auto-zooms inputs with font-size < 16px. Lock to 16px on small screens. */
+  @media (max-width: 640px) {
+    input,
+    select,
+    textarea {
+      font-size: 16px;
+    }
+  }
+
+  /* Long words (URLs, product names) should wrap instead of overflowing */
+  p, h1, h2, h3, h4, h5, h6, span, a, li, label {
+    overflow-wrap: anywhere;
+    word-break: normal;
+  }
+
+  /* Images should never blow out their container on mobile */
+  img, video, canvas, svg {
+    max-width: 100%;
+    height: auto;
   }
 }
 
