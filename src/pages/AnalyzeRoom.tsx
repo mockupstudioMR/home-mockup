@@ -61,8 +61,10 @@ const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(() =
   const [moodboard, setMoodboard] = useState<{
     materials: { label: string; imageUrl?: string }[];
     references: { label: string; imageUrl?: string }[];
+    furnitureReferences: { label: string; imageUrl?: string }[];
+    decorReferences: { label: string; imageUrl?: string }[];
     mustInclude: { label: string; imageUrl?: string }[];
-  }>({ materials: [], references: [], mustInclude: [] });
+  }>({ materials: [], references: [], furnitureReferences: [], decorReferences: [], mustInclude: [] });
 
   // No persistence — every visit to /analyze-room starts with a clean slate.
   useEffect(() => {
@@ -251,6 +253,8 @@ const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(() =
           colors: editableColors,
           materials: moodboard.materials,
           references: moodboard.references,
+          furnitureReferences: moodboard.furnitureReferences,
+          decorReferences: moodboard.decorReferences,
           mustInclude: moodboard.mustInclude,
         },
       }
