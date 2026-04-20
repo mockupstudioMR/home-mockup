@@ -112,18 +112,28 @@ const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(() =
         .filter((file) => file.type.startsWith("image/"))
         .slice(0, remainingSlots)
         .map((file) => uploadToStorage(file));
-      const newUrls = (await Promise.all(uploads)).filter(Boolean) as string[];
+      const results = await Promise.all(uploads);
+      const newUrls = results.filter(Boolean) as string[];
+      const failedCount = results.length - newUrls.length;
 
       if (newUrls.length > 0) {
         setUploadedImages(prev => [...prev, ...newUrls].slice(0, 6));
         setAnalysisResult(null);
         setSelectedStyleIndex(null);
       }
+
+      if (failedCount > 0) {
+        toast({
+          title: newUrls.length > 0 ? "Some uploads failed" : "Upload failed",
+          description: "Server was busy. Please try the failed photo(s) again in a moment.",
+          variant: "destructive",
+        });
+      }
     } catch (error) {
       console.error('Upload failed:', error);
       toast({
         title: "Upload failed",
-        description: "Please try again",
+        description: "Please try again in a moment",
         variant: "destructive",
       });
     } finally {
