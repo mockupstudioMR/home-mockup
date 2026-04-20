@@ -197,7 +197,8 @@ const ConclusionVisuals = ({
     [styleNames],
   );
 
-  // Must-include items (e.g., uploaded products) — kept here so user can remove
+  // Must-include items (uploaded products OR user-added furniture).
+  // Items added via the "+" tile start without an imageUrl and auto-generate one.
   const initialMustInclude = useMemo(
     () => (mustIncludeItems || []).filter((m) => m.label),
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -207,6 +208,20 @@ const ConclusionVisuals = ({
   useEffect(() => setMustInclude(initialMustInclude), [initialMustInclude]);
   const removeMustInclude = (label: string) =>
     setMustInclude((prev) => prev.filter((m) => m.label !== label));
+  const renameMustInclude = (oldLabel: string, next: string) =>
+    setMustInclude((prev) => prev.map((m) => (m.label === oldLabel ? { ...m, label: next } : m)));
+  const setMustIncludeImage = (label: string, url: string) =>
+    setMustInclude((prev) => prev.map((m) => (m.label === label ? { ...m, imageUrl: url } : m)));
+  const [newMustInclude, setNewMustInclude] = useState("");
+  const [addingMustInclude, setAddingMustInclude] = useState(false);
+  const commitNewMustInclude = () => {
+    const v = newMustInclude.trim();
+    if (v && !mustInclude.some((m) => m.label.toLowerCase() === v.toLowerCase())) {
+      setMustInclude((prev) => [...prev, { label: v }]);
+    }
+    setNewMustInclude("");
+    setAddingMustInclude(false);
+  };
 
   // Materials & Textures
   const initialMaterials = useMemo(
