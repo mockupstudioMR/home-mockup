@@ -22,8 +22,9 @@ STEP 1 — For EACH image individually, analyze:
   c) Textures & materials: 3-6 short labels of the dominant textures/materials visible (e.g., "natural linen", "polished marble", "rough oak", "brushed brass", "boucle wool").
 
 STEP 2 — Then synthesize a CONCLUSION across ALL images. The conclusion CAN be mixed (multiple styles blended). Provide:
-  - styles[]: 1-3 dominant styles with confidence, description, and 3-5 keywords. If the images mix styles, include each one and call it out as a mix in the moodboardDescription.
+  - styles[]: 1-3 dominant styles with confidence, description, 3-5 keywords, AND a single representative "iconicItem" (one specific furniture/decor item that visually embodies that style — e.g., "Wassily chair", "Noguchi paper lantern", "Carved teak console").
   - dominantColors[]: combined palette across all images (hex codes).
+  - materials[]: 4-8 specific materials/textures consolidated across all images (e.g., "natural linen", "polished marble", "rough oak", "brushed brass", "boucle wool", "terracotta tile"). MUST be populated.
   - moodboardDescription: 1-3 sentences. If mixed, explicitly say "This is a mix of X and Y…".
   - roomElements[]: notable furniture/architectural items visible across images (label, category, description).
 
@@ -43,9 +44,10 @@ Respond in this EXACT JSON format:
     }
   ],
   "styles": [
-    { "styleName": "string", "confidence": 0.0, "description": "string", "keywords": ["string"] }
+    { "styleName": "string", "confidence": 0.0, "description": "string", "keywords": ["string"], "iconicItem": "string" }
   ],
   "dominantColors": ["#hex"],
+  "materials": ["string"],
   "moodboardDescription": "string",
   "roomElements": [
     { "label": "string", "category": "furniture | wall | flooring | lighting | window | rug | decor | architectural", "description": "string" }
