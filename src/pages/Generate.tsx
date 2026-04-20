@@ -353,9 +353,12 @@ const Generate = () => {
       if (spec) {
         toLegacyFloorPlanContext(spec);
         activeRoomId = getActiveRoomId();
+        const raw = sessionStorage.getItem("floor_plan_context");
+        if (raw) floorPlanContext = JSON.parse(raw);
+      } else {
+        // No active room spec → discard any stale legacy context from a previous journey
+        try { sessionStorage.removeItem("floor_plan_context"); } catch { /* ignore */ }
       }
-      const raw = sessionStorage.getItem("floor_plan_context");
-      if (raw) floorPlanContext = JSON.parse(raw);
     } catch {
       /* ignore */
     }
