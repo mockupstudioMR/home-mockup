@@ -469,33 +469,23 @@ const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(() =
                     </p>
                   )}
 
-                  {/* Visuals generated from the overall conclusion */}
+                  {/* Single editable moodboard generated from the overall conclusion */}
                   {analysisResult.moodboardDescription && (
                     <div className="mb-6">
-                      <div className="flex items-center justify-between mb-2">
-                        <h3 className="text-sm font-semibold">Conclusion Moodboard</h3>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          className="text-xs h-7"
-                          onClick={() => {
-                            setConclusionRefresh((n) => n + 1);
-                            trackEvent("ai_call", "analyze-room", { fn: "regenerate-conclusion-visuals" });
-                          }}
-                        >
-                          <RefreshIcon className="w-3 h-3 mr-1.5" />
-                          Regenerate
-                        </Button>
-                      </div>
+                      <h3 className="text-sm font-semibold mb-2">Conclusion Moodboard</h3>
                       <ConclusionVisuals
                         moodboardDescription={analysisResult.moodboardDescription}
                         dominantColors={editableColors}
                         styleNames={analysisResult.styles.map((s) => s.styleName)}
-                        refreshKey={conclusionRefresh}
+                        seedElements={Array.from(
+                          new Set(
+                            (analysisResult.perImage || []).flatMap((p) => p.textures || []),
+                          ),
+                        )}
                       />
                     </div>
                   )}
+
 
                   <h3 className="text-sm font-semibold mb-2">Style Matches</h3>
                   <div className="space-y-3">
