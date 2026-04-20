@@ -2106,12 +2106,13 @@ RULES:
               onLock={handleLockDesign}
               designId={design.id}
             />
-            <OtherAnglesButton
+            {/* Other Angles Button - Hidden */}
+            {/* <OtherAnglesButton
               key={design?.id}
               onGenerate={handleGenerateAngle}
               disabled={extractingItems || generating}
               onImageGenerated={handleAngleImageGenerated}
-            />
+            /> */}
           </div>
         )}
 
