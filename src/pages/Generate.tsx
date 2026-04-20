@@ -115,6 +115,15 @@ interface DesignItem {
   };
 }
 
+type GenerateMoodboard = {
+  colors?: string[];
+  materials?: { label: string; imageUrl?: string }[];
+  references?: { label: string; imageUrl?: string }[];
+  furnitureReferences?: { label: string; imageUrl?: string }[];
+  decorReferences?: { label: string; imageUrl?: string }[];
+  mustInclude?: { label: string; imageUrl?: string }[];
+};
+
 // Generate a suggested design name from style & room type
 const generateDesignTitle = (style?: string, roomType?: string): string => {
   const styleTitles: Record<string, string[]> = {
@@ -195,6 +204,17 @@ const Generate = () => {
       const cached = sessionStorage.getItem('generate_analysis_cache');
       return cached ? JSON.parse(cached) as AnalysisData : undefined;
     } catch { return undefined; }
+  })();
+
+  const routeMoodboard = location.state?.moodboard as GenerateMoodboard | undefined;
+  const currentMoodboard = (() => {
+    if (routeMoodboard) return routeMoodboard;
+    try {
+      const cached = sessionStorage.getItem("generate_moodboard_cache");
+      return cached ? (JSON.parse(cached) as GenerateMoodboard) : undefined;
+    } catch {
+      return undefined;
+    }
   })();
 
   console.log('[Generate] analysisResult colors:', analysisResult?.dominantColors, 'keywords:', analysisResult?.styles?.flatMap(s => s.keywords));
@@ -450,6 +470,11 @@ const Generate = () => {
     }
   }, [debugPrompt, safeSessionStorage]);
 
+  useEffect(() => {
+    if (!routeMoodboard) return;
+    safeSessionStorage("generate_moodboard_cache", JSON.stringify(routeMoodboard));
+  }, [routeMoodboard, safeSessionStorage]);
+
   // Track the quiz data to detect new quizzes
   const lastQuizDataRef = useRef<string | null>(sessionStorage.getItem('generate_quiz_hash'));
 
@@ -526,6 +551,7 @@ const Generate = () => {
       sessionStorage.removeItem('generate_quiz_response_id');
       sessionStorage.removeItem('generate_debug_steps_cache');
       sessionStorage.removeItem('generate_debug_prompt_cache');
+      sessionStorage.removeItem('generate_moodboard_cache');
       
       // Reset state
       setDesign(null);
@@ -809,16 +835,7 @@ const Generate = () => {
     if (!quizData || !user) return;
 
     const { productAnalysis, sourceImages, includeProducts, scenePreviewImage } = location.state || {};
-    const moodboard = location.state?.moodboard as
-      | {
-          colors?: string[];
-          materials?: { label: string; imageUrl?: string }[];
-          references?: { label: string; imageUrl?: string }[];
-          furnitureReferences?: { label: string; imageUrl?: string }[];
-          decorReferences?: { label: string; imageUrl?: string }[];
-          mustInclude?: { label: string; imageUrl?: string }[];
-        }
-      | undefined;
+    const moodboard = currentMoodboard;
     const shouldIncludeProducts = !!includeProducts && !isExistingRoomFlow;
 
     setGenerating(true);
