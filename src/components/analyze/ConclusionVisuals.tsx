@@ -530,6 +530,120 @@ const ConclusionVisuals = ({
         </div>
       </div>
 
+      {/* Furniture References — inspiration, "use similar" */}
+      <div>
+        <p className="text-[11px] uppercase tracking-wide text-muted-foreground mb-2 font-medium">
+          Furniture References <span className="normal-case text-muted-foreground/70">— upload sofas, beds, tables, chairs you love (we'll use similar pieces)</span>
+        </p>
+        <div className="flex flex-wrap gap-3 items-start">
+          {furnitureReferences.map((item) => (
+            <div key={item.label} className="group relative w-24">
+              <div className="aspect-square rounded-lg overflow-hidden border border-border bg-secondary/30 relative">
+                {item.imageUrl && (
+                  <img src={getThumbnailImageUrl(item.imageUrl)} alt={item.label} className="w-full h-full object-cover" loading="lazy" decoding="async" />
+                )}
+                <button
+                  type="button"
+                  onClick={() => setFurnitureReferences((prev) => prev.filter((m) => m.label !== item.label))}
+                  className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/50 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                  aria-label="Remove"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+                <div className="absolute bottom-1 left-1 px-1.5 py-0.5 rounded bg-foreground/80 text-background text-[9px] font-medium">
+                  Inspiration
+                </div>
+              </div>
+              <div className="mt-1 text-[11px] leading-tight truncate" title={item.label}>{item.label}</div>
+            </div>
+          ))}
+          <label className={cn(
+            "w-24 aspect-square rounded-lg border-2 border-dashed transition-colors flex flex-col items-center justify-center gap-1",
+            uploadingFurnitureRef
+              ? "border-primary/40 bg-primary/5 text-primary cursor-wait"
+              : "border-border hover:border-primary/50 hover:bg-primary/5 text-muted-foreground hover:text-primary cursor-pointer",
+          )}>
+            {uploadingFurnitureRef ? (
+              <><Loader2 className="w-4 h-4 animate-spin" /><span className="text-[10px]">Uploading…</span></>
+            ) : (
+              <><Plus className="w-4 h-4" /><span className="text-[10px]">Add furniture</span></>
+            )}
+            <input
+              type="file"
+              accept="image/*"
+              multiple
+              className="hidden"
+              disabled={uploadingFurnitureRef}
+              onChange={async (e) => {
+                const files = Array.from(e.target.files || []);
+                e.target.value = "";
+                if (!files.length) return;
+                setUploadingFurnitureRef(true);
+                try { await uploadInspirationImages(files, "furniture-ref", setFurnitureReferences); }
+                finally { setUploadingFurnitureRef(false); }
+              }}
+            />
+          </label>
+        </div>
+      </div>
+
+      {/* Decor References — accessories, textiles, lighting */}
+      <div>
+        <p className="text-[11px] uppercase tracking-wide text-muted-foreground mb-2 font-medium">
+          Decor References <span className="normal-case text-muted-foreground/70">— lamps, vases, art, cushions, rugs (we'll use similar accessories)</span>
+        </p>
+        <div className="flex flex-wrap gap-3 items-start">
+          {decorReferences.map((item) => (
+            <div key={item.label} className="group relative w-24">
+              <div className="aspect-square rounded-lg overflow-hidden border border-border bg-secondary/30 relative">
+                {item.imageUrl && (
+                  <img src={getThumbnailImageUrl(item.imageUrl)} alt={item.label} className="w-full h-full object-cover" loading="lazy" decoding="async" />
+                )}
+                <button
+                  type="button"
+                  onClick={() => setDecorReferences((prev) => prev.filter((m) => m.label !== item.label))}
+                  className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/50 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                  aria-label="Remove"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+                <div className="absolute bottom-1 left-1 px-1.5 py-0.5 rounded bg-foreground/80 text-background text-[9px] font-medium">
+                  Inspiration
+                </div>
+              </div>
+              <div className="mt-1 text-[11px] leading-tight truncate" title={item.label}>{item.label}</div>
+            </div>
+          ))}
+          <label className={cn(
+            "w-24 aspect-square rounded-lg border-2 border-dashed transition-colors flex flex-col items-center justify-center gap-1",
+            uploadingDecorRef
+              ? "border-primary/40 bg-primary/5 text-primary cursor-wait"
+              : "border-border hover:border-primary/50 hover:bg-primary/5 text-muted-foreground hover:text-primary cursor-pointer",
+          )}>
+            {uploadingDecorRef ? (
+              <><Loader2 className="w-4 h-4 animate-spin" /><span className="text-[10px]">Uploading…</span></>
+            ) : (
+              <><Plus className="w-4 h-4" /><span className="text-[10px]">Add decor</span></>
+            )}
+            <input
+              type="file"
+              accept="image/*"
+              multiple
+              className="hidden"
+              disabled={uploadingDecorRef}
+              onChange={async (e) => {
+                const files = Array.from(e.target.files || []);
+                e.target.value = "";
+                if (!files.length) return;
+                setUploadingDecorRef(true);
+                try { await uploadInspirationImages(files, "decor-ref", setDecorReferences); }
+                finally { setUploadingDecorRef(false); }
+              }}
+            />
+          </label>
+        </div>
+      </div>
+
       {/* Dominant Colors */}
       <div>
         <div className="flex items-center justify-between mb-2">
