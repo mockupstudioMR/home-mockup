@@ -431,15 +431,7 @@ const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(() =
                       dominantColors={editableColors}
                       onDominantColorsChange={setEditableColors}
                       styleNames={analysisResult.styles.map((s) => s.styleName)}
-                      seedElements={
-                        analysisResult.materials && analysisResult.materials.length > 0
-                          ? analysisResult.materials
-                          : Array.from(
-                              new Set(
-                                (analysisResult.perImage || []).flatMap((p) => p.textures || []),
-                              ),
-                            )
-                      }
+                      seedElements={analysisResult.materials || []}
                       iconicItems={Object.fromEntries(
                         analysisResult.styles
                           .filter((s) => s.iconicItem)
