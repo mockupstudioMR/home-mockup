@@ -654,7 +654,7 @@ const AnalyzeProducts = () => {
               })()}
 
               {/* ── STEP 3: Moodboard editor (built around the products) ── */}
-              {selectedRoom && analysisResult.styles && analysisResult.styles.length > 0 && (
+              {step === "moodboard" && selectedRoom && analysisResult.styles && analysisResult.styles.length > 0 && (
                 <Card className="border-primary/30 bg-card/80 backdrop-blur-sm">
                   <CardContent className="p-6 space-y-6">
                     <div className="text-center space-y-2">
