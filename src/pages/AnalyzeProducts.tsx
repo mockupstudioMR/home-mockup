@@ -101,6 +101,21 @@ const AnalyzeProducts = () => {
     references: { label: string; imageUrl?: string }[];
   }>({ materials: [], references: [] });
 
+  // Which detected products the user wants to keep (defaults to all)
+  const [selectedProductIndices, setSelectedProductIndices] = useState<Set<number>>(new Set());
+  useEffect(() => {
+    if (analysisResult?.products) {
+      setSelectedProductIndices(new Set(analysisResult.products.map((_, i) => i)));
+    }
+  }, [analysisResult]);
+  const toggleProduct = (i: number) =>
+    setSelectedProductIndices((prev) => {
+      const next = new Set(prev);
+      if (next.has(i)) next.delete(i);
+      else next.add(i);
+      return next;
+    });
+
   // Fetch room configs on mount
   useEffect(() => {
     const fetchRooms = async () => {
