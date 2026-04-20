@@ -55,6 +55,16 @@ interface MoodboardRefinePanelProps {
   designDescription?: string;
   /** Names of items extracted from the rendered design. */
   extractedItemNames?: string[];
+  /** Full extracted design items — shown as the "In your design" section. */
+  extractedItems?: {
+    item_name: string;
+    item_type: string;
+    item_description?: string;
+    color?: string;
+    hex_code?: string;
+    material?: string;
+    product_photo_url?: string;
+  }[];
   /** Refine controls */
   modificationInput: string;
   onModificationInputChange: (value: string) => void;
