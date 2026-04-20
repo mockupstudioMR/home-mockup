@@ -227,10 +227,6 @@ const ConclusionVisuals = ({
 
   return (
     <div className="rounded-xl border border-border/50 bg-secondary/20 p-4 space-y-5">
-      {moodboardDescription && (
-        <p className="text-sm text-muted-foreground leading-relaxed">{moodboardDescription}</p>
-      )}
-
       {/* Dominant Colors */}
       <div>
         <p className="text-[11px] uppercase tracking-wide text-muted-foreground mb-2 font-medium">
@@ -354,6 +350,7 @@ const ConclusionVisuals = ({
               kind="styleReference"
               styleSlug={r.toLowerCase().replace(/\s+/g, "-")}
               roomType={roomType}
+              iconicItem={iconicItems?.[r]}
               imageUrl={referenceImages[r]}
               autoGenerate
               onImageReady={(url) => setReferenceImages((prev) => ({ ...prev, [r]: url }))}
