@@ -1989,14 +1989,21 @@ RULES:
 
             {/* Moodboard elements editor — replace/remove/add inline (in-place refinement). */}
             {(() => {
-              const mb = location.state?.moodboard as
-                | {
-                    materials?: { label: string; imageUrl?: string }[];
-                    furnitureReferences?: { label: string; imageUrl?: string }[];
-                    decorReferences?: { label: string; imageUrl?: string }[];
-                    mustInclude?: { label: string; imageUrl?: string }[];
-                  }
-                | undefined;
+              type MB = {
+                materials?: { label: string; imageUrl?: string }[];
+                furnitureReferences?: { label: string; imageUrl?: string }[];
+                decorReferences?: { label: string; imageUrl?: string }[];
+                mustInclude?: { label: string; imageUrl?: string }[];
+              };
+              let mb = location.state?.moodboard as MB | undefined;
+              if (mb) {
+                try { sessionStorage.setItem('generate_moodboard_cache', JSON.stringify(mb)); } catch { /* ignore */ }
+              } else {
+                try {
+                  const cached = sessionStorage.getItem('generate_moodboard_cache');
+                  if (cached) mb = JSON.parse(cached) as MB;
+                } catch { /* ignore */ }
+              }
               const items: MoodboardItem[] = [
                 ...((mb?.mustInclude || []).map((m) => ({ ...m, kind: "must-include" as const }))),
                 ...((mb?.furnitureReferences || []).map((m) => ({ ...m, kind: "furniture" as const }))),
