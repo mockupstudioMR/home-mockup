@@ -76,7 +76,8 @@ const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(() =
   const [moodboard, setMoodboard] = useState<{
     materials: { label: string; imageUrl?: string }[];
     references: { label: string; imageUrl?: string }[];
-  }>({ materials: [], references: [] });
+    mustInclude: { label: string; imageUrl?: string }[];
+  }>({ materials: [], references: [], mustInclude: [] });
 
   // Persist state to sessionStorage - URLs are small so they fit
   useEffect(() => {
