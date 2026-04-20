@@ -1548,10 +1548,6 @@ const Generate = () => {
     dimensions: Record<string, number>;
   }) => {
     if (!quizData || !design || !user) return;
-    if (design.isLocked) {
-      toast({ title: "Design is locked", variant: "destructive" });
-      return;
-    }
     setGenerating(true);
     try {
       const dimsLabel = Object.entries(dimensions).map(([k, v]) => `${k}=${v}m`).join(", ");
