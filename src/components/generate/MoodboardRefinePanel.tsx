@@ -55,6 +55,16 @@ interface MoodboardRefinePanelProps {
   designDescription?: string;
   /** Names of items extracted from the rendered design. */
   extractedItemNames?: string[];
+  /** Full extracted design items — shown as the "In your design" section. */
+  extractedItems?: {
+    item_name: string;
+    item_type: string;
+    item_description?: string;
+    color?: string;
+    hex_code?: string;
+    material?: string;
+    product_photo_url?: string;
+  }[];
   /** Refine controls */
   modificationInput: string;
   onModificationInputChange: (value: string) => void;
@@ -161,6 +171,7 @@ const MoodboardRefinePanel = ({
   onAction,
   designDescription = "",
   extractedItemNames = [],
+  extractedItems = [],
   modificationInput,
   onModificationInputChange,
   onModify,
@@ -202,6 +213,18 @@ const MoodboardRefinePanel = ({
   const usedCount = items.filter((it) =>
     detectUsed(it, designDescription, extractedItemNames),
   ).length;
+
+  const DECOR_TYPE_RE = /(lamp|light|rug|art|plant|pillow|cushion|throw|mirror|vase|accessor|decor|textile|curtain|drape|sconce|chandelier|pendant|candle|book|frame)/i;
+  const inDesign = useMemo(() => {
+    const furniture: typeof extractedItems = [];
+    const decor: typeof extractedItems = [];
+    for (const it of extractedItems) {
+      const blob = `${it.item_type || ""} ${it.item_name || ""}`;
+      if (DECOR_TYPE_RE.test(blob)) decor.push(it);
+      else furniture.push(it);
+    }
+    return { furniture, decor };
+  }, [extractedItems]);
 
   const uploadOne = async (
     file: File,
@@ -305,6 +328,145 @@ const MoodboardRefinePanel = ({
       </div>
 
       <div className="p-5 space-y-5">
+        {(inDesign.furniture.length > 0 || inDesign.decor.length > 0) && (
+          <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 space-y-4">
+            <div className="flex items-center justify-between">
+              <p className="text-[11px] uppercase tracking-wide text-primary font-semibold flex items-center gap-1.5">
+                <CheckCircle2 className="w-3.5 h-3.5" />
+                In your design
+              </p>
+              <span className="text-[10px] text-muted-foreground">
+                {inDesign.furniture.length + inDesign.decor.length} items detected
+              </span>
+            </div>
+
+            {([
+              { title: "Furniture", list: inDesign.furniture, fallbackIcon: Sofa },
+              { title: "Decor", list: inDesign.decor, fallbackIcon: Lamp },
+            ] as const).map(({ title, list, fallbackIcon: FallbackIcon }) =>
+              list.length === 0 ? null : (
+                <div key={title}>
+                  <p className="text-[10px] uppercase tracking-wide text-muted-foreground font-medium mb-2">
+                    {title} ({list.length})
+                  </p>
+                  <div className="flex flex-wrap gap-3">
+                    {list.map((it, idx) => (
+                      <Popover key={`indesign-${title}-${idx}-${it.item_name}`}>
+                        <PopoverTrigger asChild>
+                          <button
+                            type="button"
+                            disabled={disabled}
+                            className="group w-24 text-left rounded-lg overflow-hidden focus:outline-none focus:ring-2 focus:ring-primary"
+                          >
+                            <div className="aspect-square rounded-lg overflow-hidden border border-border bg-background relative">
+                              {it.product_photo_url ? (
+                                <img
+                                  src={getThumbnailImageUrl(it.product_photo_url)}
+                                  alt={it.item_name}
+                                  className="w-full h-full object-cover"
+                                  loading="lazy"
+                                />
+                              ) : it.hex_code ? (
+                                <div
+                                  className="w-full h-full flex items-center justify-center"
+                                  style={{ backgroundColor: it.hex_code }}
+                                >
+                                  <FallbackIcon className="w-5 h-5 text-white/70 mix-blend-difference" />
+                                </div>
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center text-muted-foreground">
+                                  <FallbackIcon className="w-5 h-5" />
+                                </div>
+                              )}
+                            </div>
+                            <div
+                              className="mt-1 text-[11px] leading-tight truncate font-medium"
+                              title={it.item_name}
+                            >
+                              {it.item_name}
+                            </div>
+                            {(it.color || it.material) && (
+                              <div
+                                className="text-[10px] text-muted-foreground truncate"
+                                title={`${it.color || ""} ${it.material || ""}`.trim()}
+                              >
+                                {[it.color, it.material].filter(Boolean).join(" · ")}
+                              </div>
+                            )}
+                          </button>
+                        </PopoverTrigger>
+                        <PopoverContent align="start" className="w-56 p-2 space-y-1">
+                          <p className="text-[11px] text-muted-foreground px-2 py-1 truncate">
+                            {it.item_name}
+                          </p>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              sendModificationFromChip(
+                                {
+                                  label: it.item_name,
+                                  kind: title === "Decor" ? "decor" : "furniture",
+                                },
+                                "color_material",
+                                `Change the ${it.item_name} to a different color or material — keep everything else identical`,
+                              )
+                            }
+                            disabled={disabled || generating}
+                            className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm hover:bg-accent transition-colors"
+                          >
+                            <Palette className="w-3.5 h-3.5" /> Recolor / re-material
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              sendModificationFromChip(
+                                {
+                                  label: it.item_name,
+                                  kind: title === "Decor" ? "decor" : "furniture",
+                                },
+                                "swap_item",
+                                `Replace the ${it.item_name} with a different ${title === "Decor" ? "decor piece" : "piece"} in the same spot`,
+                              )
+                            }
+                            disabled={disabled || generating}
+                            className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm hover:bg-accent transition-colors"
+                          >
+                            <ArrowLeftRight className="w-3.5 h-3.5" /> Swap with another
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              sendModificationFromChip(
+                                {
+                                  label: it.item_name,
+                                  kind: title === "Decor" ? "decor" : "furniture",
+                                },
+                                "add_remove",
+                                `Remove the ${it.item_name} from the room — leave everything else unchanged`,
+                              )
+                            }
+                            disabled={disabled || generating}
+                            className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm hover:bg-destructive/10 text-destructive transition-colors"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" /> Remove from design
+                          </button>
+                        </PopoverContent>
+                      </Popover>
+                    ))}
+                  </div>
+                </div>
+              ),
+            )}
+          </div>
+        )}
+
+        <div className="flex items-center justify-between">
+          <p className="text-[11px] uppercase tracking-wide text-muted-foreground font-medium">
+            Inspiration references
+          </p>
+          <span className="text-[10px] text-muted-foreground">What you provided</span>
+        </div>
+
         {SECTIONS.map(({ kind, title, addLabel: addBtn }) => {
           const list = grouped[kind];
           if (list.length === 0 && kind === "material") {
