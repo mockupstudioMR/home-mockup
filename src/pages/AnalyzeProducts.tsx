@@ -13,6 +13,8 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import QuizOption from "@/components/quiz/QuizOption";
+import ConclusionVisuals from "@/components/analyze/ConclusionVisuals";
+import TagVisual from "@/components/analyze/TagVisual";
 import { trackEvent } from "@/lib/analytics";
 
 // ── Types ──────────────────────────────────────────────
