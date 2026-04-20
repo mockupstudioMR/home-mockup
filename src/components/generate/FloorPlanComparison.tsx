@@ -26,6 +26,8 @@ interface FloorPlanContext {
 
 interface Props {
   designImageUrl: string | null;
+  /** Current design id — used to fetch the room spec tied to THIS design (not a stale session one) */
+  designId?: string | null;
   onRealign: (extra: {
     plannedItems: LayoutItem[];
     shape: string;
@@ -36,6 +38,7 @@ interface Props {
 
 export default function FloorPlanComparison({
   designImageUrl,
+  designId,
   onRealign,
   isRealigning,
 }: Props) {
@@ -44,12 +47,79 @@ export default function FloorPlanComparison({
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
+  // Load the floor plan that belongs to THIS design.
+  // 1) If designId points at a real DB row, follow design.room_id → rooms row.
+  // 2) Otherwise fall back to the active session floor_plan_context (fresh wizard run).
   useEffect(() => {
-    try {
-      const raw = sessionStorage.getItem("floor_plan_context");
-      if (raw) setCtx(JSON.parse(raw));
-    } catch {}
-  }, []);
+    let cancelled = false;
+    (async () => {
+      // helper: read session fallback
+      const readSession = (): FloorPlanContext | null => {
+        try {
+          const raw = sessionStorage.getItem("floor_plan_context");
+          return raw ? (JSON.parse(raw) as FloorPlanContext) : null;
+        } catch {
+          return null;
+        }
+      };
+
+      const isRealId = designId && !designId.startsWith("design-");
+      if (!isRealId) {
+        if (!cancelled) setCtx(readSession());
+        return;
+      }
+
+      try {
+        const { data: design } = await supabase
+          .from("generated_designs")
+          .select("room_id")
+          .eq("id", designId!)
+          .maybeSingle();
+
+        if (cancelled) return;
+        const roomId = (design as any)?.room_id;
+        if (!roomId) {
+          setCtx(readSession());
+          return;
+        }
+
+        const { data: room } = await supabase
+          .from("rooms" as any)
+          .select("shape, dimensions, room_type, furniture, walls, layout")
+          .eq("id", roomId)
+          .maybeSingle();
+
+        if (cancelled) return;
+        if (!room || !(room as any).layout) {
+          setCtx(readSession());
+          return;
+        }
+
+        const r: any = room;
+        const flatOpenings = (r.walls ?? []).flatMap((w: any) =>
+          (w.openings ?? []).map((o: any) => ({
+            type: o.type,
+            wall: w.id,
+            position: o.position_pct,
+          })),
+        );
+
+        setCtx({
+          shape: r.shape,
+          dimensions: r.dimensions ?? {},
+          roomType: r.room_type,
+          furnitureItems: r.furniture?.selectedItems ?? [],
+          openings: flatOpenings,
+          layout: r.layout,
+        });
+      } catch (e) {
+        if (!cancelled) setCtx(readSession());
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [designId]);
 
   // Auto-generate realistic top-down photo when design image is available
   useEffect(() => {
