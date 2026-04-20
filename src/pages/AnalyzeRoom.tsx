@@ -493,6 +493,7 @@ const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(() =
                           .filter((s) => s.iconicItem)
                           .map((s) => [s.styleName, s.iconicItem as string]),
                       )}
+                      extraMaterials={moodboardExtras}
                     />
                   </div>
 
@@ -522,6 +523,12 @@ const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(() =
                                 tag={keyword}
                                 styleName={style.styleName}
                                 selected={selectedInspirations.includes(id)}
+                                inMoodboard={moodboardExtras.includes(keyword)}
+                                onAddToMoodboard={() =>
+                                  setMoodboardExtras((prev) =>
+                                    prev.includes(keyword) ? prev : [...prev, keyword],
+                                  )
+                                }
                                 onToggle={() => {
                                   setSelectedStyleIndex(index);
                                   setSelectedInspirations((prev) =>
