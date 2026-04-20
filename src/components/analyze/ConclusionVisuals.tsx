@@ -455,36 +455,6 @@ const ConclusionVisuals = ({
             )
           ))}
 
-          {addingMustInclude ? (
-            <div className="w-24">
-              <div className="aspect-square rounded-lg border-2 border-dashed border-primary/40 bg-secondary/30 flex items-center justify-center p-1">
-                <Input
-                  autoFocus
-                  value={newMustInclude}
-                  onChange={(e) => setNewMustInclude(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") { e.preventDefault(); commitNewMustInclude(); }
-                    if (e.key === "Escape") { setNewMustInclude(""); setAddingMustInclude(false); }
-                  }}
-                  onBlur={commitNewMustInclude}
-                  placeholder="e.g. sofa"
-                  className="h-7 text-[11px] px-1.5 py-0"
-                />
-              </div>
-              <div className="mt-1 text-[11px] text-muted-foreground">Press Enter</div>
-            </div>
-          ) : (
-            <button
-              type="button"
-              onClick={() => setAddingMustInclude(true)}
-              className="w-24 aspect-square rounded-lg border-2 border-dashed border-border hover:border-primary/50 hover:bg-primary/5 text-muted-foreground hover:text-primary transition-colors flex flex-col items-center justify-center gap-1"
-              title="Add must-include furniture"
-            >
-              <Plus className="w-4 h-4" />
-              <span className="text-[10px]">Add item</span>
-            </button>
-          )}
-
           <label
             className={cn(
               "w-24 aspect-square rounded-lg border-2 border-dashed transition-colors flex flex-col items-center justify-center gap-1",
@@ -501,8 +471,8 @@ const ConclusionVisuals = ({
               </>
             ) : (
               <>
-                <Upload className="w-4 h-4" />
-                <span className="text-[10px]">Upload image</span>
+                <Plus className="w-4 h-4" />
+                <span className="text-[10px]">Add item</span>
               </>
             )}
             <input
