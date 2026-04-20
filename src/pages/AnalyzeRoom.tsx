@@ -468,7 +468,37 @@ const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(() =
                       {analysisResult.moodboardDescription}
                     </p>
                   )}
-                  <div className="space-y-4">
+
+                  {/* Visuals generated from the overall conclusion */}
+                  {analysisResult.moodboardDescription && (
+                    <div className="mb-6">
+                      <div className="flex items-center justify-between mb-2">
+                        <h3 className="text-sm font-semibold">Conclusion Moodboard</h3>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="text-xs h-7"
+                          onClick={() => {
+                            setConclusionRefresh((n) => n + 1);
+                            trackEvent("ai_call", "analyze-room", { fn: "regenerate-conclusion-visuals" });
+                          }}
+                        >
+                          <RefreshIcon className="w-3 h-3 mr-1.5" />
+                          Regenerate
+                        </Button>
+                      </div>
+                      <ConclusionVisuals
+                        moodboardDescription={analysisResult.moodboardDescription}
+                        dominantColors={editableColors}
+                        styleNames={analysisResult.styles.map((s) => s.styleName)}
+                        refreshKey={conclusionRefresh}
+                      />
+                    </div>
+                  )}
+
+                  <h3 className="text-sm font-semibold mb-2">Style Matches</h3>
+                  <div className="space-y-3">
                     {analysisResult.styles.map((style, index) => (
                       <button
                         type="button"
@@ -476,64 +506,34 @@ const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(() =
                         onClick={() => setSelectedStyleIndex(index)}
                         className={`w-full text-left p-4 rounded-xl transition-all cursor-pointer ${selectedStyleIndex === index ? "bg-primary/10 border-2 border-primary ring-2 ring-primary/20" : "bg-secondary/50 border-2 border-transparent hover:border-primary/30"}`}
                       >
-                        <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center justify-between mb-3">
                           <h3 className="font-semibold">{style.styleName}</h3>
                           <span className="text-sm text-muted-foreground">
                             {Math.round(style.confidence * 100)}% match
                           </span>
                         </div>
-                        <p className="text-sm text-muted-foreground mb-3">{style.description}</p>
                         <div className="flex flex-wrap gap-2">
-                          {style.keywords.map((keyword) => (
-                            <span
-                              key={keyword}
-                              className="text-xs px-2 py-1 rounded-full bg-background text-foreground"
-                            >
-                              {keyword}
-                            </span>
-                          ))}
-                        </div>
-
-                        {/* Inline moodboard & accent furniture */}
-                        <StyleInspirationCards
-                          styleIndex={index}
-                          styleName={style.styleName}
-                          keywords={style.keywords}
-                          refreshKey={refreshKeys[index] || 0}
-                          selectedItems={selectedInspirations}
-                          onToggle={(id) => {
-                            // Auto-select this style when toggling its inspiration
-                            setSelectedStyleIndex(index);
-                            setSelectedInspirations((prev) =>
-                              prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
+                          {style.keywords.map((keyword) => {
+                            const id = `tag-${index}-${keyword}`;
+                            return (
+                              <TagVisual
+                                key={id}
+                                tag={keyword}
+                                styleName={style.styleName}
+                                selected={selectedInspirations.includes(id)}
+                                onToggle={() => {
+                                  setSelectedStyleIndex(index);
+                                  setSelectedInspirations((prev) =>
+                                    prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id],
+                                  );
+                                  setInspirationDetailsMap((prev) => ({
+                                    ...prev,
+                                    [id]: { label: keyword, description: `${style.styleName}: ${keyword}`, type: "tag" },
+                                  }));
+                                }}
+                              />
                             );
-                          }}
-                          onItemsReady={(details) => {
-                            setInspirationDetailsMap(prev => {
-                              const next = { ...prev };
-                              for (const d of details) {
-                                next[d.id] = { label: d.label, description: d.description, type: d.type };
-                              }
-                              return next;
-                            });
-                          }}
-                        />
-
-                        <div className="mt-3 flex justify-end">
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="text-xs h-7"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setRefreshKeys((prev) => ({ ...prev, [index]: (prev[index] || 0) + 1 }));
-                              trackEvent("ai_call", "analyze-room", { fn: "show-more-of-style", style: style.styleName });
-                            }}
-                          >
-                            <RefreshCw className="w-3 h-3 mr-1.5" />
-                            Show more of this style
-                          </Button>
+                          })}
                         </div>
                       </button>
                     ))}
