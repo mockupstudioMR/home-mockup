@@ -17,6 +17,7 @@ interface AnalyzedStyle {
   confidence: number;
   description: string;
   keywords: string[];
+  iconicItem?: string;
 }
 
 interface PerImageAnalysis {
@@ -35,6 +36,7 @@ interface AnalysisResult {
   styles: AnalyzedStyle[];
   moodboardDescription: string;
   dominantColors: string[];
+  materials?: string[];
   perImage?: PerImageAnalysis[];
 }
 
