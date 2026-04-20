@@ -2030,15 +2030,13 @@ RULES:
           onRealign={handleRealignToPlan}
         />
 
-        {moodboardItems.length > 0 && (
-          <div className="max-w-3xl mx-auto">
+        <div className="max-w-3xl mx-auto">
             <MoodboardElementsPanel
               items={moodboardItems}
               onAction={handleMoodboardAction}
               disabled={!design || generating || !!design?.isLocked}
             />
-          </div>
-        )}
+        </div>
 
         {/* Main Design */}
         {design && (
