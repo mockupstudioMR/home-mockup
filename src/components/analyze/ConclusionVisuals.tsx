@@ -291,14 +291,61 @@ const ConclusionVisuals = ({
   const [referenceImages, setReferenceImages] = useState<Record<string, string>>({});
   useEffect(() => setReferences(initialReferences), [initialReferences]);
 
-  // Furniture References — user uploads images of furniture they like the look of.
-  // Treated as STYLE INSPIRATION (use similar pieces), not exact match.
+  // Furniture References — AI-generated examples of furniture pieces matching the detected style.
+  // Treated as STYLE INSPIRATION (use similar pieces), not exact match. Users can also upload.
   const [furnitureReferences, setFurnitureReferences] = useState<{ label: string; imageUrl?: string }[]>([]);
   const [uploadingFurnitureRef, setUploadingFurnitureRef] = useState(false);
+  const [generatingFurnitureRef, setGeneratingFurnitureRef] = useState(false);
 
-  // Decor References — accessories, textiles, lighting (lamps, vases, art, cushions, rugs).
+  // Decor References — AI-generated accessories, textiles, lighting (lamps, vases, art, cushions, rugs).
   const [decorReferences, setDecorReferences] = useState<{ label: string; imageUrl?: string }[]>([]);
   const [uploadingDecorRef, setUploadingDecorRef] = useState(false);
+  const [generatingDecorRef, setGeneratingDecorRef] = useState(false);
+
+  // Auto-generate AI references for furniture & decor when style is known
+  const generateAiReference = async (
+    kind: "furniture" | "decor",
+    setter: React.Dispatch<React.SetStateAction<{ label: string; imageUrl?: string }[]>>,
+    setBusy: React.Dispatch<React.SetStateAction<boolean>>,
+  ) => {
+    if (!styleNames[0]) return;
+    setBusy(true);
+    try {
+      const furnitureExamples = ["sofa", "armchair", "dining table", "bed frame", "sideboard"];
+      const decorExamples = ["floor lamp", "vase", "wall art", "cushion", "area rug", "pendant light"];
+      const pool = kind === "furniture" ? furnitureExamples : decorExamples;
+      const pick = pool[Math.floor(Math.random() * pool.length)];
+      const label = `${styleNames[0]} ${pick}`;
+      const body = {
+        type: "accentFurniture",
+        style: styleSlug,
+        room: roomType,
+        furnitureName: pick,
+        furnitureDescription:
+          kind === "furniture"
+            ? `A single ${styleNames[0]}-style ${pick} as a hero product shot on a clean neutral background. ONE item only, no full room, no collage.`
+            : `A single ${styleNames[0]}-style ${pick} (decor/accessory) as a hero product shot on a clean neutral background. ONE item only, no full room, no collage.`,
+      };
+      const { data, error } = await supabase.functions.invoke("generate-highlight-visuals", { body });
+      if (!error && data?.imageUrl) {
+        setter((prev) => [...prev, { label, imageUrl: data.imageUrl }]);
+      }
+    } catch { /* ignore */ } finally {
+      setBusy(false);
+    }
+  };
+
+  // Auto-seed one AI reference of each kind once style is detected
+  useEffect(() => {
+    if (!styleNames[0]) return;
+    if (furnitureReferences.length === 0 && !generatingFurnitureRef) {
+      generateAiReference("furniture", setFurnitureReferences, setGeneratingFurnitureRef);
+    }
+    if (decorReferences.length === 0 && !generatingDecorRef) {
+      generateAiReference("decor", setDecorReferences, setGeneratingDecorRef);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [styleNames[0]]);
 
   const uploadInspirationImages = async (
     files: File[],
@@ -341,10 +388,7 @@ const ConclusionVisuals = ({
   // Add new material/reference state
   const [newMaterial, setNewMaterial] = useState("");
   const [addingMaterial, setAddingMaterial] = useState(false);
-  const [newReference, setNewReference] = useState("");
-  const [addingReference, setAddingReference] = useState(false);
   const [isDropActive, setIsDropActive] = useState(false);
-  const [isRefDropActive, setIsRefDropActive] = useState(false);
 
   const renameMaterial = (oldName: string, next: string) => {
     setMaterials((prev) => prev.map((m) => (m === oldName ? next : m)));
@@ -530,10 +574,10 @@ const ConclusionVisuals = ({
         </div>
       </div>
 
-      {/* Furniture References — inspiration, "use similar" */}
+      {/* Furniture References — AI-generated + uploads, inspiration, "use similar" */}
       <div>
         <p className="text-[11px] uppercase tracking-wide text-muted-foreground mb-2 font-medium">
-          Furniture References <span className="normal-case text-muted-foreground/70">— upload sofas, beds, tables, chairs you love (we'll use similar pieces)</span>
+          Furniture References <span className="normal-case text-muted-foreground/70">— AI examples of sofas, beds, tables, chairs in your style (we'll use similar pieces)</span>
         </p>
         <div className="flex flex-wrap gap-3 items-start">
           {furnitureReferences.map((item) => (
@@ -584,13 +628,31 @@ const ConclusionVisuals = ({
               }}
             />
           </label>
+          <button
+            type="button"
+            onClick={() => generateAiReference("furniture", setFurnitureReferences, setGeneratingFurnitureRef)}
+            disabled={generatingFurnitureRef || !styleNames[0]}
+            className={cn(
+              "w-24 aspect-square rounded-lg border-2 border-dashed transition-colors flex flex-col items-center justify-center gap-1",
+              generatingFurnitureRef
+                ? "border-primary/40 bg-primary/5 text-primary cursor-wait"
+                : "border-border hover:border-primary/50 hover:bg-primary/5 text-muted-foreground hover:text-primary",
+            )}
+            title="Generate another AI furniture reference"
+          >
+            {generatingFurnitureRef ? (
+              <><Loader2 className="w-4 h-4 animate-spin" /><span className="text-[10px]">Generating…</span></>
+            ) : (
+              <><Sparkles className="w-4 h-4" /><span className="text-[10px]">AI suggest</span></>
+            )}
+          </button>
         </div>
       </div>
 
-      {/* Decor References — accessories, textiles, lighting */}
+      {/* Decor References — AI-generated + uploads, accessories, textiles, lighting */}
       <div>
         <p className="text-[11px] uppercase tracking-wide text-muted-foreground mb-2 font-medium">
-          Decor References <span className="normal-case text-muted-foreground/70">— lamps, vases, art, cushions, rugs (we'll use similar accessories)</span>
+          Decor References <span className="normal-case text-muted-foreground/70">— AI examples of lamps, vases, art, cushions, rugs in your style</span>
         </p>
         <div className="flex flex-wrap gap-3 items-start">
           {decorReferences.map((item) => (
@@ -641,6 +703,24 @@ const ConclusionVisuals = ({
               }}
             />
           </label>
+          <button
+            type="button"
+            onClick={() => generateAiReference("decor", setDecorReferences, setGeneratingDecorRef)}
+            disabled={generatingDecorRef || !styleNames[0]}
+            className={cn(
+              "w-24 aspect-square rounded-lg border-2 border-dashed transition-colors flex flex-col items-center justify-center gap-1",
+              generatingDecorRef
+                ? "border-primary/40 bg-primary/5 text-primary cursor-wait"
+                : "border-border hover:border-primary/50 hover:bg-primary/5 text-muted-foreground hover:text-primary",
+            )}
+            title="Generate another AI decor reference"
+          >
+            {generatingDecorRef ? (
+              <><Loader2 className="w-4 h-4 animate-spin" /><span className="text-[10px]">Generating…</span></>
+            ) : (
+              <><Sparkles className="w-4 h-4" /><span className="text-[10px]">AI suggest</span></>
+            )}
+          </button>
         </div>
       </div>
 
@@ -842,105 +922,6 @@ const ConclusionVisuals = ({
         </div>
       </div>
 
-      {/* Style References with visuals (drop target) */}
-      <div>
-        <p className="text-[11px] uppercase tracking-wide text-muted-foreground mb-2 font-medium">
-          Style References <span className="normal-case text-muted-foreground/70">— drag tags here</span>
-        </p>
-        <div
-          onDragOver={(e) => {
-            if (
-              e.dataTransfer.types.includes(MOODBOARD_DRAG_MIME) ||
-              e.dataTransfer.types.includes("text/plain")
-            ) {
-              e.preventDefault();
-              e.dataTransfer.dropEffect = "copy";
-              setIsRefDropActive(true);
-            }
-          }}
-          onDragLeave={() => setIsRefDropActive(false)}
-          onDrop={(e) => {
-            e.preventDefault();
-            setIsRefDropActive(false);
-            const raw = e.dataTransfer.getData(MOODBOARD_DRAG_MIME);
-            let label = "";
-            let imageUrl: string | null = null;
-            if (raw) {
-              try {
-                const parsed = JSON.parse(raw) as DraggedItem;
-                label = (parsed.label || "").trim();
-                imageUrl = parsed.imageUrl || null;
-              } catch { /* ignore */ }
-            }
-            if (!label) label = (e.dataTransfer.getData("text/plain") || "").trim();
-            if (!label) return;
-            setReferences((prev) => (prev.includes(label) ? prev : [...prev, label]));
-            if (imageUrl) {
-              setReferenceImages((prev) => ({ ...prev, [label]: imageUrl as string }));
-            }
-          }}
-          className={cn(
-            "flex flex-wrap gap-3 items-start rounded-lg p-2 -m-2 transition-colors",
-            isRefDropActive && "bg-primary/5 ring-2 ring-primary/40 ring-dashed",
-          )}
-        >
-          {references.map((r) => (
-            <VisualChip
-              key={r}
-              label={r}
-              kind="styleReference"
-              styleSlug={r.toLowerCase().replace(/\s+/g, "-")}
-              roomType={roomType}
-              iconicItem={iconicItems?.[r]}
-              imageUrl={referenceImages[r]}
-              autoGenerate={!referenceImages[r]}
-              onImageReady={(url) => setReferenceImages((prev) => ({ ...prev, [r]: url }))}
-              onRename={(next) => renameReference(r, next)}
-              onRemove={() => removeReference(r)}
-            />
-          ))}
-
-          {addingReference ? (
-            <div className="w-24">
-              <div className="aspect-square rounded-lg border-2 border-dashed border-primary/50 flex items-center justify-center">
-                <ImageIcon className="w-5 h-5 text-muted-foreground" />
-              </div>
-              <Input
-                autoFocus
-                value={newReference}
-                onChange={(e) => setNewReference(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    const v = newReference.trim();
-                    if (v && !references.includes(v)) setReferences((prev) => [...prev, v]);
-                    setNewReference("");
-                    setAddingReference(false);
-                  }
-                  if (e.key === "Escape") { setNewReference(""); setAddingReference(false); }
-                }}
-                onBlur={() => {
-                  const v = newReference.trim();
-                  if (v && !references.includes(v)) setReferences((prev) => [...prev, v]);
-                  setNewReference("");
-                  setAddingReference(false);
-                }}
-                placeholder="Japandi…"
-                className="mt-1 h-6 text-[11px] px-1.5 py-0"
-              />
-            </div>
-          ) : (
-            <button
-              type="button"
-              onClick={() => setAddingReference(true)}
-              className="w-24 aspect-square rounded-lg border-2 border-dashed border-border flex flex-col items-center justify-center gap-1 text-muted-foreground hover:border-primary/50 hover:text-foreground transition-colors"
-            >
-              <Plus className="w-5 h-5" />
-              <span className="text-[10px]">Add style</span>
-            </button>
-          )}
-        </div>
-      </div>
     </div>
   );
 };
