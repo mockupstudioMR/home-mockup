@@ -2031,14 +2031,6 @@ RULES:
           onRealign={handleRealignToPlan}
         />
 
-        <div className="max-w-3xl mx-auto">
-            <MoodboardElementsPanel
-              items={moodboardItems}
-              onAction={handleMoodboardAction}
-              disabled={!design || generating || !!design?.isLocked}
-            />
-        </div>
-
         {/* Main Design */}
         {design && (
           <div className="max-w-3xl mx-auto" ref={designRef}>
@@ -2050,7 +2042,7 @@ RULES:
               isFavorite={design.isFavorite}
               onFavorite={handleFavorite}
               onDownload={handleDownload}
-              showRefine={!generating && !design.isLocked}
+              showRefine={false}
               modificationInput={modificationInput}
               onModificationInputChange={setModificationInput}
               onModify={handleModify}
@@ -2071,6 +2063,24 @@ RULES:
             />
           </div>
         )}
+
+        {/* Unified Moodboard + Refine */}
+        <div className="max-w-3xl mx-auto">
+          <MoodboardRefinePanel
+            items={moodboardItems}
+            onAction={handleMoodboardAction}
+            designDescription={[design?.description, fullDescription].filter(Boolean).join(" ")}
+            extractedItemNames={designItems.map((i) => i.item_name)}
+            modificationInput={modificationInput}
+            onModificationInputChange={setModificationInput}
+            onModify={(type, prefill) => handleModify(type, prefill)}
+            onRegenerate={() => generateDesign()}
+            onUndo={handleUndoDesign}
+            canUndo={imageHistoryStack.length > 0}
+            generating={generating}
+            disabled={!design || generating || !!design?.isLocked}
+          />
+        </div>
 
         {/* Debug Panel - Testing */}
         {design && (debugSteps.length > 0 || debugPrompt) && (
