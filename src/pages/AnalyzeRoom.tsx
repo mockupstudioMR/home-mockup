@@ -63,16 +63,9 @@ const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(() =
     mustInclude: { label: string; imageUrl?: string }[];
   }>({ materials: [], references: [], mustInclude: [] });
 
-  // Persist state to sessionStorage - URLs are small so they fit
+  // No persistence — every visit to /analyze-room starts with a clean slate.
   useEffect(() => {
-    try {
-      // Only store URLs (not base64) - they're small enough for sessionStorage
-      const urlImages = uploadedImages.filter(img => !img.startsWith('data:'));
-      const data = { images: urlImages, result: analysisResult };
-      sessionStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-    } catch {
-      sessionStorage.removeItem(STORAGE_KEY);
-    }
+    try { sessionStorage.removeItem(STORAGE_KEY); } catch { /* ignore */ }
   }, [uploadedImages, analysisResult]);
 
   // Upload file to Supabase storage and return public URL
