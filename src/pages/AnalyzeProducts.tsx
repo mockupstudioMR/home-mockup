@@ -485,6 +485,7 @@ const AnalyzeProducts = () => {
               )}
             </CardContent>
           </Card>
+          )}
 
           {/* ── STEP 1: Detected Products ─────────────────── */}
           {analysisResult && (
