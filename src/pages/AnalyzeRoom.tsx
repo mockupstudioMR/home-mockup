@@ -149,9 +149,10 @@ const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(() =
 
     setIsAnalyzing(true);
     try {
+      const aiImages = uploadedImages.map(getAiOptimizedImageUrl);
       trackEvent("ai_call", "analyze-room", { fn: "analyze-style" });
       const { data, error } = await supabase.functions.invoke("analyze-style", {
-        body: { images: uploadedImages, mode: "room" },
+        body: { images: aiImages, mode: "room" },
       });
 
       if (error) throw error;
@@ -243,10 +244,11 @@ const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(() =
     if (!analysisResult || uploadedImages.length === 0) return;
     setIsDetectingMore(true);
     try {
+      const aiImages = uploadedImages.map(getAiOptimizedImageUrl);
       trackEvent("ai_call", "analyze-room", { fn: "analyze-style", action: "detect-another" });
       const { data, error } = await supabase.functions.invoke("analyze-style", {
         body: {
-          images: uploadedImages,
+          images: aiImages,
           mode: "room",
           excludeStyles: analysisResult.styles.map((s) => s.styleName),
           onlyOneStyle: true,
@@ -346,7 +348,7 @@ const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(() =
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                     {uploadedImages.map((img, index) => (
                       <div key={index} className="relative aspect-square rounded-xl overflow-hidden group">
-                        <img src={img} alt={`Upload ${index + 1}`} className="w-full h-full object-cover" />
+                        <img src={getThumbnailImageUrl(img)} alt={`Upload ${index + 1}`} className="w-full h-full object-cover" loading="lazy" decoding="async" />
                         <button
                           onClick={() => removeImage(index)}
                           className="absolute top-2 right-2 w-8 h-8 rounded-full bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"

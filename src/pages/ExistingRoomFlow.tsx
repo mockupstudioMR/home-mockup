@@ -137,9 +137,10 @@ const ExistingRoomFlow = () => {
     if (!images.length) return;
     setStep("analyzing");
     try {
+      const aiImages = images.map(getAiOptimizedImageUrl);
       trackEvent("ai_call", "existing-room", { fn: "analyze-style" });
       const { data, error } = await supabase.functions.invoke("analyze-style", {
-        body: { images, mode: "room" },
+        body: { images: aiImages, mode: "room" },
       });
       if (error) throw error;
       setAnalysisResult(data);
@@ -352,7 +353,7 @@ const ExistingRoomFlow = () => {
                       <div className="grid grid-cols-2 gap-4">
                         {images.map((url, idx) => (
                           <div key={idx} className="relative aspect-square rounded-xl overflow-hidden group">
-                            <img src={url} alt={`Room ${idx + 1}`} className="w-full h-full object-cover" loading="lazy" />
+                            <img src={getThumbnailImageUrl(url)} alt={`Room ${idx + 1}`} className="w-full h-full object-cover" loading="lazy" decoding="async" />
                             <button
                               onClick={() => removeImage(idx)}
                               className="absolute top-2 right-2 w-8 h-8 rounded-full bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"

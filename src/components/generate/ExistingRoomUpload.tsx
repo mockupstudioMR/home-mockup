@@ -79,7 +79,7 @@ const ExistingRoomUpload = ({ images, onImagesChange, disabled, onAdjustToRoom, 
         <div className="flex flex-wrap gap-3">
           {images.map((url, idx) => (
             <div key={idx} className="relative w-20 h-20 rounded-lg overflow-hidden border border-border">
-              <img src={url} alt={`Room ${idx + 1}`} className="w-full h-full object-cover" />
+              <img src={getThumbnailImageUrl(url)} alt={`Room ${idx + 1}`} className="w-full h-full object-cover" loading="lazy" decoding="async" />
               <button
                 onClick={() => removeImage(idx)}
                 className="absolute top-1 right-1 w-5 h-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center hover:bg-destructive/90"

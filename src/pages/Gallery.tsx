@@ -337,7 +337,7 @@ const Gallery = () => {
               >
                 <div className="relative aspect-video">
                   <img
-                    src={design.image_url}
+                    src={getThumbnailImageUrl(design.image_url)}
                     alt="Room design"
                     loading="lazy"
                     decoding="async"
