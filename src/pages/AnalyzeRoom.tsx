@@ -245,7 +245,7 @@ const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(() =
       state: {
         selectedStyle: {
           id: selectedStyle.styleName.toLowerCase().replace(/\s+/g, "-"),
-          title: selectedStyle.title || selectedStyle.styleName,
+          title: selectedStyle.styleName,
           description: selectedStyle.description,
         },
         analysisResult: { ...analysisResult, dominantColors: editableColors },
