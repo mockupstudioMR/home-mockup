@@ -72,6 +72,8 @@ const AnalyticsDashboard = ({ scope }: Props) => {
   const satisfied = counts.byType["satisfied"] || 0;
   const satisfactionRate =
     outputsGenerated > 0 ? Math.round((satisfied / outputsGenerated) * 100) : 0;
+  const conversionRate =
+    journeyStarts > 0 ? Math.round((outputsGenerated / journeyStarts) * 100) : 0;
 
   const startsByEntry = Object.entries(counts.byScreen)
     .filter(([k]) => k.startsWith("journey_start::"))
@@ -84,10 +86,10 @@ const AnalyticsDashboard = ({ scope }: Props) => {
     .sort((a, b) => b.count - a.count);
 
   const stats = [
-    { label: "Journeys started", value: journeyStarts, icon: Rocket, color: "text-primary" },
-    { label: "Outputs generated", value: outputsGenerated, icon: Sparkles, color: "text-accent-foreground" },
-    { label: "AI calls", value: aiCalls, icon: Cpu, color: "text-secondary-foreground" },
-    { label: `Satisfied (${satisfactionRate}%)`, value: satisfied, icon: Heart, color: "text-primary" },
+    { label: "Journeys started", value: journeyStarts, icon: Rocket, color: "text-primary", sub: null as string | null },
+    { label: "Outputs generated", value: outputsGenerated, icon: Sparkles, color: "text-accent-foreground", sub: `${conversionRate}% of journeys` },
+    { label: "AI calls", value: aiCalls, icon: Cpu, color: "text-secondary-foreground", sub: null },
+    { label: "Satisfied", value: satisfied, icon: Heart, color: "text-primary", sub: `${satisfactionRate}% of outputs` },
   ];
 
   return (
@@ -102,6 +104,9 @@ const AnalyticsDashboard = ({ scope }: Props) => {
                 <span className="text-3xl font-bold tracking-tight">{s.value}</span>
               </div>
               <p className="text-sm text-muted-foreground">{s.label}</p>
+              {s.sub && (
+                <p className="text-xs font-medium text-primary mt-1">{s.sub}</p>
+              )}
             </CardContent>
           </Card>
         ))}
