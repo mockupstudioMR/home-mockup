@@ -766,6 +766,75 @@ const AnalyzeProducts = () => {
                 </Card>
               )}
 
+              {/* ── STEP 1.5: Style Matches with editable tags (visible during detect) ── */}
+              {step === "detect" && analysisResult.styles && analysisResult.styles.length > 0 && (
+                <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
+                  <CardContent className="p-6 space-y-3">
+                    <div className="text-center space-y-2">
+                      <h2 className="text-2xl font-bold">Style Matches</h2>
+                      <p className="text-muted-foreground">
+                        Tap tags to highlight what you love — they'll guide your moodboard
+                      </p>
+                    </div>
+                    <div className="space-y-3">
+                      {analysisResult.styles.map((style, index) => (
+                        <button
+                          type="button"
+                          key={index}
+                          onClick={() => setSelectedStyleIndex(index)}
+                          className={`w-full text-left p-4 rounded-xl transition-all cursor-pointer ${
+                            (selectedStyleIndex ?? 0) === index
+                              ? "bg-primary/10 border-2 border-primary ring-2 ring-primary/20"
+                              : "bg-secondary/50 border-2 border-transparent hover:border-primary/30"
+                          }`}
+                        >
+                          <div className="flex items-center justify-between mb-3">
+                            <h3 className="font-semibold">{style.styleName}</h3>
+                            <span className="text-sm text-muted-foreground">
+                              {Math.round((style.confidence || 0) * 100)}% match
+                            </span>
+                          </div>
+                          {style.description && (
+                            <p className="text-xs text-muted-foreground mb-3">{style.description}</p>
+                          )}
+                          <div className="flex flex-wrap gap-2">
+                            {style.keywords.map((keyword) => {
+                              const id = `tag-${index}-${keyword}`;
+                              return (
+                                <TagVisual
+                                  key={id}
+                                  tag={keyword}
+                                  styleName={style.styleName}
+                                  roomType={selectedRoom || "living room"}
+                                  selected={selectedInspirations.includes(id)}
+                                  inMoodboard={moodboardExtras.includes(keyword)}
+                                  onToggle={() => {
+                                    setSelectedStyleIndex(index);
+                                    setSelectedInspirations((prev) =>
+                                      prev.includes(id)
+                                        ? prev.filter((i) => i !== id)
+                                        : [...prev, id],
+                                    );
+                                    setInspirationDetailsMap((prev) => ({
+                                      ...prev,
+                                      [id]: {
+                                        label: keyword,
+                                        description: `${style.styleName}: ${keyword}`,
+                                        type: "tag",
+                                      },
+                                    }));
+                                  }}
+                                />
+                              );
+                            })}
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
               {/* Missing products */}
               {step === "detect" && analysisResult.missingProducts && analysisResult.missingProducts.length > 0 && (
                 <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
