@@ -302,6 +302,102 @@ const ConclusionVisuals = ({
   const [uploadingDecorRef, setUploadingDecorRef] = useState(false);
   const [generatingDecorRef, setGeneratingDecorRef] = useState(false);
 
+  // Drag-and-drop hover state for the two reference sections
+  const [isFurnitureDropActive, setIsFurnitureDropActive] = useState(false);
+  const [isDecorDropActive, setIsDecorDropActive] = useState(false);
+
+  // Generate an AI visual for a dragged-in label that has no image yet
+  const generateAiReferenceForLabel = async (
+    label: string,
+    kind: "furniture" | "decor",
+    setter: React.Dispatch<React.SetStateAction<{ label: string; imageUrl?: string }[]>>,
+  ) => {
+    try {
+      const body = {
+        type: "accentFurniture",
+        style: styleSlug,
+        room: roomType,
+        furnitureName: label,
+        furnitureDescription:
+          kind === "furniture"
+            ? `A single ${styleNames[0] || "modern"}-style "${label}" furniture piece as a hero product shot on a clean neutral background. ONE item only, no full room, no collage.`
+            : `A single ${styleNames[0] || "modern"}-style "${label}" decor/accessory item as a hero product shot on a clean neutral background. ONE item only, no full room, no collage.`,
+      };
+      const { data, error } = await supabase.functions.invoke("generate-highlight-visuals", { body });
+      if (!error && data?.imageUrl) {
+        setter((prev) => prev.map((m) => (m.label === label ? { ...m, imageUrl: data.imageUrl } : m)));
+      }
+    } catch { /* ignore */ }
+  };
+
+  const handleReferenceDrop = async (
+    e: React.DragEvent,
+    kind: "furniture" | "decor",
+    setter: React.Dispatch<React.SetStateAction<{ label: string; imageUrl?: string }[]>>,
+    setUploading: React.Dispatch<React.SetStateAction<boolean>>,
+  ) => {
+    e.preventDefault();
+    if (kind === "furniture") setIsFurnitureDropActive(false);
+    else setIsDecorDropActive(false);
+
+    // 1) Internal moodboard tag drag (from TagVisual / other moodboard items)
+    const raw = e.dataTransfer.getData(MOODBOARD_DRAG_MIME);
+    if (raw) {
+      try {
+        const parsed = JSON.parse(raw) as DraggedItem;
+        const label = (parsed.label || "Reference").trim();
+        if (!label) return;
+        let added = false;
+        setter((prev) => {
+          if (prev.some((m) => m.label.toLowerCase() === label.toLowerCase())) return prev;
+          added = true;
+          return [...prev, { label, imageUrl: parsed.imageUrl || undefined }];
+        });
+        if (added && !parsed.imageUrl) {
+          generateAiReferenceForLabel(label, kind, setter);
+        }
+        return;
+      } catch { /* fall through */ }
+    }
+
+    // 2) Files dragged from desktop
+    const files = Array.from(e.dataTransfer.files || []).filter((f) => f.type.startsWith("image/"));
+    if (files.length) {
+      setUploading(true);
+      try {
+        await uploadInspirationImages(files, kind === "furniture" ? "furniture-ref" : "decor-ref", setter);
+      } finally {
+        setUploading(false);
+      }
+      return;
+    }
+
+    // 3) Plain-text drag (e.g., from style match keywords)
+    const text = e.dataTransfer.getData("text/plain")?.trim();
+    if (text) {
+      let added = false;
+      setter((prev) => {
+        if (prev.some((m) => m.label.toLowerCase() === text.toLowerCase())) return prev;
+        added = true;
+        return [...prev, { label: text }];
+      });
+      if (added) generateAiReferenceForLabel(text, kind, setter);
+    }
+  };
+
+  const handleReferenceDragOver = (e: React.DragEvent, kind: "furniture" | "decor") => {
+    if (
+      e.dataTransfer.types.includes(MOODBOARD_DRAG_MIME) ||
+      e.dataTransfer.types.includes("text/plain") ||
+      e.dataTransfer.types.includes("Files")
+    ) {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = "copy";
+      if (kind === "furniture") setIsFurnitureDropActive(true);
+      else setIsDecorDropActive(true);
+    }
+  };
+
   // Auto-generate AI references for furniture & decor when style is known
   const generateAiReference = async (
     kind: "furniture" | "decor",
@@ -577,9 +673,17 @@ const ConclusionVisuals = ({
       {/* Furniture References — AI-generated + uploads, inspiration, "use similar" */}
       <div>
         <p className="text-[11px] uppercase tracking-wide text-muted-foreground mb-2 font-medium">
-          Furniture References <span className="normal-case text-muted-foreground/70">— AI examples of sofas, beds, tables, chairs in your style (we'll use similar pieces)</span>
+          Furniture References <span className="normal-case text-muted-foreground/70">— drag tags or images here · AI examples of sofas, beds, tables, chairs in your style</span>
         </p>
-        <div className="flex flex-wrap gap-3 items-start">
+        <div
+          onDragOver={(e) => handleReferenceDragOver(e, "furniture")}
+          onDragLeave={() => setIsFurnitureDropActive(false)}
+          onDrop={(e) => handleReferenceDrop(e, "furniture", setFurnitureReferences, setUploadingFurnitureRef)}
+          className={cn(
+            "flex flex-wrap gap-3 items-start rounded-lg p-2 -m-2 transition-colors",
+            isFurnitureDropActive && "bg-primary/5 ring-2 ring-primary/40 ring-dashed",
+          )}
+        >
           {furnitureReferences.map((item) => (
             <div key={item.label} className="group relative w-24">
               <div className="aspect-square rounded-lg overflow-hidden border border-border bg-secondary/30 relative">
@@ -652,9 +756,17 @@ const ConclusionVisuals = ({
       {/* Decor References — AI-generated + uploads, accessories, textiles, lighting */}
       <div>
         <p className="text-[11px] uppercase tracking-wide text-muted-foreground mb-2 font-medium">
-          Decor References <span className="normal-case text-muted-foreground/70">— AI examples of lamps, vases, art, cushions, rugs in your style</span>
+          Decor References <span className="normal-case text-muted-foreground/70">— drag tags or images here · AI examples of lamps, vases, art, cushions, rugs in your style</span>
         </p>
-        <div className="flex flex-wrap gap-3 items-start">
+        <div
+          onDragOver={(e) => handleReferenceDragOver(e, "decor")}
+          onDragLeave={() => setIsDecorDropActive(false)}
+          onDrop={(e) => handleReferenceDrop(e, "decor", setDecorReferences, setUploadingDecorRef)}
+          className={cn(
+            "flex flex-wrap gap-3 items-start rounded-lg p-2 -m-2 transition-colors",
+            isDecorDropActive && "bg-primary/5 ring-2 ring-primary/40 ring-dashed",
+          )}
+        >
           {decorReferences.map((item) => (
             <div key={item.label} className="group relative w-24">
               <div className="aspect-square rounded-lg overflow-hidden border border-border bg-secondary/30 relative">
