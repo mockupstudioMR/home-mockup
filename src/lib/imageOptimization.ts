@@ -4,26 +4,33 @@ export interface ImageResizeOptions {
   mimeType?: "image/webp" | "image/jpeg";
 }
 
-const loadImage = (file: Blob): Promise<HTMLImageElement> =>
+const loadImage = (source: Blob | string): Promise<HTMLImageElement> =>
   new Promise((resolve, reject) => {
-    const url = URL.createObjectURL(file);
+    const url = typeof source === "string" ? source : URL.createObjectURL(source);
     const img = new Image();
+    img.crossOrigin = "anonymous";
     img.onload = () => {
-      URL.revokeObjectURL(url);
+      if (typeof source !== "string") URL.revokeObjectURL(url);
       resolve(img);
     };
     img.onerror = () => {
-      URL.revokeObjectURL(url);
+      if (typeof source !== "string") URL.revokeObjectURL(url);
       reject(new Error("Could not read image"));
     };
     img.src = url;
   });
 
-export const optimizeImageFile = async (
-  file: File,
-  { maxDimension, quality = 0.82, mimeType = "image/webp" }: ImageResizeOptions,
-): Promise<File> => {
-  const image = await loadImage(file);
+const canvasToBlob = (canvas: HTMLCanvasElement, mimeType: string, quality: number) =>
+  new Promise<Blob>((resolve, reject) => {
+    canvas.toBlob(
+      (nextBlob) => (nextBlob ? resolve(nextBlob) : reject(new Error("Image optimization failed"))),
+      mimeType,
+      quality,
+    );
+  });
+
+const resizeToCanvas = async (source: Blob | string, maxDimension: number) => {
+  const image = await loadImage(source);
   const scale = Math.min(1, maxDimension / Math.max(image.width, image.height));
   const width = Math.max(1, Math.round(image.width * scale));
   const height = Math.max(1, Math.round(image.height * scale));
@@ -35,18 +42,26 @@ export const optimizeImageFile = async (
   if (!ctx) throw new Error("Canvas is not supported");
 
   ctx.drawImage(image, 0, 0, width, height);
+  return canvas;
+};
 
-  const blob = await new Promise<Blob>((resolve, reject) => {
-    canvas.toBlob(
-      (nextBlob) => (nextBlob ? resolve(nextBlob) : reject(new Error("Image optimization failed"))),
-      mimeType,
-      quality,
-    );
-  });
-
+export const optimizeImageFile = async (
+  file: File,
+  { maxDimension, quality = 0.82, mimeType = "image/webp" }: ImageResizeOptions,
+): Promise<File> => {
+  const canvas = await resizeToCanvas(file, maxDimension);
+  const blob = await canvasToBlob(canvas, mimeType, quality);
   const baseName = file.name.replace(/\.[^.]+$/, "") || "image";
   const ext = mimeType === "image/webp" ? "webp" : "jpg";
   return new File([blob], `${baseName}.${ext}`, { type: mimeType, lastModified: Date.now() });
+};
+
+export const optimizeImageSourceToDataUrl = async (
+  source: Blob | string,
+  { maxDimension, quality = 0.78, mimeType = "image/webp" }: ImageResizeOptions,
+): Promise<string> => {
+  const canvas = await resizeToCanvas(source, maxDimension);
+  return canvas.toDataURL(mimeType, quality);
 };
 
 export const getStorageImageUrl = (
