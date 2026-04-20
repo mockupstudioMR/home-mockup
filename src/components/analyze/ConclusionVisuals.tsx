@@ -227,6 +227,7 @@ const ConclusionVisuals = ({
   const [newReference, setNewReference] = useState("");
   const [addingReference, setAddingReference] = useState(false);
   const [isDropActive, setIsDropActive] = useState(false);
+  const [isRefDropActive, setIsRefDropActive] = useState(false);
 
   const renameMaterial = (oldName: string, next: string) => {
     setMaterials((prev) => prev.map((m) => (m === oldName ? next : m)));
@@ -440,12 +441,48 @@ const ConclusionVisuals = ({
         </div>
       </div>
 
-      {/* Style References with visuals */}
+      {/* Style References with visuals (drop target) */}
       <div>
         <p className="text-[11px] uppercase tracking-wide text-muted-foreground mb-2 font-medium">
-          Style References
+          Style References <span className="normal-case text-muted-foreground/70">— drag tags here</span>
         </p>
-        <div className="flex flex-wrap gap-3 items-start">
+        <div
+          onDragOver={(e) => {
+            if (
+              e.dataTransfer.types.includes(MOODBOARD_DRAG_MIME) ||
+              e.dataTransfer.types.includes("text/plain")
+            ) {
+              e.preventDefault();
+              e.dataTransfer.dropEffect = "copy";
+              setIsRefDropActive(true);
+            }
+          }}
+          onDragLeave={() => setIsRefDropActive(false)}
+          onDrop={(e) => {
+            e.preventDefault();
+            setIsRefDropActive(false);
+            const raw = e.dataTransfer.getData(MOODBOARD_DRAG_MIME);
+            let label = "";
+            let imageUrl: string | null = null;
+            if (raw) {
+              try {
+                const parsed = JSON.parse(raw) as DraggedItem;
+                label = (parsed.label || "").trim();
+                imageUrl = parsed.imageUrl || null;
+              } catch { /* ignore */ }
+            }
+            if (!label) label = (e.dataTransfer.getData("text/plain") || "").trim();
+            if (!label) return;
+            setReferences((prev) => (prev.includes(label) ? prev : [...prev, label]));
+            if (imageUrl) {
+              setReferenceImages((prev) => ({ ...prev, [label]: imageUrl as string }));
+            }
+          }}
+          className={cn(
+            "flex flex-wrap gap-3 items-start rounded-lg p-2 -m-2 transition-colors",
+            isRefDropActive && "bg-primary/5 ring-2 ring-primary/40 ring-dashed",
+          )}
+        >
           {references.map((r) => (
             <VisualChip
               key={r}
@@ -455,7 +492,7 @@ const ConclusionVisuals = ({
               roomType={roomType}
               iconicItem={iconicItems?.[r]}
               imageUrl={referenceImages[r]}
-              autoGenerate
+              autoGenerate={!referenceImages[r]}
               onImageReady={(url) => setReferenceImages((prev) => ({ ...prev, [r]: url }))}
               onRename={(next) => renameReference(r, next)}
               onRemove={() => removeReference(r)}
