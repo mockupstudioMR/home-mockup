@@ -257,6 +257,7 @@ const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(() =
           colors: editableColors,
           materials: moodboard.materials,
           references: moodboard.references,
+          mustInclude: moodboard.mustInclude,
         },
       }
     });
