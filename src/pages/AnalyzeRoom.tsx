@@ -476,6 +476,7 @@ const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(() =
                       <ConclusionVisuals
                         moodboardDescription={analysisResult.moodboardDescription}
                         dominantColors={editableColors}
+                        onDominantColorsChange={setEditableColors}
                         styleNames={analysisResult.styles.map((s) => s.styleName)}
                         seedElements={Array.from(
                           new Set(
@@ -551,61 +552,6 @@ const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(() =
                       )}
                     </Button>
                   </div>
-                </div>
-
-                {/* Editable Color Palette */}
-                <div>
-                  <h3 className="font-semibold mb-3">Dominant Colors</h3>
-                  <div className="flex flex-wrap gap-3 items-center">
-                    {editableColors.map((color, index) => (
-                      <div key={index} className="relative group">
-                        <label className="block cursor-pointer">
-                          <div
-                            className="w-12 h-12 rounded-lg border-2 border-border hover:border-primary/50 transition-colors"
-                            style={{ backgroundColor: color }}
-                            title={color}
-                          />
-                          <input
-                            type="color"
-                            value={color}
-                            onChange={(e) => {
-                              setEditableColors((prev) =>
-                                prev.map((c, i) => (i === index ? e.target.value : c))
-                              );
-                            }}
-                            className="sr-only"
-                          />
-                        </label>
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setEditableColors((prev) => prev.filter((_, i) => i !== index))
-                          }
-                          className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-xs"
-                        >
-                          <X className="w-3 h-3" />
-                        </button>
-                      </div>
-                    ))}
-                    {/* Add color button */}
-                    <label className="w-12 h-12 rounded-lg border-2 border-dashed border-border hover:border-primary/50 flex items-center justify-center cursor-pointer transition-colors">
-                      <Plus className="w-5 h-5 text-muted-foreground" />
-                      <input
-                        type="color"
-                        defaultValue="#808080"
-                        onChange={(e) => {
-                          setEditableColors((prev) => [...prev, e.target.value]);
-                        }}
-                        className="sr-only"
-                      />
-                    </label>
-                  </div>
-                </div>
-
-                {/* Moodboard Description */}
-                <div>
-                  <h3 className="font-semibold mb-2">Style Summary</h3>
-                  <p className="text-muted-foreground">{analysisResult.moodboardDescription}</p>
                 </div>
 
                 <Button size="lg" className="w-full" onClick={handleContinue} disabled={selectedStyleIndex === null || selectedInspirations.length < 1}>
