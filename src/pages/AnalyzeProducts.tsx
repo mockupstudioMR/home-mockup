@@ -744,6 +744,7 @@ const AnalyzeProducts = () => {
                         ))}
                       </div>
                     </div>
+                    )}
                   </CardContent>
                 </Card>
               )}
