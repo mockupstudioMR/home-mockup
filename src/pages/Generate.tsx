@@ -343,6 +343,26 @@ const Generate = () => {
     }
   }, []);
 
+  const resolveActiveRoomContext = useCallback(async () => {
+    let floorPlanContext: any = null;
+    let activeRoomId: string | null = null;
+
+    try {
+      const { loadActiveRoomSpec, toLegacyFloorPlanContext, getActiveRoomId } = await import("@/services/roomSpec");
+      const spec = await loadActiveRoomSpec();
+      if (spec) {
+        toLegacyFloorPlanContext(spec);
+        activeRoomId = getActiveRoomId();
+      }
+      const raw = sessionStorage.getItem("floor_plan_context");
+      if (raw) floorPlanContext = JSON.parse(raw);
+    } catch {
+      /* ignore */
+    }
+
+    return { floorPlanContext, activeRoomId };
+  }, []);
+
   // Cache state changes to sessionStorage (skip large data like highlights visuals)
   useEffect(() => {
     if (design) {
@@ -776,6 +796,8 @@ const Generate = () => {
     setDebugPrompt("");
 
     try {
+      const { floorPlanContext, activeRoomId } = await resolveActiveRoomContext();
+
       // If we have a scene preview image from the product flow, use it directly
       // as the final design — no re-generation needed.
       if (scenePreviewImage) {
@@ -791,6 +813,7 @@ const Generate = () => {
             source_image_url: quizData.sourceImageUrl,
             quiz_response_id: quizResponseId,
             title: designTitle,
+            room_id: activeRoomId,
           } as any)
           .select()
           .single();
@@ -816,20 +839,6 @@ const Generate = () => {
       }
 
       const existingRoomRef = existingRoomImagesFromState;
-
-      // Pull canonical RoomSpec first; fall back to legacy floor_plan_context
-      let floorPlanContext: any = null;
-      let activeRoomId: string | null = null;
-      try {
-        const { loadActiveRoomSpec, toLegacyFloorPlanContext, getActiveRoomId } = await import("@/services/roomSpec");
-        const spec = await loadActiveRoomSpec();
-        if (spec) {
-          toLegacyFloorPlanContext(spec);
-          activeRoomId = getActiveRoomId();
-        }
-        const raw = sessionStorage.getItem("floor_plan_context");
-        if (raw) floorPlanContext = JSON.parse(raw);
-      } catch { /* ignore */ }
 
       trackEvent("ai_call", "generate", { fn: "generate-design" });
       const response = await supabase.functions.invoke("generate-design", {
@@ -1009,7 +1018,7 @@ const Generate = () => {
       }
     };
     run();
-  }, [quizData, user, location.state, uploadDesignImage, toast]);
+  }, [quizData, user, location.state, uploadDesignImage, toast, resolveActiveRoomContext]);
 
   const handleSurpriseStyle = useCallback(() => {
     const styles = ["modern-minimal", "bohemian-eclectic", "classic-historical", "rustic-nature", "mediterranean", "glam-luxe"];
