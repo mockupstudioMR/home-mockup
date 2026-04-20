@@ -291,16 +291,52 @@ const ConclusionVisuals = ({
   const [referenceImages, setReferenceImages] = useState<Record<string, string>>({});
   useEffect(() => setReferences(initialReferences), [initialReferences]);
 
+  // Furniture References — user uploads images of furniture they like the look of.
+  // Treated as STYLE INSPIRATION (use similar pieces), not exact match.
+  const [furnitureReferences, setFurnitureReferences] = useState<{ label: string; imageUrl?: string }[]>([]);
+  const [uploadingFurnitureRef, setUploadingFurnitureRef] = useState(false);
+
+  // Decor References — accessories, textiles, lighting (lamps, vases, art, cushions, rugs).
+  const [decorReferences, setDecorReferences] = useState<{ label: string; imageUrl?: string }[]>([]);
+  const [uploadingDecorRef, setUploadingDecorRef] = useState(false);
+
+  const uploadInspirationImages = async (
+    files: File[],
+    bucketFolder: string,
+    setter: React.Dispatch<React.SetStateAction<{ label: string; imageUrl?: string }[]>>,
+  ) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    await Promise.all(files.map(async (file) => {
+      if (!file.type.startsWith("image/")) return;
+      const optimizedFile = await optimizeImageFile(file, { maxDimension: 2048 });
+      const path = `${user.id}/${bucketFolder}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.webp`;
+      const { error: upErr } = await supabase.storage
+        .from("room-photos")
+        .upload(path, optimizedFile, { contentType: optimizedFile.type });
+      if (upErr) { console.error("upload failed", upErr); return; }
+      const { data: urlData } = supabase.storage.from("room-photos").getPublicUrl(path);
+      const baseLabel = file.name.replace(/\.[^.]+$/, "").slice(0, 40) || "Reference";
+      setter((prev) => {
+        let label = baseLabel; let i = 2;
+        while (prev.some((m) => m.label.toLowerCase() === label.toLowerCase())) label = `${baseLabel} ${i++}`;
+        return [...prev, { label, imageUrl: urlData.publicUrl }];
+      });
+    }));
+  };
+
   // Emit moodboard upward whenever it changes
   useEffect(() => {
     if (!onMoodboardChange) return;
     onMoodboardChange({
       materials: materials.map((m) => ({ label: m, imageUrl: materialImages[m] })),
       references: references.map((r) => ({ label: r, imageUrl: referenceImages[r] })),
+      furnitureReferences,
+      decorReferences,
       mustInclude,
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [materials, references, materialImages, referenceImages, mustInclude]);
+  }, [materials, references, materialImages, referenceImages, mustInclude, furnitureReferences, decorReferences]);
 
   // Add new material/reference state
   const [newMaterial, setNewMaterial] = useState("");
