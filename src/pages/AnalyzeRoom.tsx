@@ -68,7 +68,7 @@ const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(() =
   const [inspirationDetailsMap, setInspirationDetailsMap] = useState<Record<string, { label: string; description: string; type: string }>>({});
   const [editableColors, setEditableColors] = useState<string[]>(() => getInitialState().result?.dominantColors || []);
   const [refreshKeys, setRefreshKeys] = useState<Record<number, number>>({});
-  const [conclusionRefresh, setConclusionRefresh] = useState(0);
+  // (conclusion moodboard manages its own regeneration internally)
   const [isDetectingMore, setIsDetectingMore] = useState(false);
 
   // Persist state to sessionStorage - URLs are small so they fit
@@ -469,33 +469,23 @@ const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(() =
                     </p>
                   )}
 
-                  {/* Visuals generated from the overall conclusion */}
+                  {/* Single editable moodboard generated from the overall conclusion */}
                   {analysisResult.moodboardDescription && (
                     <div className="mb-6">
-                      <div className="flex items-center justify-between mb-2">
-                        <h3 className="text-sm font-semibold">Conclusion Moodboard</h3>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          className="text-xs h-7"
-                          onClick={() => {
-                            setConclusionRefresh((n) => n + 1);
-                            trackEvent("ai_call", "analyze-room", { fn: "regenerate-conclusion-visuals" });
-                          }}
-                        >
-                          <RefreshIcon className="w-3 h-3 mr-1.5" />
-                          Regenerate
-                        </Button>
-                      </div>
+                      <h3 className="text-sm font-semibold mb-2">Conclusion Moodboard</h3>
                       <ConclusionVisuals
                         moodboardDescription={analysisResult.moodboardDescription}
                         dominantColors={editableColors}
                         styleNames={analysisResult.styles.map((s) => s.styleName)}
-                        refreshKey={conclusionRefresh}
+                        seedElements={Array.from(
+                          new Set(
+                            (analysisResult.perImage || []).flatMap((p) => p.textures || []),
+                          ),
+                        )}
                       />
                     </div>
                   )}
+
 
                   <h3 className="text-sm font-semibold mb-2">Style Matches</h3>
                   <div className="space-y-3">
