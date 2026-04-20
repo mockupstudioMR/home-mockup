@@ -577,10 +577,10 @@ const ConclusionVisuals = ({
         </div>
       </div>
 
-      {/* Furniture References — inspiration, "use similar" */}
+      {/* Furniture References — AI-generated + uploads, inspiration, "use similar" */}
       <div>
         <p className="text-[11px] uppercase tracking-wide text-muted-foreground mb-2 font-medium">
-          Furniture References <span className="normal-case text-muted-foreground/70">— upload sofas, beds, tables, chairs you love (we'll use similar pieces)</span>
+          Furniture References <span className="normal-case text-muted-foreground/70">— AI examples of sofas, beds, tables, chairs in your style (we'll use similar pieces)</span>
         </p>
         <div className="flex flex-wrap gap-3 items-start">
           {furnitureReferences.map((item) => (
@@ -631,13 +631,31 @@ const ConclusionVisuals = ({
               }}
             />
           </label>
+          <button
+            type="button"
+            onClick={() => generateAiReference("furniture", setFurnitureReferences, setGeneratingFurnitureRef)}
+            disabled={generatingFurnitureRef || !styleNames[0]}
+            className={cn(
+              "w-24 aspect-square rounded-lg border-2 border-dashed transition-colors flex flex-col items-center justify-center gap-1",
+              generatingFurnitureRef
+                ? "border-primary/40 bg-primary/5 text-primary cursor-wait"
+                : "border-border hover:border-primary/50 hover:bg-primary/5 text-muted-foreground hover:text-primary",
+            )}
+            title="Generate another AI furniture reference"
+          >
+            {generatingFurnitureRef ? (
+              <><Loader2 className="w-4 h-4 animate-spin" /><span className="text-[10px]">Generating…</span></>
+            ) : (
+              <><Sparkles className="w-4 h-4" /><span className="text-[10px]">AI suggest</span></>
+            )}
+          </button>
         </div>
       </div>
 
-      {/* Decor References — accessories, textiles, lighting */}
+      {/* Decor References — AI-generated + uploads, accessories, textiles, lighting */}
       <div>
         <p className="text-[11px] uppercase tracking-wide text-muted-foreground mb-2 font-medium">
-          Decor References <span className="normal-case text-muted-foreground/70">— lamps, vases, art, cushions, rugs (we'll use similar accessories)</span>
+          Decor References <span className="normal-case text-muted-foreground/70">— AI examples of lamps, vases, art, cushions, rugs in your style</span>
         </p>
         <div className="flex flex-wrap gap-3 items-start">
           {decorReferences.map((item) => (
@@ -688,6 +706,24 @@ const ConclusionVisuals = ({
               }}
             />
           </label>
+          <button
+            type="button"
+            onClick={() => generateAiReference("decor", setDecorReferences, setGeneratingDecorRef)}
+            disabled={generatingDecorRef || !styleNames[0]}
+            className={cn(
+              "w-24 aspect-square rounded-lg border-2 border-dashed transition-colors flex flex-col items-center justify-center gap-1",
+              generatingDecorRef
+                ? "border-primary/40 bg-primary/5 text-primary cursor-wait"
+                : "border-border hover:border-primary/50 hover:bg-primary/5 text-muted-foreground hover:text-primary",
+            )}
+            title="Generate another AI decor reference"
+          >
+            {generatingDecorRef ? (
+              <><Loader2 className="w-4 h-4 animate-spin" /><span className="text-[10px]">Generating…</span></>
+            ) : (
+              <><Sparkles className="w-4 h-4" /><span className="text-[10px]">AI suggest</span></>
+            )}
+          </button>
         </div>
       </div>
 
