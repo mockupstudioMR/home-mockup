@@ -115,6 +115,15 @@ interface DesignItem {
   };
 }
 
+type GenerateMoodboard = {
+  colors?: string[];
+  materials?: { label: string; imageUrl?: string }[];
+  references?: { label: string; imageUrl?: string }[];
+  furnitureReferences?: { label: string; imageUrl?: string }[];
+  decorReferences?: { label: string; imageUrl?: string }[];
+  mustInclude?: { label: string; imageUrl?: string }[];
+};
+
 // Generate a suggested design name from style & room type
 const generateDesignTitle = (style?: string, roomType?: string): string => {
   const styleTitles: Record<string, string[]> = {
@@ -195,6 +204,17 @@ const Generate = () => {
       const cached = sessionStorage.getItem('generate_analysis_cache');
       return cached ? JSON.parse(cached) as AnalysisData : undefined;
     } catch { return undefined; }
+  })();
+
+  const routeMoodboard = location.state?.moodboard as GenerateMoodboard | undefined;
+  const currentMoodboard = (() => {
+    if (routeMoodboard) return routeMoodboard;
+    try {
+      const cached = sessionStorage.getItem("generate_moodboard_cache");
+      return cached ? (JSON.parse(cached) as GenerateMoodboard) : undefined;
+    } catch {
+      return undefined;
+    }
   })();
 
   console.log('[Generate] analysisResult colors:', analysisResult?.dominantColors, 'keywords:', analysisResult?.styles?.flatMap(s => s.keywords));
@@ -450,6 +470,11 @@ const Generate = () => {
     }
   }, [debugPrompt, safeSessionStorage]);
 
+  useEffect(() => {
+    if (!routeMoodboard) return;
+    safeSessionStorage("generate_moodboard_cache", JSON.stringify(routeMoodboard));
+  }, [routeMoodboard, safeSessionStorage]);
+
   // Track the quiz data to detect new quizzes
   const lastQuizDataRef = useRef<string | null>(sessionStorage.getItem('generate_quiz_hash'));
 
@@ -526,6 +551,7 @@ const Generate = () => {
       sessionStorage.removeItem('generate_quiz_response_id');
       sessionStorage.removeItem('generate_debug_steps_cache');
       sessionStorage.removeItem('generate_debug_prompt_cache');
+      sessionStorage.removeItem('generate_moodboard_cache');
       
       // Reset state
       setDesign(null);
@@ -809,16 +835,7 @@ const Generate = () => {
     if (!quizData || !user) return;
 
     const { productAnalysis, sourceImages, includeProducts, scenePreviewImage } = location.state || {};
-    const moodboard = location.state?.moodboard as
-      | {
-          colors?: string[];
-          materials?: { label: string; imageUrl?: string }[];
-          references?: { label: string; imageUrl?: string }[];
-          furnitureReferences?: { label: string; imageUrl?: string }[];
-          decorReferences?: { label: string; imageUrl?: string }[];
-          mustInclude?: { label: string; imageUrl?: string }[];
-        }
-      | undefined;
+    const moodboard = currentMoodboard;
     const shouldIncludeProducts = !!includeProducts && !isExistingRoomFlow;
 
     setGenerating(true);
@@ -1989,32 +2006,17 @@ RULES:
 
             {/* Moodboard elements editor — replace/remove/add inline (in-place refinement). */}
             {(() => {
-              type MB = {
-                materials?: { label: string; imageUrl?: string }[];
-                furnitureReferences?: { label: string; imageUrl?: string }[];
-                decorReferences?: { label: string; imageUrl?: string }[];
-                mustInclude?: { label: string; imageUrl?: string }[];
-              };
-              let mb = location.state?.moodboard as MB | undefined;
-              if (mb) {
-                try { sessionStorage.setItem('generate_moodboard_cache', JSON.stringify(mb)); } catch { /* ignore */ }
-              } else {
-                try {
-                  const cached = sessionStorage.getItem('generate_moodboard_cache');
-                  if (cached) mb = JSON.parse(cached) as MB;
-                } catch { /* ignore */ }
-              }
               const items: MoodboardItem[] = [
-                ...((mb?.mustInclude || []).map((m) => ({ ...m, kind: "must-include" as const }))),
-                ...((mb?.furnitureReferences || []).map((m) => ({ ...m, kind: "furniture" as const }))),
-                ...((mb?.decorReferences || []).map((m) => ({ ...m, kind: "decor" as const }))),
-                ...((mb?.materials || []).map((m) => ({ ...m, kind: "material" as const }))),
+                ...((currentMoodboard?.mustInclude || []).map((m) => ({ ...m, kind: "must-include" as const }))),
+                ...((currentMoodboard?.furnitureReferences || []).map((m) => ({ ...m, kind: "furniture" as const }))),
+                ...((currentMoodboard?.decorReferences || []).map((m) => ({ ...m, kind: "decor" as const }))),
+                ...((currentMoodboard?.materials || []).map((m) => ({ ...m, kind: "material" as const }))),
               ];
               if (items.length === 0) return null;
               const handleMbAction = async (action: MoodboardAction) => {
                 let modType: "swap_item" | "color_material" | "add_remove" = "color_material";
                 let prompt = "";
-                let refUrl: string | null | undefined = undefined; // undefined = leave unchanged
+                let refUrl: string | null | undefined = undefined;
                 if (action.type === "swap") {
                   modType = "swap_item";
                   prompt = action.newImageUrl
