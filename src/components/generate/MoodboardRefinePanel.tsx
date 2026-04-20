@@ -171,6 +171,7 @@ const MoodboardRefinePanel = ({
   onAction,
   designDescription = "",
   extractedItemNames = [],
+  extractedItems = [],
   modificationInput,
   onModificationInputChange,
   onModify,
