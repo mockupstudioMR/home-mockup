@@ -484,6 +484,36 @@ const ConclusionVisuals = ({
               <span className="text-[10px]">Add item</span>
             </button>
           )}
+
+          <label
+            className={cn(
+              "w-24 aspect-square rounded-lg border-2 border-dashed transition-colors flex flex-col items-center justify-center gap-1",
+              uploadingMustInclude
+                ? "border-primary/40 bg-primary/5 text-primary cursor-wait"
+                : "border-border hover:border-primary/50 hover:bg-primary/5 text-muted-foreground hover:text-primary cursor-pointer",
+            )}
+            title="Upload an image of furniture you want to keep"
+          >
+            {uploadingMustInclude ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                <span className="text-[10px]">Uploading…</span>
+              </>
+            ) : (
+              <>
+                <Upload className="w-4 h-4" />
+                <span className="text-[10px]">Upload image</span>
+              </>
+            )}
+            <input
+              type="file"
+              accept="image/*"
+              multiple
+              className="hidden"
+              onChange={handleMustIncludeUpload}
+              disabled={uploadingMustInclude}
+            />
+          </label>
         </div>
       </div>
 
