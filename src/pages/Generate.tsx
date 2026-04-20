@@ -150,6 +150,12 @@ const Generate = () => {
   const keepElementsFromState = location.state?.keepElements as string[] | undefined;
   const changeElementsFromState = location.state?.changeElements as string[] | undefined;
   const isExistingRoomFlow = location.state?.source === "existing-room" || !!existingRoomImagesFromState?.length;
+  const shouldUseFloorPlanContext =
+    !location.state?.analysisResult &&
+    !existingRoomImagesFromState?.length &&
+    !location.state?.productAnalysis &&
+    !location.state?.scenePreviewImage &&
+    location.state?.source !== "existing-room";
   
   // Persist analysisResult and selectedInspirations to sessionStorage so they survive re-renders/HMR
   const selectedInspirations = (() => {
@@ -344,6 +350,11 @@ const Generate = () => {
   }, []);
 
   const resolveActiveRoomContext = useCallback(async () => {
+    if (!shouldUseFloorPlanContext) {
+      try { sessionStorage.removeItem("floor_plan_context"); } catch { /* ignore */ }
+      return { floorPlanContext: null, activeRoomId: null };
+    }
+
     let floorPlanContext: any = null;
     let activeRoomId: string | null = null;
 
@@ -356,7 +367,6 @@ const Generate = () => {
         const raw = sessionStorage.getItem("floor_plan_context");
         if (raw) floorPlanContext = JSON.parse(raw);
       } else {
-        // No active room spec → discard any stale legacy context from a previous journey
         try { sessionStorage.removeItem("floor_plan_context"); } catch { /* ignore */ }
       }
     } catch {
@@ -364,7 +374,7 @@ const Generate = () => {
     }
 
     return { floorPlanContext, activeRoomId };
-  }, []);
+  }, [shouldUseFloorPlanContext]);
 
   // Cache state changes to sessionStorage (skip large data like highlights visuals)
   useEffect(() => {
