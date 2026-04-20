@@ -489,6 +489,7 @@ const AnalyzeProducts = () => {
           {analysisResult && (
             <div className="space-y-8">
               {/* "We detected" — selectable */}
+              {step === "detect" && (
               <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
                 <CardContent className="p-6 space-y-3">
                   <div className="flex items-baseline justify-between gap-2 flex-wrap">
