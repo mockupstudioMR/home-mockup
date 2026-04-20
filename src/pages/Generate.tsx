@@ -41,6 +41,7 @@ import type { ExtractedWall } from "@/components/generate/WallExtractionPanel";
 import FloorPlanComparison from "@/components/generate/FloorPlanComparison";
 import { getStyleMoodboardUrls } from "@/lib/styleMoodboards";
 import MoodboardElementsPanel, { type MoodboardItem, type MoodboardAction } from "@/components/generate/MoodboardElementsPanel";
+import MoodboardRefinePanel from "@/components/generate/MoodboardRefinePanel";
 
 interface GeneratedDesign {
   id: string;
