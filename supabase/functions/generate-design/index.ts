@@ -598,10 +598,17 @@ function buildImagePrompt(
     ? `Include these elements: ${data.mustHaveElements.join(", ")}.` 
     : "";
 
-  // Build detected colors context
+  // Build detected colors context — the user's curated moodboard palette is the
+  // single source of truth for color. It overrides any palette implied by the
+  // attached style reference images.
   let detectedColorsContext = "";
   if (data.detectedColors && data.detectedColors.length > 0) {
-    detectedColorsContext = `COLOR PALETTE DIRECTIVE: Use these specific colors as the dominant palette throughout the design: ${data.detectedColors.join(", ")}. These colors should be prominently visible in walls, textiles, furniture, and accents. `;
+    const colorList = data.detectedColors.join(", ");
+    detectedColorsContext =
+      `MANDATORY COLOR PALETTE (HIGHEST PRIORITY — overrides any palette from attached reference images): ` +
+      `The final design MUST use ONLY this exact palette: ${colorList}. ` +
+      `Distribute these hex colors across walls, large textiles (rugs, sofas, curtains), upholstery, accents and decor so the palette is unmistakable at first glance. ` +
+      `Do NOT introduce colors outside this palette. If a reference image shows a different color scheme, IGNORE its colors and recolor everything to match this palette. `;
   }
 
   // Build detected keywords/visual elements context
