@@ -73,6 +73,10 @@ const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(() =
   // (conclusion moodboard manages its own regeneration internally)
   const [isDetectingMore, setIsDetectingMore] = useState(false);
   const [moodboardExtras, setMoodboardExtras] = useState<string[]>([]);
+  const [moodboard, setMoodboard] = useState<{
+    materials: { label: string; imageUrl?: string }[];
+    references: { label: string; imageUrl?: string }[];
+  }>({ materials: [], references: [] });
 
   // Persist state to sessionStorage - URLs are small so they fit
   useEffect(() => {
