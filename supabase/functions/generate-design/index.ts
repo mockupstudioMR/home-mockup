@@ -40,6 +40,12 @@ interface GenerateRequest {
   moodboardMaterials?: { label: string; imageUrl?: string }[];
   /** User-curated moodboard style references (with optional reference images). */
   moodboardReferences?: { label: string; imageUrl?: string }[];
+  /** Furniture inspiration uploads — "use similar furniture in style/silhouette". */
+  furnitureReferences?: { label: string; imageUrl?: string }[];
+  /** Decor inspiration uploads — accessories, textiles, lighting, art. "Use similar decor". */
+  decorReferences?: { label: string; imageUrl?: string }[];
+  /** Items the user marked as MUST-INCLUDE — exact match required (same color, material, shape). */
+  mustIncludeItems?: { label: string; imageUrl?: string }[];
   /** Public URLs of the moodboard images for the user-selected style(s). The model
    * uses these as visual references for color palette, materials and furniture vibe. */
   styleImageUrls?: string[];
@@ -409,6 +415,24 @@ serve(async (req) => {
         }
         addDebug("Style moodboard images", `Added ${styleImgs.length} style reference image(s) to request`);
       }
+
+      // Furniture references — inspiration
+      const furnImgs = (enrichedRequestData.furnitureReferences || [])
+        .map((f) => f.imageUrl).filter(Boolean).slice(0, 3) as string[];
+      for (const u of furnImgs) contentParts.push({ type: "image_url", image_url: { url: u } });
+      if (furnImgs.length > 0) addDebug("Furniture references", `Added ${furnImgs.length} furniture inspiration image(s)`);
+
+      // Decor references — inspiration
+      const decorImgs = (enrichedRequestData.decorReferences || [])
+        .map((d) => d.imageUrl).filter(Boolean).slice(0, 3) as string[];
+      for (const u of decorImgs) contentParts.push({ type: "image_url", image_url: { url: u } });
+      if (decorImgs.length > 0) addDebug("Decor references", `Added ${decorImgs.length} decor inspiration image(s)`);
+
+      // Must-include items — exact match
+      const mustImgs = (enrichedRequestData.mustIncludeItems || [])
+        .map((m) => m.imageUrl).filter(Boolean).slice(0, 4) as string[];
+      for (const u of mustImgs) contentParts.push({ type: "image_url", image_url: { url: u } });
+      if (mustImgs.length > 0) addDebug("Must-include images", `Added ${mustImgs.length} must-include exact-match image(s)`);
     }
 
     const messages: any[] = [
@@ -630,6 +654,27 @@ function buildImagePrompt(
   }
   if (mbReferences.length > 0) {
     moodboardContext += `MOODBOARD STYLE REFERENCES (mirror their look & feel and signature pieces): ${mbReferences.join(", ")}. `;
+  }
+
+  // Furniture references — INSPIRATION (use similar pieces in style/silhouette/material)
+  const furnRefs = (data.furnitureReferences || []).filter((f) => f.label || f.imageUrl);
+  if (furnRefs.length > 0) {
+    const labels = furnRefs.map((f) => f.label).filter(Boolean).join(", ");
+    moodboardContext += `FURNITURE INSPIRATION (use SIMILAR furniture pieces — match the style, silhouette, proportions, materials and overall vibe of the attached furniture reference image(s)${labels ? ` labeled: ${labels}` : ""}. Do NOT copy them exactly — translate their character into pieces that fit this room): treat the attached furniture reference images as the primary guide for sofa/chair/table/bed/storage selection. `;
+  }
+
+  // Decor references — INSPIRATION (use similar accessories, textiles, lighting)
+  const decorRefs = (data.decorReferences || []).filter((d) => d.label || d.imageUrl);
+  if (decorRefs.length > 0) {
+    const labels = decorRefs.map((d) => d.label).filter(Boolean).join(", ");
+    moodboardContext += `DECOR INSPIRATION (use SIMILAR accessories, textiles and lighting — lamps, vases, art, cushions, rugs, throws — matching the style, color story and material feel of the attached decor reference image(s)${labels ? ` labeled: ${labels}` : ""}): the room's accessories, soft furnishings and lighting should clearly echo the spirit of these decor references. `;
+  }
+
+  // Must-include — EXACT match required
+  const mustHaves = (data.mustIncludeItems || []).filter((m) => m.label || m.imageUrl);
+  if (mustHaves.length > 0) {
+    const labels = mustHaves.map((m) => m.label).filter(Boolean).join(", ");
+    moodboardContext += `MUST-INCLUDE ITEMS — CRITICAL: The following items MUST appear in the final design EXACTLY as shown in their attached reference image(s) — same color, same material, same shape, same finish. Do NOT substitute, restyle or reinterpret them. Place them naturally in the room. Items: ${labels}. `;
   }
 
   // Style moodboard images directive — tells the model how to read the attached

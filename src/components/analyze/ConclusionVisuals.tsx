@@ -39,6 +39,8 @@ interface ConclusionVisualsProps {
   onMoodboardChange?: (mb: {
     materials: { label: string; imageUrl?: string }[];
     references: { label: string; imageUrl?: string }[];
+    furnitureReferences: { label: string; imageUrl?: string }[];
+    decorReferences: { label: string; imageUrl?: string }[];
     mustInclude: { label: string; imageUrl?: string }[];
   }) => void;
 }
@@ -289,16 +291,52 @@ const ConclusionVisuals = ({
   const [referenceImages, setReferenceImages] = useState<Record<string, string>>({});
   useEffect(() => setReferences(initialReferences), [initialReferences]);
 
+  // Furniture References — user uploads images of furniture they like the look of.
+  // Treated as STYLE INSPIRATION (use similar pieces), not exact match.
+  const [furnitureReferences, setFurnitureReferences] = useState<{ label: string; imageUrl?: string }[]>([]);
+  const [uploadingFurnitureRef, setUploadingFurnitureRef] = useState(false);
+
+  // Decor References — accessories, textiles, lighting (lamps, vases, art, cushions, rugs).
+  const [decorReferences, setDecorReferences] = useState<{ label: string; imageUrl?: string }[]>([]);
+  const [uploadingDecorRef, setUploadingDecorRef] = useState(false);
+
+  const uploadInspirationImages = async (
+    files: File[],
+    bucketFolder: string,
+    setter: React.Dispatch<React.SetStateAction<{ label: string; imageUrl?: string }[]>>,
+  ) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    await Promise.all(files.map(async (file) => {
+      if (!file.type.startsWith("image/")) return;
+      const optimizedFile = await optimizeImageFile(file, { maxDimension: 2048 });
+      const path = `${user.id}/${bucketFolder}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.webp`;
+      const { error: upErr } = await supabase.storage
+        .from("room-photos")
+        .upload(path, optimizedFile, { contentType: optimizedFile.type });
+      if (upErr) { console.error("upload failed", upErr); return; }
+      const { data: urlData } = supabase.storage.from("room-photos").getPublicUrl(path);
+      const baseLabel = file.name.replace(/\.[^.]+$/, "").slice(0, 40) || "Reference";
+      setter((prev) => {
+        let label = baseLabel; let i = 2;
+        while (prev.some((m) => m.label.toLowerCase() === label.toLowerCase())) label = `${baseLabel} ${i++}`;
+        return [...prev, { label, imageUrl: urlData.publicUrl }];
+      });
+    }));
+  };
+
   // Emit moodboard upward whenever it changes
   useEffect(() => {
     if (!onMoodboardChange) return;
     onMoodboardChange({
       materials: materials.map((m) => ({ label: m, imageUrl: materialImages[m] })),
       references: references.map((r) => ({ label: r, imageUrl: referenceImages[r] })),
+      furnitureReferences,
+      decorReferences,
       mustInclude,
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [materials, references, materialImages, referenceImages, mustInclude]);
+  }, [materials, references, materialImages, referenceImages, mustInclude, furnitureReferences, decorReferences]);
 
   // Add new material/reference state
   const [newMaterial, setNewMaterial] = useState("");
@@ -487,6 +525,120 @@ const ConclusionVisuals = ({
               className="hidden"
               onChange={handleMustIncludeUpload}
               disabled={uploadingMustInclude}
+            />
+          </label>
+        </div>
+      </div>
+
+      {/* Furniture References — inspiration, "use similar" */}
+      <div>
+        <p className="text-[11px] uppercase tracking-wide text-muted-foreground mb-2 font-medium">
+          Furniture References <span className="normal-case text-muted-foreground/70">— upload sofas, beds, tables, chairs you love (we'll use similar pieces)</span>
+        </p>
+        <div className="flex flex-wrap gap-3 items-start">
+          {furnitureReferences.map((item) => (
+            <div key={item.label} className="group relative w-24">
+              <div className="aspect-square rounded-lg overflow-hidden border border-border bg-secondary/30 relative">
+                {item.imageUrl && (
+                  <img src={getThumbnailImageUrl(item.imageUrl)} alt={item.label} className="w-full h-full object-cover" loading="lazy" decoding="async" />
+                )}
+                <button
+                  type="button"
+                  onClick={() => setFurnitureReferences((prev) => prev.filter((m) => m.label !== item.label))}
+                  className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/50 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                  aria-label="Remove"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+                <div className="absolute bottom-1 left-1 px-1.5 py-0.5 rounded bg-foreground/80 text-background text-[9px] font-medium">
+                  Inspiration
+                </div>
+              </div>
+              <div className="mt-1 text-[11px] leading-tight truncate" title={item.label}>{item.label}</div>
+            </div>
+          ))}
+          <label className={cn(
+            "w-24 aspect-square rounded-lg border-2 border-dashed transition-colors flex flex-col items-center justify-center gap-1",
+            uploadingFurnitureRef
+              ? "border-primary/40 bg-primary/5 text-primary cursor-wait"
+              : "border-border hover:border-primary/50 hover:bg-primary/5 text-muted-foreground hover:text-primary cursor-pointer",
+          )}>
+            {uploadingFurnitureRef ? (
+              <><Loader2 className="w-4 h-4 animate-spin" /><span className="text-[10px]">Uploading…</span></>
+            ) : (
+              <><Plus className="w-4 h-4" /><span className="text-[10px]">Add furniture</span></>
+            )}
+            <input
+              type="file"
+              accept="image/*"
+              multiple
+              className="hidden"
+              disabled={uploadingFurnitureRef}
+              onChange={async (e) => {
+                const files = Array.from(e.target.files || []);
+                e.target.value = "";
+                if (!files.length) return;
+                setUploadingFurnitureRef(true);
+                try { await uploadInspirationImages(files, "furniture-ref", setFurnitureReferences); }
+                finally { setUploadingFurnitureRef(false); }
+              }}
+            />
+          </label>
+        </div>
+      </div>
+
+      {/* Decor References — accessories, textiles, lighting */}
+      <div>
+        <p className="text-[11px] uppercase tracking-wide text-muted-foreground mb-2 font-medium">
+          Decor References <span className="normal-case text-muted-foreground/70">— lamps, vases, art, cushions, rugs (we'll use similar accessories)</span>
+        </p>
+        <div className="flex flex-wrap gap-3 items-start">
+          {decorReferences.map((item) => (
+            <div key={item.label} className="group relative w-24">
+              <div className="aspect-square rounded-lg overflow-hidden border border-border bg-secondary/30 relative">
+                {item.imageUrl && (
+                  <img src={getThumbnailImageUrl(item.imageUrl)} alt={item.label} className="w-full h-full object-cover" loading="lazy" decoding="async" />
+                )}
+                <button
+                  type="button"
+                  onClick={() => setDecorReferences((prev) => prev.filter((m) => m.label !== item.label))}
+                  className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/50 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                  aria-label="Remove"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+                <div className="absolute bottom-1 left-1 px-1.5 py-0.5 rounded bg-foreground/80 text-background text-[9px] font-medium">
+                  Inspiration
+                </div>
+              </div>
+              <div className="mt-1 text-[11px] leading-tight truncate" title={item.label}>{item.label}</div>
+            </div>
+          ))}
+          <label className={cn(
+            "w-24 aspect-square rounded-lg border-2 border-dashed transition-colors flex flex-col items-center justify-center gap-1",
+            uploadingDecorRef
+              ? "border-primary/40 bg-primary/5 text-primary cursor-wait"
+              : "border-border hover:border-primary/50 hover:bg-primary/5 text-muted-foreground hover:text-primary cursor-pointer",
+          )}>
+            {uploadingDecorRef ? (
+              <><Loader2 className="w-4 h-4 animate-spin" /><span className="text-[10px]">Uploading…</span></>
+            ) : (
+              <><Plus className="w-4 h-4" /><span className="text-[10px]">Add decor</span></>
+            )}
+            <input
+              type="file"
+              accept="image/*"
+              multiple
+              className="hidden"
+              disabled={uploadingDecorRef}
+              onChange={async (e) => {
+                const files = Array.from(e.target.files || []);
+                e.target.value = "";
+                if (!files.length) return;
+                setUploadingDecorRef(true);
+                try { await uploadInspirationImages(files, "decor-ref", setDecorReferences); }
+                finally { setUploadingDecorRef(false); }
+              }}
             />
           </label>
         </div>
