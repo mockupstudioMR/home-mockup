@@ -611,7 +611,7 @@ const AnalyzeProducts = () => {
                       <div className="grid gap-3">
                         {roomsToShow.map((room) => {
                           // Show which detected products match this room
-                          const matchedProducts = analysisResult.products.filter((p) => {
+                          const matchedProducts = keptProducts.filter((p) => {
                             const pTokens = new Set<string>();
                             const pName = p.productName.toLowerCase();
                             const pCat = p.category.toLowerCase();
