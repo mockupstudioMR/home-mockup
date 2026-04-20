@@ -790,15 +790,35 @@ const AnalyzeProducts = () => {
       {/* Sticky bottom CTA - active as soon as a room is picked */}
       {analysisResult && selectedRoom && (
         <div className="fixed bottom-0 left-0 right-0 z-20 bg-background/80 backdrop-blur-md border-t border-border p-4">
-          <div className="max-w-3xl mx-auto">
-            <Button size="lg" className="w-full" onClick={handleContinue} disabled={selectedProductIndices.size === 0}>
+          <div className="max-w-3xl mx-auto flex items-center gap-3">
+            {step === "moodboard" && (
+              <Button size="lg" variant="outline" onClick={() => setStep("detect")}>
+                <ArrowLeft className="w-4 h-4 mr-1" />
+                Back
+              </Button>
+            )}
+            <Button
+              size="lg"
+              className="flex-1"
+              onClick={() => {
+                if (step === "detect") {
+                  setStep("moodboard");
+                  window.scrollTo({ top: 0, behavior: "smooth" });
+                } else {
+                  handleContinue();
+                }
+              }}
+              disabled={selectedProductIndices.size === 0}
+            >
               <Sparkles className="w-5 h-5 mr-2" />
-              Complete your moodboard
+              {step === "detect" ? "Complete your moodboard" : "Generate my design"}
             </Button>
-            <p className="text-xs text-muted-foreground text-center mt-2">
-              We'll build the moodboard around your products — edit suggested styles on the next step
-            </p>
           </div>
+          <p className="text-xs text-muted-foreground text-center mt-2">
+            {step === "detect"
+              ? "We'll build the moodboard around your products — edit suggested styles on the next step"
+              : "Edit colors, materials and style references, then generate your design"}
+          </p>
         </div>
       )}
     </div>
