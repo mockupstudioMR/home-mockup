@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import { X, Plus, Check, Pencil, Sparkles, Image as ImageIcon, Blend } from "lucide-react";
+import { X, Plus, Check, Pencil, Sparkles, Image as ImageIcon, Blend, Upload, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { MOODBOARD_DRAG_MIME } from "./TagVisual";
@@ -214,6 +214,7 @@ const ConclusionVisuals = ({
     setMustInclude((prev) => prev.map((m) => (m.label === label ? { ...m, imageUrl: url } : m)));
   const [newMustInclude, setNewMustInclude] = useState("");
   const [addingMustInclude, setAddingMustInclude] = useState(false);
+  const [uploadingMustInclude, setUploadingMustInclude] = useState(false);
   const commitNewMustInclude = () => {
     const v = newMustInclude.trim();
     if (v && !mustInclude.some((m) => m.label.toLowerCase() === v.toLowerCase())) {
@@ -221,6 +222,32 @@ const ConclusionVisuals = ({
     }
     setNewMustInclude("");
     setAddingMustInclude(false);
+  };
+  const handleMustIncludeUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    e.target.value = "";
+    if (!files.length) return;
+    setUploadingMustInclude(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      for (const file of files) {
+        if (!file.type.startsWith("image/")) continue;
+        const ext = file.name.split(".").pop() || "jpg";
+        const path = `${user.id}/must-include/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+        const { error: upErr } = await supabase.storage.from("room-photos").upload(path, file);
+        if (upErr) { console.error("upload failed", upErr); continue; }
+        const { data: urlData } = supabase.storage.from("room-photos").getPublicUrl(path);
+        const baseLabel = file.name.replace(/\.[^.]+$/, "").slice(0, 40) || "Uploaded item";
+        let label = baseLabel; let i = 2;
+        while (mustInclude.some((m) => m.label.toLowerCase() === label.toLowerCase())) {
+          label = `${baseLabel} ${i++}`;
+        }
+        setMustInclude((prev) => [...prev, { label, imageUrl: urlData.publicUrl }]);
+      }
+    } finally {
+      setUploadingMustInclude(false);
+    }
   };
 
   // Materials & Textures
@@ -457,6 +484,36 @@ const ConclusionVisuals = ({
               <span className="text-[10px]">Add item</span>
             </button>
           )}
+
+          <label
+            className={cn(
+              "w-24 aspect-square rounded-lg border-2 border-dashed transition-colors flex flex-col items-center justify-center gap-1",
+              uploadingMustInclude
+                ? "border-primary/40 bg-primary/5 text-primary cursor-wait"
+                : "border-border hover:border-primary/50 hover:bg-primary/5 text-muted-foreground hover:text-primary cursor-pointer",
+            )}
+            title="Upload an image of furniture you want to keep"
+          >
+            {uploadingMustInclude ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                <span className="text-[10px]">Uploading…</span>
+              </>
+            ) : (
+              <>
+                <Upload className="w-4 h-4" />
+                <span className="text-[10px]">Upload image</span>
+              </>
+            )}
+            <input
+              type="file"
+              accept="image/*"
+              multiple
+              className="hidden"
+              onChange={handleMustIncludeUpload}
+              disabled={uploadingMustInclude}
+            />
+          </label>
         </div>
       </div>
 
