@@ -20,37 +20,21 @@ interface AnalyzedStyle {
   iconicItem?: string;
 }
 
-interface PerImageAnalysis {
-  imageIndex: number;
-  style: { styleName: string; confidence: number; reason: string };
-  colorTheme: {
-    colors: string[];
-    paletteType: string;
-    contrast: "low" | "medium" | "high" | string;
-    notes?: string;
-  };
-  textures: string[];
-}
-
 interface AnalysisResult {
   styles: AnalyzedStyle[];
   moodboardDescription: string;
   dominantColors: string[];
   materials?: string[];
-  perImage?: PerImageAnalysis[];
 }
 
 const STORAGE_KEY = "analyze_room_cache";
 
-// Store only metadata (URLs), not base64 data
+// Always start fresh — clear any cached images/results from previous journeys.
 const getInitialState = (): { images: string[]; result: AnalysisResult | null } => {
   try {
-    const cached = sessionStorage.getItem(STORAGE_KEY);
-    if (cached) {
-      return JSON.parse(cached);
-    }
+    sessionStorage.removeItem(STORAGE_KEY);
   } catch {
-    // Ignore parse errors
+    // ignore
   }
   return { images: [], result: null };
 };
@@ -430,8 +414,8 @@ const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(() =
           {analysisResult && (
             <Card className="border-primary/30 bg-card/80 backdrop-blur-sm">
               <CardContent className="p-6 space-y-6">
-                {/* Per-image breakdown */}
-                {analysisResult.perImage && analysisResult.perImage.length > 0 && (
+                {/* Per-image breakdown removed per request */}
+                {false && analysisResult && (
                   <div>
                     <h2 className="text-xl font-semibold mb-1">Per-Image Analysis</h2>
                     <p className="text-sm text-muted-foreground mb-4">
