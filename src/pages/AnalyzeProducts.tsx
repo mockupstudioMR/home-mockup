@@ -696,6 +696,9 @@ const AnalyzeProducts = () => {
                           .filter((s) => s.iconicItem)
                           .map((s) => [s.styleName, s.iconicItem as string]),
                       )}
+                      mustIncludeItems={analysisResult.products
+                        .map((p, i) => ({ label: p.productName, imageUrl: uploadedImages[i] }))
+                        .filter((_, i) => selectedProductIndices.has(i))}
                       extraMaterials={moodboardExtras}
                       roomType={selectedRoom}
                       onMoodboardChange={setMoodboard}
