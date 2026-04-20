@@ -101,6 +101,9 @@ const AnalyzeProducts = () => {
     references: { label: string; imageUrl?: string }[];
   }>({ materials: [], references: [] });
 
+  // Two-step flow: 'detect' (products + room) → 'moodboard' (editor)
+  const [step, setStep] = useState<"detect" | "moodboard">("detect");
+
   // Which detected products the user wants to keep (defaults to all)
   const [selectedProductIndices, setSelectedProductIndices] = useState<Set<number>>(new Set());
   useEffect(() => {
