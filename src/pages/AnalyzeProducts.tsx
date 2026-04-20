@@ -254,6 +254,11 @@ const AnalyzeProducts = () => {
 
   const handleContinue = () => {
     if (!analysisResult || !selectedRoom) return;
+    if (selectedProductIndices.size === 0) return;
+
+    // Only the products the user kept selected
+    const keptProducts = analysisResult.products.filter((_, i) => selectedProductIndices.has(i));
+    const keptImages = uploadedImages.filter((_, i) => selectedProductIndices.has(i));
 
     const styleIdx = selectedStyleIndex ?? 0;
     const selectedStyle = analysisResult.styles?.[styleIdx];
@@ -262,8 +267,6 @@ const AnalyzeProducts = () => {
     const styleTitle = STYLE_LABELS[styleId] || detectedStyleName;
     const styleDescription = selectedStyle?.description || "";
 
-    // Aggregate moodboard items: user-toggled inspirations + every suggested
-    // keyword across all detected styles + iconic items + uploaded products.
     const aggregatedDetailsMap: Record<string, { label: string; description: string; type: string }> = {
       ...inspirationDetailsMap,
     };
@@ -294,8 +297,8 @@ const AnalyzeProducts = () => {
       }
     });
 
-    // Add detected products as iconic moodboard references (the couch etc.)
-    analysisResult.products.forEach((p, pIdx) => {
+    // Add ONLY the selected products as iconic moodboard references
+    keptProducts.forEach((p, pIdx) => {
       const id = `product-${pIdx}-${p.productName}`;
       aggregatedIds.add(id);
       aggregatedDetailsMap[id] = {
@@ -307,10 +310,8 @@ const AnalyzeProducts = () => {
 
     const allInspirations = Array.from(aggregatedIds);
 
-    // Build references: user-curated references from the moodboard editor,
-    // PLUS the uploaded product photos (always included as visual seeds).
-    const productReferences = uploadedImages.map((url, idx) => ({
-      label: analysisResult.products[idx]?.productName || `Product ${idx + 1}`,
+    const productReferences = keptImages.map((url, idx) => ({
+      label: keptProducts[idx]?.productName || `Product ${idx + 1}`,
       imageUrl: url,
     }));
     const mergedReferences = [
@@ -343,8 +344,8 @@ const AnalyzeProducts = () => {
               moodboardDescription: analysisResult.moodboardSuggestion,
             }
           : undefined,
-        productAnalysis: analysisResult,
-        sourceImages: uploadedImages,
+        productAnalysis: { ...analysisResult, products: keptProducts },
+        sourceImages: keptImages,
         includeProducts: true,
         selectedInspirations: allInspirations,
         inspirationDetails: allInspirations.map((id) => aggregatedDetailsMap[id]).filter(Boolean),
