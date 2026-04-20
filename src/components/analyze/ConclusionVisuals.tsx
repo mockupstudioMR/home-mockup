@@ -188,6 +188,7 @@ const ConclusionVisuals = ({
   seedElements,
   extraMaterials,
   iconicItems,
+  mustIncludeItems,
   roomType = "living room",
   onMoodboardChange,
 }: ConclusionVisualsProps) => {
@@ -195,6 +196,17 @@ const ConclusionVisuals = ({
     () => styleNames[0]?.toLowerCase().replace(/\s+/g, "-") || "modern-minimal",
     [styleNames],
   );
+
+  // Must-include items (e.g., uploaded products) — kept here so user can remove
+  const initialMustInclude = useMemo(
+    () => (mustIncludeItems || []).filter((m) => m.label),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [(mustIncludeItems || []).map((m) => `${m.label}|${m.imageUrl || ""}`).join("~")],
+  );
+  const [mustInclude, setMustInclude] = useState(initialMustInclude);
+  useEffect(() => setMustInclude(initialMustInclude), [initialMustInclude]);
+  const removeMustInclude = (label: string) =>
+    setMustInclude((prev) => prev.filter((m) => m.label !== label));
 
   // Materials & Textures
   const initialMaterials = useMemo(
