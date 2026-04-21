@@ -343,7 +343,7 @@ const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(() =
           {/* Title */}
           <div className="text-center space-y-3 py-4">
             <h1 className="text-3xl md:text-4xl font-bold tracking-tight">
-              Your style matches
+              Upload Room Inspiration
             </h1>
             {!analysisResult && (
               <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
@@ -533,7 +533,6 @@ const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(() =
                   {/* Step 1: Style Matches — only visible before moodboard creation starts */}
                   {!isCreatingMoodboard && (
                     <>
-                  <h3 className="text-sm font-semibold mb-2">Style Matches</h3>
                   <div className="space-y-3">
                     {analysisResult.styles.map((style, index) => (
                       <div
