@@ -525,6 +525,15 @@ const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(() =
                                 styleName={style.styleName}
                                 selected={selectedInspirations.includes(id)}
                                 inMoodboard={moodboardExtras.includes(keyword)}
+                                pinned={pinnedVisuals.some((p) => p.label === keyword)}
+                                onPin={(label, imageUrl) => {
+                                  setPinnedVisuals((prev) =>
+                                    prev.some((p) => p.label.toLowerCase() === label.toLowerCase())
+                                      ? prev
+                                      : [...prev, { label, imageUrl }],
+                                  );
+                                  toast({ title: "Pinned to moodboard", description: label });
+                                }}
                                 onToggle={() => {
                                   setSelectedStyleIndex(index);
                                   setSelectedInspirations((prev) =>
