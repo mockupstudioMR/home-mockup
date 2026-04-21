@@ -441,10 +441,8 @@ const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(() =
                 {/* Per-image breakdown removed per request */}
 
                 <div>
-                  <h2 className="text-xl font-semibold mb-1">We translated your inspiration into design language.</h2>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    We've mapped your inspiration into distinct style signals. Explore them, compare them, and start building your own visual direction. Tap to see it visually, or hit + to add it directly to your moodboard.
-                  </p>
+                  {/* Intro headline removed per request */}
+
 
                   {/* Conclusion Moodboard — colors, materials, and style references */}
                   {/* The ConclusionVisuals component is mounted as soon as the user
@@ -453,7 +451,7 @@ const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(() =
                       during the loading phase and reveal it once seeding is done. */}
                   {isCreatingMoodboard && (
                     <div className={moodboardReady ? "mb-6" : "hidden"}>
-                      <h3 className="text-sm font-semibold mb-2">Your Moodboard</h3>
+                      <h3 className="font-serif italic text-2xl mb-2 text-foreground/85">Your Moodboard</h3>
                       {analysisResult.moodboardDescription && (
                         <p className="text-sm text-muted-foreground mb-4">
                           {analysisResult.moodboardDescription}
