@@ -63,6 +63,7 @@ const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(() =
   // 3 decor references behind a loading screen).
   const [isCreatingMoodboard, setIsCreatingMoodboard] = useState(false);
   const [moodboardReady, setMoodboardReady] = useState(false);
+  const [pinnedVisuals, setPinnedVisuals] = useState<{ label: string; imageUrl: string }[]>([]);
   const [moodboard, setMoodboard] = useState<{
     materials: { label: string; imageUrl?: string }[];
     references: { label: string; imageUrl?: string }[];
@@ -472,6 +473,7 @@ const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(() =
                             .filter((s) => s.iconicItem)
                             .map((s) => [s.styleName, s.iconicItem as string]),
                         )}
+                        mustIncludeItems={pinnedVisuals}
                         extraMaterials={moodboardExtras}
                         onMoodboardChange={setMoodboard}
                         onSeedReady={() => setMoodboardReady(true)}
@@ -523,6 +525,15 @@ const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(() =
                                 styleName={style.styleName}
                                 selected={selectedInspirations.includes(id)}
                                 inMoodboard={moodboardExtras.includes(keyword)}
+                                pinned={pinnedVisuals.some((p) => p.label === keyword)}
+                                onPin={(label, imageUrl) => {
+                                  setPinnedVisuals((prev) =>
+                                    prev.some((p) => p.label.toLowerCase() === label.toLowerCase())
+                                      ? prev
+                                      : [...prev, { label, imageUrl }],
+                                  );
+                                  toast({ title: "Pinned to moodboard", description: label });
+                                }}
                                 onToggle={() => {
                                   setSelectedStyleIndex(index);
                                   setSelectedInspirations((prev) =>
