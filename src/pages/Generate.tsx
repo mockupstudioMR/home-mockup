@@ -1826,6 +1826,37 @@ RULES:
     ...((currentMoodboard?.materials || []).map((item) => ({ ...item, kind: "material" as const }))),
   ];
 
+  // Inject items from the generated design's "Complete Look Breakdown" so they
+  // appear inline in the moodboard (replacing the old standalone breakdown card).
+  {
+    const FURNITURE_TYPES = new Set(["furniture", "lighting"]);
+    const DECOR_TYPES = new Set(["decor", "textile"]);
+    const MATERIAL_TYPES = new Set(["wall_color", "floor_material", "architectural"]);
+    const seen = new Set(moodboardItems.map((m) => `${m.kind}|${m.label.toLowerCase()}`));
+    for (const di of designItems) {
+      let kind: MoodboardItemKind;
+      if (FURNITURE_TYPES.has(di.item_type)) kind = "furniture";
+      else if (DECOR_TYPES.has(di.item_type)) kind = "decor";
+      else if (MATERIAL_TYPES.has(di.item_type)) kind = "material";
+      else kind = "furniture";
+      const label = di.item_name || di.color || di.hex_code || "Item";
+      const key = `${kind}|${label.toLowerCase()}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      const imageUrl =
+        di.product_photo_url ||
+        (di as DesignItemWithMatch).matchedProduct?.image_urls?.[0] ||
+        (kind === "material" && di.hex_code ? undefined : undefined);
+      // For pure color swatches, use the hex as the label so the panel renders a swatch.
+      const isPureColor = kind === "material" && di.hex_code && !di.item_name;
+      moodboardItems.push({
+        kind,
+        label: isPureColor ? di.hex_code!.toUpperCase() : label,
+        imageUrl,
+      });
+    }
+  }
+
   // Fallback: derive material/color chips from the style analysis so the moodboard
   // always reflects something meaningful, even when no explicit references were passed.
   const MATERIAL_KEYWORDS = ["wood", "walnut", "oak", "linen", "velvet", "brass", "marble", "travertine", "rattan", "leather", "stone", "concrete", "ceramic", "terracotta", "boucle", "bouclé", "glass", "metal"];
