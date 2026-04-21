@@ -455,6 +455,37 @@ const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(() =
                       during the loading phase and reveal it once seeding is done. */}
                   {isCreatingMoodboard && (
                     <div className={moodboardReady ? "mb-6" : "hidden"}>
+                      {/* Uploaded inspiration photos — shown as polaroids */}
+                      {uploadedImages.length > 0 && (
+                        <div className="mb-5">
+                          <span
+                            className="block mb-3 text-xl text-foreground/75"
+                            style={{ fontFamily: "'Caveat', cursive" }}
+                          >
+                            Your inspiration
+                          </span>
+                          <div className="flex flex-wrap gap-3">
+                            {uploadedImages.map((img, i) => {
+                              const rot = ((i * 53) % 7) - 3;
+                              return (
+                                <div
+                                  key={img}
+                                  className="bg-card p-1.5 pb-5 shadow-[0_6px_14px_-6px_hsl(var(--foreground)/0.35),0_2px_4px_-2px_hsl(var(--foreground)/0.2)] rounded-sm"
+                                  style={{ transform: `rotate(${rot}deg)` }}
+                                >
+                                  <img
+                                    src={getThumbnailImageUrl(img)}
+                                    alt={`Inspiration ${i + 1}`}
+                                    className="w-28 h-28 object-cover"
+                                    loading="lazy"
+                                    decoding="async"
+                                  />
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
                       {analysisResult.moodboardDescription && (
                         <p
                           className="text-2xl md:text-[1.65rem] leading-snug mb-4 text-foreground/85"
