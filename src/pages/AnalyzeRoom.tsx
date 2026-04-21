@@ -342,11 +342,11 @@ const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(() =
         <div className="max-w-3xl mx-auto space-y-8">
           {/* Title */}
           <div className="text-center space-y-3 py-4">
-            <h1 className="font-serif italic text-4xl md:text-5xl tracking-tight text-foreground/90">
+            <h1 className="text-3xl md:text-4xl font-bold tracking-tight">
               Your Moodboard
             </h1>
             {!analysisResult && (
-              <p className="text-muted-foreground text-lg max-w-2xl mx-auto font-serif italic">
+              <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
                 Share photos of rooms you love and we'll analyze the styles to create your personalized moodboard
               </p>
             )}
