@@ -1008,9 +1008,12 @@ const ConclusionVisuals = ({
 
       {/* Materials & Textures with visuals (drop target) */}
       <div>
-        <p className="text-[11px] uppercase tracking-wide text-muted-foreground mb-2 font-medium">
-          Materials &amp; Textures <span className="normal-case text-muted-foreground/70">— drag tags here</span>
-        </p>
+        <div className="mb-3">
+          <span className="inline-block px-3 py-1 text-[11px] uppercase tracking-wider font-semibold bg-muted/80 text-foreground/80 rounded-[2px] rotate-1 shadow-sm border border-border/40">
+            Materials &amp; Textures
+          </span>
+          <span className="ml-2 text-[11px] text-muted-foreground italic font-serif">— drag tags here</span>
+        </div>
         <div
           onDragOver={(e) => {
             if (
