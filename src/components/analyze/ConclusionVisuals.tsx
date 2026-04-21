@@ -1067,42 +1067,45 @@ const ConclusionVisuals = ({
           ))}
 
           {addingMaterial ? (
-            <div className="w-24">
-              <div className="aspect-square rounded-lg border-2 border-dashed border-primary/50 flex items-center justify-center">
-                <ImageIcon className="w-5 h-5 text-muted-foreground" />
-              </div>
-              <Input
-                autoFocus
-                value={newMaterial}
-                onChange={(e) => setNewMaterial(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
+            <div className="w-28 rotate-[3deg]">
+              <div className="bg-card p-1.5 pb-6 shadow-[0_4px_10px_-4px_hsl(var(--foreground)/0.3)] rounded-sm">
+                <div className="aspect-square bg-muted/40 flex items-center justify-center">
+                  <ImageIcon className="w-5 h-5 text-muted-foreground" />
+                </div>
+                <Input
+                  autoFocus
+                  value={newMaterial}
+                  onChange={(e) => setNewMaterial(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      const v = newMaterial.trim();
+                      if (v && !materials.includes(v)) setMaterials((prev) => [...prev, v]);
+                      setNewMaterial("");
+                      setAddingMaterial(false);
+                    }
+                    if (e.key === "Escape") { setNewMaterial(""); setAddingMaterial(false); }
+                  }}
+                  onBlur={() => {
                     const v = newMaterial.trim();
                     if (v && !materials.includes(v)) setMaterials((prev) => [...prev, v]);
                     setNewMaterial("");
                     setAddingMaterial(false);
-                  }
-                  if (e.key === "Escape") { setNewMaterial(""); setAddingMaterial(false); }
-                }}
-                onBlur={() => {
-                  const v = newMaterial.trim();
-                  if (v && !materials.includes(v)) setMaterials((prev) => [...prev, v]);
-                  setNewMaterial("");
-                  setAddingMaterial(false);
-                }}
-                placeholder="oak, linen…"
-                className="mt-1 h-6 text-[11px] px-1.5 py-0"
-              />
+                  }}
+                  placeholder="oak, linen…"
+                  className="mt-1 h-6 text-[11px] px-1.5 py-0 font-serif italic"
+                />
+              </div>
             </div>
           ) : (
             <button
               type="button"
               onClick={() => setAddingMaterial(true)}
-              className="w-24 aspect-square rounded-lg border-2 border-dashed border-border flex flex-col items-center justify-center gap-1 text-muted-foreground hover:border-primary/50 hover:text-foreground transition-colors"
+              className="w-28 aspect-square flex flex-col items-center justify-center gap-1 rotate-[3deg] shadow-[0_4px_10px_-4px_hsl(var(--foreground)/0.3)] bg-accent/60 hover:bg-accent text-foreground/80 transition-transform hover:rotate-0"
+              style={{ clipPath: "polygon(0 0, 100% 0, 100% 92%, 88% 100%, 0 100%)" }}
             >
               <Plus className="w-5 h-5" />
-              <span className="text-[10px]">Add material</span>
+              <span className="text-[11px] font-serif italic">Add material</span>
             </button>
           )}
         </div>
