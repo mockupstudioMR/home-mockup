@@ -628,37 +628,53 @@ const ConclusionVisuals = ({
   };
 
   return (
-    <div className="rounded-xl border border-border/50 bg-secondary/20 p-4 space-y-5">
+    <div
+      className="relative rounded-xl border border-border/40 p-5 space-y-7 overflow-hidden shadow-inner"
+      style={{
+        backgroundColor: "hsl(var(--secondary) / 0.35)",
+        backgroundImage: `radial-gradient(hsl(var(--foreground) / 0.07) 1px, transparent 1.5px),
+                          radial-gradient(hsl(var(--foreground) / 0.05) 1px, transparent 1.5px)`,
+        backgroundSize: "14px 14px, 22px 22px",
+        backgroundPosition: "0 0, 7px 11px",
+      }}
+    >
       {/* Must-Include Furniture — uploaded products + user-added items */}
       <div>
-        <p className="text-[11px] uppercase tracking-wide text-muted-foreground mb-2 font-medium">
-          Must-Include Furniture <span className="normal-case text-muted-foreground/70">— we'll design the room around these (optional)</span>
-        </p>
-        <div className="flex flex-wrap gap-3 items-start">
-          {mustInclude.map((item) => (
-            item.imageUrl ? (
-              // Uploaded product (or already-generated visual): keep the original tile with image
-              <div key={item.label} className="group relative w-24">
-                <div className="aspect-square rounded-lg overflow-hidden border-2 border-primary/40 bg-secondary/30 relative">
-                  <img src={getThumbnailImageUrl(item.imageUrl)} alt={item.label} className="w-full h-full object-cover" loading="lazy" decoding="async" />
-                  <button
-                    type="button"
-                    onClick={() => removeMustInclude(item.label)}
-                    className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/50 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                    aria-label="Remove"
-                  >
-                    <X className="w-3 h-3" />
-                  </button>
-                  <div className="absolute bottom-1 left-1 px-1.5 py-0.5 rounded bg-primary/90 text-primary-foreground text-[9px] font-medium">
-                    Must-have
+        <div className="mb-3">
+          <span className="inline-block px-3 py-1 text-[11px] uppercase tracking-wider font-semibold bg-primary/30 text-foreground/80 rounded-[2px] -rotate-2 shadow-sm border border-primary/20">
+            Must-Include Furniture
+          </span>
+          <span className="ml-2 text-[11px] text-muted-foreground italic font-serif">— we'll design the room around these (optional)</span>
+        </div>
+        <div className="flex flex-wrap gap-4 items-start pt-2">
+          {mustInclude.map((item) => {
+            let h = 0;
+            for (let i = 0; i < item.label.length; i++) h = (h * 31 + item.label.charCodeAt(i)) >>> 0;
+            const rot = ((h % 500) / 500) * 5 - 2.5;
+            return item.imageUrl ? (
+              <div key={item.label} className="group relative w-28" style={{ transform: `rotate(${rot}deg)` }}>
+                <div className="bg-card p-1.5 pb-6 shadow-[0_6px_14px_-6px_hsl(var(--foreground)/0.35),0_2px_4px_-2px_hsl(var(--foreground)/0.2)] rounded-sm relative">
+                  <div
+                    aria-hidden
+                    className="absolute -top-2 left-1/2 -translate-x-1/2 w-3 h-3 rounded-full bg-primary shadow-[0_1px_2px_hsl(var(--foreground)/0.4),inset_-1px_-1px_2px_hsl(var(--foreground)/0.3),inset_1px_1px_2px_hsl(0_0%_100%/0.4)] z-10"
+                  />
+                  <div className="aspect-square overflow-hidden bg-muted/40 relative">
+                    <img src={getThumbnailImageUrl(item.imageUrl)} alt={item.label} className="w-full h-full object-cover" loading="lazy" decoding="async" />
+                    <button
+                      type="button"
+                      onClick={() => removeMustInclude(item.label)}
+                      className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/50 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                      aria-label="Remove"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
                   </div>
-                </div>
-                <div className="mt-1 text-[11px] leading-tight truncate" title={item.label}>
-                  {item.label}
+                  <div className="mt-1.5 px-1 text-[12px] leading-tight truncate font-serif italic text-foreground/80" title={item.label}>
+                    {item.label}
+                  </div>
                 </div>
               </div>
             ) : (
-              // User-added item: use VisualChip so it auto-generates an image and is renameable
               <VisualChip
                 key={item.label}
                 label={item.label}
@@ -671,27 +687,28 @@ const ConclusionVisuals = ({
                 onRemove={() => removeMustInclude(item.label)}
                 autoGenerate
               />
-            )
-          ))}
+            );
+          })}
 
           <label
             className={cn(
-              "w-24 aspect-square rounded-lg border-2 border-dashed transition-colors flex flex-col items-center justify-center gap-1",
+              "w-28 aspect-square flex flex-col items-center justify-center gap-1 rotate-[3deg] shadow-[0_4px_10px_-4px_hsl(var(--foreground)/0.3)] transition-transform hover:rotate-0",
               uploadingMustInclude
-                ? "border-primary/40 bg-primary/5 text-primary cursor-wait"
-                : "border-border hover:border-primary/50 hover:bg-primary/5 text-muted-foreground hover:text-primary cursor-pointer",
+                ? "bg-accent/40 text-foreground/70 cursor-wait"
+                : "bg-accent/60 hover:bg-accent text-foreground/80 cursor-pointer",
             )}
+            style={{ clipPath: "polygon(0 0, 100% 0, 100% 92%, 88% 100%, 0 100%)" }}
             title="Upload an image of furniture you want to keep"
           >
             {uploadingMustInclude ? (
               <>
                 <Loader2 className="w-4 h-4 animate-spin" />
-                <span className="text-[10px]">Uploading…</span>
+                <span className="text-[10px] font-serif italic">Uploading…</span>
               </>
             ) : (
               <>
-                <Plus className="w-4 h-4" />
-                <span className="text-[10px]">Add item</span>
+                <Plus className="w-5 h-5" />
+                <span className="text-[11px] font-serif italic">Add item</span>
               </>
             )}
             <input
