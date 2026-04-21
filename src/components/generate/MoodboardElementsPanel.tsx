@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Pencil, Trash2, Plus, Upload, Loader2, X, Sofa, Lamp, Pin } from "lucide-react";
+import { Pencil, Trash2, Plus, Upload, Loader2, X, Sofa, Lamp, Pin, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -40,6 +40,55 @@ const KIND_ICON: Record<MoodboardItemKind, typeof Sofa> = {
   decor: Lamp,
   "must-include": Pin,
   material: Pin,
+};
+
+// Deterministic “handmade” jitter so every tile feels uniquely placed
+// but stays stable across renders.
+const hashString = (s: string) => {
+  let h = 0;
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0;
+  return Math.abs(h);
+};
+const jitter = (seed: string, range: number, offset = 0) => {
+  const h = hashString(seed + offset);
+  return ((h % 1000) / 1000) * range * 2 - range;
+};
+
+// Section-specific visual treatment so each strip reads like a different
+// area of a real moodboard.
+const SECTION_STYLE: Record<
+  MoodboardItemKind,
+  {
+    tape: string; // tailwind bg for the washi-tape strip
+    accent: string; // tailwind text/border accent
+    label: string; // chip label color
+    paper: string; // card "paper" tone
+  }
+> = {
+  "must-include": {
+    tape: "bg-primary/70",
+    accent: "text-primary",
+    label: "bg-primary text-primary-foreground",
+    paper: "bg-[hsl(var(--card))]",
+  },
+  furniture: {
+    tape: "bg-secondary/80",
+    accent: "text-secondary-foreground",
+    label: "bg-secondary text-secondary-foreground",
+    paper: "bg-[hsl(var(--card))]",
+  },
+  decor: {
+    tape: "bg-accent/70",
+    accent: "text-accent-foreground",
+    label: "bg-accent text-accent-foreground",
+    paper: "bg-[hsl(var(--card))]",
+  },
+  material: {
+    tape: "bg-muted",
+    accent: "text-muted-foreground",
+    label: "bg-muted text-foreground",
+    paper: "bg-[hsl(var(--card))]",
+  },
 };
 
 const MoodboardElementsPanel = ({ items, onAction, disabled }: MoodboardElementsPanelProps) => {
