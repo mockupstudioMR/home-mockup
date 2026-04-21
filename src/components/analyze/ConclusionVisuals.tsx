@@ -43,6 +43,8 @@ interface ConclusionVisualsProps {
     decorReferences: { label: string; imageUrl?: string }[];
     mustInclude: { label: string; imageUrl?: string }[];
   }) => void;
+  /** Called once the initial auto-seeded references (3 furniture + 3 decor) are all generated. */
+  onSeedReady?: () => void;
 }
 
 type VisualKind = "material" | "styleReference";
