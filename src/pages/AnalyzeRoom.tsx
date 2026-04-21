@@ -533,7 +533,6 @@ const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(() =
                   {/* Step 1: Style Matches — only visible before moodboard creation starts */}
                   {!isCreatingMoodboard && (
                     <>
-                  <h3 className="text-sm font-semibold mb-2">Style Matches</h3>
                   <div className="space-y-3">
                     {analysisResult.styles.map((style, index) => (
                       <div
