@@ -670,9 +670,23 @@ const ConclusionVisuals = ({
           <span className="inline-block px-3 py-1 text-[11px] uppercase tracking-wider font-semibold bg-primary/30 text-foreground/80 rounded-[2px] -rotate-2 shadow-sm border border-primary/20">
             Must-Include Furniture
           </span>
-          <span className="ml-2 text-[11px] text-muted-foreground italic font-serif">— we'll design the room around these (optional)</span>
+          <span className="ml-2 text-[11px] text-muted-foreground italic font-serif">— drag furniture or decor here · we'll design around them</span>
         </div>
-        <div className="flex flex-wrap gap-4 items-start pt-2">
+        <div
+          onDragOver={(e) => {
+            if (e.dataTransfer.types.includes(MOODBOARD_DRAG_MIME)) {
+              e.preventDefault();
+              e.dataTransfer.dropEffect = "copy";
+              setIsMustIncludeDropActive(true);
+            }
+          }}
+          onDragLeave={() => setIsMustIncludeDropActive(false)}
+          onDrop={handleMustIncludeDrop}
+          className={cn(
+            "flex flex-wrap gap-4 items-start pt-2 rounded-lg p-2 -m-2 transition-colors",
+            isMustIncludeDropActive && "bg-primary/5 ring-2 ring-primary/40 ring-dashed",
+          )}
+        >
           {mustInclude.map((item) => {
             let h = 0;
             for (let i = 0; i < item.label.length; i++) h = (h * 31 + item.label.charCodeAt(i)) >>> 0;
