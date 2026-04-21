@@ -58,6 +58,11 @@ const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(() =
   // (conclusion moodboard manages its own regeneration internally)
   const [isDetectingMore, setIsDetectingMore] = useState(false);
   const [moodboardExtras, setMoodboardExtras] = useState<string[]>([]);
+  // Two-step flow: after analysis the user picks/confirms a style first,
+  // then explicitly triggers moodboard creation (which seeds 3 furniture +
+  // 3 decor references behind a loading screen).
+  const [isCreatingMoodboard, setIsCreatingMoodboard] = useState(false);
+  const [moodboardReady, setMoodboardReady] = useState(false);
   const [moodboard, setMoodboard] = useState<{
     materials: { label: string; imageUrl?: string }[];
     references: { label: string; imageUrl?: string }[];
@@ -178,6 +183,9 @@ const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(() =
 
       setAnalysisResult(data);
       setEditableColors(data.dominantColors || []);
+      // New analysis → reset moodboard step
+      setIsCreatingMoodboard(false);
+      setMoodboardReady(false);
       toast({
         title: "Analysis complete!",
         description: `Detected ${data.styles.length} interior styles`,
@@ -440,25 +448,51 @@ const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(() =
                   )}
 
                   {/* Conclusion Moodboard — colors, materials, and style references */}
-                  <div className="mb-6">
-                    <h3 className="text-sm font-semibold mb-2">Conclusion Moodboard</h3>
-                    <ConclusionVisuals
-                      dominantColors={editableColors}
-                      onDominantColorsChange={setEditableColors}
-                      styleNames={analysisResult.styles.map((s) => s.styleName)}
-                      seedElements={analysisResult.materials || []}
-                      iconicItems={Object.fromEntries(
-                        analysisResult.styles
-                          .filter((s) => s.iconicItem)
-                          .map((s) => [s.styleName, s.iconicItem as string]),
-                      )}
-                      extraMaterials={moodboardExtras}
-                      onMoodboardChange={setMoodboard}
-                    />
-                  </div>
+                  {/* The ConclusionVisuals component is mounted as soon as the user
+                      kicks off moodboard creation so it can auto-seed 3 furniture
+                      + 3 decor references in the background. We keep it hidden
+                      during the loading phase and reveal it once seeding is done. */}
+                  {isCreatingMoodboard && (
+                    <div className={moodboardReady ? "mb-6" : "hidden"}>
+                      <h3 className="text-sm font-semibold mb-2">Your Moodboard</h3>
+                      <ConclusionVisuals
+                        dominantColors={editableColors}
+                        onDominantColorsChange={setEditableColors}
+                        styleNames={
+                          selectedStyleIndex !== null
+                            ? [analysisResult.styles[selectedStyleIndex].styleName]
+                            : analysisResult.styles.map((s) => s.styleName)
+                        }
+                        seedElements={analysisResult.materials || []}
+                        iconicItems={Object.fromEntries(
+                          analysisResult.styles
+                            .filter((s) => s.iconicItem)
+                            .map((s) => [s.styleName, s.iconicItem as string]),
+                        )}
+                        extraMaterials={moodboardExtras}
+                        onMoodboardChange={setMoodboard}
+                        onSeedReady={() => setMoodboardReady(true)}
+                      />
+                    </div>
+                  )}
 
+                  {/* Loading screen between Step 1 (style matches) and Step 2 (moodboard) */}
+                  {isCreatingMoodboard && !moodboardReady && (
+                    <div className="flex flex-col items-center justify-center py-16 px-6 rounded-xl bg-gradient-to-br from-primary/5 to-accent/5 border border-primary/20 mb-6">
+                      <div className="relative mb-6">
+                        <Sparkles className="w-12 h-12 text-primary animate-pulse" />
+                        <Loader2 className="w-16 h-16 text-primary/40 animate-spin absolute -top-2 -left-2" />
+                      </div>
+                      <h3 className="text-xl font-semibold mb-2">Creating your moodboard…</h3>
+                      <p className="text-sm text-muted-foreground text-center max-w-sm">
+                        We're curating 3 furniture and 3 decor references that match your style. This usually takes a few seconds.
+                      </p>
+                    </div>
+                  )}
 
-
+                  {/* Step 1: Style Matches — only visible before moodboard creation starts */}
+                  {!isCreatingMoodboard && (
+                    <>
                   <h3 className="text-sm font-semibold mb-2">Style Matches</h3>
                   <div className="space-y-3">
                     {analysisResult.styles.map((style, index) => (
@@ -526,15 +560,35 @@ const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(() =
                       )}
                     </Button>
                   </div>
+                    </>
+                  )}
                 </div>
 
-                <Button
-                  size="lg"
-                  className="w-full"
-                  onClick={handleContinue}
-                >
-                  Continue with your own unique moodboard
-                </Button>
+                {/* Step 1 CTA: kick off moodboard creation */}
+                {!isCreatingMoodboard && (
+                  <Button
+                    size="lg"
+                    className="w-full"
+                    onClick={() => {
+                      setMoodboardReady(false);
+                      setIsCreatingMoodboard(true);
+                    }}
+                  >
+                    <Sparkles className="w-5 h-5 mr-2" />
+                    Create my moodboard
+                  </Button>
+                )}
+
+                {/* Step 2 CTA: continue once moodboard is ready */}
+                {isCreatingMoodboard && moodboardReady && (
+                  <Button
+                    size="lg"
+                    className="w-full"
+                    onClick={handleContinue}
+                  >
+                    Continue with your own unique moodboard
+                  </Button>
+                )}
               </CardContent>
             </Card>
           )}

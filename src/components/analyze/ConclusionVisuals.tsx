@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { X, Plus, Check, Pencil, Sparkles, Image as ImageIcon, Blend, Upload, Loader2 } from "lucide-react";
@@ -43,6 +43,8 @@ interface ConclusionVisualsProps {
     decorReferences: { label: string; imageUrl?: string }[];
     mustInclude: { label: string; imageUrl?: string }[];
   }) => void;
+  /** Called once the initial auto-seeded references (3 furniture + 3 decor) are all generated. */
+  onSeedReady?: () => void;
 }
 
 type VisualKind = "material" | "styleReference";
@@ -194,6 +196,7 @@ const ConclusionVisuals = ({
   mustIncludeItems,
   roomType = "living room",
   onMoodboardChange,
+  onSeedReady,
 }: ConclusionVisualsProps) => {
   const styleSlug = useMemo(
     () => styleNames[0]?.toLowerCase().replace(/\s+/g, "-") || "modern-minimal",
@@ -436,15 +439,24 @@ const ConclusionVisuals = ({
     }
   };
 
-  // Auto-seed one AI reference of each kind once style is detected
+  // Auto-seed THREE AI references of each kind once style is detected.
+  // Fires onSeedReady once the initial batch has finished (success or fail).
+  const seededRef = useRef(false);
   useEffect(() => {
     if (!styleNames[0]) return;
-    if (furnitureReferences.length === 0 && !generatingFurnitureRef) {
-      generateAiReference("furniture", setFurnitureReferences, setGeneratingFurnitureRef);
-    }
-    if (decorReferences.length === 0 && !generatingDecorRef) {
-      generateAiReference("decor", setDecorReferences, setGeneratingDecorRef);
-    }
+    if (seededRef.current) return;
+    if (furnitureReferences.length > 0 || decorReferences.length > 0) return;
+    seededRef.current = true;
+    const TARGET = 3;
+    const furniturePromises = Array.from({ length: TARGET }).map(() =>
+      generateAiReference("furniture", setFurnitureReferences, setGeneratingFurnitureRef),
+    );
+    const decorPromises = Array.from({ length: TARGET }).map(() =>
+      generateAiReference("decor", setDecorReferences, setGeneratingDecorRef),
+    );
+    Promise.allSettled([...furniturePromises, ...decorPromises]).finally(() => {
+      onSeedReady?.();
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [styleNames[0]]);
 
