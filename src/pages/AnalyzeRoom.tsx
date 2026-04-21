@@ -473,6 +473,7 @@ const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(() =
                             .filter((s) => s.iconicItem)
                             .map((s) => [s.styleName, s.iconicItem as string]),
                         )}
+                        mustIncludeItems={pinnedVisuals}
                         extraMaterials={moodboardExtras}
                         onMoodboardChange={setMoodboard}
                         onSeedReady={() => setMoodboardReady(true)}
