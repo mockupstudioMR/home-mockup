@@ -26,7 +26,6 @@ import DesignImage from "@/components/generate/DesignImage";
 import { trackEvent } from "@/lib/analytics";
 
 import PersonalizedStyleProfile from "@/components/generate/PersonalizedStyleProfile";
-import DesignItemsList from "@/components/generate/DesignItemsList";
 import LoveThisButton from "@/components/generate/LoveThisButton";
 import VisualSearchLinks from "@/components/generate/VisualSearchLinks";
 import DesignHistoryTab from "@/components/generate/DesignHistoryTab";
