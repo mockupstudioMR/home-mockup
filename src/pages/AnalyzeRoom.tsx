@@ -451,7 +451,7 @@ const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(() =
                       during the loading phase and reveal it once seeding is done. */}
                   {isCreatingMoodboard && (
                     <div className={moodboardReady ? "mb-6" : "hidden"}>
-                      <h3 className="text-sm font-semibold mb-2">Your Moodboard</h3>
+                      <h3 className="font-serif italic text-2xl mb-2 text-foreground/85">Your Moodboard</h3>
                       {analysisResult.moodboardDescription && (
                         <p className="text-sm text-muted-foreground mb-4">
                           {analysisResult.moodboardDescription}
