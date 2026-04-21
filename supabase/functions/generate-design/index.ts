@@ -398,7 +398,14 @@ serve(async (req) => {
         contentParts.push({ type: "image_url", image_url: { url: enrichedRequestData.sourceImageUrl } });
         addDebug("Source image", "Added source image to request");
       }
-      
+
+      // MUST-INCLUDE items FIRST — these get the highest visual weight from the model.
+      // The user explicitly pinned these and expects them to appear EXACTLY in the design.
+      const mustImgs = (enrichedRequestData.mustIncludeItems || [])
+        .map((m) => m.imageUrl).filter(Boolean).slice(0, 4) as string[];
+      for (const u of mustImgs) contentParts.push({ type: "image_url", image_url: { url: u } });
+      if (mustImgs.length > 0) addDebug("Must-include images", `Added ${mustImgs.length} must-include exact-match image(s) FIRST`);
+
       for (const imageUrl of validProductImageUrls) {
         contentParts.push({ type: "image_url", image_url: { url: imageUrl } });
       }
@@ -427,12 +434,6 @@ serve(async (req) => {
         .map((d) => d.imageUrl).filter(Boolean).slice(0, 3) as string[];
       for (const u of decorImgs) contentParts.push({ type: "image_url", image_url: { url: u } });
       if (decorImgs.length > 0) addDebug("Decor references", `Added ${decorImgs.length} decor inspiration image(s)`);
-
-      // Must-include items — exact match
-      const mustImgs = (enrichedRequestData.mustIncludeItems || [])
-        .map((m) => m.imageUrl).filter(Boolean).slice(0, 4) as string[];
-      for (const u of mustImgs) contentParts.push({ type: "image_url", image_url: { url: u } });
-      if (mustImgs.length > 0) addDebug("Must-include images", `Added ${mustImgs.length} must-include exact-match image(s)`);
     }
 
     const messages: any[] = [
@@ -629,10 +630,11 @@ function buildImagePrompt(
   if (data.detectedColors && data.detectedColors.length > 0) {
     const colorList = data.detectedColors.join(", ");
     detectedColorsContext =
-      `MANDATORY COLOR PALETTE (HIGHEST PRIORITY — overrides any palette from attached reference images): ` +
-      `The final design MUST use ONLY this exact palette: ${colorList}. ` +
-      `Distribute these hex colors across walls, large textiles (rugs, sofas, curtains), upholstery, accents and decor so the palette is unmistakable at first glance. ` +
-      `Do NOT introduce colors outside this palette. If a reference image shows a different color scheme, IGNORE its colors and recolor everything to match this palette. `;
+      `MANDATORY COLOR PALETTE (ABSOLUTE HIGHEST PRIORITY — overrides product images, style refs, and every other instruction): ` +
+      `The final design MUST use ONLY these exact hex colors: ${colorList}. ` +
+      `EVERY hex in this list must be CLEARLY visible in the final image — distribute them deliberately across walls (at least one wall in a palette color), large textiles (rugs, sofas, curtains, bedding), upholstery, wood/metal finishes, accents and decor so the palette reads unmistakably at first glance. ` +
+      `Before finalizing, mentally check: is each of these colors present? If any is missing, ADD it (e.g. as a cushion, throw, vase, art, accent wall, lamp). ` +
+      `Do NOT introduce ANY color outside this palette. If a reference image (product, style, decor) shows a different color, IGNORE its color and recolor that surface/object to the nearest palette hex. `;
   }
 
   // Build detected keywords/visual elements context
@@ -674,7 +676,8 @@ function buildImagePrompt(
   const mustHaves = (data.mustIncludeItems || []).filter((m) => m.label || m.imageUrl);
   if (mustHaves.length > 0) {
     const labels = mustHaves.map((m) => m.label).filter(Boolean).join(", ");
-    moodboardContext += `MUST-INCLUDE ITEMS — CRITICAL: The following items MUST appear in the final design EXACTLY as shown in their attached reference image(s) — same color, same material, same shape, same finish. Do NOT substitute, restyle or reinterpret them. Place them naturally in the room. Items: ${labels}. `;
+    const count = mustHaves.length;
+    moodboardContext += `🔒 MUST-INCLUDE ITEMS — NON-NEGOTIABLE (HIGHEST PRIORITY, OVERRIDES EVERYTHING ELSE): The user has pinned ${count} specific item(s) that MUST appear in the final design EXACTLY as shown in their attached reference image(s) — IDENTICAL color, IDENTICAL material, IDENTICAL shape, IDENTICAL finish, IDENTICAL proportions. The first ${Math.min(count, 4)} attached image(s) are these must-include items — treat them as locked anchors and build the rest of the room AROUND them. Do NOT substitute, restyle, recolor or reinterpret them in any way. Place them prominently and naturally in the ${room}. Items: ${labels}. If you cannot fit a must-include item, REMOVE other furniture to make room — never drop a must-include item. `;
   }
 
   // Style moodboard images directive — tells the model how to read the attached
