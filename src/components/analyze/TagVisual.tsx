@@ -116,6 +116,25 @@ const TagVisual = ({ tag, styleName, roomType = "living room", selected, onToggl
           >
             <X className="w-3 h-3" />
           </button>
+          {imageUrl && onPin && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (!pinned) onPin(tag, imageUrl);
+              }}
+              title={pinned ? "Pinned to moodboard" : "Pin to moodboard"}
+              className={cn(
+                "absolute top-1 left-1 h-6 px-1.5 rounded-full flex items-center gap-1 text-[10px] font-medium z-10 transition-colors",
+                pinned
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-black/50 text-white hover:bg-primary hover:text-primary-foreground",
+              )}
+            >
+              {pinned ? <Check className="w-3 h-3" /> : <Pin className="w-3 h-3" />}
+              <span>{pinned ? "Pinned" : "Pin"}</span>
+            </button>
+          )}
           <div
             className="aspect-square"
             draggable={!!imageUrl}
