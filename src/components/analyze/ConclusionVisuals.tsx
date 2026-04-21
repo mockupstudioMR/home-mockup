@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { X, Plus, Check, Pencil, Sparkles, Image as ImageIcon, Blend, Upload, Loader2 } from "lucide-react";
@@ -441,7 +441,7 @@ const ConclusionVisuals = ({
 
   // Auto-seed THREE AI references of each kind once style is detected.
   // Fires onSeedReady once the initial batch has finished (success or fail).
-  const seededRef = React.useRef(false);
+  const seededRef = useRef(false);
   useEffect(() => {
     if (!styleNames[0]) return;
     if (seededRef.current) return;
