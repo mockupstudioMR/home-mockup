@@ -2155,52 +2155,20 @@ RULES:
           </div>
         )} */}
 
-        {/* Design Items List - Show when items exist or extracting */}
-        {design && (designItems.length > 0 || extractingItems) && (
-          <>
-          <div className="flex justify-center">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                setDesign(prev => prev ? { ...prev, isLocked: false } : prev);
-                setDesignItems([]);
-                setFullDescription("");
-                setExtractingItems(false);
-                setIsolatingPhotos(false);
-                sessionStorage.removeItem('generate_items_cache');
-                sessionStorage.removeItem('generate_description_cache');
-                sessionStorage.removeItem('generate_extracting_cache');
-              }}
-              className="gap-2"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              Back to Design
-            </Button>
+        {/* Wall Extraction Panel - shown in locked view only if walls were already extracted */}
+        {design?.isLocked && extractedWalls.length > 0 && (
+          <div className="max-w-3xl mx-auto">
+            <WallExtractionPanel
+              designImageUrl={design.imageUrl}
+              designId={design.id}
+              onDesignUpdated={(newUrl) => setDesign(prev => prev ? { ...prev, imageUrl: newUrl } : prev)}
+              disabled={generating}
+              externalWalls={extractedWalls}
+              readOnly={false}
+              roomType={quizData?.roomType}
+              mustHaveElements={quizData?.mustHaveElements}
+            />
           </div>
-          <DesignItemsList
-            items={designItems}
-            fullDescription={fullDescription}
-            designImageUrl={design.imageUrl}
-            isLoading={extractingItems}
-            isolatingPhotos={isolatingPhotos}
-          />
-          {/* Wall Extraction Panel - shown in locked view only if walls were already extracted */}
-          {design.isLocked && extractedWalls.length > 0 && (
-            <div className="max-w-3xl mx-auto">
-              <WallExtractionPanel
-                designImageUrl={design.imageUrl}
-                designId={design.id}
-                onDesignUpdated={(newUrl) => setDesign(prev => prev ? { ...prev, imageUrl: newUrl } : prev)}
-                disabled={generating}
-                externalWalls={extractedWalls}
-                readOnly={false}
-                roomType={quizData?.roomType}
-                mustHaveElements={quizData?.mustHaveElements}
-              />
-            </div>
-          )}
-          </>
         )}
 
 
