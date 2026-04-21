@@ -26,7 +26,6 @@ import DesignImage from "@/components/generate/DesignImage";
 import { trackEvent } from "@/lib/analytics";
 
 import PersonalizedStyleProfile from "@/components/generate/PersonalizedStyleProfile";
-import DesignItemsList from "@/components/generate/DesignItemsList";
 import LoveThisButton from "@/components/generate/LoveThisButton";
 import VisualSearchLinks from "@/components/generate/VisualSearchLinks";
 import DesignHistoryTab from "@/components/generate/DesignHistoryTab";
@@ -1826,6 +1825,33 @@ RULES:
     ...((currentMoodboard?.materials || []).map((item) => ({ ...item, kind: "material" as const }))),
   ];
 
+  // Inject items from the generated design's "Complete Look Breakdown" so they
+  // appear inline in the moodboard (replacing the old standalone breakdown card).
+  {
+    const FURNITURE_TYPES = new Set(["furniture", "lighting"]);
+    const DECOR_TYPES = new Set(["decor", "textile"]);
+    const MATERIAL_TYPES = new Set(["wall_color", "floor_material", "architectural"]);
+    const seen = new Set(moodboardItems.map((m) => `${m.kind}|${m.label.toLowerCase()}`));
+    for (const di of designItems) {
+      let kind: MoodboardItem["kind"];
+      if (FURNITURE_TYPES.has(di.item_type)) kind = "furniture";
+      else if (DECOR_TYPES.has(di.item_type)) kind = "decor";
+      else if (MATERIAL_TYPES.has(di.item_type)) kind = "material";
+      else kind = "furniture";
+      const isPureColor = kind === "material" && !!di.hex_code && !di.item_name;
+      const label = isPureColor
+        ? di.hex_code!.toUpperCase()
+        : (di.item_name || di.color || di.hex_code || "Item");
+      const key = `${kind}|${label.toLowerCase()}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      const matched = (di as { matchedProduct?: { image_urls?: string[] } }).matchedProduct;
+      const imageUrl = di.product_photo_url || matched?.image_urls?.[0];
+      moodboardItems.push({ kind, label, imageUrl });
+    }
+  }
+
+
   // Fallback: derive material/color chips from the style analysis so the moodboard
   // always reflects something meaningful, even when no explicit references were passed.
   const MATERIAL_KEYWORDS = ["wood", "walnut", "oak", "linen", "velvet", "brass", "marble", "travertine", "rattan", "leather", "stone", "concrete", "ceramic", "terracotta", "boucle", "bouclé", "glass", "metal"];
@@ -2128,52 +2154,20 @@ RULES:
           </div>
         )} */}
 
-        {/* Design Items List - Show when items exist or extracting */}
-        {design && (designItems.length > 0 || extractingItems) && (
-          <>
-          <div className="flex justify-center">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                setDesign(prev => prev ? { ...prev, isLocked: false } : prev);
-                setDesignItems([]);
-                setFullDescription("");
-                setExtractingItems(false);
-                setIsolatingPhotos(false);
-                sessionStorage.removeItem('generate_items_cache');
-                sessionStorage.removeItem('generate_description_cache');
-                sessionStorage.removeItem('generate_extracting_cache');
-              }}
-              className="gap-2"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              Back to Design
-            </Button>
+        {/* Wall Extraction Panel - shown in locked view only if walls were already extracted */}
+        {design?.isLocked && extractedWalls.length > 0 && (
+          <div className="max-w-3xl mx-auto">
+            <WallExtractionPanel
+              designImageUrl={design.imageUrl}
+              designId={design.id}
+              onDesignUpdated={(newUrl) => setDesign(prev => prev ? { ...prev, imageUrl: newUrl } : prev)}
+              disabled={generating}
+              externalWalls={extractedWalls}
+              readOnly={false}
+              roomType={quizData?.roomType}
+              mustHaveElements={quizData?.mustHaveElements}
+            />
           </div>
-          <DesignItemsList
-            items={designItems}
-            fullDescription={fullDescription}
-            designImageUrl={design.imageUrl}
-            isLoading={extractingItems}
-            isolatingPhotos={isolatingPhotos}
-          />
-          {/* Wall Extraction Panel - shown in locked view only if walls were already extracted */}
-          {design.isLocked && extractedWalls.length > 0 && (
-            <div className="max-w-3xl mx-auto">
-              <WallExtractionPanel
-                designImageUrl={design.imageUrl}
-                designId={design.id}
-                onDesignUpdated={(newUrl) => setDesign(prev => prev ? { ...prev, imageUrl: newUrl } : prev)}
-                disabled={generating}
-                externalWalls={extractedWalls}
-                readOnly={false}
-                roomType={quizData?.roomType}
-                mustHaveElements={quizData?.mustHaveElements}
-              />
-            </div>
-          )}
-          </>
         )}
 
 
