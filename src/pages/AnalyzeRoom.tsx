@@ -58,6 +58,11 @@ const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(() =
   // (conclusion moodboard manages its own regeneration internally)
   const [isDetectingMore, setIsDetectingMore] = useState(false);
   const [moodboardExtras, setMoodboardExtras] = useState<string[]>([]);
+  // Two-step flow: after analysis the user picks/confirms a style first,
+  // then explicitly triggers moodboard creation (which seeds 3 furniture +
+  // 3 decor references behind a loading screen).
+  const [isCreatingMoodboard, setIsCreatingMoodboard] = useState(false);
+  const [moodboardReady, setMoodboardReady] = useState(false);
   const [moodboard, setMoodboard] = useState<{
     materials: { label: string; imageUrl?: string }[];
     references: { label: string; imageUrl?: string }[];
