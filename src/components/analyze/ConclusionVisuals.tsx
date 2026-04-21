@@ -1047,7 +1047,7 @@ const ConclusionVisuals = ({
             }
           }}
           className={cn(
-            "flex flex-wrap gap-3 items-start rounded-lg p-2 -m-2 transition-colors",
+            "flex flex-wrap gap-4 items-start rounded-lg p-2 -m-2 transition-colors pt-3",
             isDropActive && "bg-primary/5 ring-2 ring-primary/40 ring-dashed",
           )}
         >
