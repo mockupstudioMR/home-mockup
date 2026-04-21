@@ -361,6 +361,69 @@ const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(() =
           <circle cx="56" cy="14" r="2.5" />
           <circle cx="72" cy="20" r="2" />
         </svg>
+
+        {/* Additional creative shapes */}
+        {/* Hexagon */}
+        <svg className="absolute top-[8%] left-[30%] w-16 h-16 text-accent/25" viewBox="0 0 100 100" fill="none">
+          <polygon points="50,10 85,30 85,70 50,90 15,70 15,30" stroke="currentColor" strokeWidth="1.5" />
+        </svg>
+        {/* Crosshatch lines */}
+        <svg className="absolute top-[28%] right-[5%] w-20 h-20 text-primary/20 rotate-12" viewBox="0 0 80 80" fill="none">
+          <path d="M10 20 H70 M10 35 H70 M10 50 H70 M10 65 H70" stroke="currentColor" strokeWidth="1" strokeLinecap="round" />
+        </svg>
+        {/* Diamond outline */}
+        <svg className="absolute top-[78%] left-[8%] w-14 h-14 text-secondary/45" viewBox="0 0 60 60" fill="none">
+          <polygon points="30,5 55,30 30,55 5,30" stroke="currentColor" strokeWidth="1.5" />
+        </svg>
+        {/* Concentric circles — ripple */}
+        <svg className="absolute top-[48%] left-[42%] w-20 h-20 text-primary/15" viewBox="0 0 100 100" fill="none">
+          <circle cx="50" cy="50" r="15" stroke="currentColor" strokeWidth="1" />
+          <circle cx="50" cy="50" r="28" stroke="currentColor" strokeWidth="1" />
+          <circle cx="50" cy="50" r="42" stroke="currentColor" strokeWidth="1" />
+        </svg>
+        {/* Spiral / swirl */}
+        <svg className="absolute bottom-[8%] right-[30%] w-16 h-16 text-accent/30" viewBox="0 0 100 100" fill="none">
+          <path d="M50 50 m -30 0 a 30 30 0 1 1 60 0 a 22 22 0 1 1 -44 0 a 14 14 0 1 1 28 0 a 6 6 0 1 1 -12 0" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+        </svg>
+        {/* Star spark */}
+        <svg className="absolute top-[35%] left-[25%] w-8 h-8 text-primary/35" viewBox="0 0 40 40" fill="currentColor">
+          <path d="M20 4 L23 17 L36 20 L23 23 L20 36 L17 23 L4 20 L17 17 Z" />
+        </svg>
+        {/* Small star */}
+        <svg className="absolute top-[62%] right-[12%] w-6 h-6 text-secondary/50" viewBox="0 0 40 40" fill="currentColor">
+          <path d="M20 4 L23 17 L36 20 L23 23 L20 36 L17 23 L4 20 L17 17 Z" />
+        </svg>
+        {/* Arc / brushstroke */}
+        <svg className="absolute top-[65%] left-[35%] w-32 h-16 text-primary/20 rotate-6" viewBox="0 0 200 80" fill="none">
+          <path d="M10 60 Q 100 -10, 190 60" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+        </svg>
+        {/* Filled blob */}
+        <svg className="absolute top-[88%] right-[22%] w-20 h-16 opacity-30" viewBox="0 0 100 80" fill="hsl(var(--accent))">
+          <path d="M20 40 Q 10 10, 50 15 Q 95 5, 85 45 Q 90 75, 50 70 Q 5 80, 20 40 Z" />
+        </svg>
+        {/* Circle outline */}
+        <svg className="absolute top-[5%] left-[55%] w-12 h-12 text-primary/25" viewBox="0 0 50 50" fill="none">
+          <circle cx="25" cy="25" r="20" stroke="currentColor" strokeWidth="1.5" />
+        </svg>
+        {/* Vertical wavy line */}
+        <svg className="absolute top-[10%] right-[10%] w-8 h-32 text-secondary/35" viewBox="0 0 40 200" fill="none">
+          <path d="M20 0 Q 0 25, 20 50 T 20 100 T 20 150 T 20 200" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+        </svg>
+        {/* Tick marks / ruler */}
+        <svg className="absolute bottom-[40%] left-[3%] w-6 h-32 text-primary/25" viewBox="0 0 30 200" fill="none">
+          <path d="M5 10 H25 M5 30 H20 M5 50 H25 M5 70 H20 M5 90 H25 M5 110 H20 M5 130 H25 M5 150 H20 M5 170 H25 M5 190 H20" stroke="currentColor" strokeWidth="1" strokeLinecap="round" />
+        </svg>
+        {/* Plus mark */}
+        <svg className="absolute bottom-[50%] right-[45%] w-6 h-6 text-accent/40" viewBox="0 0 40 40" fill="none">
+          <path d="M20 8 V32 M8 20 H32" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+        </svg>
+        {/* Tiny dots scatter */}
+        <svg className="absolute top-[45%] left-[50%] w-10 h-10 text-primary/30" viewBox="0 0 50 50" fill="currentColor">
+          <circle cx="10" cy="10" r="1.5" />
+          <circle cx="30" cy="15" r="1.5" />
+          <circle cx="20" cy="30" r="1.5" />
+          <circle cx="40" cy="35" r="1.5" />
+        </svg>
       </div>
 
       {/* Header */}
