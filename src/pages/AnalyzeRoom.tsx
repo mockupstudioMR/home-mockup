@@ -343,7 +343,7 @@ const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(() =
           {/* Title */}
           <div className="text-center space-y-3 py-4">
             <h1 className="text-3xl md:text-4xl font-bold tracking-tight">
-              Your Moodboard
+              Upload Room Inspiration
             </h1>
             {!analysisResult && (
               <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
@@ -455,9 +455,11 @@ const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(() =
                       during the loading phase and reveal it once seeding is done. */}
                   {isCreatingMoodboard && (
                     <div className={moodboardReady ? "mb-6" : "hidden"}>
-                      <h3 className="font-serif italic text-2xl mb-2 text-foreground/85">Your Moodboard</h3>
                       {analysisResult.moodboardDescription && (
-                        <p className="text-sm text-muted-foreground mb-4">
+                        <p
+                          className="text-2xl md:text-[1.65rem] leading-snug mb-4 text-foreground/85"
+                          style={{ fontFamily: "'Caveat', cursive" }}
+                        >
                           {analysisResult.moodboardDescription}
                         </p>
                       )}
