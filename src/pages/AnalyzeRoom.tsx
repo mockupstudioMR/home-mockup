@@ -443,7 +443,7 @@ const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(() =
                 <div>
                   <h2 className="text-xl font-semibold mb-1">We translated your inspiration into design language.</h2>
                   <p className="text-sm text-muted-foreground mb-4">
-                    We've mapped your inspiration into distinct style signals. Explore them, compare them, and start building your own visual direction.
+                    We've mapped your inspiration into distinct style signals. Explore them, compare them, and start building your own visual direction. Tap to see it visually, or hit + to add it directly to your moodboard.
                   </p>
 
                   {/* Conclusion Moodboard — colors, materials, and style references */}
