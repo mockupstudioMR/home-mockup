@@ -183,6 +183,9 @@ const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(() =
 
       setAnalysisResult(data);
       setEditableColors(data.dominantColors || []);
+      // New analysis → reset moodboard step
+      setIsCreatingMoodboard(false);
+      setMoodboardReady(false);
       toast({
         title: "Analysis complete!",
         description: `Detected ${data.styles.length} interior styles`,
