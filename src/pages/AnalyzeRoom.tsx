@@ -441,11 +441,6 @@ const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(() =
 
                 <div>
                   <h2 className="text-xl font-semibold mb-1">Overall Conclusion</h2>
-                  {analysisResult.moodboardDescription && (
-                    <p className="text-sm text-muted-foreground mb-4">
-                      {analysisResult.moodboardDescription}
-                    </p>
-                  )}
 
                   {/* Conclusion Moodboard — colors, materials, and style references */}
                   {/* The ConclusionVisuals component is mounted as soon as the user
@@ -455,6 +450,11 @@ const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(() =
                   {isCreatingMoodboard && (
                     <div className={moodboardReady ? "mb-6" : "hidden"}>
                       <h3 className="text-sm font-semibold mb-2">Your Moodboard</h3>
+                      {analysisResult.moodboardDescription && (
+                        <p className="text-sm text-muted-foreground mb-4">
+                          {analysisResult.moodboardDescription}
+                        </p>
+                      )}
                       <ConclusionVisuals
                         dominantColors={editableColors}
                         onDominantColorsChange={setEditableColors}
