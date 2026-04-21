@@ -398,7 +398,14 @@ serve(async (req) => {
         contentParts.push({ type: "image_url", image_url: { url: enrichedRequestData.sourceImageUrl } });
         addDebug("Source image", "Added source image to request");
       }
-      
+
+      // MUST-INCLUDE items FIRST — these get the highest visual weight from the model.
+      // The user explicitly pinned these and expects them to appear EXACTLY in the design.
+      const mustImgs = (enrichedRequestData.mustIncludeItems || [])
+        .map((m) => m.imageUrl).filter(Boolean).slice(0, 4) as string[];
+      for (const u of mustImgs) contentParts.push({ type: "image_url", image_url: { url: u } });
+      if (mustImgs.length > 0) addDebug("Must-include images", `Added ${mustImgs.length} must-include exact-match image(s) FIRST`);
+
       for (const imageUrl of validProductImageUrls) {
         contentParts.push({ type: "image_url", image_url: { url: imageUrl } });
       }
@@ -427,12 +434,6 @@ serve(async (req) => {
         .map((d) => d.imageUrl).filter(Boolean).slice(0, 3) as string[];
       for (const u of decorImgs) contentParts.push({ type: "image_url", image_url: { url: u } });
       if (decorImgs.length > 0) addDebug("Decor references", `Added ${decorImgs.length} decor inspiration image(s)`);
-
-      // Must-include items — exact match
-      const mustImgs = (enrichedRequestData.mustIncludeItems || [])
-        .map((m) => m.imageUrl).filter(Boolean).slice(0, 4) as string[];
-      for (const u of mustImgs) contentParts.push({ type: "image_url", image_url: { url: u } });
-      if (mustImgs.length > 0) addDebug("Must-include images", `Added ${mustImgs.length} must-include exact-match image(s)`);
     }
 
     const messages: any[] = [
