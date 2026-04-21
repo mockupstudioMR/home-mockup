@@ -63,6 +63,7 @@ const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(() =
   // 3 decor references behind a loading screen).
   const [isCreatingMoodboard, setIsCreatingMoodboard] = useState(false);
   const [moodboardReady, setMoodboardReady] = useState(false);
+  const [pinnedVisuals, setPinnedVisuals] = useState<{ label: string; imageUrl: string }[]>([]);
   const [moodboard, setMoodboard] = useState<{
     materials: { label: string; imageUrl?: string }[];
     references: { label: string; imageUrl?: string }[];
