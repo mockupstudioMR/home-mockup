@@ -342,97 +342,101 @@ const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(() =
         <div className="max-w-3xl mx-auto space-y-8">
           {/* Title */}
           <div className="text-center space-y-3 py-4">
-            <h1 className="text-3xl md:text-4xl font-bold tracking-tight">
-              Upload Room Inspiration
+            <h1 className="font-serif italic text-4xl md:text-5xl tracking-tight text-foreground/90">
+              Your Moodboard
             </h1>
-            <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-              Share photos of rooms you love and we'll analyze the styles to create your personalized moodboard
-            </p>
+            {!analysisResult && (
+              <p className="text-muted-foreground text-lg max-w-2xl mx-auto font-serif italic">
+                Share photos of rooms you love and we'll analyze the styles to create your personalized moodboard
+              </p>
+            )}
           </div>
 
-          {/* Upload Area */}
-          <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
-            <CardContent className="p-6">
-              {uploadedImages.length === 0 && !isUploading ? (
-                <label className="flex flex-col items-center justify-center h-64 border-2 border-dashed border-border rounded-xl cursor-pointer hover:border-primary/50 hover:bg-primary/5 transition-colors">
-                  <Upload className="w-12 h-12 text-muted-foreground mb-4" />
-                  <p className="text-lg font-medium">Drop images here or click to upload</p>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Upload up to 6 room photos
-                  </p>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    multiple
-                    onChange={handleFileUpload}
-                    className="hidden"
-                  />
-                </label>
-              ) : uploadedImages.length === 0 && isUploading ? (
-                <div className="flex flex-col items-center justify-center h-64 border-2 border-dashed border-primary/50 rounded-xl bg-primary/5">
-                  <Loader2 className="w-12 h-12 text-primary mb-4 animate-spin" />
-                  <p className="text-lg font-medium">Uploading images...</p>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                    {uploadedImages.map((img, index) => (
-                      <div key={index} className="relative aspect-square rounded-xl overflow-hidden group">
-                        <img src={getThumbnailImageUrl(img)} alt={`Upload ${index + 1}`} className="w-full h-full object-cover" loading="lazy" decoding="async" />
-                        <button
-                          onClick={() => removeImage(index)}
-                          className="absolute top-2 right-2 w-8 h-8 rounded-full bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                        >
-                          <X className="w-4 h-4 text-white" />
-                        </button>
-                      </div>
-                    ))}
-                    {uploadedImages.length < 6 && !isUploading && (
-                      <label className="aspect-square rounded-xl border-2 border-dashed border-border flex items-center justify-center cursor-pointer hover:border-primary/50 hover:bg-primary/5 transition-colors">
-                        <div className="text-center">
-                          <Upload className="w-8 h-8 text-muted-foreground mx-auto" />
-                          <span className="text-sm text-muted-foreground mt-2">Add more</span>
+          {/* Upload Area — hidden once analysis exists */}
+          {!analysisResult && (
+            <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
+              <CardContent className="p-6">
+                {uploadedImages.length === 0 && !isUploading ? (
+                  <label className="flex flex-col items-center justify-center h-64 border-2 border-dashed border-border rounded-xl cursor-pointer hover:border-primary/50 hover:bg-primary/5 transition-colors">
+                    <Upload className="w-12 h-12 text-muted-foreground mb-4" />
+                    <p className="text-lg font-medium">Drop images here or click to upload</p>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Upload up to 6 room photos
+                    </p>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      onChange={handleFileUpload}
+                      className="hidden"
+                    />
+                  </label>
+                ) : uploadedImages.length === 0 && isUploading ? (
+                  <div className="flex flex-col items-center justify-center h-64 border-2 border-dashed border-primary/50 rounded-xl bg-primary/5">
+                    <Loader2 className="w-12 h-12 text-primary mb-4 animate-spin" />
+                    <p className="text-lg font-medium">Uploading images...</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                      {uploadedImages.map((img, index) => (
+                        <div key={index} className="relative aspect-square rounded-xl overflow-hidden group">
+                          <img src={getThumbnailImageUrl(img)} alt={`Upload ${index + 1}`} className="w-full h-full object-cover" loading="lazy" decoding="async" />
+                          <button
+                            onClick={() => removeImage(index)}
+                            className="absolute top-2 right-2 w-8 h-8 rounded-full bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                          >
+                            <X className="w-4 h-4 text-white" />
+                          </button>
                         </div>
-                        <input
-                          type="file"
-                          accept="image/*"
-                          multiple
-                          onChange={handleFileUpload}
-                          className="hidden"
-                        />
-                      </label>
-                    )}
-                    {isUploading && (
-                      <div className="aspect-square rounded-xl border-2 border-dashed border-primary/50 flex items-center justify-center bg-primary/5">
-                        <Loader2 className="w-8 h-8 text-primary animate-spin" />
-                      </div>
+                      ))}
+                      {uploadedImages.length < 6 && !isUploading && (
+                        <label className="aspect-square rounded-xl border-2 border-dashed border-border flex items-center justify-center cursor-pointer hover:border-primary/50 hover:bg-primary/5 transition-colors">
+                          <div className="text-center">
+                            <Upload className="w-8 h-8 text-muted-foreground mx-auto" />
+                            <span className="text-sm text-muted-foreground mt-2">Add more</span>
+                          </div>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            multiple
+                            onChange={handleFileUpload}
+                            className="hidden"
+                          />
+                        </label>
+                      )}
+                      {isUploading && (
+                        <div className="aspect-square rounded-xl border-2 border-dashed border-primary/50 flex items-center justify-center bg-primary/5">
+                          <Loader2 className="w-8 h-8 text-primary animate-spin" />
+                        </div>
+                      )}
+                    </div>
+
+                    {!analysisResult && (
+                      <Button
+                        size="lg"
+                        className="w-full"
+                        onClick={analyzeImages}
+                        disabled={isAnalyzing || isUploading}
+                      >
+                        {isAnalyzing ? (
+                          <>
+                            <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                            Analyzing styles...
+                          </>
+                        ) : (
+                          <>
+                            <Sparkles className="w-5 h-5 mr-2" />
+                            Analyze Styles
+                          </>
+                        )}
+                      </Button>
                     )}
                   </div>
-
-                  {!analysisResult && (
-                    <Button
-                      size="lg"
-                      className="w-full"
-                      onClick={analyzeImages}
-                      disabled={isAnalyzing || isUploading}
-                    >
-                      {isAnalyzing ? (
-                        <>
-                          <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                          Analyzing styles...
-                        </>
-                      ) : (
-                        <>
-                          <Sparkles className="w-5 h-5 mr-2" />
-                          Analyze Styles
-                        </>
-                      )}
-                    </Button>
-                  )}
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                )}
+              </CardContent>
+            </Card>
+          )}
 
           {/* Analysis Result */}
           {analysisResult && (
