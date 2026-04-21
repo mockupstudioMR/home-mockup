@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Sparkles, X, GripVertical } from "lucide-react";
+import { Sparkles, X, GripVertical, Pin, Check } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 
@@ -11,11 +11,15 @@ interface TagVisualProps {
   selected?: boolean;
   onToggle?: () => void;
   inMoodboard?: boolean;
+  /** Called when the user pins the generated visual to the moodboard. */
+  onPin?: (label: string, imageUrl: string) => void;
+  /** Whether this visual is already pinned. */
+  pinned?: boolean;
 }
 
 export const MOODBOARD_DRAG_MIME = "application/x-moodboard-item";
 
-const TagVisual = ({ tag, styleName, roomType = "living room", selected, onToggle, inMoodboard }: TagVisualProps) => {
+const TagVisual = ({ tag, styleName, roomType = "living room", selected, onToggle, inMoodboard, onPin, pinned }: TagVisualProps) => {
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
