@@ -440,7 +440,10 @@ const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(() =
                 {/* Per-image breakdown removed per request */}
 
                 <div>
-                  <h2 className="text-xl font-semibold mb-1">Overall Conclusion</h2>
+                  <h2 className="text-xl font-semibold mb-1">We translated your inspiration into design language.</h2>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    We've mapped your inspiration into distinct style signals. Explore them, compare them, and start building your own visual direction.
+                  </p>
 
                   {/* Conclusion Moodboard — colors, materials, and style references */}
                   {/* The ConclusionVisuals component is mounted as soon as the user
