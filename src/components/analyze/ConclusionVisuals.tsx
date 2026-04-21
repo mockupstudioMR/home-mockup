@@ -439,15 +439,24 @@ const ConclusionVisuals = ({
     }
   };
 
-  // Auto-seed one AI reference of each kind once style is detected
+  // Auto-seed THREE AI references of each kind once style is detected.
+  // Fires onSeedReady once the initial batch has finished (success or fail).
+  const seededRef = React.useRef(false);
   useEffect(() => {
     if (!styleNames[0]) return;
-    if (furnitureReferences.length === 0 && !generatingFurnitureRef) {
-      generateAiReference("furniture", setFurnitureReferences, setGeneratingFurnitureRef);
-    }
-    if (decorReferences.length === 0 && !generatingDecorRef) {
-      generateAiReference("decor", setDecorReferences, setGeneratingDecorRef);
-    }
+    if (seededRef.current) return;
+    if (furnitureReferences.length > 0 || decorReferences.length > 0) return;
+    seededRef.current = true;
+    const TARGET = 3;
+    const furniturePromises = Array.from({ length: TARGET }).map(() =>
+      generateAiReference("furniture", setFurnitureReferences, setGeneratingFurnitureRef),
+    );
+    const decorPromises = Array.from({ length: TARGET }).map(() =>
+      generateAiReference("decor", setDecorReferences, setGeneratingDecorRef),
+    );
+    Promise.allSettled([...furniturePromises, ...decorPromises]).finally(() => {
+      onSeedReady?.();
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [styleNames[0]]);
 
