@@ -327,6 +327,32 @@ const ConclusionVisuals = ({
   // Drag-and-drop hover state for the two reference sections
   const [isFurnitureDropActive, setIsFurnitureDropActive] = useState(false);
   const [isDecorDropActive, setIsDecorDropActive] = useState(false);
+  const [isMustIncludeDropActive, setIsMustIncludeDropActive] = useState(false);
+
+  // Helper to start a drag of a reference item (for moving into Must-Include)
+  const startItemDrag = (e: React.DragEvent, item: { label: string; imageUrl?: string }) => {
+    const payload = JSON.stringify({ label: item.label, imageUrl: item.imageUrl || null, source: "reference" });
+    e.dataTransfer.setData(MOODBOARD_DRAG_MIME, payload);
+    e.dataTransfer.setData("text/plain", item.label);
+    e.dataTransfer.effectAllowed = "copyMove";
+  };
+
+  const handleMustIncludeDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsMustIncludeDropActive(false);
+    const raw = e.dataTransfer.getData(MOODBOARD_DRAG_MIME);
+    if (!raw) return;
+    try {
+      const parsed = JSON.parse(raw) as DraggedItem;
+      const label = (parsed.label || "").trim();
+      if (!label) return;
+      setMustInclude((prev) => {
+        if (prev.some((m) => m.label.toLowerCase() === label.toLowerCase())) return prev;
+        return [...prev, { label, imageUrl: parsed.imageUrl || undefined }];
+      });
+    } catch { /* ignore */ }
+  };
+
 
   // Generate an AI visual for a dragged-in label that has no image yet
   const generateAiReferenceForLabel = async (
