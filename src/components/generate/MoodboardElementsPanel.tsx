@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Pencil, Trash2, Plus, Upload, Loader2, X, Sofa, Lamp, Pin } from "lucide-react";
+import { Pencil, Trash2, Plus, Upload, Loader2, X, Sofa, Lamp, Pin, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -40,6 +40,55 @@ const KIND_ICON: Record<MoodboardItemKind, typeof Sofa> = {
   decor: Lamp,
   "must-include": Pin,
   material: Pin,
+};
+
+// Deterministic “handmade” jitter so every tile feels uniquely placed
+// but stays stable across renders.
+const hashString = (s: string) => {
+  let h = 0;
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0;
+  return Math.abs(h);
+};
+const jitter = (seed: string, range: number, offset = 0) => {
+  const h = hashString(seed + offset);
+  return ((h % 1000) / 1000) * range * 2 - range;
+};
+
+// Section-specific visual treatment so each strip reads like a different
+// area of a real moodboard.
+const SECTION_STYLE: Record<
+  MoodboardItemKind,
+  {
+    tape: string; // tailwind bg for the washi-tape strip
+    accent: string; // tailwind text/border accent
+    label: string; // chip label color
+    paper: string; // card "paper" tone
+  }
+> = {
+  "must-include": {
+    tape: "bg-primary/70",
+    accent: "text-primary",
+    label: "bg-primary text-primary-foreground",
+    paper: "bg-[hsl(var(--card))]",
+  },
+  furniture: {
+    tape: "bg-secondary/80",
+    accent: "text-secondary-foreground",
+    label: "bg-secondary text-secondary-foreground",
+    paper: "bg-[hsl(var(--card))]",
+  },
+  decor: {
+    tape: "bg-accent/70",
+    accent: "text-accent-foreground",
+    label: "bg-accent text-accent-foreground",
+    paper: "bg-[hsl(var(--card))]",
+  },
+  material: {
+    tape: "bg-muted",
+    accent: "text-muted-foreground",
+    label: "bg-muted text-foreground",
+    paper: "bg-[hsl(var(--card))]",
+  },
 };
 
 const MoodboardElementsPanel = ({ items, onAction, disabled }: MoodboardElementsPanelProps) => {
@@ -130,87 +179,208 @@ const MoodboardElementsPanel = ({ items, onAction, disabled }: MoodboardElements
   ];
 
   return (
-    <div className="rounded-xl border border-border/50 bg-card p-4 space-y-5">
-      <div className="flex items-center justify-between">
-        <h3 className="text-sm font-semibold">Moodboard elements</h3>
-        <span className="text-[10px] text-muted-foreground">
-          Edit replaces in place — scene preserved
+    <div
+      className="relative rounded-2xl border border-border/60 p-5 space-y-7 overflow-hidden shadow-inner"
+      style={{
+        backgroundColor: "hsl(var(--muted))",
+        backgroundImage:
+          "radial-gradient(hsl(var(--foreground) / 0.06) 1px, transparent 1px), radial-gradient(hsl(var(--foreground) / 0.04) 1px, transparent 1px)",
+        backgroundSize: "14px 14px, 22px 22px",
+        backgroundPosition: "0 0, 7px 11px",
+      }}
+    >
+      {/* Header strip — like a label taped to the top of a corkboard */}
+      <div className="relative flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <span
+            className="absolute -top-7 left-6 h-4 w-16 rotate-[-4deg] bg-primary/60 shadow-sm"
+            aria-hidden
+          />
+          <Sparkles className={cn("w-4 h-4", "text-primary")} />
+          <h3 className="text-sm font-semibold tracking-tight" style={{ fontFamily: "Georgia, serif" }}>
+            Moodboard
+          </h3>
+        </div>
+        <span className="text-[10px] italic text-muted-foreground">
+          edits replace in place — scene preserved
         </span>
       </div>
 
-      {sections.map(({ kind, title, addLabel: addBtn }) => (
-        <div key={kind}>
-          <p className="text-[11px] uppercase tracking-wide text-muted-foreground mb-2 font-medium">
-            {title}
-          </p>
-          <div className="flex flex-wrap gap-3">
-            {grouped[kind].map((item) => {
-              const Icon = KIND_ICON[item.kind];
-              return (
-                <div key={`${kind}-${item.label}`} className="group relative w-24">
+      {sections.map(({ kind, title, addLabel: addBtn }) => {
+        const sec = SECTION_STYLE[kind];
+        return (
+          <div key={kind} className="relative">
+            {/* Section label — washi-tape chip */}
+            <div className="relative inline-flex items-center mb-4">
+              <span
+                className={cn(
+                  "absolute -top-1 -left-2 h-3 w-10 rotate-[-6deg] opacity-80 shadow-sm",
+                  sec.tape,
+                )}
+                aria-hidden
+              />
+              <span
+                className={cn(
+                  "px-2.5 py-1 rounded-sm text-[10px] uppercase tracking-[0.18em] font-semibold shadow-sm",
+                  sec.label,
+                )}
+                style={{ fontFamily: "Georgia, serif" }}
+              >
+                {title}
+              </span>
+            </div>
+
+            <div className="flex flex-wrap gap-x-5 gap-y-6 pl-1">
+              {grouped[kind].map((item, idx) => {
+                const Icon = KIND_ICON[item.kind];
+                const seed = `${kind}-${item.label}-${idx}`;
+                const rotate = jitter(seed, 3.5);
+                const ty = jitter(seed, 4, 1);
+                const isMust = kind === "must-include";
+                const isMaterial = kind === "material";
+                const isSwatch = /^#[0-9a-fA-F]{6}$/.test(item.label);
+
+                return (
                   <div
-                    className={cn(
-                      "aspect-square rounded-lg overflow-hidden border bg-secondary/30 relative",
-                      kind === "must-include" ? "border-primary/40 border-2" : "border-border",
-                    )}
+                    key={`${kind}-${item.label}-${idx}`}
+                    className="group relative"
+                    style={{
+                      transform: `rotate(${rotate}deg) translateY(${ty}px)`,
+                    }}
                   >
-                    {item.imageUrl ? (
-                      <img
-                        src={getThumbnailImageUrl(item.imageUrl)}
-                        alt={item.label}
-                        className="w-full h-full object-cover"
-                        loading="lazy"
-                      />
-                    ) : /^#[0-9a-fA-F]{6}$/.test(item.label) ? (
-                      <div
-                        className="w-full h-full"
-                        style={{ backgroundColor: item.label }}
-                        title={item.label}
+                    {/* Pin (must-include) or tape (others) */}
+                    {isMust ? (
+                      <span
+                        className="absolute -top-2 left-1/2 -translate-x-1/2 z-20 w-3 h-3 rounded-full bg-primary shadow-md ring-2 ring-primary/30"
+                        aria-hidden
                       />
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center text-muted-foreground">
-                        <Icon className="w-5 h-5" />
-                      </div>
+                      <span
+                        className={cn(
+                          "absolute -top-2 left-1/2 -translate-x-1/2 z-20 h-3 w-10 rotate-[-3deg] opacity-80 shadow-sm",
+                          sec.tape,
+                        )}
+                        aria-hidden
+                      />
                     )}
-                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1.5">
-                      <button
-                        type="button"
-                        onClick={() => openEdit(item)}
-                        disabled={disabled}
-                        className="w-7 h-7 rounded-full bg-background text-foreground flex items-center justify-center hover:bg-primary hover:text-primary-foreground transition-colors disabled:opacity-50"
-                        title="Edit / replace"
+
+                    {/* Polaroid / swatch card */}
+                    <div
+                      className={cn(
+                        "w-28 p-2 pb-3 shadow-[0_6px_14px_-6px_rgba(0,0,0,0.35)] transition-transform group-hover:-translate-y-0.5 group-hover:rotate-0",
+                        isMaterial ? "rounded-md" : "rounded-sm",
+                        sec.paper,
+                      )}
+                      style={{
+                        boxShadow:
+                          "0 1px 0 hsl(var(--border)), 0 8px 18px -10px hsl(var(--foreground) / 0.35)",
+                      }}
+                    >
+                      <div
+                        className={cn(
+                          "aspect-square overflow-hidden relative",
+                          isMaterial ? "rounded-md" : "rounded-[2px]",
+                          "bg-secondary/40",
+                        )}
                       >
-                        <Pencil className="w-3.5 h-3.5" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => onAction({ type: "remove", item })}
-                        disabled={disabled}
-                        className="w-7 h-7 rounded-full bg-background text-destructive flex items-center justify-center hover:bg-destructive hover:text-destructive-foreground transition-colors disabled:opacity-50"
-                        title="Remove from design"
+                        {item.imageUrl ? (
+                          <img
+                            src={getThumbnailImageUrl(item.imageUrl)}
+                            alt={item.label}
+                            className="w-full h-full object-cover"
+                            loading="lazy"
+                          />
+                        ) : isSwatch ? (
+                          <div
+                            className="w-full h-full"
+                            style={{ backgroundColor: item.label }}
+                            title={item.label}
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-muted-foreground">
+                            <Icon className="w-6 h-6" />
+                          </div>
+                        )}
+
+                        {/* subtle paper grain overlay */}
+                        <div
+                          className="pointer-events-none absolute inset-0 mix-blend-multiply opacity-[0.06]"
+                          style={{
+                            backgroundImage:
+                              "radial-gradient(hsl(var(--foreground)) 1px, transparent 1px)",
+                            backgroundSize: "3px 3px",
+                          }}
+                          aria-hidden
+                        />
+
+                        {/* Hover actions */}
+                        <div className="absolute inset-0 bg-foreground/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => openEdit(item)}
+                            disabled={disabled}
+                            className="w-7 h-7 rounded-full bg-background text-foreground flex items-center justify-center hover:bg-primary hover:text-primary-foreground transition-colors disabled:opacity-50 shadow"
+                            title="Edit / replace"
+                          >
+                            <Pencil className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => onAction({ type: "remove", item })}
+                            disabled={disabled}
+                            className="w-7 h-7 rounded-full bg-background text-destructive flex items-center justify-center hover:bg-destructive hover:text-destructive-foreground transition-colors disabled:opacity-50 shadow"
+                            title="Remove from design"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Handwritten-style caption */}
+                      <div
+                        className="mt-2 text-[11px] leading-tight text-center text-foreground/80 truncate px-0.5"
+                        title={item.label}
+                        style={{ fontFamily: "Georgia, serif", fontStyle: "italic" }}
                       >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
+                        {isSwatch ? item.label.toUpperCase() : item.label}
+                      </div>
                     </div>
                   </div>
-                  <div className="mt-1 text-[11px] leading-tight truncate" title={item.label}>
-                    {item.label}
-                  </div>
-                </div>
-              );
-            })}
-            <button
-              type="button"
-              onClick={() => setAdding(kind)}
-              disabled={disabled}
-              className="w-24 aspect-square rounded-lg border-2 border-dashed border-border flex flex-col items-center justify-center gap-1 text-muted-foreground hover:border-primary/50 hover:text-primary transition-colors disabled:opacity-50"
-            >
-              <Plus className="w-4 h-4" />
-              <span className="text-[10px] text-center px-1 leading-tight">{addBtn}</span>
-            </button>
+                );
+              })}
+
+              {/* Add tile — sticky note */}
+              <button
+                type="button"
+                onClick={() => setAdding(kind)}
+                disabled={disabled}
+                className={cn(
+                  "relative w-28 h-[8.5rem] flex flex-col items-center justify-center gap-1.5 transition-transform hover:-translate-y-0.5 hover:rotate-0 disabled:opacity-50",
+                  "rounded-sm shadow-[0_6px_14px_-6px_rgba(0,0,0,0.3)]",
+                )}
+                style={{
+                  transform: `rotate(${jitter(`add-${kind}`, 2.5)}deg)`,
+                  backgroundColor: "hsl(var(--accent) / 0.55)",
+                  backgroundImage:
+                    "linear-gradient(180deg, hsl(var(--accent) / 0.65), hsl(var(--accent) / 0.4))",
+                }}
+              >
+                <span
+                  className="absolute -top-2 left-1/2 -translate-x-1/2 h-3 w-8 rotate-[2deg] bg-primary/70 opacity-80 shadow-sm"
+                  aria-hidden
+                />
+                <Plus className="w-5 h-5 text-foreground/70" />
+                <span
+                  className="text-[10px] text-center px-2 leading-tight text-foreground/70"
+                  style={{ fontFamily: "Georgia, serif", fontStyle: "italic" }}
+                >
+                  {addBtn}
+                </span>
+              </button>
+            </div>
           </div>
-        </div>
-      ))}
+        );
+      })}
 
       {/* Edit dialog */}
       <Dialog open={!!editing} onOpenChange={(o) => !o && closeEdit()}>
