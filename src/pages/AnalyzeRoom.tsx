@@ -314,11 +314,53 @@ const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(() =
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-secondary/20 to-primary/10">
+    <div className="min-h-screen bg-gradient-to-br from-background via-secondary/20 to-primary/10 relative overflow-hidden">
       {/* Background Elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none hidden md:block">
         <div className="absolute top-20 left-10 w-72 h-72 bg-primary/20 rounded-full blur-2xl" />
         <div className="absolute bottom-20 right-10 w-96 h-96 bg-accent/20 rounded-full blur-2xl" />
+      </div>
+
+      {/* Creative inspiration shapes — subtle, themed */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden="true">
+        <svg className="absolute top-32 right-[8%] w-24 h-24 text-primary/20 animate-[spin_60s_linear_infinite]" viewBox="0 0 100 100" fill="none">
+          <circle cx="50" cy="50" r="40" stroke="currentColor" strokeWidth="1.5" strokeDasharray="4 6" />
+          <circle cx="30" cy="40" r="6" fill="currentColor" opacity="0.5" />
+          <circle cx="65" cy="35" r="5" fill="hsl(var(--accent))" opacity="0.4" />
+          <circle cx="60" cy="65" r="7" fill="hsl(var(--secondary))" opacity="0.6" />
+          <circle cx="35" cy="65" r="4" fill="currentColor" opacity="0.4" />
+        </svg>
+        <svg className="absolute top-[55%] left-[5%] w-20 h-20 text-accent/25" viewBox="0 0 100 100" fill="none">
+          <polygon points="50,15 90,85 10,85" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
+        </svg>
+        <svg className="absolute top-[20%] left-[10%] w-40 h-12 text-primary/20" viewBox="0 0 200 40" fill="none">
+          <path d="M0 20 Q 25 0, 50 20 T 100 20 T 150 20 T 200 20" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+        </svg>
+        <svg className="absolute bottom-[15%] left-[20%] w-32 h-10 text-secondary/40" viewBox="0 0 200 40" fill="none">
+          <path d="M0 20 Q 25 5, 50 20 T 100 20 T 150 20 T 200 20" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+        </svg>
+        <svg className="absolute bottom-32 right-[15%] w-16 h-16 text-primary/25" viewBox="0 0 60 60" fill="none">
+          <rect x="5" y="5" width="50" height="50" stroke="currentColor" strokeWidth="1.5" strokeDasharray="3 4" rx="4" />
+          <circle cx="30" cy="30" r="3" fill="currentColor" opacity="0.6" />
+        </svg>
+        <svg className="absolute top-[40%] right-[20%] w-28 h-6 text-accent/30 -rotate-12" viewBox="0 0 200 20" fill="none">
+          <path d="M5 10 Q 100 2, 195 10" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+        </svg>
+        <svg className="absolute top-[15%] right-[35%] w-10 h-10 text-primary/30" viewBox="0 0 40 40" fill="none">
+          <path d="M20 5 V35 M5 20 H35" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+        </svg>
+        <svg className="absolute bottom-[28%] right-[5%] w-20 h-20 opacity-40 rotate-12" viewBox="0 0 80 80" fill="none">
+          <rect x="10" y="10" width="40" height="40" rx="4" fill="hsl(var(--primary))" opacity="0.3" />
+          <rect x="22" y="22" width="40" height="40" rx="4" fill="hsl(var(--accent))" opacity="0.35" />
+          <rect x="34" y="34" width="40" height="40" rx="4" fill="hsl(var(--secondary))" opacity="0.5" />
+        </svg>
+        <svg className="absolute top-[70%] right-[40%] w-16 h-8 text-primary/30" viewBox="0 0 80 40" fill="currentColor">
+          <circle cx="8" cy="20" r="2" />
+          <circle cx="24" cy="12" r="2.5" />
+          <circle cx="40" cy="22" r="2" />
+          <circle cx="56" cy="14" r="2.5" />
+          <circle cx="72" cy="20" r="2" />
+        </svg>
       </div>
 
       {/* Header */}
