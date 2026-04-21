@@ -128,59 +128,78 @@ const VisualChip = ({
     setEditing(false);
   };
 
+  // Stable rotation per chip based on label hash
+  const rot = useMemo(() => {
+    let h = 0;
+    for (let i = 0; i < label.length; i++) h = (h * 31 + label.charCodeAt(i)) >>> 0;
+    return ((h % 500) / 500) * 5 - 2.5; // -2.5°..+2.5°
+  }, [label]);
+
   return (
-    <div className="group relative w-24">
-      <div className="aspect-square rounded-lg overflow-hidden border border-border bg-secondary/30 relative">
-        {loading ? (
-          <Skeleton className="w-full h-full" />
-        ) : imageUrl ? (
-          <img src={imageUrl} alt={label} className="w-full h-full object-cover" />
-        ) : (
+    <div
+      className="group relative w-28"
+      style={{ transform: `rotate(${rot}deg)` }}
+    >
+      {/* Polaroid frame */}
+      <div className="bg-card p-1.5 pb-6 shadow-[0_6px_14px_-6px_hsl(var(--foreground)/0.35),0_2px_4px_-2px_hsl(var(--foreground)/0.2)] rounded-sm">
+        {/* Tape accent */}
+        <div
+          aria-hidden
+          className="absolute -top-1.5 left-1/2 -translate-x-1/2 w-10 h-3 rotate-[-4deg] bg-secondary/70 border border-border/40 rounded-[2px] shadow-sm"
+        />
+        <div className="aspect-square overflow-hidden bg-muted/40 relative">
+          {loading ? (
+            <Skeleton className="w-full h-full" />
+          ) : imageUrl ? (
+            <img src={imageUrl} alt={label} className="w-full h-full object-cover" />
+          ) : (
+            <button
+              type="button"
+              onClick={generate}
+              className="w-full h-full flex flex-col items-center justify-center gap-1 text-muted-foreground hover:text-primary hover:bg-primary/5 transition-colors"
+              title="Generate visual"
+            >
+              <Sparkles className="w-4 h-4" />
+              <span className="text-[10px]">Generate</span>
+            </button>
+          )}
+
           <button
             type="button"
-            onClick={generate}
-            className="w-full h-full flex flex-col items-center justify-center gap-1 text-muted-foreground hover:text-primary hover:bg-primary/5 transition-colors"
-            title="Generate visual"
+            onClick={onRemove}
+            className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/50 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+            aria-label="Remove"
           >
-            <Sparkles className="w-4 h-4" />
-            <span className="text-[10px]">Generate</span>
+            <X className="w-3 h-3" />
           </button>
-        )}
+        </div>
 
-        <button
-          type="button"
-          onClick={onRemove}
-          className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/50 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-          aria-label="Remove"
-        >
-          <X className="w-3 h-3" />
-        </button>
-      </div>
-
-      <div className="mt-1">
-        {editing ? (
-          <Input
-            autoFocus
-            value={value}
-            onChange={(e) => setValue(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") { e.preventDefault(); commitRename(); }
-              if (e.key === "Escape") { setValue(label); setEditing(false); }
-            }}
-            onBlur={commitRename}
-            className="h-6 text-[11px] px-1.5 py-0"
-          />
-        ) : (
-          <button
-            type="button"
-            onClick={() => setEditing(true)}
-            className="w-full text-[11px] leading-tight text-left flex items-center gap-1 hover:text-primary"
-            title="Rename"
-          >
-            <span className="truncate">{label}</span>
-            <Pencil className="w-2.5 h-2.5 opacity-0 group-hover:opacity-100 shrink-0" />
-          </button>
-        )}
+        {/* Handwritten caption */}
+        <div className="mt-1.5 px-1">
+          {editing ? (
+            <Input
+              autoFocus
+              value={value}
+              onChange={(e) => setValue(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") { e.preventDefault(); commitRename(); }
+                if (e.key === "Escape") { setValue(label); setEditing(false); }
+              }}
+              onBlur={commitRename}
+              className="h-6 text-[11px] px-1.5 py-0"
+            />
+          ) : (
+            <button
+              type="button"
+              onClick={() => setEditing(true)}
+              className="w-full text-[12px] leading-tight text-left flex items-center gap-1 hover:text-primary font-serif italic text-foreground/80"
+              title="Rename"
+            >
+              <span className="truncate">{label}</span>
+              <Pencil className="w-2.5 h-2.5 opacity-0 group-hover:opacity-100 shrink-0" />
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );
