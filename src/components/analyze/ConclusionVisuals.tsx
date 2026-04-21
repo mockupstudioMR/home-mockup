@@ -906,10 +906,13 @@ const ConclusionVisuals = ({
 
       {/* Dominant Colors */}
       <div>
-        <div className="flex items-center justify-between mb-2">
-          <p className="text-[11px] uppercase tracking-wide text-muted-foreground font-medium">
-            Dominant Colors <span className="normal-case text-muted-foreground/70">— drag tags here to add their colors</span>
-          </p>
+        <div className="flex items-center justify-between mb-3">
+          <div>
+            <span className="inline-block px-3 py-1 text-[11px] uppercase tracking-wider font-semibold bg-secondary/80 text-foreground/80 rounded-[2px] -rotate-1 shadow-sm border border-border/40">
+              Dominant Colors
+            </span>
+            <span className="ml-2 text-[11px] text-muted-foreground italic font-serif">— drag tags here to add their colors</span>
+          </div>
           <p className="text-[10px] text-muted-foreground flex items-center gap-1">
             <Blend className="w-3 h-3" />
             {extractingColors
