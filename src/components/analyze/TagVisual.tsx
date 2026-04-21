@@ -71,9 +71,21 @@ const TagVisual = ({ tag, styleName, roomType = "living room", selected, onToggl
           inMoodboard && "ring-1 ring-primary/40",
         )}
       >
-        <span className="pl-1.5 pr-0 py-1 text-muted-foreground">
-          <GripVertical className="w-3 h-3" />
-        </span>
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            if (!pinned && onPin) onPin(tag, imageUrl || "");
+          }}
+          title={pinned ? "Added to moodboard" : "Add to moodboard"}
+          disabled={pinned}
+          className={cn(
+            "pl-1.5 pr-0.5 py-1 transition-colors",
+            pinned ? "text-primary" : "text-muted-foreground hover:text-primary",
+          )}
+        >
+          {pinned ? <Check className="w-3 h-3" /> : <Plus className="w-3 h-3" />}
+        </button>
         <button
           type="button"
           onClick={(e) => {
@@ -97,10 +109,10 @@ const TagVisual = ({ tag, styleName, roomType = "living room", selected, onToggl
               generate();
             }
           }}
-          title="Generate visual for this tag"
+          title={open ? "Collapse visual" : "Show visual"}
           className="px-1.5 py-1 border-l border-border text-muted-foreground hover:text-primary hover:bg-secondary transition-colors"
         >
-          <Sparkles className="w-3 h-3" />
+          {open ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
         </button>
       </div>
 
@@ -123,7 +135,7 @@ const TagVisual = ({ tag, styleName, roomType = "living room", selected, onToggl
                 e.stopPropagation();
                 if (!pinned) onPin(tag, imageUrl);
               }}
-              title={pinned ? "Pinned to moodboard" : "Pin to moodboard"}
+              title={pinned ? "Added to moodboard" : "Add to moodboard"}
               className={cn(
                 "absolute top-1 left-1 h-6 px-1.5 rounded-full flex items-center gap-1 text-[10px] font-medium z-10 transition-colors",
                 pinned
@@ -131,8 +143,8 @@ const TagVisual = ({ tag, styleName, roomType = "living room", selected, onToggl
                   : "bg-black/50 text-white hover:bg-primary hover:text-primary-foreground",
               )}
             >
-              {pinned ? <Check className="w-3 h-3" /> : <Pin className="w-3 h-3" />}
-              <span>{pinned ? "Pinned" : "Pin"}</span>
+              {pinned ? <Check className="w-3 h-3" /> : <Plus className="w-3 h-3" />}
+              <span>{pinned ? "Added to moodboard" : "Add to moodboard"}</span>
             </button>
           )}
           <div
