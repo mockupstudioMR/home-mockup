@@ -196,6 +196,7 @@ const ConclusionVisuals = ({
   mustIncludeItems,
   roomType = "living room",
   onMoodboardChange,
+  onSeedReady,
 }: ConclusionVisualsProps) => {
   const styleSlug = useMemo(
     () => styleNames[0]?.toLowerCase().replace(/\s+/g, "-") || "modern-minimal",
