@@ -128,59 +128,78 @@ const VisualChip = ({
     setEditing(false);
   };
 
+  // Stable rotation per chip based on label hash
+  const rot = useMemo(() => {
+    let h = 0;
+    for (let i = 0; i < label.length; i++) h = (h * 31 + label.charCodeAt(i)) >>> 0;
+    return ((h % 500) / 500) * 5 - 2.5; // -2.5°..+2.5°
+  }, [label]);
+
   return (
-    <div className="group relative w-24">
-      <div className="aspect-square rounded-lg overflow-hidden border border-border bg-secondary/30 relative">
-        {loading ? (
-          <Skeleton className="w-full h-full" />
-        ) : imageUrl ? (
-          <img src={imageUrl} alt={label} className="w-full h-full object-cover" />
-        ) : (
+    <div
+      className="group relative w-28"
+      style={{ transform: `rotate(${rot}deg)` }}
+    >
+      {/* Polaroid frame */}
+      <div className="bg-card p-1.5 pb-6 shadow-[0_6px_14px_-6px_hsl(var(--foreground)/0.35),0_2px_4px_-2px_hsl(var(--foreground)/0.2)] rounded-sm">
+        {/* Tape accent */}
+        <div
+          aria-hidden
+          className="absolute -top-1.5 left-1/2 -translate-x-1/2 w-10 h-3 rotate-[-4deg] bg-secondary/70 border border-border/40 rounded-[2px] shadow-sm"
+        />
+        <div className="aspect-square overflow-hidden bg-muted/40 relative">
+          {loading ? (
+            <Skeleton className="w-full h-full" />
+          ) : imageUrl ? (
+            <img src={imageUrl} alt={label} className="w-full h-full object-cover" />
+          ) : (
+            <button
+              type="button"
+              onClick={generate}
+              className="w-full h-full flex flex-col items-center justify-center gap-1 text-muted-foreground hover:text-primary hover:bg-primary/5 transition-colors"
+              title="Generate visual"
+            >
+              <Sparkles className="w-4 h-4" />
+              <span className="text-[10px]">Generate</span>
+            </button>
+          )}
+
           <button
             type="button"
-            onClick={generate}
-            className="w-full h-full flex flex-col items-center justify-center gap-1 text-muted-foreground hover:text-primary hover:bg-primary/5 transition-colors"
-            title="Generate visual"
+            onClick={onRemove}
+            className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/50 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+            aria-label="Remove"
           >
-            <Sparkles className="w-4 h-4" />
-            <span className="text-[10px]">Generate</span>
+            <X className="w-3 h-3" />
           </button>
-        )}
+        </div>
 
-        <button
-          type="button"
-          onClick={onRemove}
-          className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/50 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-          aria-label="Remove"
-        >
-          <X className="w-3 h-3" />
-        </button>
-      </div>
-
-      <div className="mt-1">
-        {editing ? (
-          <Input
-            autoFocus
-            value={value}
-            onChange={(e) => setValue(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") { e.preventDefault(); commitRename(); }
-              if (e.key === "Escape") { setValue(label); setEditing(false); }
-            }}
-            onBlur={commitRename}
-            className="h-6 text-[11px] px-1.5 py-0"
-          />
-        ) : (
-          <button
-            type="button"
-            onClick={() => setEditing(true)}
-            className="w-full text-[11px] leading-tight text-left flex items-center gap-1 hover:text-primary"
-            title="Rename"
-          >
-            <span className="truncate">{label}</span>
-            <Pencil className="w-2.5 h-2.5 opacity-0 group-hover:opacity-100 shrink-0" />
-          </button>
-        )}
+        {/* Handwritten caption */}
+        <div className="mt-1.5 px-1">
+          {editing ? (
+            <Input
+              autoFocus
+              value={value}
+              onChange={(e) => setValue(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") { e.preventDefault(); commitRename(); }
+                if (e.key === "Escape") { setValue(label); setEditing(false); }
+              }}
+              onBlur={commitRename}
+              className="h-6 text-[11px] px-1.5 py-0"
+            />
+          ) : (
+            <button
+              type="button"
+              onClick={() => setEditing(true)}
+              className="w-full text-[12px] leading-tight text-left flex items-center gap-1 hover:text-primary font-serif italic text-foreground/80"
+              title="Rename"
+            >
+              <span className="truncate">{label}</span>
+              <Pencil className="w-2.5 h-2.5 opacity-0 group-hover:opacity-100 shrink-0" />
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -609,37 +628,53 @@ const ConclusionVisuals = ({
   };
 
   return (
-    <div className="rounded-xl border border-border/50 bg-secondary/20 p-4 space-y-5">
+    <div
+      className="relative rounded-xl border border-border/40 p-5 space-y-7 overflow-hidden shadow-inner"
+      style={{
+        backgroundColor: "hsl(var(--secondary) / 0.35)",
+        backgroundImage: `radial-gradient(hsl(var(--foreground) / 0.07) 1px, transparent 1.5px),
+                          radial-gradient(hsl(var(--foreground) / 0.05) 1px, transparent 1.5px)`,
+        backgroundSize: "14px 14px, 22px 22px",
+        backgroundPosition: "0 0, 7px 11px",
+      }}
+    >
       {/* Must-Include Furniture — uploaded products + user-added items */}
       <div>
-        <p className="text-[11px] uppercase tracking-wide text-muted-foreground mb-2 font-medium">
-          Must-Include Furniture <span className="normal-case text-muted-foreground/70">— we'll design the room around these (optional)</span>
-        </p>
-        <div className="flex flex-wrap gap-3 items-start">
-          {mustInclude.map((item) => (
-            item.imageUrl ? (
-              // Uploaded product (or already-generated visual): keep the original tile with image
-              <div key={item.label} className="group relative w-24">
-                <div className="aspect-square rounded-lg overflow-hidden border-2 border-primary/40 bg-secondary/30 relative">
-                  <img src={getThumbnailImageUrl(item.imageUrl)} alt={item.label} className="w-full h-full object-cover" loading="lazy" decoding="async" />
-                  <button
-                    type="button"
-                    onClick={() => removeMustInclude(item.label)}
-                    className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/50 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                    aria-label="Remove"
-                  >
-                    <X className="w-3 h-3" />
-                  </button>
-                  <div className="absolute bottom-1 left-1 px-1.5 py-0.5 rounded bg-primary/90 text-primary-foreground text-[9px] font-medium">
-                    Must-have
+        <div className="mb-3">
+          <span className="inline-block px-3 py-1 text-[11px] uppercase tracking-wider font-semibold bg-primary/30 text-foreground/80 rounded-[2px] -rotate-2 shadow-sm border border-primary/20">
+            Must-Include Furniture
+          </span>
+          <span className="ml-2 text-[11px] text-muted-foreground italic font-serif">— we'll design the room around these (optional)</span>
+        </div>
+        <div className="flex flex-wrap gap-4 items-start pt-2">
+          {mustInclude.map((item) => {
+            let h = 0;
+            for (let i = 0; i < item.label.length; i++) h = (h * 31 + item.label.charCodeAt(i)) >>> 0;
+            const rot = ((h % 500) / 500) * 5 - 2.5;
+            return item.imageUrl ? (
+              <div key={item.label} className="group relative w-28" style={{ transform: `rotate(${rot}deg)` }}>
+                <div className="bg-card p-1.5 pb-6 shadow-[0_6px_14px_-6px_hsl(var(--foreground)/0.35),0_2px_4px_-2px_hsl(var(--foreground)/0.2)] rounded-sm relative">
+                  <div
+                    aria-hidden
+                    className="absolute -top-2 left-1/2 -translate-x-1/2 w-3 h-3 rounded-full bg-primary shadow-[0_1px_2px_hsl(var(--foreground)/0.4),inset_-1px_-1px_2px_hsl(var(--foreground)/0.3),inset_1px_1px_2px_hsl(0_0%_100%/0.4)] z-10"
+                  />
+                  <div className="aspect-square overflow-hidden bg-muted/40 relative">
+                    <img src={getThumbnailImageUrl(item.imageUrl)} alt={item.label} className="w-full h-full object-cover" loading="lazy" decoding="async" />
+                    <button
+                      type="button"
+                      onClick={() => removeMustInclude(item.label)}
+                      className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/50 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                      aria-label="Remove"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
                   </div>
-                </div>
-                <div className="mt-1 text-[11px] leading-tight truncate" title={item.label}>
-                  {item.label}
+                  <div className="mt-1.5 px-1 text-[12px] leading-tight truncate font-serif italic text-foreground/80" title={item.label}>
+                    {item.label}
+                  </div>
                 </div>
               </div>
             ) : (
-              // User-added item: use VisualChip so it auto-generates an image and is renameable
               <VisualChip
                 key={item.label}
                 label={item.label}
@@ -652,27 +687,28 @@ const ConclusionVisuals = ({
                 onRemove={() => removeMustInclude(item.label)}
                 autoGenerate
               />
-            )
-          ))}
+            );
+          })}
 
           <label
             className={cn(
-              "w-24 aspect-square rounded-lg border-2 border-dashed transition-colors flex flex-col items-center justify-center gap-1",
+              "w-28 aspect-square flex flex-col items-center justify-center gap-1 rotate-[3deg] shadow-[0_4px_10px_-4px_hsl(var(--foreground)/0.3)] transition-transform hover:rotate-0",
               uploadingMustInclude
-                ? "border-primary/40 bg-primary/5 text-primary cursor-wait"
-                : "border-border hover:border-primary/50 hover:bg-primary/5 text-muted-foreground hover:text-primary cursor-pointer",
+                ? "bg-accent/40 text-foreground/70 cursor-wait"
+                : "bg-accent/60 hover:bg-accent text-foreground/80 cursor-pointer",
             )}
+            style={{ clipPath: "polygon(0 0, 100% 0, 100% 92%, 88% 100%, 0 100%)" }}
             title="Upload an image of furniture you want to keep"
           >
             {uploadingMustInclude ? (
               <>
                 <Loader2 className="w-4 h-4 animate-spin" />
-                <span className="text-[10px]">Uploading…</span>
+                <span className="text-[10px] font-serif italic">Uploading…</span>
               </>
             ) : (
               <>
-                <Plus className="w-4 h-4" />
-                <span className="text-[10px]">Add item</span>
+                <Plus className="w-5 h-5" />
+                <span className="text-[11px] font-serif italic">Add item</span>
               </>
             )}
             <input
@@ -689,56 +725,65 @@ const ConclusionVisuals = ({
 
       {/* Furniture References — AI-generated + uploads, inspiration, "use similar" */}
       <div>
-        <p className="text-[11px] uppercase tracking-wide text-muted-foreground mb-2 font-medium">
-          Furniture References <span className="normal-case text-muted-foreground/70">— drag tags or images here · AI examples of sofas, beds, tables, chairs in your style</span>
-        </p>
+        <div className="mb-3">
+          <span className="inline-block px-3 py-1 text-[11px] uppercase tracking-wider font-semibold bg-secondary/80 text-foreground/80 rounded-[2px] rotate-1 shadow-sm border border-border/40">
+            Furniture References
+          </span>
+          <span className="ml-2 text-[11px] text-muted-foreground italic font-serif">— drag tags or images here · AI examples in your style</span>
+        </div>
         <div
           onDragOver={(e) => handleReferenceDragOver(e, "furniture")}
           onDragLeave={() => setIsFurnitureDropActive(false)}
           onDrop={(e) => handleReferenceDrop(e, "furniture", setFurnitureReferences, setUploadingFurnitureRef)}
           className={cn(
-            "flex flex-wrap gap-3 items-start rounded-lg p-2 -m-2 transition-colors",
+            "flex flex-wrap gap-4 items-start rounded-lg p-2 -m-2 transition-colors pt-3",
             isFurnitureDropActive && "bg-primary/5 ring-2 ring-primary/40 ring-dashed",
           )}
         >
-          {furnitureReferences.map((item) => (
-            <div key={item.label} className="group relative w-24">
-              <div className="aspect-square rounded-lg overflow-hidden border border-border bg-secondary/30 relative">
-                {item.imageUrl && (
-                  <img src={getThumbnailImageUrl(item.imageUrl)} alt={item.label} className="w-full h-full object-cover" loading="lazy" decoding="async" />
-                )}
-                <button
-                  type="button"
-                  onClick={() => setFurnitureReferences((prev) => prev.filter((m) => m.label !== item.label))}
-                  className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/50 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                  aria-label="Remove"
-                >
-                  <X className="w-3 h-3" />
-                </button>
-                <div className="absolute bottom-1 left-1 px-1.5 py-0.5 rounded bg-foreground/80 text-background text-[9px] font-medium">
-                  Inspiration
+          {furnitureReferences.map((item) => {
+            let h = 0;
+            for (let i = 0; i < item.label.length; i++) h = (h * 31 + item.label.charCodeAt(i)) >>> 0;
+            const rot = ((h % 500) / 500) * 5 - 2.5;
+            return (
+              <div key={item.label} className="group relative w-28" style={{ transform: `rotate(${rot}deg)` }}>
+                <div className="bg-card p-1.5 pb-6 shadow-[0_6px_14px_-6px_hsl(var(--foreground)/0.35),0_2px_4px_-2px_hsl(var(--foreground)/0.2)] rounded-sm relative">
+                  {/* Washi tape accent */}
+                  <div
+                    aria-hidden
+                    className="absolute -top-1.5 left-1/2 -translate-x-1/2 w-12 h-3 -rotate-3 bg-secondary/80 border border-border/40 rounded-[2px] shadow-sm z-10"
+                  />
+                  <div className="aspect-square overflow-hidden bg-muted/40 relative">
+                    {item.imageUrl && (
+                      <img src={getThumbnailImageUrl(item.imageUrl)} alt={item.label} className="w-full h-full object-cover" loading="lazy" decoding="async" />
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => setFurnitureReferences((prev) => prev.filter((m) => m.label !== item.label))}
+                      className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/50 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                      aria-label="Remove"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
+                  <div className="mt-1.5 px-1 text-[12px] leading-tight truncate font-serif italic text-foreground/80" title={item.label}>{item.label}</div>
                 </div>
               </div>
-              <div className="mt-1 text-[11px] leading-tight truncate" title={item.label}>{item.label}</div>
-            </div>
-          ))}
-          <label className={cn(
-            "w-24 aspect-square rounded-lg border-2 border-dashed transition-colors flex flex-col items-center justify-center gap-1",
-            uploadingFurnitureRef
-              ? "border-primary/40 bg-primary/5 text-primary cursor-wait"
-              : "border-border hover:border-primary/50 hover:bg-primary/5 text-muted-foreground hover:text-primary cursor-pointer",
-          )}>
+            );
+          })}
+          <label
+            className={cn(
+              "w-28 aspect-square flex flex-col items-center justify-center gap-1 rotate-[3deg] shadow-[0_4px_10px_-4px_hsl(var(--foreground)/0.3)] transition-transform hover:rotate-0",
+              uploadingFurnitureRef ? "bg-accent/40 text-foreground/70 cursor-wait" : "bg-accent/60 hover:bg-accent text-foreground/80 cursor-pointer",
+            )}
+            style={{ clipPath: "polygon(0 0, 100% 0, 100% 92%, 88% 100%, 0 100%)" }}
+          >
             {uploadingFurnitureRef ? (
-              <><Loader2 className="w-4 h-4 animate-spin" /><span className="text-[10px]">Uploading…</span></>
+              <><Loader2 className="w-4 h-4 animate-spin" /><span className="text-[10px] font-serif italic">Uploading…</span></>
             ) : (
-              <><Plus className="w-4 h-4" /><span className="text-[10px]">Add furniture</span></>
+              <><Plus className="w-5 h-5" /><span className="text-[11px] font-serif italic">Add furniture</span></>
             )}
             <input
-              type="file"
-              accept="image/*"
-              multiple
-              className="hidden"
-              disabled={uploadingFurnitureRef}
+              type="file" accept="image/*" multiple className="hidden" disabled={uploadingFurnitureRef}
               onChange={async (e) => {
                 const files = Array.from(e.target.files || []);
                 e.target.value = "";
@@ -754,17 +799,16 @@ const ConclusionVisuals = ({
             onClick={() => generateAiReference("furniture", setFurnitureReferences, setGeneratingFurnitureRef)}
             disabled={generatingFurnitureRef || !styleNames[0]}
             className={cn(
-              "w-24 aspect-square rounded-lg border-2 border-dashed transition-colors flex flex-col items-center justify-center gap-1",
-              generatingFurnitureRef
-                ? "border-primary/40 bg-primary/5 text-primary cursor-wait"
-                : "border-border hover:border-primary/50 hover:bg-primary/5 text-muted-foreground hover:text-primary",
+              "w-28 aspect-square flex flex-col items-center justify-center gap-1 -rotate-[3deg] shadow-[0_4px_10px_-4px_hsl(var(--foreground)/0.3)] transition-transform hover:rotate-0",
+              generatingFurnitureRef ? "bg-primary/20 text-foreground/70 cursor-wait" : "bg-primary/30 hover:bg-primary/40 text-foreground/80",
             )}
+            style={{ clipPath: "polygon(0 0, 100% 0, 100% 92%, 88% 100%, 0 100%)" }}
             title="Generate another AI furniture reference"
           >
             {generatingFurnitureRef ? (
-              <><Loader2 className="w-4 h-4 animate-spin" /><span className="text-[10px]">Generating…</span></>
+              <><Loader2 className="w-4 h-4 animate-spin" /><span className="text-[10px] font-serif italic">Generating…</span></>
             ) : (
-              <><Sparkles className="w-4 h-4" /><span className="text-[10px]">AI suggest</span></>
+              <><Sparkles className="w-5 h-5" /><span className="text-[11px] font-serif italic">AI suggest</span></>
             )}
           </button>
         </div>
@@ -772,56 +816,64 @@ const ConclusionVisuals = ({
 
       {/* Decor References — AI-generated + uploads, accessories, textiles, lighting */}
       <div>
-        <p className="text-[11px] uppercase tracking-wide text-muted-foreground mb-2 font-medium">
-          Decor References <span className="normal-case text-muted-foreground/70">— drag tags or images here · AI examples of lamps, vases, art, cushions, rugs in your style</span>
-        </p>
+        <div className="mb-3">
+          <span className="inline-block px-3 py-1 text-[11px] uppercase tracking-wider font-semibold bg-accent/70 text-foreground/80 rounded-[2px] -rotate-1 shadow-sm border border-border/40">
+            Decor References
+          </span>
+          <span className="ml-2 text-[11px] text-muted-foreground italic font-serif">— drag tags or images here · lamps, vases, art, cushions, rugs</span>
+        </div>
         <div
           onDragOver={(e) => handleReferenceDragOver(e, "decor")}
           onDragLeave={() => setIsDecorDropActive(false)}
           onDrop={(e) => handleReferenceDrop(e, "decor", setDecorReferences, setUploadingDecorRef)}
           className={cn(
-            "flex flex-wrap gap-3 items-start rounded-lg p-2 -m-2 transition-colors",
+            "flex flex-wrap gap-4 items-start rounded-lg p-2 -m-2 transition-colors pt-3",
             isDecorDropActive && "bg-primary/5 ring-2 ring-primary/40 ring-dashed",
           )}
         >
-          {decorReferences.map((item) => (
-            <div key={item.label} className="group relative w-24">
-              <div className="aspect-square rounded-lg overflow-hidden border border-border bg-secondary/30 relative">
-                {item.imageUrl && (
-                  <img src={getThumbnailImageUrl(item.imageUrl)} alt={item.label} className="w-full h-full object-cover" loading="lazy" decoding="async" />
-                )}
-                <button
-                  type="button"
-                  onClick={() => setDecorReferences((prev) => prev.filter((m) => m.label !== item.label))}
-                  className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/50 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                  aria-label="Remove"
-                >
-                  <X className="w-3 h-3" />
-                </button>
-                <div className="absolute bottom-1 left-1 px-1.5 py-0.5 rounded bg-foreground/80 text-background text-[9px] font-medium">
-                  Inspiration
+          {decorReferences.map((item) => {
+            let h = 0;
+            for (let i = 0; i < item.label.length; i++) h = (h * 31 + item.label.charCodeAt(i)) >>> 0;
+            const rot = ((h % 500) / 500) * 5 - 2.5;
+            return (
+              <div key={item.label} className="group relative w-28" style={{ transform: `rotate(${rot}deg)` }}>
+                <div className="bg-card p-1.5 pb-6 shadow-[0_6px_14px_-6px_hsl(var(--foreground)/0.35),0_2px_4px_-2px_hsl(var(--foreground)/0.2)] rounded-sm relative">
+                  <div
+                    aria-hidden
+                    className="absolute -top-1.5 left-1/2 -translate-x-1/2 w-12 h-3 rotate-3 bg-accent/80 border border-border/40 rounded-[2px] shadow-sm z-10"
+                  />
+                  <div className="aspect-square overflow-hidden bg-muted/40 relative">
+                    {item.imageUrl && (
+                      <img src={getThumbnailImageUrl(item.imageUrl)} alt={item.label} className="w-full h-full object-cover" loading="lazy" decoding="async" />
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => setDecorReferences((prev) => prev.filter((m) => m.label !== item.label))}
+                      className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/50 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                      aria-label="Remove"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
+                  <div className="mt-1.5 px-1 text-[12px] leading-tight truncate font-serif italic text-foreground/80" title={item.label}>{item.label}</div>
                 </div>
               </div>
-              <div className="mt-1 text-[11px] leading-tight truncate" title={item.label}>{item.label}</div>
-            </div>
-          ))}
-          <label className={cn(
-            "w-24 aspect-square rounded-lg border-2 border-dashed transition-colors flex flex-col items-center justify-center gap-1",
-            uploadingDecorRef
-              ? "border-primary/40 bg-primary/5 text-primary cursor-wait"
-              : "border-border hover:border-primary/50 hover:bg-primary/5 text-muted-foreground hover:text-primary cursor-pointer",
-          )}>
+            );
+          })}
+          <label
+            className={cn(
+              "w-28 aspect-square flex flex-col items-center justify-center gap-1 rotate-[3deg] shadow-[0_4px_10px_-4px_hsl(var(--foreground)/0.3)] transition-transform hover:rotate-0",
+              uploadingDecorRef ? "bg-accent/40 text-foreground/70 cursor-wait" : "bg-accent/60 hover:bg-accent text-foreground/80 cursor-pointer",
+            )}
+            style={{ clipPath: "polygon(0 0, 100% 0, 100% 92%, 88% 100%, 0 100%)" }}
+          >
             {uploadingDecorRef ? (
-              <><Loader2 className="w-4 h-4 animate-spin" /><span className="text-[10px]">Uploading…</span></>
+              <><Loader2 className="w-4 h-4 animate-spin" /><span className="text-[10px] font-serif italic">Uploading…</span></>
             ) : (
-              <><Plus className="w-4 h-4" /><span className="text-[10px]">Add decor</span></>
+              <><Plus className="w-5 h-5" /><span className="text-[11px] font-serif italic">Add decor</span></>
             )}
             <input
-              type="file"
-              accept="image/*"
-              multiple
-              className="hidden"
-              disabled={uploadingDecorRef}
+              type="file" accept="image/*" multiple className="hidden" disabled={uploadingDecorRef}
               onChange={async (e) => {
                 const files = Array.from(e.target.files || []);
                 e.target.value = "";
@@ -837,17 +889,16 @@ const ConclusionVisuals = ({
             onClick={() => generateAiReference("decor", setDecorReferences, setGeneratingDecorRef)}
             disabled={generatingDecorRef || !styleNames[0]}
             className={cn(
-              "w-24 aspect-square rounded-lg border-2 border-dashed transition-colors flex flex-col items-center justify-center gap-1",
-              generatingDecorRef
-                ? "border-primary/40 bg-primary/5 text-primary cursor-wait"
-                : "border-border hover:border-primary/50 hover:bg-primary/5 text-muted-foreground hover:text-primary",
+              "w-28 aspect-square flex flex-col items-center justify-center gap-1 -rotate-[3deg] shadow-[0_4px_10px_-4px_hsl(var(--foreground)/0.3)] transition-transform hover:rotate-0",
+              generatingDecorRef ? "bg-primary/20 text-foreground/70 cursor-wait" : "bg-primary/30 hover:bg-primary/40 text-foreground/80",
             )}
+            style={{ clipPath: "polygon(0 0, 100% 0, 100% 92%, 88% 100%, 0 100%)" }}
             title="Generate another AI decor reference"
           >
             {generatingDecorRef ? (
-              <><Loader2 className="w-4 h-4 animate-spin" /><span className="text-[10px]">Generating…</span></>
+              <><Loader2 className="w-4 h-4 animate-spin" /><span className="text-[10px] font-serif italic">Generating…</span></>
             ) : (
-              <><Sparkles className="w-4 h-4" /><span className="text-[10px]">AI suggest</span></>
+              <><Sparkles className="w-5 h-5" /><span className="text-[11px] font-serif italic">AI suggest</span></>
             )}
           </button>
         </div>
@@ -855,10 +906,13 @@ const ConclusionVisuals = ({
 
       {/* Dominant Colors */}
       <div>
-        <div className="flex items-center justify-between mb-2">
-          <p className="text-[11px] uppercase tracking-wide text-muted-foreground font-medium">
-            Dominant Colors <span className="normal-case text-muted-foreground/70">— drag tags here to add their colors</span>
-          </p>
+        <div className="flex items-center justify-between mb-3">
+          <div>
+            <span className="inline-block px-3 py-1 text-[11px] uppercase tracking-wider font-semibold bg-secondary/80 text-foreground/80 rounded-[2px] -rotate-1 shadow-sm border border-border/40">
+              Dominant Colors
+            </span>
+            <span className="ml-2 text-[11px] text-muted-foreground italic font-serif">— drag tags here to add their colors</span>
+          </div>
           <p className="text-[10px] text-muted-foreground flex items-center gap-1">
             <Blend className="w-3 h-3" />
             {extractingColors
@@ -954,9 +1008,12 @@ const ConclusionVisuals = ({
 
       {/* Materials & Textures with visuals (drop target) */}
       <div>
-        <p className="text-[11px] uppercase tracking-wide text-muted-foreground mb-2 font-medium">
-          Materials &amp; Textures <span className="normal-case text-muted-foreground/70">— drag tags here</span>
-        </p>
+        <div className="mb-3">
+          <span className="inline-block px-3 py-1 text-[11px] uppercase tracking-wider font-semibold bg-muted/80 text-foreground/80 rounded-[2px] rotate-1 shadow-sm border border-border/40">
+            Materials &amp; Textures
+          </span>
+          <span className="ml-2 text-[11px] text-muted-foreground italic font-serif">— drag tags here</span>
+        </div>
         <div
           onDragOver={(e) => {
             if (
@@ -990,7 +1047,7 @@ const ConclusionVisuals = ({
             }
           }}
           className={cn(
-            "flex flex-wrap gap-3 items-start rounded-lg p-2 -m-2 transition-colors",
+            "flex flex-wrap gap-4 items-start rounded-lg p-2 -m-2 transition-colors pt-3",
             isDropActive && "bg-primary/5 ring-2 ring-primary/40 ring-dashed",
           )}
         >
@@ -1010,42 +1067,45 @@ const ConclusionVisuals = ({
           ))}
 
           {addingMaterial ? (
-            <div className="w-24">
-              <div className="aspect-square rounded-lg border-2 border-dashed border-primary/50 flex items-center justify-center">
-                <ImageIcon className="w-5 h-5 text-muted-foreground" />
-              </div>
-              <Input
-                autoFocus
-                value={newMaterial}
-                onChange={(e) => setNewMaterial(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
+            <div className="w-28 rotate-[3deg]">
+              <div className="bg-card p-1.5 pb-6 shadow-[0_4px_10px_-4px_hsl(var(--foreground)/0.3)] rounded-sm">
+                <div className="aspect-square bg-muted/40 flex items-center justify-center">
+                  <ImageIcon className="w-5 h-5 text-muted-foreground" />
+                </div>
+                <Input
+                  autoFocus
+                  value={newMaterial}
+                  onChange={(e) => setNewMaterial(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      const v = newMaterial.trim();
+                      if (v && !materials.includes(v)) setMaterials((prev) => [...prev, v]);
+                      setNewMaterial("");
+                      setAddingMaterial(false);
+                    }
+                    if (e.key === "Escape") { setNewMaterial(""); setAddingMaterial(false); }
+                  }}
+                  onBlur={() => {
                     const v = newMaterial.trim();
                     if (v && !materials.includes(v)) setMaterials((prev) => [...prev, v]);
                     setNewMaterial("");
                     setAddingMaterial(false);
-                  }
-                  if (e.key === "Escape") { setNewMaterial(""); setAddingMaterial(false); }
-                }}
-                onBlur={() => {
-                  const v = newMaterial.trim();
-                  if (v && !materials.includes(v)) setMaterials((prev) => [...prev, v]);
-                  setNewMaterial("");
-                  setAddingMaterial(false);
-                }}
-                placeholder="oak, linen…"
-                className="mt-1 h-6 text-[11px] px-1.5 py-0"
-              />
+                  }}
+                  placeholder="oak, linen…"
+                  className="mt-1 h-6 text-[11px] px-1.5 py-0 font-serif italic"
+                />
+              </div>
             </div>
           ) : (
             <button
               type="button"
               onClick={() => setAddingMaterial(true)}
-              className="w-24 aspect-square rounded-lg border-2 border-dashed border-border flex flex-col items-center justify-center gap-1 text-muted-foreground hover:border-primary/50 hover:text-foreground transition-colors"
+              className="w-28 aspect-square flex flex-col items-center justify-center gap-1 rotate-[3deg] shadow-[0_4px_10px_-4px_hsl(var(--foreground)/0.3)] bg-accent/60 hover:bg-accent text-foreground/80 transition-transform hover:rotate-0"
+              style={{ clipPath: "polygon(0 0, 100% 0, 100% 92%, 88% 100%, 0 100%)" }}
             >
               <Plus className="w-5 h-5" />
-              <span className="text-[10px]">Add material</span>
+              <span className="text-[11px] font-serif italic">Add material</span>
             </button>
           )}
         </div>
