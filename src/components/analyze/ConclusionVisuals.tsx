@@ -327,6 +327,32 @@ const ConclusionVisuals = ({
   // Drag-and-drop hover state for the two reference sections
   const [isFurnitureDropActive, setIsFurnitureDropActive] = useState(false);
   const [isDecorDropActive, setIsDecorDropActive] = useState(false);
+  const [isMustIncludeDropActive, setIsMustIncludeDropActive] = useState(false);
+
+  // Helper to start a drag of a reference item (for moving into Must-Include)
+  const startItemDrag = (e: React.DragEvent, item: { label: string; imageUrl?: string }) => {
+    const payload = JSON.stringify({ label: item.label, imageUrl: item.imageUrl || null, source: "reference" });
+    e.dataTransfer.setData(MOODBOARD_DRAG_MIME, payload);
+    e.dataTransfer.setData("text/plain", item.label);
+    e.dataTransfer.effectAllowed = "copyMove";
+  };
+
+  const handleMustIncludeDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsMustIncludeDropActive(false);
+    const raw = e.dataTransfer.getData(MOODBOARD_DRAG_MIME);
+    if (!raw) return;
+    try {
+      const parsed = JSON.parse(raw) as DraggedItem;
+      const label = (parsed.label || "").trim();
+      if (!label) return;
+      setMustInclude((prev) => {
+        if (prev.some((m) => m.label.toLowerCase() === label.toLowerCase())) return prev;
+        return [...prev, { label, imageUrl: parsed.imageUrl || undefined }];
+      });
+    } catch { /* ignore */ }
+  };
+
 
   // Generate an AI visual for a dragged-in label that has no image yet
   const generateAiReferenceForLabel = async (
@@ -644,9 +670,23 @@ const ConclusionVisuals = ({
           <span className="inline-block px-3 py-1 text-[11px] uppercase tracking-wider font-semibold bg-primary/30 text-foreground/80 rounded-[2px] -rotate-2 shadow-sm border border-primary/20">
             Must-Include Furniture
           </span>
-          <span className="ml-2 text-[11px] text-muted-foreground italic font-serif">— we'll design the room around these (optional)</span>
+          <span className="ml-2 text-[11px] text-muted-foreground italic font-serif">— drag furniture or decor here · we'll design around them</span>
         </div>
-        <div className="flex flex-wrap gap-4 items-start pt-2">
+        <div
+          onDragOver={(e) => {
+            if (e.dataTransfer.types.includes(MOODBOARD_DRAG_MIME)) {
+              e.preventDefault();
+              e.dataTransfer.dropEffect = "copy";
+              setIsMustIncludeDropActive(true);
+            }
+          }}
+          onDragLeave={() => setIsMustIncludeDropActive(false)}
+          onDrop={handleMustIncludeDrop}
+          className={cn(
+            "flex flex-wrap gap-4 items-start pt-2 rounded-lg p-2 -m-2 transition-colors",
+            isMustIncludeDropActive && "bg-primary/5 ring-2 ring-primary/40 ring-dashed",
+          )}
+        >
           {mustInclude.map((item) => {
             let h = 0;
             for (let i = 0; i < item.label.length; i++) h = (h * 31 + item.label.charCodeAt(i)) >>> 0;
@@ -745,7 +785,14 @@ const ConclusionVisuals = ({
             for (let i = 0; i < item.label.length; i++) h = (h * 31 + item.label.charCodeAt(i)) >>> 0;
             const rot = ((h % 500) / 500) * 5 - 2.5;
             return (
-              <div key={item.label} className="group relative w-28" style={{ transform: `rotate(${rot}deg)` }}>
+              <div
+                key={item.label}
+                className="group relative w-28 cursor-grab active:cursor-grabbing"
+                style={{ transform: `rotate(${rot}deg)` }}
+                draggable
+                onDragStart={(e) => startItemDrag(e, item)}
+                title="Drag to Must-Include to keep this piece"
+              >
                 <div className="bg-card p-1.5 pb-6 shadow-[0_6px_14px_-6px_hsl(var(--foreground)/0.35),0_2px_4px_-2px_hsl(var(--foreground)/0.2)] rounded-sm relative">
                   {/* Washi tape accent */}
                   <div
@@ -836,7 +883,14 @@ const ConclusionVisuals = ({
             for (let i = 0; i < item.label.length; i++) h = (h * 31 + item.label.charCodeAt(i)) >>> 0;
             const rot = ((h % 500) / 500) * 5 - 2.5;
             return (
-              <div key={item.label} className="group relative w-28" style={{ transform: `rotate(${rot}deg)` }}>
+              <div
+                key={item.label}
+                className="group relative w-28 cursor-grab active:cursor-grabbing"
+                style={{ transform: `rotate(${rot}deg)` }}
+                draggable
+                onDragStart={(e) => startItemDrag(e, item)}
+                title="Drag to Must-Include to keep this piece"
+              >
                 <div className="bg-card p-1.5 pb-6 shadow-[0_6px_14px_-6px_hsl(var(--foreground)/0.35),0_2px_4px_-2px_hsl(var(--foreground)/0.2)] rounded-sm relative">
                   <div
                     aria-hidden
