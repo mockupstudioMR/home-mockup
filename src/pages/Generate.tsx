@@ -915,6 +915,7 @@ const Generate = () => {
           moodboardReferences: moodboard?.references || [],
           furnitureReferences: moodboard?.furnitureReferences || [],
           decorReferences: moodboard?.decorReferences || [],
+          architectureReferences: moodboard?.architectureReferences || [],
           mustIncludeItems: moodboard?.mustInclude || [],
           styleImageUrls: [
             ...((moodboard?.references?.map((r) => r.imageUrl).filter(Boolean) as string[]) || []),
