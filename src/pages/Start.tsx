@@ -1,5 +1,5 @@
-import { useNavigate } from "react-router-dom";
-import { useEffect } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
+import { useEffect, useMemo } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent } from "@/components/ui/card";
 import { Home, Palette, Upload, Package, ArrowRight, Ruler } from "lucide-react";
@@ -24,7 +24,18 @@ import exploreStylesVisual from "@/assets/start/explore-styles.jpg";
 
 const Start = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, loading } = useAuth();
+
+  const intro = useMemo(() => {
+    const fromState = (location.state as { intro?: { name?: string; roomType?: string; vision?: string } } | null)?.intro;
+    if (fromState) return fromState;
+    try {
+      const raw = sessionStorage.getItem("get_started_intro");
+      return raw ? JSON.parse(raw) as { name?: string; roomType?: string; vision?: string } : null;
+    } catch { return null; }
+  }, [location.state]);
+  const firstName = intro?.name?.split(/\s+/)[0];
 
   useEffect(() => {
     if (!loading && !user) {
@@ -134,13 +145,15 @@ const Start = () => {
           {/* Title */}
           <div className="text-center space-y-3 py-8 md:py-12">
             <p className="text-xs md:text-sm uppercase tracking-[0.2em] text-muted-foreground">
-              Start your journey
+              {firstName ? `Welcome, ${firstName}` : "Start your journey"}
             </p>
             <h1 className="text-4xl md:text-5xl font-bold tracking-tight">
               How would you like to begin?
             </h1>
             <p className="text-muted-foreground text-base md:text-lg max-w-xl mx-auto">
-              Pick the path that matches what you have today
+              {intro?.vision
+                ? `We've got your vision in mind — pick the path that matches what you have today.`
+                : `Pick the path that matches what you have today`}
             </p>
           </div>
 
