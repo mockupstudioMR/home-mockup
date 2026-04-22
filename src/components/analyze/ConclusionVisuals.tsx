@@ -884,9 +884,9 @@ const ConclusionVisuals = ({
       <div>
         <div className="mb-3">
           <span className="inline-block px-3 py-1 text-[11px] uppercase tracking-wider font-semibold bg-accent/70 text-foreground/80 rounded-[2px] -rotate-1 shadow-sm border border-border/40">
-            Decor References
+            Decor
           </span>
-          <span className="ml-2 text-[11px] text-muted-foreground italic font-serif">— drag tags or images here · lamps, vases, art, cushions, rugs</span>
+          <span className="ml-2 text-[11px] text-muted-foreground italic font-serif">— lamps, vases, art, cushions, rugs · drag from must-keep here too</span>
         </div>
         <div
           onDragOver={(e) => handleReferenceDragOver(e, "decor")}
