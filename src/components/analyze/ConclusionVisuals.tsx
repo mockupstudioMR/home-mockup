@@ -577,10 +577,11 @@ const ConclusionVisuals = ({
       references: references.map((r) => ({ label: r, imageUrl: referenceImages[r] })),
       furnitureReferences,
       decorReferences,
+      architectureReferences,
       mustInclude,
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [materials, references, materialImages, referenceImages, mustInclude, furnitureReferences, decorReferences]);
+  }, [materials, references, materialImages, referenceImages, mustInclude, furnitureReferences, decorReferences, architectureReferences]);
 
   // Add new material/reference state
   const [newMaterial, setNewMaterial] = useState("");
