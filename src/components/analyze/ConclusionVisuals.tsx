@@ -981,9 +981,9 @@ const ConclusionVisuals = ({
       <div>
         <div className="mb-3">
           <span className="inline-block px-3 py-1 text-[11px] uppercase tracking-wider font-semibold bg-muted text-foreground/80 rounded-[2px] rotate-[2deg] shadow-sm border border-border/40">
-            Architecture References
+            Architecture Reference
           </span>
-          <span className="ml-2 text-[11px] text-muted-foreground italic font-serif">— drag tags or images here · wall panels, mouldings, ceilings, floors, built-ins</span>
+          <span className="ml-2 text-[11px] text-muted-foreground italic font-serif">— wall details, floor details, ceiling details, mouldings, built-ins</span>
         </div>
         <div
           onDragOver={(e) => handleReferenceDragOver(e, "architecture")}
