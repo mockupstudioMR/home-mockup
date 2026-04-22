@@ -1,5 +1,5 @@
-import { useNavigate } from "react-router-dom";
-import { useEffect } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
+import { useEffect, useMemo } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent } from "@/components/ui/card";
 import { Home, Palette, Upload, Package, ArrowRight, Ruler } from "lucide-react";
@@ -24,7 +24,18 @@ import exploreStylesVisual from "@/assets/start/explore-styles.jpg";
 
 const Start = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, loading } = useAuth();
+
+  const intro = useMemo(() => {
+    const fromState = (location.state as { intro?: { name?: string; roomType?: string; vision?: string } } | null)?.intro;
+    if (fromState) return fromState;
+    try {
+      const raw = sessionStorage.getItem("get_started_intro");
+      return raw ? JSON.parse(raw) as { name?: string; roomType?: string; vision?: string } : null;
+    } catch { return null; }
+  }, [location.state]);
+  const firstName = intro?.name?.split(/\s+/)[0];
 
   useEffect(() => {
     if (!loading && !user) {
