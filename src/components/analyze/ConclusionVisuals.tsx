@@ -732,7 +732,14 @@ const ConclusionVisuals = ({
             for (let i = 0; i < item.label.length; i++) h = (h * 31 + item.label.charCodeAt(i)) >>> 0;
             const rot = ((h % 500) / 500) * 5 - 2.5;
             return item.imageUrl ? (
-              <div key={item.label} className="group relative w-28" style={{ transform: `rotate(${rot}deg)` }}>
+              <div
+                key={item.label}
+                className="group relative w-28 cursor-grab active:cursor-grabbing"
+                style={{ transform: `rotate(${rot}deg)` }}
+                draggable
+                onDragStart={(e) => startItemDrag(e, item, "must-include")}
+                title="Drag to Furniture / Decor / Architecture references to move it back"
+              >
                 <div className="bg-card p-1.5 pb-6 shadow-[0_6px_14px_-6px_hsl(var(--foreground)/0.35),0_2px_4px_-2px_hsl(var(--foreground)/0.2)] rounded-sm relative">
                   <div
                     aria-hidden
