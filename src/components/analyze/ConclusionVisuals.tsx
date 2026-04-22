@@ -1005,6 +1005,103 @@ const ConclusionVisuals = ({
         </div>
       </div>
 
+      {/* Architecture References — wall treatments, mouldings, ceilings, flooring, built-ins */}
+      <div>
+        <div className="mb-3">
+          <span className="inline-block px-3 py-1 text-[11px] uppercase tracking-wider font-semibold bg-muted text-foreground/80 rounded-[2px] rotate-[2deg] shadow-sm border border-border/40">
+            Architecture References
+          </span>
+          <span className="ml-2 text-[11px] text-muted-foreground italic font-serif">— drag tags or images here · wall panels, mouldings, ceilings, floors, built-ins</span>
+        </div>
+        <div
+          onDragOver={(e) => handleReferenceDragOver(e, "architecture")}
+          onDragLeave={() => setIsArchitectureDropActive(false)}
+          onDrop={(e) => handleReferenceDrop(e, "architecture", setArchitectureReferences, setUploadingArchitectureRef)}
+          className={cn(
+            "flex flex-wrap gap-4 items-start rounded-lg p-2 -m-2 transition-colors pt-3",
+            isArchitectureDropActive && "bg-primary/5 ring-2 ring-primary/40 ring-dashed",
+          )}
+        >
+          {architectureReferences.map((item) => {
+            let h = 0;
+            for (let i = 0; i < item.label.length; i++) h = (h * 31 + item.label.charCodeAt(i)) >>> 0;
+            const rot = ((h % 500) / 500) * 5 - 2.5;
+            return (
+              <div
+                key={item.label}
+                className="group relative w-28 cursor-grab active:cursor-grabbing"
+                style={{ transform: `rotate(${rot}deg)` }}
+                draggable
+                onDragStart={(e) => startItemDrag(e, item)}
+                title="Drag to Must-Include to keep this detail"
+              >
+                <div className="bg-card p-1.5 pb-6 shadow-[0_6px_14px_-6px_hsl(var(--foreground)/0.35),0_2px_4px_-2px_hsl(var(--foreground)/0.2)] rounded-sm relative">
+                  <div
+                    aria-hidden
+                    className="absolute -top-1.5 left-1/2 -translate-x-1/2 w-12 h-3 -rotate-2 bg-muted border border-border/40 rounded-[2px] shadow-sm z-10"
+                  />
+                  <div className="aspect-square overflow-hidden bg-muted/40 relative">
+                    {item.imageUrl && (
+                      <img src={getThumbnailImageUrl(item.imageUrl)} alt={item.label} className="w-full h-full object-cover" loading="lazy" decoding="async" />
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => setArchitectureReferences((prev) => prev.filter((m) => m.label !== item.label))}
+                      className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/50 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                      aria-label="Remove"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
+                  <div className="mt-1.5 px-1 text-[12px] leading-tight truncate font-serif italic text-foreground/80" title={item.label}>{item.label}</div>
+                </div>
+              </div>
+            );
+          })}
+          <label
+            className={cn(
+              "w-28 aspect-square flex flex-col items-center justify-center gap-1 rotate-[3deg] shadow-[0_4px_10px_-4px_hsl(var(--foreground)/0.3)] transition-transform hover:rotate-0",
+              uploadingArchitectureRef ? "bg-accent/40 text-foreground/70 cursor-wait" : "bg-accent/60 hover:bg-accent text-foreground/80 cursor-pointer",
+            )}
+            style={{ clipPath: "polygon(0 0, 100% 0, 100% 92%, 88% 100%, 0 100%)" }}
+          >
+            {uploadingArchitectureRef ? (
+              <><Loader2 className="w-4 h-4 animate-spin" /><span className="text-[10px] font-serif italic">Uploading…</span></>
+            ) : (
+              <><Plus className="w-5 h-5" /><span className="text-[11px] font-serif italic">Add detail</span></>
+            )}
+            <input
+              type="file" accept="image/*" multiple className="hidden" disabled={uploadingArchitectureRef}
+              onChange={async (e) => {
+                const files = Array.from(e.target.files || []);
+                e.target.value = "";
+                if (!files.length) return;
+                setUploadingArchitectureRef(true);
+                try { await uploadInspirationImages(files, "architecture-ref", setArchitectureReferences); }
+                finally { setUploadingArchitectureRef(false); }
+              }}
+            />
+          </label>
+          <button
+            type="button"
+            onClick={() => generateAiReference("architecture", setArchitectureReferences, setGeneratingArchitectureRef)}
+            disabled={generatingArchitectureRef || !styleNames[0]}
+            className={cn(
+              "w-28 aspect-square flex flex-col items-center justify-center gap-1 -rotate-[3deg] shadow-[0_4px_10px_-4px_hsl(var(--foreground)/0.3)] transition-transform hover:rotate-0",
+              generatingArchitectureRef ? "bg-primary/20 text-foreground/70 cursor-wait" : "bg-primary/30 hover:bg-primary/40 text-foreground/80",
+            )}
+            style={{ clipPath: "polygon(0 0, 100% 0, 100% 92%, 88% 100%, 0 100%)" }}
+            title="Generate another AI architecture reference"
+          >
+            {generatingArchitectureRef ? (
+              <><Loader2 className="w-4 h-4 animate-spin" /><span className="text-[10px] font-serif italic">Generating…</span></>
+            ) : (
+              <><Sparkles className="w-5 h-5" /><span className="text-[11px] font-serif italic">AI suggest</span></>
+            )}
+          </button>
+        </div>
+      </div>
+
       {/* Dominant Colors */}
       <div>
         <div className="flex items-center justify-between mb-3">
