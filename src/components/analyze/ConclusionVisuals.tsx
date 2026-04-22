@@ -529,7 +529,7 @@ const ConclusionVisuals = ({
   useEffect(() => {
     if (!styleNames[0]) return;
     if (seededRef.current) return;
-    if (furnitureReferences.length > 0 || decorReferences.length > 0) return;
+    if (furnitureReferences.length > 0 || decorReferences.length > 0 || architectureReferences.length > 0) return;
     seededRef.current = true;
     const TARGET = 3;
     const furniturePromises = Array.from({ length: TARGET }).map(() =>
@@ -538,7 +538,10 @@ const ConclusionVisuals = ({
     const decorPromises = Array.from({ length: TARGET }).map(() =>
       generateAiReference("decor", setDecorReferences, setGeneratingDecorRef),
     );
-    Promise.allSettled([...furniturePromises, ...decorPromises]).finally(() => {
+    const archPromises = Array.from({ length: TARGET }).map(() =>
+      generateAiReference("architecture", setArchitectureReferences, setGeneratingArchitectureRef),
+    );
+    Promise.allSettled([...furniturePromises, ...decorPromises, ...archPromises]).finally(() => {
       onSeedReady?.();
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
