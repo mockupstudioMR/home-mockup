@@ -69,8 +69,9 @@ const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(() =
     references: { label: string; imageUrl?: string }[];
     furnitureReferences: { label: string; imageUrl?: string }[];
     decorReferences: { label: string; imageUrl?: string }[];
+    architectureReferences: { label: string; imageUrl?: string }[];
     mustInclude: { label: string; imageUrl?: string }[];
-  }>({ materials: [], references: [], furnitureReferences: [], decorReferences: [], mustInclude: [] });
+  }>({ materials: [], references: [], furnitureReferences: [], decorReferences: [], architectureReferences: [], mustInclude: [] });
 
   // No persistence — every visit to /analyze-room starts with a clean slate.
   useEffect(() => {
@@ -264,6 +265,7 @@ const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(() =
           references: moodboard.references,
           furnitureReferences: moodboard.furnitureReferences,
           decorReferences: moodboard.decorReferences,
+          architectureReferences: moodboard.architectureReferences,
           mustInclude: moodboard.mustInclude,
         },
       }
