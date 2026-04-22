@@ -1824,6 +1824,7 @@ RULES:
     ...((currentMoodboard?.mustInclude || []).map((item) => ({ ...item, kind: "must-include" as const }))),
     ...((currentMoodboard?.furnitureReferences || []).map((item) => ({ ...item, kind: "furniture" as const }))),
     ...((currentMoodboard?.decorReferences || []).map((item) => ({ ...item, kind: "decor" as const }))),
+    ...((currentMoodboard?.architectureReferences || []).map((item) => ({ ...item, kind: "material" as const }))),
     ...((currentMoodboard?.materials || []).map((item) => ({ ...item, kind: "material" as const }))),
   ];
 
