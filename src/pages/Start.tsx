@@ -145,13 +145,15 @@ const Start = () => {
           {/* Title */}
           <div className="text-center space-y-3 py-8 md:py-12">
             <p className="text-xs md:text-sm uppercase tracking-[0.2em] text-muted-foreground">
-              Start your journey
+              {firstName ? `Welcome, ${firstName}` : "Start your journey"}
             </p>
             <h1 className="text-4xl md:text-5xl font-bold tracking-tight">
               How would you like to begin?
             </h1>
             <p className="text-muted-foreground text-base md:text-lg max-w-xl mx-auto">
-              Pick the path that matches what you have today
+              {intro?.vision
+                ? `We've got your vision in mind — pick the path that matches what you have today.`
+                : `Pick the path that matches what you have today`}
             </p>
           </div>
 
