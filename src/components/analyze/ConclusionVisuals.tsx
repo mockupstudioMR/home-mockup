@@ -374,19 +374,21 @@ const ConclusionVisuals = ({
   // Generate an AI visual for a dragged-in label that has no image yet
   const generateAiReferenceForLabel = async (
     label: string,
-    kind: "furniture" | "decor",
+    kind: "furniture" | "decor" | "architecture",
     setter: React.Dispatch<React.SetStateAction<{ label: string; imageUrl?: string }[]>>,
   ) => {
     try {
+      const descByKind: Record<typeof kind, string> = {
+        furniture: `A single ${styleNames[0] || "modern"}-style "${label}" furniture piece as a hero product shot on a clean neutral background. ONE item only, no full room, no collage.`,
+        decor: `A single ${styleNames[0] || "modern"}-style "${label}" decor/accessory item as a hero product shot on a clean neutral background. ONE item only, no full room, no collage.`,
+        architecture: `A close-up architectural reference of "${label}" in a ${styleNames[0] || "modern"} interior style — wall treatment / moulding / ceiling / flooring / built-in detail. Clean photo, no furniture, no people.`,
+      };
       const body = {
         type: "accentFurniture",
         style: styleSlug,
         room: roomType,
         furnitureName: label,
-        furnitureDescription:
-          kind === "furniture"
-            ? `A single ${styleNames[0] || "modern"}-style "${label}" furniture piece as a hero product shot on a clean neutral background. ONE item only, no full room, no collage.`
-            : `A single ${styleNames[0] || "modern"}-style "${label}" decor/accessory item as a hero product shot on a clean neutral background. ONE item only, no full room, no collage.`,
+        furnitureDescription: descByKind[kind],
       };
       const { data, error } = await supabase.functions.invoke("generate-highlight-visuals", { body });
       if (!error && data?.imageUrl) {
@@ -397,13 +399,14 @@ const ConclusionVisuals = ({
 
   const handleReferenceDrop = async (
     e: React.DragEvent,
-    kind: "furniture" | "decor",
+    kind: "furniture" | "decor" | "architecture",
     setter: React.Dispatch<React.SetStateAction<{ label: string; imageUrl?: string }[]>>,
     setUploading: React.Dispatch<React.SetStateAction<boolean>>,
   ) => {
     e.preventDefault();
     if (kind === "furniture") setIsFurnitureDropActive(false);
-    else setIsDecorDropActive(false);
+    else if (kind === "decor") setIsDecorDropActive(false);
+    else setIsArchitectureDropActive(false);
 
     // 1) Internal moodboard tag drag (from TagVisual / other moodboard items)
     const raw = e.dataTransfer.getData(MOODBOARD_DRAG_MIME);
@@ -412,6 +415,10 @@ const ConclusionVisuals = ({
         const parsed = JSON.parse(raw) as DraggedItem;
         const label = (parsed.label || "Reference").trim();
         if (!label) return;
+        // If dragged FROM must-include, remove it there (move semantics)
+        if (parsed.source === "must-include") {
+          setMustInclude((prev) => prev.filter((m) => m.label.toLowerCase() !== label.toLowerCase()));
+        }
         let added = false;
         setter((prev) => {
           if (prev.some((m) => m.label.toLowerCase() === label.toLowerCase())) return prev;
@@ -430,7 +437,9 @@ const ConclusionVisuals = ({
     if (files.length) {
       setUploading(true);
       try {
-        await uploadInspirationImages(files, kind === "furniture" ? "furniture-ref" : "decor-ref", setter);
+        const folder =
+          kind === "furniture" ? "furniture-ref" : kind === "decor" ? "decor-ref" : "architecture-ref";
+        await uploadInspirationImages(files, folder, setter);
       } finally {
         setUploading(false);
       }
@@ -450,7 +459,7 @@ const ConclusionVisuals = ({
     }
   };
 
-  const handleReferenceDragOver = (e: React.DragEvent, kind: "furniture" | "decor") => {
+  const handleReferenceDragOver = (e: React.DragEvent, kind: "furniture" | "decor" | "architecture") => {
     if (
       e.dataTransfer.types.includes(MOODBOARD_DRAG_MIME) ||
       e.dataTransfer.types.includes("text/plain") ||
@@ -459,13 +468,14 @@ const ConclusionVisuals = ({
       e.preventDefault();
       e.dataTransfer.dropEffect = "copy";
       if (kind === "furniture") setIsFurnitureDropActive(true);
-      else setIsDecorDropActive(true);
+      else if (kind === "decor") setIsDecorDropActive(true);
+      else setIsArchitectureDropActive(true);
     }
   };
 
   // Auto-generate AI references for furniture & decor when style is known
   const generateAiReference = async (
-    kind: "furniture" | "decor",
+    kind: "furniture" | "decor" | "architecture",
     setter: React.Dispatch<React.SetStateAction<{ label: string; imageUrl?: string }[]>>,
     setBusy: React.Dispatch<React.SetStateAction<boolean>>,
   ) => {
@@ -474,23 +484,35 @@ const ConclusionVisuals = ({
     try {
       const furnitureExamples = ["sofa", "armchair", "dining table", "bed frame", "sideboard"];
       const decorExamples = ["floor lamp", "vase", "wall art", "cushion", "area rug", "pendant light"];
-      const pool = kind === "furniture" ? furnitureExamples : decorExamples;
-      const existing = (kind === "furniture" ? furnitureReferences : decorReferences).map((r) =>
-        r.label.toLowerCase(),
-      );
+      const architectureExamples = [
+        "wainscoting wall panel",
+        "crown moulding",
+        "coffered ceiling",
+        "herringbone wood floor",
+        "arched doorway",
+        "exposed brick wall",
+        "built-in shelving",
+      ];
+      const pool =
+        kind === "furniture" ? furnitureExamples : kind === "decor" ? decorExamples : architectureExamples;
+      const existingList =
+        kind === "furniture" ? furnitureReferences : kind === "decor" ? decorReferences : architectureReferences;
+      const existing = existingList.map((r) => r.label.toLowerCase());
       const available = pool.filter((p) => !existing.some((l) => l.includes(p.toLowerCase())));
       const candidates = available.length > 0 ? available : pool;
       const pick = candidates[Math.floor(Math.random() * candidates.length)];
       const label = `${styleNames[0]} ${pick}`;
+      const descByKind = {
+        furniture: `A single ${styleNames[0]}-style ${pick} as a hero product shot on a clean neutral background. ONE item only, no full room, no collage.`,
+        decor: `A single ${styleNames[0]}-style ${pick} (decor/accessory) as a hero product shot on a clean neutral background. ONE item only, no full room, no collage.`,
+        architecture: `A close-up architectural reference of ${pick} in a ${styleNames[0]} interior — wall treatment / moulding / ceiling / flooring / built-in detail. Clean photo, no furniture, no people.`,
+      } as const;
       const body = {
         type: "accentFurniture",
         style: styleSlug,
         room: roomType,
         furnitureName: pick,
-        furnitureDescription:
-          kind === "furniture"
-            ? `A single ${styleNames[0]}-style ${pick} as a hero product shot on a clean neutral background. ONE item only, no full room, no collage.`
-            : `A single ${styleNames[0]}-style ${pick} (decor/accessory) as a hero product shot on a clean neutral background. ONE item only, no full room, no collage.`,
+        furnitureDescription: descByKind[kind],
       };
       const { data, error } = await supabase.functions.invoke("generate-highlight-visuals", { body });
       if (!error && data?.imageUrl) {
