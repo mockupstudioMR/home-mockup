@@ -41,6 +41,7 @@ interface ConclusionVisualsProps {
     references: { label: string; imageUrl?: string }[];
     furnitureReferences: { label: string; imageUrl?: string }[];
     decorReferences: { label: string; imageUrl?: string }[];
+    architectureReferences: { label: string; imageUrl?: string }[];
     mustInclude: { label: string; imageUrl?: string }[];
   }) => void;
   /** Called once the initial auto-seeded references (3 furniture + 3 decor) are all generated. */
