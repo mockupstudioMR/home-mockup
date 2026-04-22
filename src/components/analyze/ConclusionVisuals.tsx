@@ -529,7 +529,7 @@ const ConclusionVisuals = ({
   useEffect(() => {
     if (!styleNames[0]) return;
     if (seededRef.current) return;
-    if (furnitureReferences.length > 0 || decorReferences.length > 0) return;
+    if (furnitureReferences.length > 0 || decorReferences.length > 0 || architectureReferences.length > 0) return;
     seededRef.current = true;
     const TARGET = 3;
     const furniturePromises = Array.from({ length: TARGET }).map(() =>
@@ -538,11 +538,33 @@ const ConclusionVisuals = ({
     const decorPromises = Array.from({ length: TARGET }).map(() =>
       generateAiReference("decor", setDecorReferences, setGeneratingDecorRef),
     );
-    Promise.allSettled([...furniturePromises, ...decorPromises]).finally(() => {
+    const archPromises = Array.from({ length: TARGET }).map(() =>
+      generateAiReference("architecture", setArchitectureReferences, setGeneratingArchitectureRef),
+    );
+    Promise.allSettled([...furniturePromises, ...decorPromises, ...archPromises]).finally(() => {
       onSeedReady?.();
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [styleNames[0]]);
+
+  // Backfill: any reference card without an imageUrl gets an AI visual generated for it.
+  const generatingVisualForRef = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    if (!styleNames[0]) return;
+    const triggers: { kind: "furniture" | "decor" | "architecture"; label: string; setter: React.Dispatch<React.SetStateAction<{ label: string; imageUrl?: string }[]>> }[] = [];
+    furnitureReferences.forEach((r) => { if (!r.imageUrl) triggers.push({ kind: "furniture", label: r.label, setter: setFurnitureReferences }); });
+    decorReferences.forEach((r) => { if (!r.imageUrl) triggers.push({ kind: "decor", label: r.label, setter: setDecorReferences }); });
+    architectureReferences.forEach((r) => { if (!r.imageUrl) triggers.push({ kind: "architecture", label: r.label, setter: setArchitectureReferences }); });
+    triggers.forEach(({ kind, label, setter }) => {
+      const key = `${kind}:${label}`;
+      if (generatingVisualForRef.current.has(key)) return;
+      generatingVisualForRef.current.add(key);
+      generateAiReferenceForLabel(label, kind, setter).finally(() => {
+        generatingVisualForRef.current.delete(key);
+      });
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [furnitureReferences, decorReferences, architectureReferences, styleNames[0]]);
 
   const uploadInspirationImages = async (
     files: File[],
