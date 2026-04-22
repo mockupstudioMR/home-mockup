@@ -121,6 +121,7 @@ type GenerateMoodboard = {
   references?: { label: string; imageUrl?: string }[];
   furnitureReferences?: { label: string; imageUrl?: string }[];
   decorReferences?: { label: string; imageUrl?: string }[];
+  architectureReferences?: { label: string; imageUrl?: string }[];
   mustInclude?: { label: string; imageUrl?: string }[];
 };
 
