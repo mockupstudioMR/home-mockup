@@ -325,14 +325,24 @@ const ConclusionVisuals = ({
   const [uploadingDecorRef, setUploadingDecorRef] = useState(false);
   const [generatingDecorRef, setGeneratingDecorRef] = useState(false);
 
+  // Architecture References — wall treatments, mouldings, ceiling details, flooring patterns, built-ins.
+  const [architectureReferences, setArchitectureReferences] = useState<{ label: string; imageUrl?: string }[]>([]);
+  const [uploadingArchitectureRef, setUploadingArchitectureRef] = useState(false);
+  const [generatingArchitectureRef, setGeneratingArchitectureRef] = useState(false);
+
   // Drag-and-drop hover state for the two reference sections
   const [isFurnitureDropActive, setIsFurnitureDropActive] = useState(false);
   const [isDecorDropActive, setIsDecorDropActive] = useState(false);
+  const [isArchitectureDropActive, setIsArchitectureDropActive] = useState(false);
   const [isMustIncludeDropActive, setIsMustIncludeDropActive] = useState(false);
 
-  // Helper to start a drag of a reference item (for moving into Must-Include)
-  const startItemDrag = (e: React.DragEvent, item: { label: string; imageUrl?: string }) => {
-    const payload = JSON.stringify({ label: item.label, imageUrl: item.imageUrl || null, source: "reference" });
+  // Helper to start a drag of a reference item (for moving into Must-Include or back out)
+  const startItemDrag = (
+    e: React.DragEvent,
+    item: { label: string; imageUrl?: string },
+    source: "reference" | "must-include" = "reference",
+  ) => {
+    const payload = JSON.stringify({ label: item.label, imageUrl: item.imageUrl || null, source });
     e.dataTransfer.setData(MOODBOARD_DRAG_MIME, payload);
     e.dataTransfer.setData("text/plain", item.label);
     e.dataTransfer.effectAllowed = "copyMove";
@@ -347,6 +357,12 @@ const ConclusionVisuals = ({
       const parsed = JSON.parse(raw) as DraggedItem;
       const label = (parsed.label || "").trim();
       if (!label) return;
+      // Moving FROM a reference section INTO must-include: remove from origin
+      if (parsed.source === "reference") {
+        setFurnitureReferences((prev) => prev.filter((m) => m.label.toLowerCase() !== label.toLowerCase()));
+        setDecorReferences((prev) => prev.filter((m) => m.label.toLowerCase() !== label.toLowerCase()));
+        setArchitectureReferences((prev) => prev.filter((m) => m.label.toLowerCase() !== label.toLowerCase()));
+      }
       setMustInclude((prev) => {
         if (prev.some((m) => m.label.toLowerCase() === label.toLowerCase())) return prev;
         return [...prev, { label, imageUrl: parsed.imageUrl || undefined }];
