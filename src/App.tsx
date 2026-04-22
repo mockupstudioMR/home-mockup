@@ -13,6 +13,7 @@ import Auth from "./pages/Auth";
 
 // Lazy load heavy pages
 const Start = lazy(() => import("./pages/Start"));
+const GetStarted = lazy(() => import("./pages/GetStarted"));
 const FloorPlan = lazy(() => import("./pages/FloorPlan"));
 const ExistingRoomFlow = lazy(() => import("./pages/ExistingRoomFlow"));
 const StyleTree = lazy(() => import("./pages/StyleTree"));
@@ -55,6 +56,11 @@ const App = () => (
               <Route path="/start" element={
                 <ProtectedRoute allowedRoles={["user"]}>
                   <Start />
+                </ProtectedRoute>
+              } />
+              <Route path="/get-started" element={
+                <ProtectedRoute allowedRoles={["user"]}>
+                  <GetStarted />
                 </ProtectedRoute>
               } />
               <Route path="/floor-plan" element={
