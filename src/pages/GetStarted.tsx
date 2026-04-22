@@ -8,7 +8,6 @@ import { Label } from "@/components/ui/label";
 import { ArrowRight, ArrowLeft, Sparkles, Sofa, Bed, UtensilsCrossed, Monitor, Bath, LayoutGrid, Utensils, Home as HomeIcon } from "lucide-react";
 import Logo from "@/components/Logo";
 import { cn } from "@/lib/utils";
-import { trackEvent } from "@/lib/analytics";
 
 const ROOMS = [
   { value: "living-room", label: "Living Room", icon: Sofa },
@@ -60,7 +59,6 @@ const GetStarted = () => {
     if (!result.success) { setError(result.error.issues[0].message); return; }
     const intro = { ...result.data, createdAt: new Date().toISOString() };
     try { sessionStorage.setItem(STORAGE_KEY, JSON.stringify(intro)); } catch { /* ignore */ }
-    trackEvent("intro_quiz_complete", "get-started", { roomType });
     navigate("/start", { state: { intro } });
   };
 
