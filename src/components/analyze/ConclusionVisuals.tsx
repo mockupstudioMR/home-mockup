@@ -704,47 +704,46 @@ const ConclusionVisuals = ({
         backgroundPosition: "0 0, 7px 11px",
       }}
     >
-      {/* Must-Include Furniture — uploaded products + user-added items */}
+      {/* Furniture References — AI-generated + uploads, inspiration, "use similar" */}
       <div>
         <div className="mb-3">
-          <span className="inline-block px-3 py-1 text-[11px] uppercase tracking-wider font-semibold bg-primary/30 text-foreground/80 rounded-[2px] -rotate-2 shadow-sm border border-primary/20">
-            Must-Include Furniture
+          <span className="inline-block px-3 py-1 text-[11px] uppercase tracking-wider font-semibold bg-secondary/80 text-foreground/80 rounded-[2px] rotate-1 shadow-sm border border-border/40">
+            Furniture
           </span>
-          <span className="ml-2 text-[11px] text-muted-foreground italic font-serif">— drag furniture or decor here · we'll design around them</span>
+          <span className="ml-2 text-[11px] text-muted-foreground italic font-serif">— pinned items we'll keep + AI inspiration in your style</span>
         </div>
         <div
           onDragOver={(e) => {
-            if (e.dataTransfer.types.includes(MOODBOARD_DRAG_MIME)) {
-              e.preventDefault();
-              e.dataTransfer.dropEffect = "copy";
-              setIsMustIncludeDropActive(true);
-            }
+            handleReferenceDragOver(e, "furniture");
+            if (e.dataTransfer.types.includes(MOODBOARD_DRAG_MIME)) setIsMustIncludeDropActive(true);
           }}
-          onDragLeave={() => setIsMustIncludeDropActive(false)}
-          onDrop={handleMustIncludeDrop}
+          onDragLeave={() => { setIsFurnitureDropActive(false); setIsMustIncludeDropActive(false); }}
+          onDrop={(e) => handleReferenceDrop(e, "furniture", setFurnitureReferences, setUploadingFurnitureRef)}
           className={cn(
-            "flex flex-wrap gap-4 items-start pt-2 rounded-lg p-2 -m-2 transition-colors",
-            isMustIncludeDropActive && "bg-primary/5 ring-2 ring-primary/40 ring-dashed",
+            "flex flex-wrap gap-4 items-start rounded-lg p-2 -m-2 transition-colors pt-3",
+            isFurnitureDropActive && "bg-primary/5 ring-2 ring-primary/40 ring-dashed",
           )}
         >
+          {/* Pinned must-include items appear first, with a pin marker */}
           {mustInclude.map((item) => {
             let h = 0;
             for (let i = 0; i < item.label.length; i++) h = (h * 31 + item.label.charCodeAt(i)) >>> 0;
             const rot = ((h % 500) / 500) * 5 - 2.5;
             return item.imageUrl ? (
               <div
-                key={item.label}
+                key={`must-${item.label}`}
                 className="group relative w-28 cursor-grab active:cursor-grabbing"
                 style={{ transform: `rotate(${rot}deg)` }}
                 draggable
                 onDragStart={(e) => startItemDrag(e, item, "must-include")}
-                title="Drag to Furniture / Decor / Architecture references to move it back"
+                title="Pinned — we'll design around this. Drag out to remove from must-keep."
               >
-                <div className="bg-card p-1.5 pb-6 shadow-[0_6px_14px_-6px_hsl(var(--foreground)/0.35),0_2px_4px_-2px_hsl(var(--foreground)/0.2)] rounded-sm relative">
+                <div className="bg-card p-1.5 pb-6 shadow-[0_6px_14px_-6px_hsl(var(--foreground)/0.35),0_2px_4px_-2px_hsl(var(--foreground)/0.2)] rounded-sm relative ring-2 ring-primary/40">
                   <div
                     aria-hidden
                     className="absolute -top-2 left-1/2 -translate-x-1/2 w-3 h-3 rounded-full bg-primary shadow-[0_1px_2px_hsl(var(--foreground)/0.4),inset_-1px_-1px_2px_hsl(var(--foreground)/0.3),inset_1px_1px_2px_hsl(0_0%_100%/0.4)] z-10"
                   />
+                  <span className="absolute top-1 left-1 z-10 px-1.5 py-0.5 rounded-sm bg-primary/90 text-primary-foreground text-[9px] uppercase tracking-wider font-semibold">Keep</span>
                   <div className="aspect-square overflow-hidden bg-muted/40 relative">
                     <img src={getThumbnailImageUrl(item.imageUrl)} alt={item.label} className="w-full h-full object-cover" loading="lazy" decoding="async" />
                     <button
@@ -763,7 +762,7 @@ const ConclusionVisuals = ({
               </div>
             ) : (
               <VisualChip
-                key={item.label}
+                key={`must-${item.label}`}
                 label={item.label}
                 kind="material"
                 styleSlug={styleSlug}
@@ -776,57 +775,6 @@ const ConclusionVisuals = ({
               />
             );
           })}
-
-          <label
-            className={cn(
-              "w-28 aspect-square flex flex-col items-center justify-center gap-1 rotate-[3deg] shadow-[0_4px_10px_-4px_hsl(var(--foreground)/0.3)] transition-transform hover:rotate-0",
-              uploadingMustInclude
-                ? "bg-accent/40 text-foreground/70 cursor-wait"
-                : "bg-accent/60 hover:bg-accent text-foreground/80 cursor-pointer",
-            )}
-            style={{ clipPath: "polygon(0 0, 100% 0, 100% 92%, 88% 100%, 0 100%)" }}
-            title="Upload an image of furniture you want to keep"
-          >
-            {uploadingMustInclude ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin" />
-                <span className="text-[10px] font-serif italic">Uploading…</span>
-              </>
-            ) : (
-              <>
-                <Plus className="w-5 h-5" />
-                <span className="text-[11px] font-serif italic">Add item</span>
-              </>
-            )}
-            <input
-              type="file"
-              accept="image/*"
-              multiple
-              className="hidden"
-              onChange={handleMustIncludeUpload}
-              disabled={uploadingMustInclude}
-            />
-          </label>
-        </div>
-      </div>
-
-      {/* Furniture References — AI-generated + uploads, inspiration, "use similar" */}
-      <div>
-        <div className="mb-3">
-          <span className="inline-block px-3 py-1 text-[11px] uppercase tracking-wider font-semibold bg-secondary/80 text-foreground/80 rounded-[2px] rotate-1 shadow-sm border border-border/40">
-            Furniture References
-          </span>
-          <span className="ml-2 text-[11px] text-muted-foreground italic font-serif">— drag tags or images here · AI examples in your style</span>
-        </div>
-        <div
-          onDragOver={(e) => handleReferenceDragOver(e, "furniture")}
-          onDragLeave={() => setIsFurnitureDropActive(false)}
-          onDrop={(e) => handleReferenceDrop(e, "furniture", setFurnitureReferences, setUploadingFurnitureRef)}
-          className={cn(
-            "flex flex-wrap gap-4 items-start rounded-lg p-2 -m-2 transition-colors pt-3",
-            isFurnitureDropActive && "bg-primary/5 ring-2 ring-primary/40 ring-dashed",
-          )}
-        >
           {furnitureReferences.map((item) => {
             let h = 0;
             for (let i = 0; i < item.label.length; i++) h = (h * 31 + item.label.charCodeAt(i)) >>> 0;
@@ -870,11 +818,12 @@ const ConclusionVisuals = ({
               uploadingFurnitureRef ? "bg-accent/40 text-foreground/70 cursor-wait" : "bg-accent/60 hover:bg-accent text-foreground/80 cursor-pointer",
             )}
             style={{ clipPath: "polygon(0 0, 100% 0, 100% 92%, 88% 100%, 0 100%)" }}
+            title="Add a furniture inspiration reference"
           >
             {uploadingFurnitureRef ? (
               <><Loader2 className="w-4 h-4 animate-spin" /><span className="text-[10px] font-serif italic">Uploading…</span></>
             ) : (
-              <><Plus className="w-5 h-5" /><span className="text-[11px] font-serif italic">Add furniture</span></>
+              <><Plus className="w-5 h-5" /><span className="text-[11px] font-serif italic">Add inspiration</span></>
             )}
             <input
               type="file" accept="image/*" multiple className="hidden" disabled={uploadingFurnitureRef}
@@ -886,6 +835,29 @@ const ConclusionVisuals = ({
                 try { await uploadInspirationImages(files, "furniture-ref", setFurnitureReferences); }
                 finally { setUploadingFurnitureRef(false); }
               }}
+            />
+          </label>
+          <label
+            className={cn(
+              "relative w-28 aspect-square flex flex-col items-center justify-center gap-1 -rotate-[2deg] shadow-[0_4px_10px_-4px_hsl(var(--foreground)/0.3)] transition-transform hover:rotate-0 ring-2 ring-primary/40",
+              uploadingMustInclude ? "bg-primary/20 text-foreground/70 cursor-wait" : "bg-primary/30 hover:bg-primary/40 text-foreground/80 cursor-pointer",
+            )}
+            style={{ clipPath: "polygon(0 0, 100% 0, 100% 92%, 88% 100%, 0 100%)" }}
+            title="Pin a piece you want to keep — we'll design around it"
+          >
+            <span aria-hidden className="absolute -top-2 left-1/2 -translate-x-1/2 w-3 h-3 rounded-full bg-primary shadow-[0_1px_2px_hsl(var(--foreground)/0.4)] z-10" />
+            {uploadingMustInclude ? (
+              <><Loader2 className="w-4 h-4 animate-spin" /><span className="text-[10px] font-serif italic">Uploading…</span></>
+            ) : (
+              <><Plus className="w-5 h-5" /><span className="text-[11px] font-serif italic">Pin to keep</span></>
+            )}
+            <input
+              type="file"
+              accept="image/*"
+              multiple
+              className="hidden"
+              onChange={handleMustIncludeUpload}
+              disabled={uploadingMustInclude}
             />
           </label>
           <button
@@ -912,9 +884,9 @@ const ConclusionVisuals = ({
       <div>
         <div className="mb-3">
           <span className="inline-block px-3 py-1 text-[11px] uppercase tracking-wider font-semibold bg-accent/70 text-foreground/80 rounded-[2px] -rotate-1 shadow-sm border border-border/40">
-            Decor References
+            Decor
           </span>
-          <span className="ml-2 text-[11px] text-muted-foreground italic font-serif">— drag tags or images here · lamps, vases, art, cushions, rugs</span>
+          <span className="ml-2 text-[11px] text-muted-foreground italic font-serif">— lamps, vases, art, cushions, rugs · drag from must-keep here too</span>
         </div>
         <div
           onDragOver={(e) => handleReferenceDragOver(e, "decor")}
@@ -1009,9 +981,9 @@ const ConclusionVisuals = ({
       <div>
         <div className="mb-3">
           <span className="inline-block px-3 py-1 text-[11px] uppercase tracking-wider font-semibold bg-muted text-foreground/80 rounded-[2px] rotate-[2deg] shadow-sm border border-border/40">
-            Architecture References
+            Architecture Reference
           </span>
-          <span className="ml-2 text-[11px] text-muted-foreground italic font-serif">— drag tags or images here · wall panels, mouldings, ceilings, floors, built-ins</span>
+          <span className="ml-2 text-[11px] text-muted-foreground italic font-serif">— wall details, floor details, ceiling details, mouldings, built-ins</span>
         </div>
         <div
           onDragOver={(e) => handleReferenceDragOver(e, "architecture")}
