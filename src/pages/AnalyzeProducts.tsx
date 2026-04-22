@@ -102,8 +102,9 @@ const AnalyzeProducts = () => {
     references: { label: string; imageUrl?: string }[];
     furnitureReferences: { label: string; imageUrl?: string }[];
     decorReferences: { label: string; imageUrl?: string }[];
+    architectureReferences: { label: string; imageUrl?: string }[];
     mustInclude: { label: string; imageUrl?: string }[];
-  }>({ materials: [], references: [], furnitureReferences: [], decorReferences: [], mustInclude: [] });
+  }>({ materials: [], references: [], furnitureReferences: [], decorReferences: [], architectureReferences: [], mustInclude: [] });
 
   // Two-step flow: 'detect' (products + room) → 'moodboard' (editor)
   const [step, setStep] = useState<"detect" | "moodboard">("detect");
@@ -366,6 +367,7 @@ const AnalyzeProducts = () => {
           references: mergedReferences,
           furnitureReferences: moodboard.furnitureReferences,
           decorReferences: moodboard.decorReferences,
+          architectureReferences: moodboard.architectureReferences,
           mustInclude: moodboard.mustInclude,
         },
       },

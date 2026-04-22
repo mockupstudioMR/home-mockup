@@ -41,6 +41,7 @@ interface ConclusionVisualsProps {
     references: { label: string; imageUrl?: string }[];
     furnitureReferences: { label: string; imageUrl?: string }[];
     decorReferences: { label: string; imageUrl?: string }[];
+    architectureReferences: { label: string; imageUrl?: string }[];
     mustInclude: { label: string; imageUrl?: string }[];
   }) => void;
   /** Called once the initial auto-seeded references (3 furniture + 3 decor) are all generated. */
@@ -324,14 +325,24 @@ const ConclusionVisuals = ({
   const [uploadingDecorRef, setUploadingDecorRef] = useState(false);
   const [generatingDecorRef, setGeneratingDecorRef] = useState(false);
 
+  // Architecture References — wall treatments, mouldings, ceiling details, flooring patterns, built-ins.
+  const [architectureReferences, setArchitectureReferences] = useState<{ label: string; imageUrl?: string }[]>([]);
+  const [uploadingArchitectureRef, setUploadingArchitectureRef] = useState(false);
+  const [generatingArchitectureRef, setGeneratingArchitectureRef] = useState(false);
+
   // Drag-and-drop hover state for the two reference sections
   const [isFurnitureDropActive, setIsFurnitureDropActive] = useState(false);
   const [isDecorDropActive, setIsDecorDropActive] = useState(false);
+  const [isArchitectureDropActive, setIsArchitectureDropActive] = useState(false);
   const [isMustIncludeDropActive, setIsMustIncludeDropActive] = useState(false);
 
-  // Helper to start a drag of a reference item (for moving into Must-Include)
-  const startItemDrag = (e: React.DragEvent, item: { label: string; imageUrl?: string }) => {
-    const payload = JSON.stringify({ label: item.label, imageUrl: item.imageUrl || null, source: "reference" });
+  // Helper to start a drag of a reference item (for moving into Must-Include or back out)
+  const startItemDrag = (
+    e: React.DragEvent,
+    item: { label: string; imageUrl?: string },
+    source: "reference" | "must-include" = "reference",
+  ) => {
+    const payload = JSON.stringify({ label: item.label, imageUrl: item.imageUrl || null, source });
     e.dataTransfer.setData(MOODBOARD_DRAG_MIME, payload);
     e.dataTransfer.setData("text/plain", item.label);
     e.dataTransfer.effectAllowed = "copyMove";
@@ -346,6 +357,12 @@ const ConclusionVisuals = ({
       const parsed = JSON.parse(raw) as DraggedItem;
       const label = (parsed.label || "").trim();
       if (!label) return;
+      // Moving FROM a reference section INTO must-include: remove from origin
+      if (parsed.source === "reference") {
+        setFurnitureReferences((prev) => prev.filter((m) => m.label.toLowerCase() !== label.toLowerCase()));
+        setDecorReferences((prev) => prev.filter((m) => m.label.toLowerCase() !== label.toLowerCase()));
+        setArchitectureReferences((prev) => prev.filter((m) => m.label.toLowerCase() !== label.toLowerCase()));
+      }
       setMustInclude((prev) => {
         if (prev.some((m) => m.label.toLowerCase() === label.toLowerCase())) return prev;
         return [...prev, { label, imageUrl: parsed.imageUrl || undefined }];
@@ -357,19 +374,21 @@ const ConclusionVisuals = ({
   // Generate an AI visual for a dragged-in label that has no image yet
   const generateAiReferenceForLabel = async (
     label: string,
-    kind: "furniture" | "decor",
+    kind: "furniture" | "decor" | "architecture",
     setter: React.Dispatch<React.SetStateAction<{ label: string; imageUrl?: string }[]>>,
   ) => {
     try {
+      const descByKind: Record<typeof kind, string> = {
+        furniture: `A single ${styleNames[0] || "modern"}-style "${label}" furniture piece as a hero product shot on a clean neutral background. ONE item only, no full room, no collage.`,
+        decor: `A single ${styleNames[0] || "modern"}-style "${label}" decor/accessory item as a hero product shot on a clean neutral background. ONE item only, no full room, no collage.`,
+        architecture: `A close-up architectural reference of "${label}" in a ${styleNames[0] || "modern"} interior style — wall treatment / moulding / ceiling / flooring / built-in detail. Clean photo, no furniture, no people.`,
+      };
       const body = {
         type: "accentFurniture",
         style: styleSlug,
         room: roomType,
         furnitureName: label,
-        furnitureDescription:
-          kind === "furniture"
-            ? `A single ${styleNames[0] || "modern"}-style "${label}" furniture piece as a hero product shot on a clean neutral background. ONE item only, no full room, no collage.`
-            : `A single ${styleNames[0] || "modern"}-style "${label}" decor/accessory item as a hero product shot on a clean neutral background. ONE item only, no full room, no collage.`,
+        furnitureDescription: descByKind[kind],
       };
       const { data, error } = await supabase.functions.invoke("generate-highlight-visuals", { body });
       if (!error && data?.imageUrl) {
@@ -380,13 +399,14 @@ const ConclusionVisuals = ({
 
   const handleReferenceDrop = async (
     e: React.DragEvent,
-    kind: "furniture" | "decor",
+    kind: "furniture" | "decor" | "architecture",
     setter: React.Dispatch<React.SetStateAction<{ label: string; imageUrl?: string }[]>>,
     setUploading: React.Dispatch<React.SetStateAction<boolean>>,
   ) => {
     e.preventDefault();
     if (kind === "furniture") setIsFurnitureDropActive(false);
-    else setIsDecorDropActive(false);
+    else if (kind === "decor") setIsDecorDropActive(false);
+    else setIsArchitectureDropActive(false);
 
     // 1) Internal moodboard tag drag (from TagVisual / other moodboard items)
     const raw = e.dataTransfer.getData(MOODBOARD_DRAG_MIME);
@@ -395,6 +415,10 @@ const ConclusionVisuals = ({
         const parsed = JSON.parse(raw) as DraggedItem;
         const label = (parsed.label || "Reference").trim();
         if (!label) return;
+        // If dragged FROM must-include, remove it there (move semantics)
+        if (parsed.source === "must-include") {
+          setMustInclude((prev) => prev.filter((m) => m.label.toLowerCase() !== label.toLowerCase()));
+        }
         let added = false;
         setter((prev) => {
           if (prev.some((m) => m.label.toLowerCase() === label.toLowerCase())) return prev;
@@ -413,7 +437,9 @@ const ConclusionVisuals = ({
     if (files.length) {
       setUploading(true);
       try {
-        await uploadInspirationImages(files, kind === "furniture" ? "furniture-ref" : "decor-ref", setter);
+        const folder =
+          kind === "furniture" ? "furniture-ref" : kind === "decor" ? "decor-ref" : "architecture-ref";
+        await uploadInspirationImages(files, folder, setter);
       } finally {
         setUploading(false);
       }
@@ -433,7 +459,7 @@ const ConclusionVisuals = ({
     }
   };
 
-  const handleReferenceDragOver = (e: React.DragEvent, kind: "furniture" | "decor") => {
+  const handleReferenceDragOver = (e: React.DragEvent, kind: "furniture" | "decor" | "architecture") => {
     if (
       e.dataTransfer.types.includes(MOODBOARD_DRAG_MIME) ||
       e.dataTransfer.types.includes("text/plain") ||
@@ -442,13 +468,14 @@ const ConclusionVisuals = ({
       e.preventDefault();
       e.dataTransfer.dropEffect = "copy";
       if (kind === "furniture") setIsFurnitureDropActive(true);
-      else setIsDecorDropActive(true);
+      else if (kind === "decor") setIsDecorDropActive(true);
+      else setIsArchitectureDropActive(true);
     }
   };
 
   // Auto-generate AI references for furniture & decor when style is known
   const generateAiReference = async (
-    kind: "furniture" | "decor",
+    kind: "furniture" | "decor" | "architecture",
     setter: React.Dispatch<React.SetStateAction<{ label: string; imageUrl?: string }[]>>,
     setBusy: React.Dispatch<React.SetStateAction<boolean>>,
   ) => {
@@ -457,23 +484,35 @@ const ConclusionVisuals = ({
     try {
       const furnitureExamples = ["sofa", "armchair", "dining table", "bed frame", "sideboard"];
       const decorExamples = ["floor lamp", "vase", "wall art", "cushion", "area rug", "pendant light"];
-      const pool = kind === "furniture" ? furnitureExamples : decorExamples;
-      const existing = (kind === "furniture" ? furnitureReferences : decorReferences).map((r) =>
-        r.label.toLowerCase(),
-      );
+      const architectureExamples = [
+        "wainscoting wall panel",
+        "crown moulding",
+        "coffered ceiling",
+        "herringbone wood floor",
+        "arched doorway",
+        "exposed brick wall",
+        "built-in shelving",
+      ];
+      const pool =
+        kind === "furniture" ? furnitureExamples : kind === "decor" ? decorExamples : architectureExamples;
+      const existingList =
+        kind === "furniture" ? furnitureReferences : kind === "decor" ? decorReferences : architectureReferences;
+      const existing = existingList.map((r) => r.label.toLowerCase());
       const available = pool.filter((p) => !existing.some((l) => l.includes(p.toLowerCase())));
       const candidates = available.length > 0 ? available : pool;
       const pick = candidates[Math.floor(Math.random() * candidates.length)];
       const label = `${styleNames[0]} ${pick}`;
+      const descByKind = {
+        furniture: `A single ${styleNames[0]}-style ${pick} as a hero product shot on a clean neutral background. ONE item only, no full room, no collage.`,
+        decor: `A single ${styleNames[0]}-style ${pick} (decor/accessory) as a hero product shot on a clean neutral background. ONE item only, no full room, no collage.`,
+        architecture: `A close-up architectural reference of ${pick} in a ${styleNames[0]} interior — wall treatment / moulding / ceiling / flooring / built-in detail. Clean photo, no furniture, no people.`,
+      } as const;
       const body = {
         type: "accentFurniture",
         style: styleSlug,
         room: roomType,
         furnitureName: pick,
-        furnitureDescription:
-          kind === "furniture"
-            ? `A single ${styleNames[0]}-style ${pick} as a hero product shot on a clean neutral background. ONE item only, no full room, no collage.`
-            : `A single ${styleNames[0]}-style ${pick} (decor/accessory) as a hero product shot on a clean neutral background. ONE item only, no full room, no collage.`,
+        furnitureDescription: descByKind[kind],
       };
       const { data, error } = await supabase.functions.invoke("generate-highlight-visuals", { body });
       if (!error && data?.imageUrl) {
@@ -538,10 +577,11 @@ const ConclusionVisuals = ({
       references: references.map((r) => ({ label: r, imageUrl: referenceImages[r] })),
       furnitureReferences,
       decorReferences,
+      architectureReferences,
       mustInclude,
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [materials, references, materialImages, referenceImages, mustInclude, furnitureReferences, decorReferences]);
+  }, [materials, references, materialImages, referenceImages, mustInclude, furnitureReferences, decorReferences, architectureReferences]);
 
   // Add new material/reference state
   const [newMaterial, setNewMaterial] = useState("");
@@ -692,7 +732,14 @@ const ConclusionVisuals = ({
             for (let i = 0; i < item.label.length; i++) h = (h * 31 + item.label.charCodeAt(i)) >>> 0;
             const rot = ((h % 500) / 500) * 5 - 2.5;
             return item.imageUrl ? (
-              <div key={item.label} className="group relative w-28" style={{ transform: `rotate(${rot}deg)` }}>
+              <div
+                key={item.label}
+                className="group relative w-28 cursor-grab active:cursor-grabbing"
+                style={{ transform: `rotate(${rot}deg)` }}
+                draggable
+                onDragStart={(e) => startItemDrag(e, item, "must-include")}
+                title="Drag to Furniture / Decor / Architecture references to move it back"
+              >
                 <div className="bg-card p-1.5 pb-6 shadow-[0_6px_14px_-6px_hsl(var(--foreground)/0.35),0_2px_4px_-2px_hsl(var(--foreground)/0.2)] rounded-sm relative">
                   <div
                     aria-hidden
@@ -950,6 +997,103 @@ const ConclusionVisuals = ({
             title="Generate another AI decor reference"
           >
             {generatingDecorRef ? (
+              <><Loader2 className="w-4 h-4 animate-spin" /><span className="text-[10px] font-serif italic">Generating…</span></>
+            ) : (
+              <><Sparkles className="w-5 h-5" /><span className="text-[11px] font-serif italic">AI suggest</span></>
+            )}
+          </button>
+        </div>
+      </div>
+
+      {/* Architecture References — wall treatments, mouldings, ceilings, flooring, built-ins */}
+      <div>
+        <div className="mb-3">
+          <span className="inline-block px-3 py-1 text-[11px] uppercase tracking-wider font-semibold bg-muted text-foreground/80 rounded-[2px] rotate-[2deg] shadow-sm border border-border/40">
+            Architecture References
+          </span>
+          <span className="ml-2 text-[11px] text-muted-foreground italic font-serif">— drag tags or images here · wall panels, mouldings, ceilings, floors, built-ins</span>
+        </div>
+        <div
+          onDragOver={(e) => handleReferenceDragOver(e, "architecture")}
+          onDragLeave={() => setIsArchitectureDropActive(false)}
+          onDrop={(e) => handleReferenceDrop(e, "architecture", setArchitectureReferences, setUploadingArchitectureRef)}
+          className={cn(
+            "flex flex-wrap gap-4 items-start rounded-lg p-2 -m-2 transition-colors pt-3",
+            isArchitectureDropActive && "bg-primary/5 ring-2 ring-primary/40 ring-dashed",
+          )}
+        >
+          {architectureReferences.map((item) => {
+            let h = 0;
+            for (let i = 0; i < item.label.length; i++) h = (h * 31 + item.label.charCodeAt(i)) >>> 0;
+            const rot = ((h % 500) / 500) * 5 - 2.5;
+            return (
+              <div
+                key={item.label}
+                className="group relative w-28 cursor-grab active:cursor-grabbing"
+                style={{ transform: `rotate(${rot}deg)` }}
+                draggable
+                onDragStart={(e) => startItemDrag(e, item)}
+                title="Drag to Must-Include to keep this detail"
+              >
+                <div className="bg-card p-1.5 pb-6 shadow-[0_6px_14px_-6px_hsl(var(--foreground)/0.35),0_2px_4px_-2px_hsl(var(--foreground)/0.2)] rounded-sm relative">
+                  <div
+                    aria-hidden
+                    className="absolute -top-1.5 left-1/2 -translate-x-1/2 w-12 h-3 -rotate-2 bg-muted border border-border/40 rounded-[2px] shadow-sm z-10"
+                  />
+                  <div className="aspect-square overflow-hidden bg-muted/40 relative">
+                    {item.imageUrl && (
+                      <img src={getThumbnailImageUrl(item.imageUrl)} alt={item.label} className="w-full h-full object-cover" loading="lazy" decoding="async" />
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => setArchitectureReferences((prev) => prev.filter((m) => m.label !== item.label))}
+                      className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/50 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                      aria-label="Remove"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
+                  <div className="mt-1.5 px-1 text-[12px] leading-tight truncate font-serif italic text-foreground/80" title={item.label}>{item.label}</div>
+                </div>
+              </div>
+            );
+          })}
+          <label
+            className={cn(
+              "w-28 aspect-square flex flex-col items-center justify-center gap-1 rotate-[3deg] shadow-[0_4px_10px_-4px_hsl(var(--foreground)/0.3)] transition-transform hover:rotate-0",
+              uploadingArchitectureRef ? "bg-accent/40 text-foreground/70 cursor-wait" : "bg-accent/60 hover:bg-accent text-foreground/80 cursor-pointer",
+            )}
+            style={{ clipPath: "polygon(0 0, 100% 0, 100% 92%, 88% 100%, 0 100%)" }}
+          >
+            {uploadingArchitectureRef ? (
+              <><Loader2 className="w-4 h-4 animate-spin" /><span className="text-[10px] font-serif italic">Uploading…</span></>
+            ) : (
+              <><Plus className="w-5 h-5" /><span className="text-[11px] font-serif italic">Add detail</span></>
+            )}
+            <input
+              type="file" accept="image/*" multiple className="hidden" disabled={uploadingArchitectureRef}
+              onChange={async (e) => {
+                const files = Array.from(e.target.files || []);
+                e.target.value = "";
+                if (!files.length) return;
+                setUploadingArchitectureRef(true);
+                try { await uploadInspirationImages(files, "architecture-ref", setArchitectureReferences); }
+                finally { setUploadingArchitectureRef(false); }
+              }}
+            />
+          </label>
+          <button
+            type="button"
+            onClick={() => generateAiReference("architecture", setArchitectureReferences, setGeneratingArchitectureRef)}
+            disabled={generatingArchitectureRef || !styleNames[0]}
+            className={cn(
+              "w-28 aspect-square flex flex-col items-center justify-center gap-1 -rotate-[3deg] shadow-[0_4px_10px_-4px_hsl(var(--foreground)/0.3)] transition-transform hover:rotate-0",
+              generatingArchitectureRef ? "bg-primary/20 text-foreground/70 cursor-wait" : "bg-primary/30 hover:bg-primary/40 text-foreground/80",
+            )}
+            style={{ clipPath: "polygon(0 0, 100% 0, 100% 92%, 88% 100%, 0 100%)" }}
+            title="Generate another AI architecture reference"
+          >
+            {generatingArchitectureRef ? (
               <><Loader2 className="w-4 h-4 animate-spin" /><span className="text-[10px] font-serif italic">Generating…</span></>
             ) : (
               <><Sparkles className="w-5 h-5" /><span className="text-[11px] font-serif italic">AI suggest</span></>

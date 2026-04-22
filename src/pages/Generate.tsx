@@ -121,6 +121,7 @@ type GenerateMoodboard = {
   references?: { label: string; imageUrl?: string }[];
   furnitureReferences?: { label: string; imageUrl?: string }[];
   decorReferences?: { label: string; imageUrl?: string }[];
+  architectureReferences?: { label: string; imageUrl?: string }[];
   mustInclude?: { label: string; imageUrl?: string }[];
 };
 
@@ -914,6 +915,7 @@ const Generate = () => {
           moodboardReferences: moodboard?.references || [],
           furnitureReferences: moodboard?.furnitureReferences || [],
           decorReferences: moodboard?.decorReferences || [],
+          architectureReferences: moodboard?.architectureReferences || [],
           mustIncludeItems: moodboard?.mustInclude || [],
           styleImageUrls: [
             ...((moodboard?.references?.map((r) => r.imageUrl).filter(Boolean) as string[]) || []),
@@ -1822,6 +1824,7 @@ RULES:
     ...((currentMoodboard?.mustInclude || []).map((item) => ({ ...item, kind: "must-include" as const }))),
     ...((currentMoodboard?.furnitureReferences || []).map((item) => ({ ...item, kind: "furniture" as const }))),
     ...((currentMoodboard?.decorReferences || []).map((item) => ({ ...item, kind: "decor" as const }))),
+    ...((currentMoodboard?.architectureReferences || []).map((item) => ({ ...item, kind: "material" as const }))),
     ...((currentMoodboard?.materials || []).map((item) => ({ ...item, kind: "material" as const }))),
   ];
 
