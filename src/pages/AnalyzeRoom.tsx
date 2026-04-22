@@ -248,6 +248,21 @@ const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(() =
       stylePreference: selectedStyle.styleName.toLowerCase().replace(/\s+/g, "-"),
       colorPalette: "neutral",
     });
+    // Treat must-include items the same way the "Start with products" flow does:
+    // pass them as `selectedProducts` + `productImageUrls` (with `includeProducts: true`)
+    // so they get the highest visual weight in generate-design.
+    const mustIncludeProducts = (moodboard.mustInclude || [])
+      .filter((m) => m.imageUrl)
+      .map((m) => ({
+        productName: m.label || "Must-include item",
+        category: "must-include",
+        suggestedStyle: selectedStyle.styleName,
+        description: `User pinned must-include: ${m.label || "item"}`,
+      }));
+    const mustIncludeImages = (moodboard.mustInclude || [])
+      .map((m) => m.imageUrl)
+      .filter(Boolean) as string[];
+
     navigate("/generate", {
       state: {
         selectedStyle: {
@@ -256,7 +271,12 @@ const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(() =
           description: selectedStyle.description,
         },
         analysisResult: { ...analysisResult, dominantColors: editableColors },
-        sourceImages: uploadedImages,
+        sourceImages: mustIncludeImages.length > 0 ? mustIncludeImages : uploadedImages,
+        productAnalysis:
+          mustIncludeProducts.length > 0
+            ? { products: mustIncludeProducts, recommendedStyle: selectedStyle.styleName, styleDescription: selectedStyle.description, moodboardSuggestion: "" }
+            : undefined,
+        includeProducts: mustIncludeProducts.length > 0,
         selectedInspirations: allInspirations,
         inspirationDetails: allInspirations.map(id => aggregatedDetailsMap[id]).filter(Boolean),
         moodboard: {
