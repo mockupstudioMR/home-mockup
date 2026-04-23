@@ -827,10 +827,6 @@ const MoodboardRefinePanel = ({
                   const hex = isHex(item.label);
                   const markedForRemoval = pending.removals.includes(item.label);
                   const pinnedByUser = isPinned(item);
-                  // Pin toggle is available on every item except those that
-                  // were originally tagged "must-include" (they're inherent
-                  // pins coming from the source data).
-                  const canTogglePin = item.kind !== "must-include";
                   return (
                     <Popover key={`${kind}-${item.label}`}>
                       <PopoverTrigger asChild>
@@ -874,43 +870,43 @@ const MoodboardRefinePanel = ({
                                 Used
                               </div>
                             )}
-                            {kind === "must-include" && (
-                              <div className="absolute top-1 right-1 bg-primary text-primary-foreground rounded-full px-1.5 py-0.5 flex items-center gap-1 text-[9px] font-medium shadow-sm">
-                                <Pin className="w-2.5 h-2.5" />
-                                {pinnedByUser ? "Pinned" : "Lock"}
-                              </div>
-                            )}
-                            {/* Quick-pin toggle, visible on hover for non-
-                                must-include items. Stops the popover from
-                                opening so it acts as a one-click pin. */}
-                            {canTogglePin && (
-                              <span
-                                role="button"
-                                tabIndex={0}
-                                aria-label={pinnedByUser ? "Unpin from Must-include" : "Pin to Must-include"}
-                                onClick={(e) => {
+                            {/* Always-visible Keep / Kept pin pill — click to
+                                toggle pin state for ANY item. Stops the
+                                popover from opening so it acts as a direct
+                                one-click toggle. */}
+                            <span
+                              role="button"
+                              tabIndex={0}
+                              aria-pressed={pinnedByUser}
+                              aria-label={pinnedByUser ? "Unpin (remove from Must-include)" : "Keep (pin to Must-include)"}
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                togglePin(item);
+                              }}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter" || e.key === " ") {
                                   e.preventDefault();
                                   e.stopPropagation();
                                   togglePin(item);
-                                }}
-                                onKeyDown={(e) => {
-                                  if (e.key === "Enter" || e.key === " ") {
-                                    e.preventDefault();
-                                    e.stopPropagation();
-                                    togglePin(item);
-                                  }
-                                }}
+                                }
+                              }}
+                              className={cn(
+                                "absolute top-1 right-1 z-10 rounded-full px-1.5 py-0.5 flex items-center gap-1 text-[9px] font-semibold shadow-sm cursor-pointer transition-colors",
+                                pinnedByUser
+                                  ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                                  : "bg-background/90 text-foreground/80 hover:bg-primary hover:text-primary-foreground",
+                              )}
+                              title={pinnedByUser ? "Pinned — click to unpin" : "Click to keep this item"}
+                            >
+                              <Pin
                                 className={cn(
-                                  "absolute top-1 right-1 w-5 h-5 rounded-full flex items-center justify-center shadow-sm transition-all cursor-pointer",
-                                  pinnedByUser
-                                    ? "bg-primary text-primary-foreground opacity-100"
-                                    : "bg-background/90 text-foreground/70 opacity-0 group-hover:opacity-100 hover:bg-primary hover:text-primary-foreground",
+                                  "w-2.5 h-2.5",
+                                  pinnedByUser && "fill-current",
                                 )}
-                                title={pinnedByUser ? "Unpin from Must-include" : "Pin to Must-include"}
-                              >
-                                <Pin className="w-2.5 h-2.5" />
-                              </span>
-                            )}
+                              />
+                              {pinnedByUser ? "Kept" : "Keep"}
+                            </span>
                             {markedForRemoval && (
                               <div className="absolute inset-0 bg-destructive/20 flex items-center justify-center">
                                 <span className="px-1.5 py-0.5 rounded-full bg-destructive text-destructive-foreground text-[9px] font-medium flex items-center gap-1 shadow">
