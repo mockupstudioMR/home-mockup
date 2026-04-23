@@ -632,7 +632,7 @@ const MoodboardRefinePanel = ({
           <span className="text-[10px] text-muted-foreground">What you provided</span>
         </div>
 
-        {SECTIONS.map(({ kind, title, addLabel: addBtn }) => {
+        {SECTIONS.filter((s) => visibleKinds.includes(s.kind)).map(({ kind, title, addLabel: addBtn }) => {
           const list = grouped[kind];
           if (list.length === 0 && kind === "material") {
             // material section can be sparse — still show add button
