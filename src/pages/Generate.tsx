@@ -1388,7 +1388,12 @@ const Generate = () => {
     [user, toast]
   );
 
-  const handleModify = async (modificationType?: string, explicitPrompt?: string, explicitReferenceUrl?: string | null) => {
+  const handleModify = async (
+    modificationType?: string,
+    explicitPrompt?: string,
+    explicitReferenceUrl?: string | null,
+    layerInfo?: { layer: "architecture" | "furniture" | "decor"; lockedLayers: string[] },
+  ) => {
     const promptToUse = (explicitPrompt ?? modificationInput).trim();
     if (!promptToUse || !quizData || !design) return;
 
@@ -1402,6 +1407,8 @@ const Generate = () => {
           sourceImageUrl: design.imageUrl,
           referenceImageUrl: explicitReferenceUrl !== undefined ? explicitReferenceUrl : referenceImageUrl,
           existingRoomImages: existingRoomImages.length > 0 ? existingRoomImages : undefined,
+          refinementLayer: layerInfo?.layer,
+          lockedLayers: layerInfo?.lockedLayers,
         },
       });
 
