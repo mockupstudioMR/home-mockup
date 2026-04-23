@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import { X, Plus, Check, Pencil, Sparkles, Image as ImageIcon, Blend, Upload, Loader2 } from "lucide-react";
+import { X, Plus, Check, Pencil, Sparkles, Image as ImageIcon, Blend, Upload, Loader2, Pin } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { getThumbnailImageUrl, optimizeImageFile } from "@/lib/imageOptimization";
@@ -368,6 +368,28 @@ const ConclusionVisuals = ({
         return [...prev, { label, imageUrl: parsed.imageUrl || undefined }];
       });
     } catch { /* ignore */ }
+  };
+
+  // Promote any reference chip into the Must-include section. Mirrors the
+  // drag-and-drop flow but is triggered by the on-card Pin button so the
+  // interaction works on touch and for users who don't discover the drag.
+  const pinToMustInclude = (
+    item: { label: string; imageUrl?: string },
+    origin: "furniture" | "decor" | "architecture",
+  ) => {
+    const label = (item.label || "").trim();
+    if (!label) return;
+    if (origin === "furniture") {
+      setFurnitureReferences((prev) => prev.filter((m) => m.label.toLowerCase() !== label.toLowerCase()));
+    } else if (origin === "decor") {
+      setDecorReferences((prev) => prev.filter((m) => m.label.toLowerCase() !== label.toLowerCase()));
+    } else if (origin === "architecture") {
+      setArchitectureReferences((prev) => prev.filter((m) => m.label.toLowerCase() !== label.toLowerCase()));
+    }
+    setMustInclude((prev) => {
+      if (prev.some((m) => m.label.toLowerCase() === label.toLowerCase())) return prev;
+      return [...prev, { label, imageUrl: item.imageUrl || undefined }];
+    });
   };
 
 
@@ -747,13 +769,13 @@ const ConclusionVisuals = ({
           )}
         >
           {/* Pinned must-include items appear first, with a pin marker */}
-          {mustInclude.map((item) => {
+          {mustInclude.map((item, idx) => {
             let h = 0;
             for (let i = 0; i < item.label.length; i++) h = (h * 31 + item.label.charCodeAt(i)) >>> 0;
             const rot = ((h % 500) / 500) * 5 - 2.5;
             return item.imageUrl ? (
               <div
-                key={`must-${item.label}`}
+                key={`must-${idx}-${item.label}`}
                 className="group relative w-28 cursor-grab active:cursor-grabbing"
                 style={{ transform: `rotate(${rot}deg)` }}
                 draggable
@@ -765,7 +787,15 @@ const ConclusionVisuals = ({
                     aria-hidden
                     className="absolute -top-2 left-1/2 -translate-x-1/2 w-3 h-3 rounded-full bg-primary shadow-[0_1px_2px_hsl(var(--foreground)/0.4),inset_-1px_-1px_2px_hsl(var(--foreground)/0.3),inset_1px_1px_2px_hsl(0_0%_100%/0.4)] z-10"
                   />
-                  <span className="absolute top-1 left-1 z-10 px-1.5 py-0.5 rounded-sm bg-primary/90 text-primary-foreground text-[9px] uppercase tracking-wider font-semibold">Keep</span>
+                  <button
+                    type="button"
+                    onClick={() => removeMustInclude(item.label)}
+                    className="absolute top-1 left-1 z-10 inline-flex items-center gap-1 px-1.5 py-0.5 rounded-sm bg-primary text-primary-foreground text-[9px] uppercase tracking-wider font-semibold shadow-sm hover:bg-primary/80"
+                    title="Pinned — click to unpin"
+                    aria-pressed="true"
+                  >
+                    <Pin className="w-2.5 h-2.5 fill-current" /> Kept
+                  </button>
                   <div className="aspect-square overflow-hidden bg-muted/40 relative">
                     <img src={getThumbnailImageUrl(item.imageUrl)} alt={item.label} className="w-full h-full object-cover" loading="lazy" decoding="async" />
                     <button
@@ -784,7 +814,7 @@ const ConclusionVisuals = ({
               </div>
             ) : (
               <VisualChip
-                key={`must-${item.label}`}
+                key={`must-${idx}-${item.label}`}
                 label={item.label}
                 kind="material"
                 styleSlug={styleSlug}
@@ -797,13 +827,13 @@ const ConclusionVisuals = ({
               />
             );
           })}
-          {furnitureReferences.map((item) => {
+          {furnitureReferences.map((item, idx) => {
             let h = 0;
             for (let i = 0; i < item.label.length; i++) h = (h * 31 + item.label.charCodeAt(i)) >>> 0;
             const rot = ((h % 500) / 500) * 5 - 2.5;
             return (
               <div
-                key={item.label}
+                key={`furn-${idx}-${item.label}`}
                 className="group relative w-28 cursor-grab active:cursor-grabbing"
                 style={{ transform: `rotate(${rot}deg)` }}
                 draggable
@@ -816,6 +846,15 @@ const ConclusionVisuals = ({
                     aria-hidden
                     className="absolute -top-1.5 left-1/2 -translate-x-1/2 w-12 h-3 -rotate-3 bg-secondary/80 border border-border/40 rounded-[2px] shadow-sm z-10"
                   />
+                  <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); pinToMustInclude(item, "furniture"); }}
+                    className="absolute top-1 left-1 z-10 inline-flex items-center gap-1 px-1.5 py-0.5 rounded-sm bg-background/90 text-foreground/80 text-[9px] uppercase tracking-wider font-semibold shadow-sm opacity-0 group-hover:opacity-100 hover:bg-primary hover:text-primary-foreground transition"
+                    title="Pin to Must-include"
+                    aria-pressed="false"
+                  >
+                    <Pin className="w-2.5 h-2.5" /> Keep
+                  </button>
                   <div className="aspect-square overflow-hidden bg-muted/40 relative">
                     {item.imageUrl && (
                       <img src={getThumbnailImageUrl(item.imageUrl)} alt={item.label} className="w-full h-full object-cover" loading="lazy" decoding="async" />
@@ -919,13 +958,13 @@ const ConclusionVisuals = ({
             isDecorDropActive && "bg-primary/5 ring-2 ring-primary/40 ring-dashed",
           )}
         >
-          {decorReferences.map((item) => {
+          {decorReferences.map((item, idx) => {
             let h = 0;
             for (let i = 0; i < item.label.length; i++) h = (h * 31 + item.label.charCodeAt(i)) >>> 0;
             const rot = ((h % 500) / 500) * 5 - 2.5;
             return (
               <div
-                key={item.label}
+                key={`decor-${idx}-${item.label}`}
                 className="group relative w-28 cursor-grab active:cursor-grabbing"
                 style={{ transform: `rotate(${rot}deg)` }}
                 draggable
@@ -937,6 +976,15 @@ const ConclusionVisuals = ({
                     aria-hidden
                     className="absolute -top-1.5 left-1/2 -translate-x-1/2 w-12 h-3 rotate-3 bg-accent/80 border border-border/40 rounded-[2px] shadow-sm z-10"
                   />
+                  <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); pinToMustInclude(item, "decor"); }}
+                    className="absolute top-1 left-1 z-10 inline-flex items-center gap-1 px-1.5 py-0.5 rounded-sm bg-background/90 text-foreground/80 text-[9px] uppercase tracking-wider font-semibold shadow-sm opacity-0 group-hover:opacity-100 hover:bg-primary hover:text-primary-foreground transition"
+                    title="Pin to Must-include"
+                    aria-pressed="false"
+                  >
+                    <Pin className="w-2.5 h-2.5" /> Keep
+                  </button>
                   <div className="aspect-square overflow-hidden bg-muted/40 relative">
                     {item.imageUrl && (
                       <img src={getThumbnailImageUrl(item.imageUrl)} alt={item.label} className="w-full h-full object-cover" loading="lazy" decoding="async" />
@@ -1016,13 +1064,13 @@ const ConclusionVisuals = ({
             isArchitectureDropActive && "bg-primary/5 ring-2 ring-primary/40 ring-dashed",
           )}
         >
-          {architectureReferences.map((item) => {
+          {architectureReferences.map((item, idx) => {
             let h = 0;
             for (let i = 0; i < item.label.length; i++) h = (h * 31 + item.label.charCodeAt(i)) >>> 0;
             const rot = ((h % 500) / 500) * 5 - 2.5;
             return (
               <div
-                key={item.label}
+                key={`arch-${idx}-${item.label}`}
                 className="group relative w-28 cursor-grab active:cursor-grabbing"
                 style={{ transform: `rotate(${rot}deg)` }}
                 draggable
@@ -1034,6 +1082,15 @@ const ConclusionVisuals = ({
                     aria-hidden
                     className="absolute -top-1.5 left-1/2 -translate-x-1/2 w-12 h-3 -rotate-2 bg-muted border border-border/40 rounded-[2px] shadow-sm z-10"
                   />
+                  <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); pinToMustInclude(item, "architecture"); }}
+                    className="absolute top-1 left-1 z-10 inline-flex items-center gap-1 px-1.5 py-0.5 rounded-sm bg-background/90 text-foreground/80 text-[9px] uppercase tracking-wider font-semibold shadow-sm opacity-0 group-hover:opacity-100 hover:bg-primary hover:text-primary-foreground transition"
+                    title="Pin to Must-include"
+                    aria-pressed="false"
+                  >
+                    <Pin className="w-2.5 h-2.5" /> Keep
+                  </button>
                   <div className="aspect-square overflow-hidden bg-muted/40 relative">
                     {item.imageUrl && (
                       <img src={getThumbnailImageUrl(item.imageUrl)} alt={item.label} className="w-full h-full object-cover" loading="lazy" decoding="async" />
