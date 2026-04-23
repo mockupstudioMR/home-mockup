@@ -2107,7 +2107,7 @@ RULES:
             }))}
             modificationInput={modificationInput}
             onModificationInputChange={setModificationInput}
-            onModify={(type, prefill) => handleModify(type, prefill)}
+            onModify={(type, prefill, layerInfo) => handleModify(type, prefill, undefined, layerInfo)}
             onRegenerate={() => generateDesign()}
             onUndo={handleUndoDesign}
             canUndo={imageHistoryStack.length > 0}
