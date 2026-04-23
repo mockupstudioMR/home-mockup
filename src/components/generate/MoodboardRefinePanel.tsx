@@ -986,17 +986,20 @@ const MoodboardRefinePanel = ({
                           <ListChecks className="w-3.5 h-3.5" />
                           {markedForRemoval ? "Unmark removal" : "Mark for removal"}
                         </button>
-                        {canTogglePin && (
-                          <button
-                            type="button"
-                            onClick={() => togglePin(item)}
-                            disabled={disabled}
-                            className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm hover:bg-accent transition-colors"
-                          >
-                            <Pin className="w-3.5 h-3.5" />
-                            {pinnedByUser ? "Unpin from Must-include" : "Pin to Must-include"}
-                          </button>
-                        )}
+                        <button
+                          type="button"
+                          onClick={() => togglePin(item)}
+                          disabled={disabled}
+                          className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm hover:bg-accent transition-colors"
+                        >
+                          <Pin
+                            className={cn(
+                              "w-3.5 h-3.5",
+                              pinnedByUser && "fill-current text-primary",
+                            )}
+                          />
+                          {pinnedByUser ? "Kept — click to unpin" : "Keep (pin to Must-include)"}
+                        </button>
                       </PopoverContent>
                     </Popover>
                   );
