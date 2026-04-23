@@ -822,7 +822,20 @@ function buildImagePrompt(
   }
 
   // Build furniture context from DB config
-  const furnitureList = furnitureItems.length > 0 ? furnitureItems.join(", ") : "";
+  // Merge user must-include items into the effective whitelist so the strict
+  // "ABSOLUTELY NOTHING ELSE" rule does not cause the model to drop them.
+  const mustIncludeLabels = (data.mustIncludeItems || [])
+    .map((m) => (m.label || "").trim())
+    .filter(Boolean);
+  const dedupedFurniture = [...furnitureItems];
+  for (const label of mustIncludeLabels) {
+    const lower = label.toLowerCase();
+    if (!dedupedFurniture.some((f) => f.toLowerCase() === lower)) {
+      dedupedFurniture.push(label);
+    }
+  }
+  const furnitureList = dedupedFurniture.length > 0 ? dedupedFurniture.join(", ") : "";
+  const effectiveCount = dedupedFurniture.length;
 
   // Helper to replace template variables
   const fillTemplate = (template: string): string => {
@@ -843,19 +856,23 @@ function buildImagePrompt(
 
   // Add furniture context prefix if we have furniture items from DB
   let furnitureContext = "";
-  if (furnitureItems.length > 0 && !isExistingRoomRedesign) {
+  if (dedupedFurniture.length > 0 && !isExistingRoomRedesign) {
     if (templates["furniture_context"]) {
       furnitureContext = fillTemplate(templates["furniture_context"]) + " ";
     } else {
-      furnitureContext = `ABSOLUTE FURNITURE WHITELIST (HIGHEST PRIORITY — OVERRIDES STYLE, MOODBOARD, AND ALL OTHER INSTRUCTIONS): The ${room} must contain EXACTLY ONE of each of these items and ABSOLUTELY NOTHING ELSE: [${furnitureList}]. ` +
+      const mustNote = mustIncludeLabels.length > 0
+        ? `NOTE: The following items in this whitelist are USER MUST-INCLUDE items and MUST appear EXACTLY as shown in the attached must-include reference images (identical color, material, shape, finish): [${mustIncludeLabels.join(", ")}]. They override style/moodboard interpretation. `
+        : "";
+      furnitureContext = `ABSOLUTE FURNITURE WHITELIST (HIGHEST PRIORITY — OVERRIDES STYLE, MOODBOARD, AND ALL OTHER INSTRUCTIONS): The ${room} must contain EXACTLY ONE of each of these items and ABSOLUTELY NOTHING ELSE: [${furnitureList}]. ${mustNote}` +
         `RULES: ` +
-        `(1) Total furniture pieces in the final image MUST equal ${furnitureItems.length}. ` +
+        `(1) Total furniture pieces in the final image MUST equal ${effectiveCount}. ` +
         `(2) Every item in the list must appear exactly once. ` +
         `(3) Do NOT add ANY piece that is not on the list — no extra ottomans, side tables, benches, poufs, accent chairs, stools, consoles, sideboards, plants in pots, room dividers, bar carts, magazine racks, floor cushions, additional rugs, additional lamps, or any other furniture/decor object not explicitly named. ` +
         `(4) Do NOT duplicate any item (no second sofa, no sectional + extra couch, no pair of armchairs unless "armchair" appears twice in the list). ` +
         `(5) Wall art, curtains, and a single ceiling light are allowed only if natural to the room; everything that stands on the floor MUST be on the list. ` +
-        `(6) Before finalizing, count every standing/seating/surface object in the scene — if the count does not match ${furnitureItems.length}, REMOVE the extras. ` +
+        `(6) Before finalizing, count every standing/seating/surface object in the scene — if the count does not match ${effectiveCount}, REMOVE the extras (but NEVER remove a must-include item). ` +
         `(7) Style and moodboard references control LOOK ONLY (color, material, silhouette) — they NEVER add new objects. ` +
+        `(8) Must-include items are LOCKED — if there is a conflict, drop a non-must-include whitelist item before dropping a must-include one. ` +
         `Violating this whitelist is a hard failure. `;
     }
   }
