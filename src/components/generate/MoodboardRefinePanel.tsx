@@ -512,7 +512,7 @@ const MoodboardRefinePanel = ({
           </div>
         </div>
 
-        {(inDesign.furniture.length > 0 || inDesign.decor.length > 0) && (
+        {(inDesign.furniture.length > 0 || inDesign.decor.length > 0 || inDesign.architecture.length > 0) && (
           <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 space-y-4">
             <div className="flex items-center justify-between">
               <p className="text-[11px] uppercase tracking-wide text-primary font-semibold flex items-center gap-1.5">
@@ -520,14 +520,15 @@ const MoodboardRefinePanel = ({
                 In your design
               </p>
               <span className="text-[10px] text-muted-foreground">
-                {inDesign.furniture.length + inDesign.decor.length} items detected
+                {inDesign.furniture.length + inDesign.decor.length + inDesign.architecture.length} items detected
               </span>
             </div>
 
             {([
+              { title: "Architecture", list: inDesign.architecture, fallbackIcon: Building2, layer: "architecture" as DesignLayer },
               { title: "Furniture", list: inDesign.furniture, fallbackIcon: Sofa, layer: "furniture" as DesignLayer },
               { title: "Decor", list: inDesign.decor, fallbackIcon: Lamp, layer: "decor" as DesignLayer },
-            ] as const).filter(({ layer }) => activeLayer === "architecture" || activeLayer === layer).map(({ title, list, fallbackIcon: FallbackIcon }) =>
+            ] as const).filter(({ layer }) => activeLayer === layer).map(({ title, list, fallbackIcon: FallbackIcon }) =>
               list.length === 0 ? null : (
                 <div key={title}>
                   <p className="text-[10px] uppercase tracking-wide text-muted-foreground font-medium mb-2">
