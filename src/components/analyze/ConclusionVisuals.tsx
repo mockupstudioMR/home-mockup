@@ -769,13 +769,13 @@ const ConclusionVisuals = ({
           )}
         >
           {/* Pinned must-include items appear first, with a pin marker */}
-          {mustInclude.map((item) => {
+          {mustInclude.map((item, idx) => {
             let h = 0;
             for (let i = 0; i < item.label.length; i++) h = (h * 31 + item.label.charCodeAt(i)) >>> 0;
             const rot = ((h % 500) / 500) * 5 - 2.5;
             return item.imageUrl ? (
               <div
-                key={`must-${item.label}`}
+                key={`must-${idx}-${item.label}`}
                 className="group relative w-28 cursor-grab active:cursor-grabbing"
                 style={{ transform: `rotate(${rot}deg)` }}
                 draggable
@@ -787,7 +787,15 @@ const ConclusionVisuals = ({
                     aria-hidden
                     className="absolute -top-2 left-1/2 -translate-x-1/2 w-3 h-3 rounded-full bg-primary shadow-[0_1px_2px_hsl(var(--foreground)/0.4),inset_-1px_-1px_2px_hsl(var(--foreground)/0.3),inset_1px_1px_2px_hsl(0_0%_100%/0.4)] z-10"
                   />
-                  <span className="absolute top-1 left-1 z-10 px-1.5 py-0.5 rounded-sm bg-primary/90 text-primary-foreground text-[9px] uppercase tracking-wider font-semibold">Keep</span>
+                  <button
+                    type="button"
+                    onClick={() => removeMustInclude(item.label)}
+                    className="absolute top-1 left-1 z-10 inline-flex items-center gap-1 px-1.5 py-0.5 rounded-sm bg-primary text-primary-foreground text-[9px] uppercase tracking-wider font-semibold shadow-sm hover:bg-primary/80"
+                    title="Pinned — click to unpin"
+                    aria-pressed="true"
+                  >
+                    <Pin className="w-2.5 h-2.5 fill-current" /> Kept
+                  </button>
                   <div className="aspect-square overflow-hidden bg-muted/40 relative">
                     <img src={getThumbnailImageUrl(item.imageUrl)} alt={item.label} className="w-full h-full object-cover" loading="lazy" decoding="async" />
                     <button
@@ -806,7 +814,7 @@ const ConclusionVisuals = ({
               </div>
             ) : (
               <VisualChip
-                key={`must-${item.label}`}
+                key={`must-${idx}-${item.label}`}
                 label={item.label}
                 kind="material"
                 styleSlug={styleSlug}
