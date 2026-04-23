@@ -83,6 +83,15 @@ const LAYER_KINDS: Record<DesignLayer, MoodboardItemKind[]> = {
 const DECOR_TYPE_RE_GLOBAL =
   /(lamp|light|rug|art|plant|pillow|cushion|throw|mirror|vase|accessor|decor|textile|curtain|drape|sconce|chandelier|pendant|candle|book|frame)/i;
 
+// Label-based architectural detection — anything mentioning a wall, ceiling,
+// floor, trim, molding, paint, wallpaper, panel, tile, etc. belongs to the
+// Architecture layer regardless of how the source kind was tagged.
+const ARCHITECTURE_LABEL_RE =
+  /(wall|ceiling|floor|flooring|trim|molding|moulding|baseboard|skirting|wainscot|paneling|panelling|paint|wallpaper|tile|tiling|plaster|stucco|brick|concrete|hardwood|parquet|laminate|vinyl|carpet|cornice|crown|beam|rafter|cladding)/i;
+
+const isArchitecturalItem = (item: MoodboardItem) =>
+  item.kind === "material" || ARCHITECTURE_LABEL_RE.test(item.label);
+
 interface MoodboardRefinePanelProps {
   items: MoodboardItem[];
   onAction: (action: MoodboardAction) => void;
@@ -289,10 +298,18 @@ const MoodboardRefinePanel = ({
       material: [],
     };
     items.forEach((it) => {
-      g[it.kind].push({
+      const enriched = {
         ...it,
         used: detectUsed(it, designDescription, extractedItemNames),
-      });
+      };
+      // Reclassify architectural items (walls, ceilings, floors, finishes…)
+      // into the "material" bucket so they show up in the Architecture layer
+      // even if the source tagged them as decor/furniture.
+      if (isArchitecturalItem(it) && it.kind !== "must-include") {
+        g.material.push(enriched);
+      } else {
+        g[it.kind].push(enriched);
+      }
     });
     return g;
   }, [items, designDescription, extractedItemNames]);
@@ -305,12 +322,14 @@ const MoodboardRefinePanel = ({
   const inDesign = useMemo(() => {
     const furniture: typeof extractedItems = [];
     const decor: typeof extractedItems = [];
+    const architecture: typeof extractedItems = [];
     for (const it of extractedItems) {
       const blob = `${it.item_type || ""} ${it.item_name || ""}`;
-      if (DECOR_TYPE_RE.test(blob)) decor.push(it);
+      if (ARCHITECTURE_LABEL_RE.test(blob)) architecture.push(it);
+      else if (DECOR_TYPE_RE.test(blob)) decor.push(it);
       else furniture.push(it);
     }
-    return { furniture, decor };
+    return { furniture, decor, architecture };
   }, [extractedItems]);
 
   const uploadOne = async (
@@ -493,7 +512,7 @@ const MoodboardRefinePanel = ({
           </div>
         </div>
 
-        {(inDesign.furniture.length > 0 || inDesign.decor.length > 0) && (
+        {(inDesign.furniture.length > 0 || inDesign.decor.length > 0 || inDesign.architecture.length > 0) && (
           <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 space-y-4">
             <div className="flex items-center justify-between">
               <p className="text-[11px] uppercase tracking-wide text-primary font-semibold flex items-center gap-1.5">
@@ -501,14 +520,15 @@ const MoodboardRefinePanel = ({
                 In your design
               </p>
               <span className="text-[10px] text-muted-foreground">
-                {inDesign.furniture.length + inDesign.decor.length} items detected
+                {inDesign.furniture.length + inDesign.decor.length + inDesign.architecture.length} items detected
               </span>
             </div>
 
             {([
+              { title: "Architecture", list: inDesign.architecture, fallbackIcon: Building2, layer: "architecture" as DesignLayer },
               { title: "Furniture", list: inDesign.furniture, fallbackIcon: Sofa, layer: "furniture" as DesignLayer },
               { title: "Decor", list: inDesign.decor, fallbackIcon: Lamp, layer: "decor" as DesignLayer },
-            ] as const).filter(({ layer }) => activeLayer === "architecture" || activeLayer === layer).map(({ title, list, fallbackIcon: FallbackIcon }) =>
+            ] as const).filter(({ layer }) => activeLayer === layer).map(({ title, list, fallbackIcon: FallbackIcon }) =>
               list.length === 0 ? null : (
                 <div key={title}>
                   <p className="text-[10px] uppercase tracking-wide text-muted-foreground font-medium mb-2">
