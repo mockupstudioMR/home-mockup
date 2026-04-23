@@ -744,27 +744,33 @@ const ConclusionVisuals = ({
         backgroundPosition: "0 0, 7px 11px",
       }}
     >
-      {/* Furniture References — AI-generated + uploads, inspiration, "use similar" */}
+      {/* Must-include — pinned items the design MUST keep */}
       <div>
         <div className="mb-3">
-          <span className="inline-block px-3 py-1 text-[11px] uppercase tracking-wider font-semibold bg-secondary/80 text-foreground/80 rounded-[2px] rotate-1 shadow-sm border border-border/40">
-            Furniture
+          <span className="inline-block px-3 py-1 text-[11px] uppercase tracking-wider font-semibold bg-primary/80 text-primary-foreground rounded-[2px] -rotate-1 shadow-sm border border-border/40">
+            Must-include
           </span>
-          <span className="ml-2 text-[11px] text-muted-foreground italic font-serif">— pinned items we'll keep + AI inspiration in your style</span>
+          <span className="ml-2 text-[11px] text-muted-foreground italic font-serif">— pieces we'll design around. Drag here from any section, or click <Pin className="inline w-2.5 h-2.5" /> Keep on a chip.</span>
         </div>
         <div
           onDragOver={(e) => {
-            handleReferenceDragOver(e, "furniture");
-            if (e.dataTransfer.types.includes(MOODBOARD_DRAG_MIME)) setIsMustIncludeDropActive(true);
+            if (e.dataTransfer.types.includes(MOODBOARD_DRAG_MIME)) {
+              e.preventDefault();
+              setIsMustIncludeDropActive(true);
+            }
           }}
-          onDragLeave={() => { setIsFurnitureDropActive(false); setIsMustIncludeDropActive(false); }}
-          onDrop={(e) => handleReferenceDrop(e, "furniture", setFurnitureReferences, setUploadingFurnitureRef)}
+          onDragLeave={() => setIsMustIncludeDropActive(false)}
+          onDrop={handleMustIncludeDrop}
           className={cn(
-            "flex flex-wrap gap-4 items-start rounded-lg p-2 -m-2 transition-colors pt-3",
-            isFurnitureDropActive && "bg-primary/5 ring-2 ring-primary/40 ring-dashed",
+            "flex flex-wrap gap-4 items-start rounded-lg p-2 -m-2 transition-colors pt-3 min-h-[6rem]",
+            isMustIncludeDropActive && "bg-primary/10 ring-2 ring-primary/50 ring-dashed",
           )}
         >
-          {/* Pinned must-include items appear first, with a pin marker */}
+          {mustInclude.length === 0 && (
+            <div className="text-[11px] text-muted-foreground italic font-serif px-2 py-6">
+              No must-keeps yet — pin a chip from Furniture, Decor or Architecture below.
+            </div>
+          )}
           {mustInclude.map((item, idx) => {
             let h = 0;
             for (let i = 0; i < item.label.length; i++) h = (h * 31 + item.label.charCodeAt(i)) >>> 0;
@@ -823,6 +829,29 @@ const ConclusionVisuals = ({
               />
             );
           })}
+        </div>
+      </div>
+
+      {/* Furniture References — AI-generated + uploads, inspiration, "use similar" */}
+      <div>
+        <div className="mb-3">
+          <span className="inline-block px-3 py-1 text-[11px] uppercase tracking-wider font-semibold bg-secondary/80 text-foreground/80 rounded-[2px] rotate-1 shadow-sm border border-border/40">
+            Furniture
+          </span>
+          <span className="ml-2 text-[11px] text-muted-foreground italic font-serif">— AI inspiration in your style. Click Keep to pin into Must-include above.</span>
+        </div>
+        <div
+          onDragOver={(e) => {
+            handleReferenceDragOver(e, "furniture");
+            if (e.dataTransfer.types.includes(MOODBOARD_DRAG_MIME)) setIsMustIncludeDropActive(true);
+          }}
+          onDragLeave={() => { setIsFurnitureDropActive(false); setIsMustIncludeDropActive(false); }}
+          onDrop={(e) => handleReferenceDrop(e, "furniture", setFurnitureReferences, setUploadingFurnitureRef)}
+          className={cn(
+            "flex flex-wrap gap-4 items-start rounded-lg p-2 -m-2 transition-colors pt-3",
+            isFurnitureDropActive && "bg-primary/5 ring-2 ring-primary/40 ring-dashed",
+          )}
+        >
           {furnitureReferences.map((item, idx) => {
             let h = 0;
             for (let i = 0; i < item.label.length; i++) h = (h * 31 + item.label.charCodeAt(i)) >>> 0;
