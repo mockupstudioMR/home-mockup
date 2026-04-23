@@ -251,6 +251,41 @@ const MoodboardRefinePanel = ({
 
   const [activeMode, setActiveMode] = useState<ModificationType>("color_material");
 
+  // User-pinned overrides: any item whose original `kind|label` key is in this
+  // set is promoted into the Must-include section, regardless of its source
+  // kind. Persisted across reloads so pins survive regeneration.
+  const PIN_STORAGE_KEY = "generate_pinned_moodboard";
+  const [pinnedKeys, setPinnedKeys] = useState<Set<string>>(() => {
+    try {
+      const raw = sessionStorage.getItem(PIN_STORAGE_KEY);
+      if (!raw) return new Set();
+      const arr = JSON.parse(raw);
+      return new Set(Array.isArray(arr) ? arr : []);
+    } catch {
+      return new Set();
+    }
+  });
+  const persistPinned = (next: Set<string>) => {
+    try {
+      sessionStorage.setItem(PIN_STORAGE_KEY, JSON.stringify(Array.from(next)));
+    } catch {
+      /* ignore */
+    }
+  };
+  const pinKey = (item: MoodboardItem) =>
+    `${item.kind}|${item.label.toLowerCase()}`;
+  const isPinned = (item: MoodboardItem) => pinnedKeys.has(pinKey(item));
+  const togglePin = (item: MoodboardItem) => {
+    setPinnedKeys((prev) => {
+      const next = new Set(prev);
+      const k = pinKey(item);
+      if (next.has(k)) next.delete(k);
+      else next.add(k);
+      persistPinned(next);
+      return next;
+    });
+  };
+
   // Layered refinement: which layer the user is currently editing + lock toggle.
   const [activeLayer, setActiveLayer] = useState<DesignLayer>(() => {
     try {
@@ -409,9 +444,15 @@ const MoodboardRefinePanel = ({
         ...it,
         used: detectUsed(it, designDescription, extractedItemNames),
       };
-      // Reclassify architectural items (walls, ceilings, floors, finishes…)
-      // into the "material" bucket so they show up in the Architecture layer
-      // even if the source tagged them as decor/furniture.
+      // 1) User-pinned items are promoted into Must-include regardless of
+      //    their original kind.
+      if (pinnedKeys.has(`${it.kind}|${it.label.toLowerCase()}`)) {
+        g["must-include"].push(enriched);
+        return;
+      }
+      // 2) Reclassify architectural items (walls, ceilings, floors, finishes…)
+      //    into the "material" bucket so they show up in the Architecture layer
+      //    even if the source tagged them as decor/furniture.
       if (isArchitecturalItem(it) && it.kind !== "must-include") {
         g.material.push(enriched);
       } else {
@@ -419,7 +460,7 @@ const MoodboardRefinePanel = ({
       }
     });
     return g;
-  }, [items, designDescription, extractedItemNames]);
+  }, [items, designDescription, extractedItemNames, pinnedKeys]);
 
   const usedCount = items.filter((it) =>
     detectUsed(it, designDescription, extractedItemNames),
@@ -778,6 +819,11 @@ const MoodboardRefinePanel = ({
                   const Icon = KIND_ICON[item.kind];
                   const hex = isHex(item.label);
                   const markedForRemoval = pending.removals.includes(item.label);
+                  const pinnedByUser = isPinned(item);
+                  // Pin toggle is available on every item except those that
+                  // were originally tagged "must-include" (they're inherent
+                  // pins coming from the source data).
+                  const canTogglePin = item.kind !== "must-include";
                   return (
                     <Popover key={`${kind}-${item.label}`}>
                       <PopoverTrigger asChild>
@@ -823,9 +869,40 @@ const MoodboardRefinePanel = ({
                             )}
                             {kind === "must-include" && (
                               <div className="absolute top-1 right-1 bg-primary text-primary-foreground rounded-full px-1.5 py-0.5 flex items-center gap-1 text-[9px] font-medium shadow-sm">
-                                <Lock className="w-2.5 h-2.5" />
-                                Lock
+                                <Pin className="w-2.5 h-2.5" />
+                                {pinnedByUser ? "Pinned" : "Lock"}
                               </div>
+                            )}
+                            {/* Quick-pin toggle, visible on hover for non-
+                                must-include items. Stops the popover from
+                                opening so it acts as a one-click pin. */}
+                            {canTogglePin && (
+                              <span
+                                role="button"
+                                tabIndex={0}
+                                aria-label={pinnedByUser ? "Unpin from Must-include" : "Pin to Must-include"}
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  togglePin(item);
+                                }}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter" || e.key === " ") {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    togglePin(item);
+                                  }
+                                }}
+                                className={cn(
+                                  "absolute top-1 right-1 w-5 h-5 rounded-full flex items-center justify-center shadow-sm transition-all cursor-pointer",
+                                  pinnedByUser
+                                    ? "bg-primary text-primary-foreground opacity-100"
+                                    : "bg-background/90 text-foreground/70 opacity-0 group-hover:opacity-100 hover:bg-primary hover:text-primary-foreground",
+                                )}
+                                title={pinnedByUser ? "Unpin from Must-include" : "Pin to Must-include"}
+                              >
+                                <Pin className="w-2.5 h-2.5" />
+                              </span>
                             )}
                             {markedForRemoval && (
                               <div className="absolute inset-0 bg-destructive/20 flex items-center justify-center">
@@ -906,6 +983,17 @@ const MoodboardRefinePanel = ({
                           <ListChecks className="w-3.5 h-3.5" />
                           {markedForRemoval ? "Unmark removal" : "Mark for removal"}
                         </button>
+                        {canTogglePin && (
+                          <button
+                            type="button"
+                            onClick={() => togglePin(item)}
+                            disabled={disabled}
+                            className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm hover:bg-accent transition-colors"
+                          >
+                            <Pin className="w-3.5 h-3.5" />
+                            {pinnedByUser ? "Unpin from Must-include" : "Pin to Must-include"}
+                          </button>
+                        )}
                       </PopoverContent>
                     </Popover>
                   );
