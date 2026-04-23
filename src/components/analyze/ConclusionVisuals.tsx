@@ -1064,13 +1064,13 @@ const ConclusionVisuals = ({
             isArchitectureDropActive && "bg-primary/5 ring-2 ring-primary/40 ring-dashed",
           )}
         >
-          {architectureReferences.map((item) => {
+          {architectureReferences.map((item, idx) => {
             let h = 0;
             for (let i = 0; i < item.label.length; i++) h = (h * 31 + item.label.charCodeAt(i)) >>> 0;
             const rot = ((h % 500) / 500) * 5 - 2.5;
             return (
               <div
-                key={item.label}
+                key={`arch-${idx}-${item.label}`}
                 className="group relative w-28 cursor-grab active:cursor-grabbing"
                 style={{ transform: `rotate(${rot}deg)` }}
                 draggable
@@ -1082,6 +1082,15 @@ const ConclusionVisuals = ({
                     aria-hidden
                     className="absolute -top-1.5 left-1/2 -translate-x-1/2 w-12 h-3 -rotate-2 bg-muted border border-border/40 rounded-[2px] shadow-sm z-10"
                   />
+                  <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); pinToMustInclude(item, "architecture"); }}
+                    className="absolute top-1 left-1 z-10 inline-flex items-center gap-1 px-1.5 py-0.5 rounded-sm bg-background/90 text-foreground/80 text-[9px] uppercase tracking-wider font-semibold shadow-sm opacity-0 group-hover:opacity-100 hover:bg-primary hover:text-primary-foreground transition"
+                    title="Pin to Must-include"
+                    aria-pressed="false"
+                  >
+                    <Pin className="w-2.5 h-2.5" /> Keep
+                  </button>
                   <div className="aspect-square overflow-hidden bg-muted/40 relative">
                     {item.imageUrl && (
                       <img src={getThumbnailImageUrl(item.imageUrl)} alt={item.label} className="w-full h-full object-cover" loading="lazy" decoding="async" />
