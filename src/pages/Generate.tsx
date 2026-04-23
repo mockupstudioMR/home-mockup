@@ -2095,6 +2095,8 @@ RULES:
             items={moodboardItems}
             onAction={handleMoodboardAction}
             designDescription={[design?.description, fullDescription].filter(Boolean).join(" ")}
+            roomType={quizData?.roomType}
+            style={quizData?.stylePreference}
             extractedItemNames={designItems.map((i) => i.item_name)}
             extractedItems={designItems.map((i) => ({
               item_name: i.item_name,

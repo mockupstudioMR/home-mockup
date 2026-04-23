@@ -21,6 +21,9 @@ import {
   Building2,
   Armchair,
   Frame,
+  Wand2,
+  Check,
+  ListChecks,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -97,6 +100,10 @@ interface MoodboardRefinePanelProps {
   onAction: (action: MoodboardAction) => void;
   /** Free text describing the rendered design (used to detect "used" chips). */
   designDescription?: string;
+  /** Room type (used for contextual AI suggestions). */
+  roomType?: string;
+  /** Design style (used for contextual AI suggestions). */
+  style?: string;
   /** Names of items extracted from the rendered design. */
   extractedItemNames?: string[];
   /** Full extracted design items — shown as the "In your design" section. */
@@ -218,6 +225,8 @@ const MoodboardRefinePanel = ({
   items,
   onAction,
   designDescription = "",
+  roomType = "",
+  style = "",
   extractedItemNames = [],
   extractedItems = [],
   modificationInput,
@@ -289,6 +298,104 @@ const MoodboardRefinePanel = ({
   const layerInfo = { layer: activeLayer, lockedLayers };
 
   const visibleKinds = LAYER_KINDS[activeLayer];
+
+  // ---- Pending per-section changes (stage edits, then "Agree & generate") ----
+  type PendingChanges = {
+    additions: string[]; // labels to add
+    removals: string[]; // labels to remove
+  };
+  const emptyPending = (): PendingChanges => ({ additions: [], removals: [] });
+  const [pendingByKind, setPendingByKind] = useState<
+    Record<MoodboardItemKind, PendingChanges>
+  >({
+    "must-include": emptyPending(),
+    furniture: emptyPending(),
+    decor: emptyPending(),
+    material: emptyPending(),
+  });
+  const [aiLoadingKind, setAiLoadingKind] = useState<MoodboardItemKind | null>(null);
+
+  const addPending = (kind: MoodboardItemKind, label: string) => {
+    const clean = label.trim();
+    if (!clean) return;
+    setPendingByKind((prev) => {
+      const cur = prev[kind];
+      if (cur.additions.includes(clean)) return prev;
+      return { ...prev, [kind]: { ...cur, additions: [...cur.additions, clean] } };
+    });
+  };
+  const undoPendingAdd = (kind: MoodboardItemKind, label: string) =>
+    setPendingByKind((prev) => ({
+      ...prev,
+      [kind]: { ...prev[kind], additions: prev[kind].additions.filter((l) => l !== label) },
+    }));
+  const togglePendingRemoval = (kind: MoodboardItemKind, label: string) =>
+    setPendingByKind((prev) => {
+      const cur = prev[kind];
+      const exists = cur.removals.includes(label);
+      return {
+        ...prev,
+        [kind]: {
+          ...cur,
+          removals: exists
+            ? cur.removals.filter((l) => l !== label)
+            : [...cur.removals, label],
+        },
+      };
+    });
+  const clearPending = (kind: MoodboardItemKind) =>
+    setPendingByKind((prev) => ({ ...prev, [kind]: emptyPending() }));
+
+  const buildPendingPrompt = (kind: MoodboardItemKind, p: PendingChanges) => {
+    const parts: string[] = [];
+    if (p.additions.length) parts.push(`Add: ${p.additions.join(", ")}`);
+    if (p.removals.length) parts.push(`Remove: ${p.removals.join(", ")}`);
+    if (!parts.length) return "";
+    const scope =
+      kind === "material"
+        ? "Apply only to walls, ceiling, floor and architectural finishes."
+        : kind === "decor"
+          ? "Apply only to decor (lighting, rugs, art, plants, accessories)."
+          : "Apply only to furniture pieces.";
+    return `${parts.join(". ")}. ${scope} Keep everything else identical.`;
+  };
+
+  const agreeAndGenerate = (kind: MoodboardItemKind) => {
+    const p = pendingByKind[kind];
+    const prompt = buildPendingPrompt(kind, p);
+    if (!prompt) return;
+    onModify("add_remove", prompt, layerInfo);
+    clearPending(kind);
+  };
+
+  const adjustInInput = (kind: MoodboardItemKind) => {
+    const p = pendingByKind[kind];
+    const prompt = buildPendingPrompt(kind, p);
+    setActiveMode("add_remove");
+    onModificationInputChange(prompt || "");
+  };
+
+  const requestAiSuggestion = async (kind: MoodboardItemKind) => {
+    setAiLoadingKind(kind);
+    try {
+      const layer: DesignLayer =
+        kind === "material" ? "architecture" : kind === "decor" ? "decor" : "furniture";
+      const existingLabels = [
+        ...items.map((i) => i.label),
+        ...pendingByKind[kind].additions,
+      ];
+      const { data, error } = await supabase.functions.invoke("suggest-moodboard-item", {
+        body: { layer, existingLabels, roomType, style, designDescription },
+      });
+      if (error) throw error;
+      const suggestion = (data as { suggestion?: string })?.suggestion?.trim();
+      if (suggestion) addPending(kind, suggestion);
+    } catch (e) {
+      console.error("AI suggest failed", e);
+    } finally {
+      setAiLoadingKind(null);
+    }
+  };
 
   const grouped = useMemo(() => {
     const g: Record<MoodboardItemKind, (MoodboardItem & { used: boolean })[]> = {
@@ -654,9 +761,8 @@ const MoodboardRefinePanel = ({
 
         {SECTIONS.filter((s) => visibleKinds.includes(s.kind)).map(({ kind, title, addLabel: addBtn }) => {
           const list = grouped[kind];
-          if (list.length === 0 && kind === "material") {
-            // material section can be sparse — still show add button
-          }
+          const pending = pendingByKind[kind];
+          const hasPending = pending.additions.length > 0 || pending.removals.length > 0;
           return (
             <div key={kind}>
               <div className="flex items-center justify-between mb-2">
@@ -671,6 +777,7 @@ const MoodboardRefinePanel = ({
                 {list.map((item) => {
                   const Icon = KIND_ICON[item.kind];
                   const hex = isHex(item.label);
+                  const markedForRemoval = pending.removals.includes(item.label);
                   return (
                     <Popover key={`${kind}-${item.label}`}>
                       <PopoverTrigger asChild>
@@ -680,6 +787,7 @@ const MoodboardRefinePanel = ({
                           className={cn(
                             "group relative w-24 text-left rounded-lg overflow-hidden focus:outline-none focus:ring-2 focus:ring-primary",
                             !item.used && "opacity-60 hover:opacity-100",
+                            markedForRemoval && "ring-2 ring-destructive opacity-70",
                           )}
                         >
                           <div
@@ -719,9 +827,19 @@ const MoodboardRefinePanel = ({
                                 Lock
                               </div>
                             )}
+                            {markedForRemoval && (
+                              <div className="absolute inset-0 bg-destructive/20 flex items-center justify-center">
+                                <span className="px-1.5 py-0.5 rounded-full bg-destructive text-destructive-foreground text-[9px] font-medium flex items-center gap-1 shadow">
+                                  <Trash2 className="w-2.5 h-2.5" /> Will remove
+                                </span>
+                              </div>
+                            )}
                           </div>
                           <div
-                            className="mt-1 text-[11px] leading-tight truncate"
+                            className={cn(
+                              "mt-1 text-[11px] leading-tight truncate",
+                              markedForRemoval && "line-through text-muted-foreground",
+                            )}
                             title={item.label}
                           >
                             {item.label}
@@ -779,6 +897,15 @@ const MoodboardRefinePanel = ({
                         >
                           <Trash2 className="w-3.5 h-3.5" /> Remove from design
                         </button>
+                        <button
+                          type="button"
+                          onClick={() => togglePendingRemoval(kind, item.label)}
+                          disabled={disabled}
+                          className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm hover:bg-accent transition-colors"
+                        >
+                          <ListChecks className="w-3.5 h-3.5" />
+                          {markedForRemoval ? "Unmark removal" : "Mark for removal"}
+                        </button>
                       </PopoverContent>
                     </Popover>
                   );
@@ -794,6 +921,116 @@ const MoodboardRefinePanel = ({
                     {addBtn}
                   </span>
                 </button>
+              </div>
+
+              {/* Per-section toolbar + pending changes tray */}
+              <div className="mt-3 space-y-2">
+                <div className="flex flex-wrap items-center gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setAdding(kind)}
+                    disabled={disabled || generating}
+                    className="h-7 text-xs"
+                  >
+                    <Plus className="w-3.5 h-3.5 mr-1" /> Add
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => requestAiSuggestion(kind)}
+                    disabled={disabled || generating || aiLoadingKind === kind}
+                    className="h-7 text-xs"
+                  >
+                    {aiLoadingKind === kind ? (
+                      <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" />
+                    ) : (
+                      <Wand2 className="w-3.5 h-3.5 mr-1" />
+                    )}
+                    AI suggest
+                  </Button>
+                  {hasPending && (
+                    <>
+                      <Button
+                        type="button"
+                        size="sm"
+                        onClick={() => agreeAndGenerate(kind)}
+                        disabled={disabled || generating}
+                        className="h-7 text-xs"
+                      >
+                        <Check className="w-3.5 h-3.5 mr-1" /> Agree &amp; generate
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => adjustInInput(kind)}
+                        disabled={disabled || generating}
+                        className="h-7 text-xs"
+                      >
+                        <Pencil className="w-3.5 h-3.5 mr-1" /> Adjust
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => clearPending(kind)}
+                        disabled={disabled || generating}
+                        className="h-7 text-xs text-muted-foreground"
+                      >
+                        <X className="w-3.5 h-3.5 mr-1" /> Clear
+                      </Button>
+                    </>
+                  )}
+                </div>
+
+                {hasPending && (
+                  <div className="rounded-lg border border-dashed border-primary/40 bg-primary/5 p-2 space-y-1.5">
+                    <p className="text-[10px] uppercase tracking-wide text-primary/80 font-semibold">
+                      Pending changes
+                    </p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {pending.additions.map((label) => (
+                        <Badge
+                          key={`add-${label}`}
+                          variant="secondary"
+                          className="text-[10px] gap-1 pr-1"
+                        >
+                          <Plus className="w-2.5 h-2.5" />
+                          {label}
+                          <button
+                            type="button"
+                            onClick={() => undoPendingAdd(kind, label)}
+                            className="ml-1 rounded-full hover:bg-muted p-0.5"
+                            aria-label={`Undo add ${label}`}
+                          >
+                            <X className="w-2.5 h-2.5" />
+                          </button>
+                        </Badge>
+                      ))}
+                      {pending.removals.map((label) => (
+                        <Badge
+                          key={`rem-${label}`}
+                          variant="destructive"
+                          className="text-[10px] gap-1 pr-1"
+                        >
+                          <Trash2 className="w-2.5 h-2.5" />
+                          {label}
+                          <button
+                            type="button"
+                            onClick={() => togglePendingRemoval(kind, label)}
+                            className="ml-1 rounded-full hover:bg-background/30 p-0.5"
+                            aria-label={`Cancel remove ${label}`}
+                          >
+                            <X className="w-2.5 h-2.5" />
+                          </button>
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           );
