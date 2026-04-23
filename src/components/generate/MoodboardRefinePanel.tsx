@@ -415,6 +415,84 @@ const MoodboardRefinePanel = ({
       </div>
 
       <div className="p-5 space-y-5">
+        {/* Layer selector — Architecture → Furniture → Decor */}
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <p className="text-[11px] uppercase tracking-wide text-muted-foreground font-medium">
+              Refine layer by layer
+            </p>
+            <label className="flex items-center gap-2 text-[11px] text-muted-foreground cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={lockPrevious}
+                onChange={(e) => updateLockPrevious(e.target.checked)}
+                className="h-3.5 w-3.5 rounded border-border accent-primary"
+              />
+              <Lock className="w-3 h-3" />
+              Lock previous layers
+            </label>
+          </div>
+
+          <div className="relative flex items-stretch gap-2">
+            {LAYERS.map((l, idx) => {
+              const Icon = l.icon;
+              const isActive = activeLayer === l.id;
+              const isLocked = lockedLayers.includes(l.id);
+              return (
+                <div key={l.id} className="flex items-stretch flex-1 min-w-0">
+                  <button
+                    type="button"
+                    onClick={() => updateActiveLayer(l.id)}
+                    className={cn(
+                      "flex-1 min-w-0 flex flex-col items-start gap-1 rounded-xl border px-3 py-2.5 text-left transition-all",
+                      isActive
+                        ? "bg-primary/10 border-primary text-foreground shadow-sm"
+                        : "bg-card border-border hover:border-primary/40",
+                    )}
+                  >
+                    <div className="flex items-center gap-2 w-full">
+                      <div
+                        className={cn(
+                          "w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-semibold shrink-0",
+                          isActive
+                            ? "bg-primary text-primary-foreground"
+                            : "bg-muted text-muted-foreground",
+                        )}
+                      >
+                        {idx + 1}
+                      </div>
+                      <Icon
+                        className={cn(
+                          "w-3.5 h-3.5 shrink-0",
+                          isActive ? "text-primary" : "text-muted-foreground",
+                        )}
+                      />
+                      <span className="text-xs font-medium truncate">{l.label}</span>
+                      {isLocked && (
+                        <Lock className="w-3 h-3 ml-auto text-muted-foreground shrink-0" />
+                      )}
+                    </div>
+                    <span className="text-[10px] text-muted-foreground leading-tight line-clamp-2">
+                      {l.hint}
+                    </span>
+                  </button>
+                  {idx < LAYERS.length - 1 && (
+                    <div
+                      className={cn(
+                        "w-2 self-center h-px mx-0.5",
+                        activeLayer === l.id || activeLayer === LAYERS[idx + 1].id
+                          ? "bg-primary/60"
+                          : "bg-border",
+                      )}
+                      aria-hidden
+                    />
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
         {(inDesign.furniture.length > 0 || inDesign.decor.length > 0) && (
           <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 space-y-4">
             <div className="flex items-center justify-between">
