@@ -379,13 +379,9 @@ const ConclusionVisuals = ({
   ) => {
     const label = (item.label || "").trim();
     if (!label) return;
-    if (origin === "furniture") {
-      setFurnitureReferences((prev) => prev.filter((m) => m.label.toLowerCase() !== label.toLowerCase()));
-    } else if (origin === "decor") {
-      setDecorReferences((prev) => prev.filter((m) => m.label.toLowerCase() !== label.toLowerCase()));
-    } else if (origin === "architecture") {
-      setArchitectureReferences((prev) => prev.filter((m) => m.label.toLowerCase() !== label.toLowerCase()));
-    }
+    // Note: do NOT remove the item from its origin section. Pinning only
+    // promotes a copy into Must-include; the original chip stays visible
+    // so the user can still see/use it in its category.
     setMustInclude((prev) => {
       if (prev.some((m) => m.label.toLowerCase() === label.toLowerCase())) return prev;
       return [...prev, { label, imageUrl: item.imageUrl || undefined }];
