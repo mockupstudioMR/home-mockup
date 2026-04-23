@@ -761,9 +761,8 @@ const MoodboardRefinePanel = ({
 
         {SECTIONS.filter((s) => visibleKinds.includes(s.kind)).map(({ kind, title, addLabel: addBtn }) => {
           const list = grouped[kind];
-          if (list.length === 0 && kind === "material") {
-            // material section can be sparse — still show add button
-          }
+          const pending = pendingByKind[kind];
+          const hasPending = pending.additions.length > 0 || pending.removals.length > 0;
           return (
             <div key={kind}>
               <div className="flex items-center justify-between mb-2">
@@ -778,6 +777,7 @@ const MoodboardRefinePanel = ({
                 {list.map((item) => {
                   const Icon = KIND_ICON[item.kind];
                   const hex = isHex(item.label);
+                  const markedForRemoval = pending.removals.includes(item.label);
                   return (
                     <Popover key={`${kind}-${item.label}`}>
                       <PopoverTrigger asChild>
@@ -787,6 +787,7 @@ const MoodboardRefinePanel = ({
                           className={cn(
                             "group relative w-24 text-left rounded-lg overflow-hidden focus:outline-none focus:ring-2 focus:ring-primary",
                             !item.used && "opacity-60 hover:opacity-100",
+                            markedForRemoval && "ring-2 ring-destructive opacity-70",
                           )}
                         >
                           <div
