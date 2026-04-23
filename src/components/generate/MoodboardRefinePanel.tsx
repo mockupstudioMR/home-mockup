@@ -225,6 +225,8 @@ const MoodboardRefinePanel = ({
   items,
   onAction,
   designDescription = "",
+  roomType = "",
+  style = "",
   extractedItemNames = [],
   extractedItems = [],
   modificationInput,
