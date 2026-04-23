@@ -862,7 +862,15 @@ function buildImagePrompt(
 
   // Modification: surgical image edit. Preserve everything except the requested change.
   if (data.modificationPrompt) {
-    return `SURGICAL EDIT of the attached image. Apply ONLY this single change: "${data.modificationPrompt}". Treat the rest of the image as a locked reference — do NOT regenerate, restyle, recolor, relight, reframe, or rearrange anything else. Pixel-level preservation required for: camera angle, perspective, framing, aspect ratio, walls, floor, ceiling, windows, doors, lighting direction & color temperature, shadows, all furniture not mentioned in the change, all decor, textures, materials, plants, art, and overall composition. The output must look like the original photograph with ONLY the requested element modified — as if edited in Photoshop, not regenerated.`;
+    let layerDirective = "";
+    if (data.refinementLayer === "architecture") {
+      layerDirective = ` LAYER SCOPE — ARCHITECTURE ONLY: Modify ONLY walls, ceiling, floor, trim, moldings, paint, wallpaper, and architectural finishes. Every piece of furniture and every decor item (lighting, rugs, art, plants, accessories, pillows, throws, vases) MUST stay pixel-identical in position, identity, color, material, and proportion.`;
+    } else if (data.refinementLayer === "furniture") {
+      layerDirective = ` LAYER SCOPE — FURNITURE ONLY: Modify ONLY furniture (sofa, chairs, bed, tables, storage, shelving) as instructed. Walls, ceiling, floor, paint, wallpaper, trim, and ALL architectural finishes MUST stay pixel-identical. All decor items (lighting fixtures, rugs, art, plants, pillows, accessories) must also remain unchanged in position and appearance.`;
+    } else if (data.refinementLayer === "decor") {
+      layerDirective = ` LAYER SCOPE — DECOR ONLY: Modify ONLY decor items (lighting, rugs, art, plants, pillows, throws, mirrors, vases, accessories) as instructed. ALL furniture (sofa, chairs, bed, tables, storage) AND ALL architecture (walls, ceiling, floor, finishes, trim) MUST stay pixel-identical in identity, position, color, and material.`;
+    }
+    return `SURGICAL EDIT of the attached image. Apply ONLY this single change: "${data.modificationPrompt}".${layerDirective} Treat the rest of the image as a locked reference — do NOT regenerate, restyle, recolor, relight, reframe, or rearrange anything else. Pixel-level preservation required for: camera angle, perspective, framing, aspect ratio, walls, floor, ceiling, windows, doors, lighting direction & color temperature, shadows, all furniture not mentioned in the change, all decor, textures, materials, plants, art, and overall composition. The output must look like the original photograph with ONLY the requested element modified — as if edited in Photoshop, not regenerated.`;
   }
 
   // Scene preview refinement - reproduce the exact scene with the exact same products
