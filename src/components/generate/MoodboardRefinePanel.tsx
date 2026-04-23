@@ -18,6 +18,9 @@ import {
   CheckCircle2,
   Lock,
   Sparkles,
+  Building2,
+  Armchair,
+  Frame,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -48,6 +51,38 @@ import type {
 } from "./MoodboardElementsPanel";
 import type { ModificationType } from "./RefinementPanel";
 
+export type DesignLayer = "architecture" | "furniture" | "decor";
+
+const LAYERS: { id: DesignLayer; label: string; icon: typeof Building2; hint: string }[] = [
+  {
+    id: "architecture",
+    label: "Architecture",
+    icon: Building2,
+    hint: "Walls, ceiling, floor, finishes & trim",
+  },
+  {
+    id: "furniture",
+    label: "Furniture",
+    icon: Armchair,
+    hint: "Sofa, bed, tables, storage — swap, recolor, remove",
+  },
+  {
+    id: "decor",
+    label: "Decor",
+    icon: Frame,
+    hint: "Lighting, rugs, art, plants & accessories",
+  },
+];
+
+const LAYER_KINDS: Record<DesignLayer, MoodboardItemKind[]> = {
+  architecture: ["material"],
+  furniture: ["furniture", "must-include"],
+  decor: ["decor"],
+};
+
+const DECOR_TYPE_RE_GLOBAL =
+  /(lamp|light|rug|art|plant|pillow|cushion|throw|mirror|vase|accessor|decor|textile|curtain|drape|sconce|chandelier|pendant|candle|book|frame)/i;
+
 interface MoodboardRefinePanelProps {
   items: MoodboardItem[];
   onAction: (action: MoodboardAction) => void;
@@ -68,7 +103,11 @@ interface MoodboardRefinePanelProps {
   /** Refine controls */
   modificationInput: string;
   onModificationInputChange: (value: string) => void;
-  onModify: (type: ModificationType, prefill?: string) => void;
+  onModify: (
+    type: ModificationType,
+    prefill?: string,
+    layerInfo?: { layer: DesignLayer; lockedLayers: DesignLayer[] },
+  ) => void;
   onRegenerate: () => void;
   onUndo?: () => void;
   canUndo?: boolean;
