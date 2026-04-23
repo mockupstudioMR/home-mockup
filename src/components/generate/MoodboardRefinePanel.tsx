@@ -251,37 +251,42 @@ const MoodboardRefinePanel = ({
 
   const [activeMode, setActiveMode] = useState<ModificationType>("color_material");
 
-  // User-pinned overrides: any item whose original `kind|label` key is in this
-  // set is promoted into the Must-include section, regardless of its source
-  // kind. Persisted across reloads so pins survive regeneration.
-  const PIN_STORAGE_KEY = "generate_pinned_moodboard";
-  const [pinnedKeys, setPinnedKeys] = useState<Set<string>>(() => {
+  // User pin overrides: explicit true/false per item key. Items not in the
+  // map fall back to their source state (must-include = pinned by default).
+  // Persisted so pins survive reloads and regenerations.
+  const PIN_STORAGE_KEY = "generate_pinned_moodboard_v2";
+  const [pinOverrides, setPinOverrides] = useState<Record<string, boolean>>(
+    () => {
+      try {
+        const raw = sessionStorage.getItem(PIN_STORAGE_KEY);
+        if (!raw) return {};
+        const obj = JSON.parse(raw);
+        return obj && typeof obj === "object" ? obj : {};
+      } catch {
+        return {};
+      }
+    },
+  );
+  const persistPinOverrides = (next: Record<string, boolean>) => {
     try {
-      const raw = sessionStorage.getItem(PIN_STORAGE_KEY);
-      if (!raw) return new Set();
-      const arr = JSON.parse(raw);
-      return new Set(Array.isArray(arr) ? arr : []);
-    } catch {
-      return new Set();
-    }
-  });
-  const persistPinned = (next: Set<string>) => {
-    try {
-      sessionStorage.setItem(PIN_STORAGE_KEY, JSON.stringify(Array.from(next)));
+      sessionStorage.setItem(PIN_STORAGE_KEY, JSON.stringify(next));
     } catch {
       /* ignore */
     }
   };
   const pinKey = (item: MoodboardItem) =>
     `${item.kind}|${item.label.toLowerCase()}`;
-  const isPinned = (item: MoodboardItem) => pinnedKeys.has(pinKey(item));
+  const isPinned = (item: MoodboardItem) => {
+    const k = pinKey(item);
+    if (k in pinOverrides) return pinOverrides[k];
+    return item.kind === "must-include";
+  };
   const togglePin = (item: MoodboardItem) => {
-    setPinnedKeys((prev) => {
-      const next = new Set(prev);
-      const k = pinKey(item);
-      if (next.has(k)) next.delete(k);
-      else next.add(k);
-      persistPinned(next);
+    const k = pinKey(item);
+    setPinOverrides((prev) => {
+      const currently = k in prev ? prev[k] : item.kind === "must-include";
+      const next = { ...prev, [k]: !currently };
+      persistPinOverrides(next);
       return next;
     });
   };
@@ -444,9 +449,11 @@ const MoodboardRefinePanel = ({
         ...it,
         used: detectUsed(it, designDescription, extractedItemNames),
       };
-      // 1) User-pinned items are promoted into Must-include regardless of
-      //    their original kind.
-      if (pinnedKeys.has(`${it.kind}|${it.label.toLowerCase()}`)) {
+      // 1) Pinned items (either originally must-include or user-pinned)
+      //    show in the Must-include section.
+      const k = `${it.kind}|${it.label.toLowerCase()}`;
+      const pinned = k in pinOverrides ? pinOverrides[k] : it.kind === "must-include";
+      if (pinned) {
         g["must-include"].push(enriched);
         return;
       }
@@ -460,7 +467,7 @@ const MoodboardRefinePanel = ({
       }
     });
     return g;
-  }, [items, designDescription, extractedItemNames, pinnedKeys]);
+  }, [items, designDescription, extractedItemNames, pinOverrides]);
 
   const usedCount = items.filter((it) =>
     detectUsed(it, designDescription, extractedItemNames),
@@ -820,10 +827,6 @@ const MoodboardRefinePanel = ({
                   const hex = isHex(item.label);
                   const markedForRemoval = pending.removals.includes(item.label);
                   const pinnedByUser = isPinned(item);
-                  // Pin toggle is available on every item except those that
-                  // were originally tagged "must-include" (they're inherent
-                  // pins coming from the source data).
-                  const canTogglePin = item.kind !== "must-include";
                   return (
                     <Popover key={`${kind}-${item.label}`}>
                       <PopoverTrigger asChild>
@@ -867,43 +870,43 @@ const MoodboardRefinePanel = ({
                                 Used
                               </div>
                             )}
-                            {kind === "must-include" && (
-                              <div className="absolute top-1 right-1 bg-primary text-primary-foreground rounded-full px-1.5 py-0.5 flex items-center gap-1 text-[9px] font-medium shadow-sm">
-                                <Pin className="w-2.5 h-2.5" />
-                                {pinnedByUser ? "Pinned" : "Lock"}
-                              </div>
-                            )}
-                            {/* Quick-pin toggle, visible on hover for non-
-                                must-include items. Stops the popover from
-                                opening so it acts as a one-click pin. */}
-                            {canTogglePin && (
-                              <span
-                                role="button"
-                                tabIndex={0}
-                                aria-label={pinnedByUser ? "Unpin from Must-include" : "Pin to Must-include"}
-                                onClick={(e) => {
+                            {/* Always-visible Keep / Kept pin pill — click to
+                                toggle pin state for ANY item. Stops the
+                                popover from opening so it acts as a direct
+                                one-click toggle. */}
+                            <span
+                              role="button"
+                              tabIndex={0}
+                              aria-pressed={pinnedByUser}
+                              aria-label={pinnedByUser ? "Unpin (remove from Must-include)" : "Keep (pin to Must-include)"}
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                togglePin(item);
+                              }}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter" || e.key === " ") {
                                   e.preventDefault();
                                   e.stopPropagation();
                                   togglePin(item);
-                                }}
-                                onKeyDown={(e) => {
-                                  if (e.key === "Enter" || e.key === " ") {
-                                    e.preventDefault();
-                                    e.stopPropagation();
-                                    togglePin(item);
-                                  }
-                                }}
+                                }
+                              }}
+                              className={cn(
+                                "absolute top-1 right-1 z-10 rounded-full px-1.5 py-0.5 flex items-center gap-1 text-[9px] font-semibold shadow-sm cursor-pointer transition-colors",
+                                pinnedByUser
+                                  ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                                  : "bg-background/90 text-foreground/80 hover:bg-primary hover:text-primary-foreground",
+                              )}
+                              title={pinnedByUser ? "Pinned — click to unpin" : "Click to keep this item"}
+                            >
+                              <Pin
                                 className={cn(
-                                  "absolute top-1 right-1 w-5 h-5 rounded-full flex items-center justify-center shadow-sm transition-all cursor-pointer",
-                                  pinnedByUser
-                                    ? "bg-primary text-primary-foreground opacity-100"
-                                    : "bg-background/90 text-foreground/70 opacity-0 group-hover:opacity-100 hover:bg-primary hover:text-primary-foreground",
+                                  "w-2.5 h-2.5",
+                                  pinnedByUser && "fill-current",
                                 )}
-                                title={pinnedByUser ? "Unpin from Must-include" : "Pin to Must-include"}
-                              >
-                                <Pin className="w-2.5 h-2.5" />
-                              </span>
-                            )}
+                              />
+                              {pinnedByUser ? "Kept" : "Keep"}
+                            </span>
                             {markedForRemoval && (
                               <div className="absolute inset-0 bg-destructive/20 flex items-center justify-center">
                                 <span className="px-1.5 py-0.5 rounded-full bg-destructive text-destructive-foreground text-[9px] font-medium flex items-center gap-1 shadow">
@@ -983,17 +986,20 @@ const MoodboardRefinePanel = ({
                           <ListChecks className="w-3.5 h-3.5" />
                           {markedForRemoval ? "Unmark removal" : "Mark for removal"}
                         </button>
-                        {canTogglePin && (
-                          <button
-                            type="button"
-                            onClick={() => togglePin(item)}
-                            disabled={disabled}
-                            className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm hover:bg-accent transition-colors"
-                          >
-                            <Pin className="w-3.5 h-3.5" />
-                            {pinnedByUser ? "Unpin from Must-include" : "Pin to Must-include"}
-                          </button>
-                        )}
+                        <button
+                          type="button"
+                          onClick={() => togglePin(item)}
+                          disabled={disabled}
+                          className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm hover:bg-accent transition-colors"
+                        >
+                          <Pin
+                            className={cn(
+                              "w-3.5 h-3.5",
+                              pinnedByUser && "fill-current text-primary",
+                            )}
+                          />
+                          {pinnedByUser ? "Kept — click to unpin" : "Keep (pin to Must-include)"}
+                        </button>
                       </PopoverContent>
                     </Popover>
                   );
