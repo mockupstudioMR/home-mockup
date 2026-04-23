@@ -83,6 +83,15 @@ const LAYER_KINDS: Record<DesignLayer, MoodboardItemKind[]> = {
 const DECOR_TYPE_RE_GLOBAL =
   /(lamp|light|rug|art|plant|pillow|cushion|throw|mirror|vase|accessor|decor|textile|curtain|drape|sconce|chandelier|pendant|candle|book|frame)/i;
 
+// Label-based architectural detection — anything mentioning a wall, ceiling,
+// floor, trim, molding, paint, wallpaper, panel, tile, etc. belongs to the
+// Architecture layer regardless of how the source kind was tagged.
+const ARCHITECTURE_LABEL_RE =
+  /(wall|ceiling|floor|flooring|trim|molding|moulding|baseboard|skirting|wainscot|paneling|panelling|paint|wallpaper|tile|tiling|plaster|stucco|brick|concrete|hardwood|parquet|laminate|vinyl|carpet|cornice|crown|beam|rafter|cladding)/i;
+
+const isArchitecturalItem = (item: MoodboardItem) =>
+  item.kind === "material" || ARCHITECTURE_LABEL_RE.test(item.label);
+
 interface MoodboardRefinePanelProps {
   items: MoodboardItem[];
   onAction: (action: MoodboardAction) => void;
