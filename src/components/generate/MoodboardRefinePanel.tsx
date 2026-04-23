@@ -100,6 +100,10 @@ interface MoodboardRefinePanelProps {
   onAction: (action: MoodboardAction) => void;
   /** Free text describing the rendered design (used to detect "used" chips). */
   designDescription?: string;
+  /** Room type (used for contextual AI suggestions). */
+  roomType?: string;
+  /** Design style (used for contextual AI suggestions). */
+  style?: string;
   /** Names of items extracted from the rendered design. */
   extractedItemNames?: string[];
   /** Full extracted design items — shown as the "In your design" section. */
