@@ -21,6 +21,9 @@ import {
   Building2,
   Armchair,
   Frame,
+  Wand2,
+  Check,
+  ListChecks,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
