@@ -922,6 +922,116 @@ const MoodboardRefinePanel = ({
                   </span>
                 </button>
               </div>
+
+              {/* Per-section toolbar + pending changes tray */}
+              <div className="mt-3 space-y-2">
+                <div className="flex flex-wrap items-center gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setAdding(kind)}
+                    disabled={disabled || generating}
+                    className="h-7 text-xs"
+                  >
+                    <Plus className="w-3.5 h-3.5 mr-1" /> Add
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => requestAiSuggestion(kind)}
+                    disabled={disabled || generating || aiLoadingKind === kind}
+                    className="h-7 text-xs"
+                  >
+                    {aiLoadingKind === kind ? (
+                      <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" />
+                    ) : (
+                      <Wand2 className="w-3.5 h-3.5 mr-1" />
+                    )}
+                    AI suggest
+                  </Button>
+                  {hasPending && (
+                    <>
+                      <Button
+                        type="button"
+                        size="sm"
+                        onClick={() => agreeAndGenerate(kind)}
+                        disabled={disabled || generating}
+                        className="h-7 text-xs"
+                      >
+                        <Check className="w-3.5 h-3.5 mr-1" /> Agree &amp; generate
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => adjustInInput(kind)}
+                        disabled={disabled || generating}
+                        className="h-7 text-xs"
+                      >
+                        <Pencil className="w-3.5 h-3.5 mr-1" /> Adjust
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => clearPending(kind)}
+                        disabled={disabled || generating}
+                        className="h-7 text-xs text-muted-foreground"
+                      >
+                        <X className="w-3.5 h-3.5 mr-1" /> Clear
+                      </Button>
+                    </>
+                  )}
+                </div>
+
+                {hasPending && (
+                  <div className="rounded-lg border border-dashed border-primary/40 bg-primary/5 p-2 space-y-1.5">
+                    <p className="text-[10px] uppercase tracking-wide text-primary/80 font-semibold">
+                      Pending changes
+                    </p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {pending.additions.map((label) => (
+                        <Badge
+                          key={`add-${label}`}
+                          variant="secondary"
+                          className="text-[10px] gap-1 pr-1"
+                        >
+                          <Plus className="w-2.5 h-2.5" />
+                          {label}
+                          <button
+                            type="button"
+                            onClick={() => undoPendingAdd(kind, label)}
+                            className="ml-1 rounded-full hover:bg-muted p-0.5"
+                            aria-label={`Undo add ${label}`}
+                          >
+                            <X className="w-2.5 h-2.5" />
+                          </button>
+                        </Badge>
+                      ))}
+                      {pending.removals.map((label) => (
+                        <Badge
+                          key={`rem-${label}`}
+                          variant="destructive"
+                          className="text-[10px] gap-1 pr-1"
+                        >
+                          <Trash2 className="w-2.5 h-2.5" />
+                          {label}
+                          <button
+                            type="button"
+                            onClick={() => togglePendingRemoval(kind, label)}
+                            className="ml-1 rounded-full hover:bg-background/30 p-0.5"
+                            aria-label={`Cancel remove ${label}`}
+                          >
+                            <X className="w-2.5 h-2.5" />
+                          </button>
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           );
         })}
