@@ -233,6 +233,54 @@ const MoodboardRefinePanel = ({
 
   const [activeMode, setActiveMode] = useState<ModificationType>("color_material");
 
+  // Layered refinement: which layer the user is currently editing + lock toggle.
+  const [activeLayer, setActiveLayer] = useState<DesignLayer>(() => {
+    try {
+      const v = sessionStorage.getItem("generate_active_layer");
+      if (v === "architecture" || v === "furniture" || v === "decor") return v;
+    } catch {
+      /* ignore */
+    }
+    return "architecture";
+  });
+  const [lockPrevious, setLockPrevious] = useState<boolean>(() => {
+    try {
+      const v = sessionStorage.getItem("generate_lock_previous_layers");
+      return v === null ? true : v === "true";
+    } catch {
+      return true;
+    }
+  });
+
+  const updateActiveLayer = (l: DesignLayer) => {
+    setActiveLayer(l);
+    try {
+      sessionStorage.setItem("generate_active_layer", l);
+    } catch {
+      /* ignore */
+    }
+  };
+
+  const updateLockPrevious = (v: boolean) => {
+    setLockPrevious(v);
+    try {
+      sessionStorage.setItem("generate_lock_previous_layers", v ? "true" : "false");
+    } catch {
+      /* ignore */
+    }
+  };
+
+  const lockedLayers: DesignLayer[] = useMemo(() => {
+    if (!lockPrevious) return [];
+    if (activeLayer === "furniture") return ["architecture"];
+    if (activeLayer === "decor") return ["architecture", "furniture"];
+    return [];
+  }, [lockPrevious, activeLayer]);
+
+  const layerInfo = { layer: activeLayer, lockedLayers };
+
+  const visibleKinds = LAYER_KINDS[activeLayer];
+
   const grouped = useMemo(() => {
     const g: Record<MoodboardItemKind, (MoodboardItem & { used: boolean })[]> = {
       "must-include": [],
@@ -343,7 +391,7 @@ const MoodboardRefinePanel = ({
   ) => {
     setActiveMode(type);
     onModificationInputChange(text);
-    onModify(type, text);
+    onModify(type, text, layerInfo);
   };
 
   return (
