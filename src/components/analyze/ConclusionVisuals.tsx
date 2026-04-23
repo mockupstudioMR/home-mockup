@@ -370,6 +370,28 @@ const ConclusionVisuals = ({
     } catch { /* ignore */ }
   };
 
+  // Promote any reference chip into the Must-include section. Mirrors the
+  // drag-and-drop flow but is triggered by the on-card Pin button so the
+  // interaction works on touch and for users who don't discover the drag.
+  const pinToMustInclude = (
+    item: { label: string; imageUrl?: string },
+    origin: "furniture" | "decor" | "architecture",
+  ) => {
+    const label = (item.label || "").trim();
+    if (!label) return;
+    if (origin === "furniture") {
+      setFurnitureReferences((prev) => prev.filter((m) => m.label.toLowerCase() !== label.toLowerCase()));
+    } else if (origin === "decor") {
+      setDecorReferences((prev) => prev.filter((m) => m.label.toLowerCase() !== label.toLowerCase()));
+    } else if (origin === "architecture") {
+      setArchitectureReferences((prev) => prev.filter((m) => m.label.toLowerCase() !== label.toLowerCase()));
+    }
+    setMustInclude((prev) => {
+      if (prev.some((m) => m.label.toLowerCase() === label.toLowerCase())) return prev;
+      return [...prev, { label, imageUrl: item.imageUrl || undefined }];
+    });
+  };
+
 
   // Generate an AI visual for a dragged-in label that has no image yet
   const generateAiReferenceForLabel = async (
