@@ -298,10 +298,18 @@ const MoodboardRefinePanel = ({
       material: [],
     };
     items.forEach((it) => {
-      g[it.kind].push({
+      const enriched = {
         ...it,
         used: detectUsed(it, designDescription, extractedItemNames),
-      });
+      };
+      // Reclassify architectural items (walls, ceilings, floors, finishes…)
+      // into the "material" bucket so they show up in the Architecture layer
+      // even if the source tagged them as decor/furniture.
+      if (isArchitecturalItem(it) && it.kind !== "must-include") {
+        g.material.push(enriched);
+      } else {
+        g[it.kind].push(enriched);
+      }
     });
     return g;
   }, [items, designDescription, extractedItemNames]);
