@@ -506,9 +506,9 @@ const MoodboardRefinePanel = ({
             </div>
 
             {([
-              { title: "Furniture", list: inDesign.furniture, fallbackIcon: Sofa },
-              { title: "Decor", list: inDesign.decor, fallbackIcon: Lamp },
-            ] as const).map(({ title, list, fallbackIcon: FallbackIcon }) =>
+              { title: "Furniture", list: inDesign.furniture, fallbackIcon: Sofa, layer: "furniture" as DesignLayer },
+              { title: "Decor", list: inDesign.decor, fallbackIcon: Lamp, layer: "decor" as DesignLayer },
+            ] as const).filter(({ layer }) => activeLayer === "architecture" || activeLayer === layer).map(({ title, list, fallbackIcon: FallbackIcon }) =>
               list.length === 0 ? null : (
                 <div key={title}>
                   <p className="text-[10px] uppercase tracking-wide text-muted-foreground font-medium mb-2">
