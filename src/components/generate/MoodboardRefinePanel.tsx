@@ -322,12 +322,14 @@ const MoodboardRefinePanel = ({
   const inDesign = useMemo(() => {
     const furniture: typeof extractedItems = [];
     const decor: typeof extractedItems = [];
+    const architecture: typeof extractedItems = [];
     for (const it of extractedItems) {
       const blob = `${it.item_type || ""} ${it.item_name || ""}`;
-      if (DECOR_TYPE_RE.test(blob)) decor.push(it);
+      if (ARCHITECTURE_LABEL_RE.test(blob)) architecture.push(it);
+      else if (DECOR_TYPE_RE.test(blob)) decor.push(it);
       else furniture.push(it);
     }
-    return { furniture, decor };
+    return { furniture, decor, architecture };
   }, [extractedItems]);
 
   const uploadOne = async (
