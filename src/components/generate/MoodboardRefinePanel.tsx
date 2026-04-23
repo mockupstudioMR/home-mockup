@@ -843,12 +843,12 @@ const MoodboardRefinePanel = ({
               onKeyDown={(e) =>
                 e.key === "Enter" &&
                 modificationInput.trim() &&
-                onModify(activeMode)
+                onModify(activeMode, undefined, layerInfo)
               }
               disabled={generating}
             />
             <Button
-              onClick={() => onModify(activeMode)}
+              onClick={() => onModify(activeMode, undefined, layerInfo)}
               disabled={!modificationInput.trim() || generating}
             >
               <Send className="w-4 h-4" />
