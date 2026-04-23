@@ -827,9 +827,19 @@ const MoodboardRefinePanel = ({
                                 Lock
                               </div>
                             )}
+                            {markedForRemoval && (
+                              <div className="absolute inset-0 bg-destructive/20 flex items-center justify-center">
+                                <span className="px-1.5 py-0.5 rounded-full bg-destructive text-destructive-foreground text-[9px] font-medium flex items-center gap-1 shadow">
+                                  <Trash2 className="w-2.5 h-2.5" /> Will remove
+                                </span>
+                              </div>
+                            )}
                           </div>
                           <div
-                            className="mt-1 text-[11px] leading-tight truncate"
+                            className={cn(
+                              "mt-1 text-[11px] leading-tight truncate",
+                              markedForRemoval && "line-through text-muted-foreground",
+                            )}
                             title={item.label}
                           >
                             {item.label}
@@ -886,6 +896,15 @@ const MoodboardRefinePanel = ({
                           className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm hover:bg-destructive/10 text-destructive transition-colors"
                         >
                           <Trash2 className="w-3.5 h-3.5" /> Remove from design
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => togglePendingRemoval(kind, item.label)}
+                          disabled={disabled}
+                          className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm hover:bg-accent transition-colors"
+                        >
+                          <ListChecks className="w-3.5 h-3.5" />
+                          {markedForRemoval ? "Unmark removal" : "Mark for removal"}
                         </button>
                       </PopoverContent>
                     </Popover>
