@@ -299,6 +299,104 @@ const MoodboardRefinePanel = ({
 
   const visibleKinds = LAYER_KINDS[activeLayer];
 
+  // ---- Pending per-section changes (stage edits, then "Agree & generate") ----
+  type PendingChanges = {
+    additions: string[]; // labels to add
+    removals: string[]; // labels to remove
+  };
+  const emptyPending = (): PendingChanges => ({ additions: [], removals: [] });
+  const [pendingByKind, setPendingByKind] = useState<
+    Record<MoodboardItemKind, PendingChanges>
+  >({
+    "must-include": emptyPending(),
+    furniture: emptyPending(),
+    decor: emptyPending(),
+    material: emptyPending(),
+  });
+  const [aiLoadingKind, setAiLoadingKind] = useState<MoodboardItemKind | null>(null);
+
+  const addPending = (kind: MoodboardItemKind, label: string) => {
+    const clean = label.trim();
+    if (!clean) return;
+    setPendingByKind((prev) => {
+      const cur = prev[kind];
+      if (cur.additions.includes(clean)) return prev;
+      return { ...prev, [kind]: { ...cur, additions: [...cur.additions, clean] } };
+    });
+  };
+  const undoPendingAdd = (kind: MoodboardItemKind, label: string) =>
+    setPendingByKind((prev) => ({
+      ...prev,
+      [kind]: { ...prev[kind], additions: prev[kind].additions.filter((l) => l !== label) },
+    }));
+  const togglePendingRemoval = (kind: MoodboardItemKind, label: string) =>
+    setPendingByKind((prev) => {
+      const cur = prev[kind];
+      const exists = cur.removals.includes(label);
+      return {
+        ...prev,
+        [kind]: {
+          ...cur,
+          removals: exists
+            ? cur.removals.filter((l) => l !== label)
+            : [...cur.removals, label],
+        },
+      };
+    });
+  const clearPending = (kind: MoodboardItemKind) =>
+    setPendingByKind((prev) => ({ ...prev, [kind]: emptyPending() }));
+
+  const buildPendingPrompt = (kind: MoodboardItemKind, p: PendingChanges) => {
+    const parts: string[] = [];
+    if (p.additions.length) parts.push(`Add: ${p.additions.join(", ")}`);
+    if (p.removals.length) parts.push(`Remove: ${p.removals.join(", ")}`);
+    if (!parts.length) return "";
+    const scope =
+      kind === "material"
+        ? "Apply only to walls, ceiling, floor and architectural finishes."
+        : kind === "decor"
+          ? "Apply only to decor (lighting, rugs, art, plants, accessories)."
+          : "Apply only to furniture pieces.";
+    return `${parts.join(". ")}. ${scope} Keep everything else identical.`;
+  };
+
+  const agreeAndGenerate = (kind: MoodboardItemKind) => {
+    const p = pendingByKind[kind];
+    const prompt = buildPendingPrompt(kind, p);
+    if (!prompt) return;
+    onModify("add_remove", prompt, layerInfo);
+    clearPending(kind);
+  };
+
+  const adjustInInput = (kind: MoodboardItemKind) => {
+    const p = pendingByKind[kind];
+    const prompt = buildPendingPrompt(kind, p);
+    setActiveMode("add_remove");
+    onModificationInputChange(prompt || "");
+  };
+
+  const requestAiSuggestion = async (kind: MoodboardItemKind) => {
+    setAiLoadingKind(kind);
+    try {
+      const layer: DesignLayer =
+        kind === "material" ? "architecture" : kind === "decor" ? "decor" : "furniture";
+      const existingLabels = [
+        ...items.map((i) => i.label),
+        ...pendingByKind[kind].additions,
+      ];
+      const { data, error } = await supabase.functions.invoke("suggest-moodboard-item", {
+        body: { layer, existingLabels, roomType, style, designDescription },
+      });
+      if (error) throw error;
+      const suggestion = (data as { suggestion?: string })?.suggestion?.trim();
+      if (suggestion) addPending(kind, suggestion);
+    } catch (e) {
+      console.error("AI suggest failed", e);
+    } finally {
+      setAiLoadingKind(null);
+    }
+  };
+
   const grouped = useMemo(() => {
     const g: Record<MoodboardItemKind, (MoodboardItem & { used: boolean })[]> = {
       "must-include": [],
