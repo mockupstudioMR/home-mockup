@@ -444,9 +444,15 @@ const MoodboardRefinePanel = ({
         ...it,
         used: detectUsed(it, designDescription, extractedItemNames),
       };
-      // Reclassify architectural items (walls, ceilings, floors, finishes…)
-      // into the "material" bucket so they show up in the Architecture layer
-      // even if the source tagged them as decor/furniture.
+      // 1) User-pinned items are promoted into Must-include regardless of
+      //    their original kind.
+      if (pinnedKeys.has(`${it.kind}|${it.label.toLowerCase()}`)) {
+        g["must-include"].push(enriched);
+        return;
+      }
+      // 2) Reclassify architectural items (walls, ceilings, floors, finishes…)
+      //    into the "material" bucket so they show up in the Architecture layer
+      //    even if the source tagged them as decor/furniture.
       if (isArchitecturalItem(it) && it.kind !== "must-include") {
         g.material.push(enriched);
       } else {
@@ -454,7 +460,7 @@ const MoodboardRefinePanel = ({
       }
     });
     return g;
-  }, [items, designDescription, extractedItemNames]);
+  }, [items, designDescription, extractedItemNames, pinnedKeys]);
 
   const usedCount = items.filter((it) =>
     detectUsed(it, designDescription, extractedItemNames),
