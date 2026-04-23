@@ -251,6 +251,41 @@ const MoodboardRefinePanel = ({
 
   const [activeMode, setActiveMode] = useState<ModificationType>("color_material");
 
+  // User-pinned overrides: any item whose original `kind|label` key is in this
+  // set is promoted into the Must-include section, regardless of its source
+  // kind. Persisted across reloads so pins survive regeneration.
+  const PIN_STORAGE_KEY = "generate_pinned_moodboard";
+  const [pinnedKeys, setPinnedKeys] = useState<Set<string>>(() => {
+    try {
+      const raw = sessionStorage.getItem(PIN_STORAGE_KEY);
+      if (!raw) return new Set();
+      const arr = JSON.parse(raw);
+      return new Set(Array.isArray(arr) ? arr : []);
+    } catch {
+      return new Set();
+    }
+  });
+  const persistPinned = (next: Set<string>) => {
+    try {
+      sessionStorage.setItem(PIN_STORAGE_KEY, JSON.stringify(Array.from(next)));
+    } catch {
+      /* ignore */
+    }
+  };
+  const pinKey = (item: MoodboardItem) =>
+    `${item.kind}|${item.label.toLowerCase()}`;
+  const isPinned = (item: MoodboardItem) => pinnedKeys.has(pinKey(item));
+  const togglePin = (item: MoodboardItem) => {
+    setPinnedKeys((prev) => {
+      const next = new Set(prev);
+      const k = pinKey(item);
+      if (next.has(k)) next.delete(k);
+      else next.add(k);
+      persistPinned(next);
+      return next;
+    });
+  };
+
   // Layered refinement: which layer the user is currently editing + lock toggle.
   const [activeLayer, setActiveLayer] = useState<DesignLayer>(() => {
     try {
