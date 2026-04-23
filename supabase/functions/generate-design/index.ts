@@ -27,6 +27,8 @@ interface GenerateRequest {
   sourceImageUrl?: string;
   modificationPrompt?: string;
   modificationType?: "color_material" | "swap_item" | "add_remove" | "layout";
+  refinementLayer?: "architecture" | "furniture" | "decor";
+  lockedLayers?: string[];
   selectedProducts?: ProductInfo[];
   productImageUrls?: string[];
   existingRoomImages?: string[];
