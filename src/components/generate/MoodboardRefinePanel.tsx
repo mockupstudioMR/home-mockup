@@ -449,9 +449,11 @@ const MoodboardRefinePanel = ({
         ...it,
         used: detectUsed(it, designDescription, extractedItemNames),
       };
-      // 1) User-pinned items are promoted into Must-include regardless of
-      //    their original kind.
-      if (pinnedKeys.has(`${it.kind}|${it.label.toLowerCase()}`)) {
+      // 1) Pinned items (either originally must-include or user-pinned)
+      //    show in the Must-include section.
+      const k = `${it.kind}|${it.label.toLowerCase()}`;
+      const pinned = k in pinOverrides ? pinOverrides[k] : it.kind === "must-include";
+      if (pinned) {
         g["must-include"].push(enriched);
         return;
       }
@@ -465,7 +467,7 @@ const MoodboardRefinePanel = ({
       }
     });
     return g;
-  }, [items, designDescription, extractedItemNames, pinnedKeys]);
+  }, [items, designDescription, extractedItemNames, pinOverrides]);
 
   const usedCount = items.filter((it) =>
     detectUsed(it, designDescription, extractedItemNames),
