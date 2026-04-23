@@ -251,37 +251,42 @@ const MoodboardRefinePanel = ({
 
   const [activeMode, setActiveMode] = useState<ModificationType>("color_material");
 
-  // User-pinned overrides: any item whose original `kind|label` key is in this
-  // set is promoted into the Must-include section, regardless of its source
-  // kind. Persisted across reloads so pins survive regeneration.
-  const PIN_STORAGE_KEY = "generate_pinned_moodboard";
-  const [pinnedKeys, setPinnedKeys] = useState<Set<string>>(() => {
+  // User pin overrides: explicit true/false per item key. Items not in the
+  // map fall back to their source state (must-include = pinned by default).
+  // Persisted so pins survive reloads and regenerations.
+  const PIN_STORAGE_KEY = "generate_pinned_moodboard_v2";
+  const [pinOverrides, setPinOverrides] = useState<Record<string, boolean>>(
+    () => {
+      try {
+        const raw = sessionStorage.getItem(PIN_STORAGE_KEY);
+        if (!raw) return {};
+        const obj = JSON.parse(raw);
+        return obj && typeof obj === "object" ? obj : {};
+      } catch {
+        return {};
+      }
+    },
+  );
+  const persistPinOverrides = (next: Record<string, boolean>) => {
     try {
-      const raw = sessionStorage.getItem(PIN_STORAGE_KEY);
-      if (!raw) return new Set();
-      const arr = JSON.parse(raw);
-      return new Set(Array.isArray(arr) ? arr : []);
-    } catch {
-      return new Set();
-    }
-  });
-  const persistPinned = (next: Set<string>) => {
-    try {
-      sessionStorage.setItem(PIN_STORAGE_KEY, JSON.stringify(Array.from(next)));
+      sessionStorage.setItem(PIN_STORAGE_KEY, JSON.stringify(next));
     } catch {
       /* ignore */
     }
   };
   const pinKey = (item: MoodboardItem) =>
     `${item.kind}|${item.label.toLowerCase()}`;
-  const isPinned = (item: MoodboardItem) => pinnedKeys.has(pinKey(item));
+  const isPinned = (item: MoodboardItem) => {
+    const k = pinKey(item);
+    if (k in pinOverrides) return pinOverrides[k];
+    return item.kind === "must-include";
+  };
   const togglePin = (item: MoodboardItem) => {
-    setPinnedKeys((prev) => {
-      const next = new Set(prev);
-      const k = pinKey(item);
-      if (next.has(k)) next.delete(k);
-      else next.add(k);
-      persistPinned(next);
+    const k = pinKey(item);
+    setPinOverrides((prev) => {
+      const currently = k in prev ? prev[k] : item.kind === "must-include";
+      const next = { ...prev, [k]: !currently };
+      persistPinOverrides(next);
       return next;
     });
   };
