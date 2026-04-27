@@ -76,9 +76,13 @@ serve(async (req) => {
 
       if (!response.ok) {
         if (response.status === 429) {
+          if (attempt < maxRetries) {
+            await new Promise(resolve => setTimeout(resolve, 2000 * attempt));
+            continue;
+          }
           return new Response(
-            JSON.stringify({ error: "Rate limits exceeded" }),
-            { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            JSON.stringify({ error: "Rate limits exceeded", retryable: true }),
+            { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
           );
         }
         if (response.status === 402) {
