@@ -1,4 +1,4 @@
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useState, useCallback, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuiz } from "@/contexts/QuizContext";
@@ -42,6 +42,8 @@ const getInitialState = (): { images: string[]; result: AnalysisResult | null } 
 
 const AnalyzeRoom = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const isExistingRoom = location.pathname.startsWith("/existing-room");
   const { user, loading } = useAuth();
   const { updateQuizData } = useQuiz();
   const { toast } = useToast();
@@ -473,12 +475,14 @@ const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(() =
               {isCreatingMoodboard
                 ? "Your Moodboard"
                 : analysisResult
-                ? "Style Matches"
-                : "Upload Room Inspiration"}
+                ? (isExistingRoom ? "We detected these styles" : "Style Matches")
+                : (isExistingRoom ? "Upload photos of your room" : "Upload Room Inspiration")}
             </h1>
             {!analysisResult && (
               <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-                Share photos of rooms you love and we'll analyze the styles to create your personalized moodboard
+                {isExistingRoom
+                  ? "Show us how it looks now — we'll detect everything in it"
+                  : "Share photos of rooms you love and we'll analyze the styles to create your personalized moodboard"}
               </p>
             )}
           </div>
