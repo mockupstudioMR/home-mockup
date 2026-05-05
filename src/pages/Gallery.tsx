@@ -14,8 +14,11 @@ import {
   Loader2,
   Play,
   FileJson,
+  Box,
+  Ruler,
 } from "lucide-react";
 import { exportRoomSpec, fromLegacySession } from "@/services/roomSpec";
+import { exportRoomObj, exportRoomDxf } from "@/services/roomCadExport";
 import type { RoomSpec } from "@/types/roomSpec";
 import { trackEvent } from "@/lib/analytics";
 import { getThumbnailImageUrl } from "@/lib/imageOptimization";
@@ -136,9 +139,8 @@ const Gallery = () => {
     document.body.removeChild(link);
   };
 
-  const handleExportRoom = async (design: Design) => {
-    try {
-      let spec: RoomSpec | null = null;
+  const loadDesignSpec = async (design: Design): Promise<RoomSpec | null> => {
+    let spec: RoomSpec | null = null;
       if (design.room_id) {
         const { data } = await supabase
           .from("rooms" as any)
@@ -166,6 +168,12 @@ const Gallery = () => {
         }
       }
       if (!spec) spec = fromLegacySession();
+    return spec;
+  };
+
+  const handleExportRoom = async (design: Design) => {
+    try {
+      const spec = await loadDesignSpec(design);
       if (!spec) {
         toast({
           title: "No room data",
@@ -179,6 +187,36 @@ const Gallery = () => {
     } catch (e) {
       console.error(e);
       toast({ title: "Export failed", description: "Could not export room", variant: "destructive" });
+    }
+  };
+
+  const handleExportObj = async (design: Design) => {
+    try {
+      const spec = await loadDesignSpec(design);
+      if (!spec) {
+        toast({ title: "No room data", description: "No saved Room Spec to export.", variant: "destructive" });
+        return;
+      }
+      exportRoomObj(spec);
+      toast({ title: "3D model exported", description: "Open the .obj in Blender or SketchUp" });
+    } catch (e) {
+      console.error(e);
+      toast({ title: "Export failed", description: "Could not export 3D model", variant: "destructive" });
+    }
+  };
+
+  const handleExportDxf = async (design: Design) => {
+    try {
+      const spec = await loadDesignSpec(design);
+      if (!spec) {
+        toast({ title: "No room data", description: "No saved Room Spec to export.", variant: "destructive" });
+        return;
+      }
+      exportRoomDxf(spec);
+      toast({ title: "Floor plan exported", description: "Open the .dxf in SketchUp or AutoCAD" });
+    } catch (e) {
+      console.error(e);
+      toast({ title: "Export failed", description: "Could not export floor plan", variant: "destructive" });
     }
   };
 
@@ -384,6 +422,22 @@ const Gallery = () => {
                       title="Export Room Spec as JSON"
                     >
                       <FileJson className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      size="icon"
+                      variant="secondary"
+                      onClick={() => handleExportDxf(design)}
+                      title="Export 2D floor plan (.dxf) for SketchUp / AutoCAD"
+                    >
+                      <Ruler className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      size="icon"
+                      variant="secondary"
+                      onClick={() => handleExportObj(design)}
+                      title="Export 3D model (.obj) for Blender / SketchUp"
+                    >
+                      <Box className="w-4 h-4" />
                     </Button>
                     <Button
                       size="icon"
