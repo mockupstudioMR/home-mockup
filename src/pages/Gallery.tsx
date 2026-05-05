@@ -14,8 +14,11 @@ import {
   Loader2,
   Play,
   FileJson,
+  Box,
+  Ruler,
 } from "lucide-react";
 import { exportRoomSpec, fromLegacySession } from "@/services/roomSpec";
+import { exportRoomObj, exportRoomDxf } from "@/services/roomCadExport";
 import type { RoomSpec } from "@/types/roomSpec";
 import { trackEvent } from "@/lib/analytics";
 import { getThumbnailImageUrl } from "@/lib/imageOptimization";
