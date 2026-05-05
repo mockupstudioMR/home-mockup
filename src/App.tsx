@@ -16,6 +16,7 @@ const Start = lazy(() => import("./pages/Start"));
 const FloorPlan = lazy(() => import("./pages/FloorPlan"));
 const StyleTree = lazy(() => import("./pages/StyleTree"));
 const AnalyzeRoom = lazy(() => import("./pages/AnalyzeRoom"));
+const ExistingRoomFlow = lazy(() => import("./pages/ExistingRoomFlow"));
 const AnalyzeProducts = lazy(() => import("./pages/AnalyzeProducts"));
 const B2BSolutions = lazy(() => import("./pages/B2BSolutions"));
 const Quiz = lazy(() => import("./pages/Quiz"));
