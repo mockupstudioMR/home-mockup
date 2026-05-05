@@ -139,9 +139,8 @@ const Gallery = () => {
     document.body.removeChild(link);
   };
 
-  const handleExportRoom = async (design: Design) => {
-    try {
-      let spec: RoomSpec | null = null;
+  const loadDesignSpec = async (design: Design): Promise<RoomSpec | null> => {
+    let spec: RoomSpec | null = null;
       if (design.room_id) {
         const { data } = await supabase
           .from("rooms" as any)
@@ -169,6 +168,12 @@ const Gallery = () => {
         }
       }
       if (!spec) spec = fromLegacySession();
+    return spec;
+  };
+
+  const handleExportRoom = async (design: Design) => {
+    try {
+      const spec = await loadDesignSpec(design);
       if (!spec) {
         toast({
           title: "No room data",
@@ -182,6 +187,36 @@ const Gallery = () => {
     } catch (e) {
       console.error(e);
       toast({ title: "Export failed", description: "Could not export room", variant: "destructive" });
+    }
+  };
+
+  const handleExportObj = async (design: Design) => {
+    try {
+      const spec = await loadDesignSpec(design);
+      if (!spec) {
+        toast({ title: "No room data", description: "No saved Room Spec to export.", variant: "destructive" });
+        return;
+      }
+      exportRoomObj(spec);
+      toast({ title: "3D model exported", description: "Open the .obj in Blender or SketchUp" });
+    } catch (e) {
+      console.error(e);
+      toast({ title: "Export failed", description: "Could not export 3D model", variant: "destructive" });
+    }
+  };
+
+  const handleExportDxf = async (design: Design) => {
+    try {
+      const spec = await loadDesignSpec(design);
+      if (!spec) {
+        toast({ title: "No room data", description: "No saved Room Spec to export.", variant: "destructive" });
+        return;
+      }
+      exportRoomDxf(spec);
+      toast({ title: "Floor plan exported", description: "Open the .dxf in SketchUp or AutoCAD" });
+    } catch (e) {
+      console.error(e);
+      toast({ title: "Export failed", description: "Could not export floor plan", variant: "destructive" });
     }
   };
 
