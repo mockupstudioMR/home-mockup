@@ -63,7 +63,7 @@ const App = () => (
               } />
               <Route path="/existing-room" element={
                 <ProtectedRoute allowedRoles={["user"]}>
-                  <AnalyzeRoom />
+                  <ExistingRoomFlow />
                 </ProtectedRoute>
               } />
               <Route path="/style-tree" element={
