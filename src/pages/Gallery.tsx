@@ -426,6 +426,22 @@ const Gallery = () => {
                     <Button
                       size="icon"
                       variant="secondary"
+                      onClick={() => handleExportDxf(design)}
+                      title="Export 2D floor plan (.dxf) for SketchUp / AutoCAD"
+                    >
+                      <Ruler className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      size="icon"
+                      variant="secondary"
+                      onClick={() => handleExportObj(design)}
+                      title="Export 3D model (.obj) for Blender / SketchUp"
+                    >
+                      <Box className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      size="icon"
+                      variant="secondary"
                       onClick={() => handleDelete(design.id)}
                     >
                       <Trash2 className="w-4 h-4" />
