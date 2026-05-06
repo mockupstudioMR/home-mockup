@@ -12,6 +12,7 @@ import TagVisual from "@/components/analyze/TagVisual";
 import { RefreshCw as RefreshIcon } from "lucide-react";
 import { trackEvent } from "@/lib/analytics";
 import { getAiOptimizedImageUrl, getThumbnailImageUrl, optimizeImageFile } from "@/lib/imageOptimization";
+import { getAiErrorMessage } from "@/lib/aiErrorMessage";
 
 interface AnalyzedStyle {
   styleName: string;
@@ -198,7 +199,7 @@ const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(() =
       console.error("Analysis error:", error);
       toast({
         title: "Analysis failed",
-        description: "Please try again",
+        description: getAiErrorMessage(error),
         variant: "destructive",
       });
     } finally {
@@ -318,7 +319,7 @@ const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(() =
       toast({ title: "New style detected!", description: newStyle.styleName });
     } catch (err) {
       console.error("Detect another style error:", err);
-      toast({ title: "Couldn't detect another style", description: "Please try again", variant: "destructive" });
+      toast({ title: "Couldn't detect another style", description: getAiErrorMessage(err), variant: "destructive" });
     } finally {
       setIsDetectingMore(false);
     }
