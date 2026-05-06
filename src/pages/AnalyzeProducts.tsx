@@ -17,6 +17,7 @@ import ConclusionVisuals from "@/components/analyze/ConclusionVisuals";
 import TagVisual from "@/components/analyze/TagVisual";
 import { trackEvent } from "@/lib/analytics";
 import { optimizeImageSourceToDataUrl } from "@/lib/imageOptimization";
+import { getAiErrorMessage } from "@/lib/aiErrorMessage";
 
 // ── Types ──────────────────────────────────────────────
 interface AnalyzedProduct {
