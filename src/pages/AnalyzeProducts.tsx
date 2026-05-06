@@ -243,7 +243,7 @@ const AnalyzeProducts = () => {
       });
     } catch (error) {
       console.error("Auto-analysis error:", error);
-      toast({ title: "Analysis failed", description: "Please try again", variant: "destructive" });
+      toast({ title: "Analysis failed", description: getAiErrorMessage(error), variant: "destructive" });
     } finally {
       setIsAnalyzing(false);
     }
