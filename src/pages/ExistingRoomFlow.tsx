@@ -15,6 +15,7 @@ import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { trackEvent } from "@/lib/analytics";
 import { getAiOptimizedImageUrl, getThumbnailImageUrl, optimizeImageFile } from "@/lib/imageOptimization";
+import { getAiErrorMessage } from "@/lib/aiErrorMessage";
 
 // Style images
 import classicHistorical from "@/assets/styles/classic-historical.png";
@@ -154,8 +155,8 @@ const ExistingRoomFlow = () => {
       }
       setStep("results");
       toast({ title: "Analysis complete!", description: `Detected ${data.styles?.length || 0} styles` });
-    } catch {
-      toast({ title: "Analysis failed", description: "Please try again", variant: "destructive" });
+    } catch (error) {
+      toast({ title: "Analysis failed", description: getAiErrorMessage(error), variant: "destructive" });
       setStep("upload");
     }
   };
