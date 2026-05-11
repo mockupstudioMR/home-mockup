@@ -88,21 +88,6 @@ const ClickToIdentifyOverlay = ({ imageUrl, enabled }: ClickToIdentifyOverlayPro
         </div>
       )}
 
-      {/* Click marker */}
-      {clickPos && (
-        <div
-          className="absolute w-6 h-6 -translate-x-1/2 -translate-y-1/2 pointer-events-none"
-          style={{ left: `${clickPos.x}%`, top: `${clickPos.y}%` }}
-        >
-          <div className="w-full h-full rounded-full border-2 border-primary bg-primary/20 animate-scale-in" />
-          {identifying && (
-            <div className="absolute inset-0 flex items-center justify-center">
-              <Loader2 className="w-4 h-4 animate-spin text-primary" />
-            </div>
-          )}
-        </div>
-      )}
-
       {/* Item info popup */}
       {item && clickPos && (
         <div
