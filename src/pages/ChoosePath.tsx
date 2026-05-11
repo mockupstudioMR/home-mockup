@@ -1,9 +1,20 @@
 import { useNavigate } from "react-router-dom";
 import { Briefcase, Home, ArrowRight } from "lucide-react";
 import Logo from "@/components/Logo";
+import { useAuth } from "@/contexts/AuthContext";
 
 const ChoosePath = () => {
   const navigate = useNavigate();
+  const { role } = useAuth();
+
+  const professionalPath =
+    role === "admin"
+      ? "/admin"
+      : role === "designer"
+        ? "/designer"
+        : role === "furniture_shop"
+          ? "/shop"
+          : "/b2b-solutions";
 
   const options = [
     {
@@ -19,7 +30,7 @@ const ChoosePath = () => {
       icon: <Briefcase className="w-8 h-8" />,
       title: "I'm a professional",
       description: "Furniture shops, designers & real estate — grow your business with AI tools.",
-      path: "/b2b-solutions",
+      path: professionalPath,
       gradient: "from-accent/30 to-primary/20",
     },
   ];
