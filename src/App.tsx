@@ -13,6 +13,7 @@ import Auth from "./pages/Auth";
 
 // Lazy load heavy pages
 const Start = lazy(() => import("./pages/Start"));
+const ChoosePath = lazy(() => import("./pages/ChoosePath"));
 const FloorPlan = lazy(() => import("./pages/FloorPlan"));
 const StyleTree = lazy(() => import("./pages/StyleTree"));
 const AnalyzeRoom = lazy(() => import("./pages/AnalyzeRoom"));
@@ -50,6 +51,7 @@ const App = () => (
               <Route path="/" element={<Index />} />
               <Route path="/b2b-solutions" element={<B2BSolutions />} />
               <Route path="/auth" element={<Auth />} />
+              <Route path="/choose-path" element={<ChoosePath />} />
               
               {/* User routes */}
               <Route path="/start" element={
