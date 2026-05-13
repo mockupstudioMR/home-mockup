@@ -8,6 +8,7 @@ export interface QuizData {
   mustHaveElements: string[];
   furnitureSource: "shop_only" | "open";
   sourceImageUrl?: string;
+  intent?: "starting-fresh" | "updating-current" | "gathering-inspiration";
 }
 
 interface QuizContextType {
@@ -27,6 +28,7 @@ const defaultQuizData: QuizData = {
   mustHaveElements: [],
   furnitureSource: "open",
   sourceImageUrl: undefined,
+  intent: undefined,
 };
 
 const STORAGE_KEY = "quiz_data_cache";
@@ -61,7 +63,7 @@ const QuizContext = createContext<QuizContextType | undefined>(undefined);
 export const QuizProvider = ({ children }: { children: React.ReactNode }) => {
   const [quizData, setQuizData] = useState<QuizData>(getInitialQuizData);
   const [currentStep, setCurrentStepState] = useState(getInitialStep);
-  const totalSteps = 1; // room type only
+  const totalSteps = 2; // intent + room type
 
   // Persist quiz data to sessionStorage
   useEffect(() => {
