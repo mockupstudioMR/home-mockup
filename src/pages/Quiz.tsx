@@ -7,10 +7,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import QuizProgress from "@/components/quiz/QuizProgress";
 import RoomStep from "@/components/quiz/steps/RoomStep";
+import IntentStep from "@/components/quiz/steps/IntentStep";
 import { ArrowLeft, Sparkles, Home } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
-const TOTAL_STEPS = 1;
+const TOTAL_STEPS = 2;
 
 const Quiz = () => {
   const navigate = useNavigate();
@@ -34,6 +35,8 @@ const Quiz = () => {
   const canProceed = () => {
     switch (currentStep) {
       case 0:
+        return !!quizData.intent;
+      case 1:
         return !!quizData.roomType;
       default:
         return false;
@@ -85,6 +88,8 @@ const Quiz = () => {
   const renderStep = () => {
     switch (currentStep) {
       case 0:
+        return <IntentStep />;
+      case 1:
         return <RoomStep />;
       default:
         return null;
@@ -148,7 +153,7 @@ const Quiz = () => {
             className="flex-1"
           >
             <Sparkles className="w-4 h-4 mr-2" />
-            Generate Design
+            {currentStep < TOTAL_STEPS - 1 ? "Next" : "Generate Design"}
           </Button>
         </div>
       </div>
