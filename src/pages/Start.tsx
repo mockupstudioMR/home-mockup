@@ -1,12 +1,11 @@
 import { useNavigate, useLocation } from "react-router-dom";
 import { useEffect, useMemo } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { Card, CardContent } from "@/components/ui/card";
 import { Home, Palette, Upload, Package, ArrowRight, Ruler } from "lucide-react";
 import Logo from "@/components/Logo";
 import { trackEvent } from "@/lib/analytics";
 import IntentStep from "@/components/quiz/steps/IntentStep";
-import { Card, CardContent as CardContentInner } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 
 // Style moodboard images
 import classicHistorical from "@/assets/styles/classic-historical.png";
@@ -162,9 +161,9 @@ const Start = () => {
           {/* Intent question — only for the "designing my home" path */}
           <div className="max-w-2xl mx-auto mb-10">
             <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
-              <CardContentInner className="p-6">
+              <CardContent className="p-6">
                 <IntentStep />
-              </CardContentInner>
+              </CardContent>
             </Card>
           </div>
 
