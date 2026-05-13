@@ -19,7 +19,7 @@ const ChoosePath = () => {
       icon: <Briefcase className="w-8 h-8" />,
       title: "I'm a professional",
       description: "Furniture shops, designers & real estate — grow your business with AI tools.",
-      path: "/start",
+      path: "/start?as=pro",
       gradient: "from-accent/30 to-primary/20",
     },
   ];
