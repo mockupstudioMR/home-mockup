@@ -169,7 +169,7 @@ const Start = () => {
                       icon: <Sparkles className="w-6 h-6" />,
                       title: "Inspiration",
                       description: "Explore styles and build a vision for your space",
-                      path: "/style-tree",
+                      path: "/analyze-room",
                     },
                     {
                       id: "include-products",
