@@ -1,5 +1,5 @@
 import { useNavigate, useLocation } from "react-router-dom";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Home, Palette, Upload, Package, ArrowRight, Ruler, Sparkles } from "lucide-react";
 import Logo from "@/components/Logo";
@@ -20,6 +20,11 @@ const Start = () => {
   const { user, loading } = useAuth();
   const { quizData } = useQuiz();
   const isPro = new URLSearchParams(location.search).get("as") === "pro";
+  const [freshStep, setFreshStep] = useState(false);
+
+  useEffect(() => {
+    if (quizData.intent === "starting-fresh") setFreshStep(true);
+  }, [quizData.intent]);
 
   const intro = useMemo(() => {
     const fromState = (location.state as { intro?: { name?: string; roomType?: string; vision?: string } } | null)?.intro;
@@ -147,15 +152,26 @@ const Start = () => {
           </div>
 
           {!isPro ? (
-            <div className="max-w-2xl mx-auto">
-              <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
-                <CardContent className="p-6">
-                  <IntentStep />
-                </CardContent>
-              </Card>
-
-              {quizData.intent === "starting-fresh" && (
-                <div className="grid md:grid-cols-3 gap-4 mt-6">
+            <div className="max-w-3xl mx-auto">
+              {!freshStep ? (
+                <Card className="border-border/50 bg-card/80 backdrop-blur-sm max-w-2xl mx-auto">
+                  <CardContent className="p-6">
+                    <IntentStep />
+                  </CardContent>
+                </Card>
+              ) : (
+                <div>
+                  <button
+                    onClick={() => setFreshStep(false)}
+                    className="text-sm text-muted-foreground hover:text-foreground mb-4 inline-flex items-center gap-1"
+                  >
+                    ← Back
+                  </button>
+                  <div className="text-center mb-6">
+                    <h2 className="text-2xl md:text-3xl font-bold tracking-tight">Where would you like to start?</h2>
+                    <p className="text-muted-foreground mt-2">Pick what you have in mind</p>
+                  </div>
+                  <div className="grid md:grid-cols-3 gap-4">
                   {[
                     {
                       id: "floor-plan",
@@ -204,6 +220,7 @@ const Start = () => {
                       </span>
                     </button>
                   ))}
+                  </div>
                 </div>
               )}
             </div>
