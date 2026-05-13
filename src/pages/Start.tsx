@@ -1,9 +1,10 @@
 import { useNavigate, useLocation } from "react-router-dom";
 import { useEffect, useMemo } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { Home, Palette, Upload, Package, ArrowRight, Ruler } from "lucide-react";
+import { Home, Palette, Upload, Package, ArrowRight, Ruler, Sparkles } from "lucide-react";
 import Logo from "@/components/Logo";
 import IntentStep from "@/components/quiz/steps/IntentStep";
+import { useQuiz } from "@/contexts/QuizContext";
 import { Card, CardContent } from "@/components/ui/card";
 import { trackEvent } from "@/lib/analytics";
 
@@ -17,6 +18,7 @@ const Start = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, loading } = useAuth();
+  const { quizData } = useQuiz();
   const isPro = new URLSearchParams(location.search).get("as") === "pro";
 
   const intro = useMemo(() => {
@@ -151,6 +153,59 @@ const Start = () => {
                   <IntentStep />
                 </CardContent>
               </Card>
+
+              {quizData.intent === "starting-fresh" && (
+                <div className="grid md:grid-cols-3 gap-4 mt-6">
+                  {[
+                    {
+                      id: "floor-plan",
+                      icon: <Ruler className="w-6 h-6" />,
+                      title: "Floor Plan",
+                      description: "Draw your room shape and get AI-generated layouts",
+                      path: "/floor-plan",
+                    },
+                    {
+                      id: "inspiration",
+                      icon: <Sparkles className="w-6 h-6" />,
+                      title: "Inspiration",
+                      description: "Explore styles and build a vision for your space",
+                      path: "/style-tree",
+                    },
+                    {
+                      id: "include-products",
+                      icon: <Package className="w-6 h-6" />,
+                      title: "Stuff I want to include",
+                      description: "Upload furniture or decor and design a room around it",
+                      path: "/analyze-products",
+                    },
+                  ].map((option) => (
+                    <button
+                      key={option.id}
+                      onClick={() => {
+                        trackEvent("journey_start", option.id, { from: "start-fresh", path: option.path });
+                        navigate(option.path);
+                      }}
+                      className="group rounded-2xl border border-border/50 bg-card hover:border-primary/30 hover:shadow-lg transition-all duration-300 p-5 text-left flex flex-col gap-3"
+                    >
+                      <div className="w-11 h-11 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
+                        {option.icon}
+                      </div>
+                      <div>
+                        <h3 className="font-semibold tracking-tight group-hover:text-primary transition-colors mb-1">
+                          {option.title}
+                        </h3>
+                        <p className="text-sm text-muted-foreground leading-relaxed">
+                          {option.description}
+                        </p>
+                      </div>
+                      <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-foreground/80 group-hover:text-primary transition-colors mt-auto">
+                        Continue
+                        <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           ) : (
             <>
