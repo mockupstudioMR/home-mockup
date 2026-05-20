@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuiz } from "@/contexts/QuizContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -17,6 +17,7 @@ const Quiz = () => {
   const { user, loading } = useAuth();
   const { quizData, currentStep, setCurrentStep, resetQuiz } = useQuiz();
   const { toast } = useToast();
+  const autoSubmittedRef = useRef(false);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -75,6 +76,17 @@ const Quiz = () => {
       }
     }
   };
+
+  // If the room was already chosen earlier in the flow (e.g. GroundYourSpace),
+  // skip this screen entirely and jump straight to generation.
+  useEffect(() => {
+    if (loading || !user) return;
+    if (!quizData.roomType) return;
+    if (autoSubmittedRef.current) return;
+    autoSubmittedRef.current = true;
+    handleNext();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading, user, quizData.roomType]);
 
   const handleBack = () => {
     if (currentStep > 0) {
