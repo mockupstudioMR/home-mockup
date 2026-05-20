@@ -83,6 +83,14 @@ const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(() =
     try { sessionStorage.removeItem(STORAGE_KEY); } catch { /* ignore */ }
   }, [uploadedImages, analysisResult]);
 
+  // Prompt-driven path: skip upload, run analysis immediately on mount.
+  useEffect(() => {
+    if (isPromptMode && !analysisResult && !isAnalyzing) {
+      analyzeImages();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isPromptMode]);
+
   // Upload optimized image to storage and return public URL (with retry on transient errors)
   const uploadToStorage = async (file: File): Promise<string | null> => {
     if (!user) return null;
@@ -479,11 +487,15 @@ const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(() =
                 ? "Your Moodboard"
                 : analysisResult
                 ? (isExistingRoom ? "We detected these styles" : "Style Matches")
+                : isPromptMode
+                ? "Matching your style…"
                 : (isExistingRoom ? "Upload photos of your room" : "Upload Room Inspiration")}
             </h1>
             {!analysisResult && (
               <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-                {isExistingRoom
+                {isPromptMode
+                  ? "We're translating your description into a personalized moodboard"
+                  : isExistingRoom
                   ? "Show us how it looks now — we'll detect everything in it"
                   : "Share photos of rooms you love and we'll analyze the styles to create your personalized moodboard"}
               </p>
@@ -491,7 +503,7 @@ const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(() =
           </div>
 
           {/* Upload Area — hidden once analysis exists */}
-          {!analysisResult && (
+          {!analysisResult && !isPromptMode && (
             <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
               <CardContent className="p-6">
                 {uploadedImages.length === 0 && !isUploading ? (
