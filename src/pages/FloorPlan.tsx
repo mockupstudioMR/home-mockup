@@ -850,7 +850,7 @@ const FloorPlan = () => {
     } finally {
       setGenerating(false);
     }
-  }, [selectedShape, dimensions, selectedRoomType, selectedFurniture, openings, buildWallsClockwise, customWalls, layout, itemScores, itemNotes]);
+  }, [selectedShape, dimensions, selectedRoomType, selectedFurniture, openings, buildWallsClockwise, customWalls, layout, itemScores, itemNotes, selectedStyle, referenceImageUrl]);
 
   const undoLayout = useCallback(() => {
     if (!previousLayout) return;
@@ -1726,9 +1726,19 @@ const FloorPlan = () => {
                         <RotateCcw className="w-4 h-4 mr-2 -scale-x-100" /> Undo
                       </Button>
                     )}
-                    <Button onClick={() => setStep(5)} disabled={!layout}>
-                      Next: Style <ArrowRight className="w-4 h-4 ml-2" />
-                    </Button>
+                    {selectedStyle || referenceImageUrl ? (
+                      <Button onClick={saveFeedbackAndProceed} disabled={!layout || savingFeedback}>
+                        {savingFeedback ? (
+                          <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Saving...</>
+                        ) : (
+                          <><Save className="w-4 h-4 mr-2" /> Generate Design</>
+                        )}
+                      </Button>
+                    ) : (
+                      <Button onClick={() => setStep(5)} disabled={!layout}>
+                        Next: Style <ArrowRight className="w-4 h-4 ml-2" />
+                      </Button>
+                    )}
                   </div>
                 </>
               )}
