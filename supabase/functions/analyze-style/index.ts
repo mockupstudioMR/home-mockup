@@ -8,6 +8,7 @@ const corsHeaders = {
 
 interface AnalyzeRequest {
   images: string[];
+  prompt?: string;
   mode: "room" | "products";
   excludeStyles?: string[];
   onlyOneStyle?: boolean;
@@ -124,10 +125,12 @@ serve(async (req) => {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
-    const { images, mode, excludeStyles, onlyOneStyle }: AnalyzeRequest = await req.json();
+    const { images, prompt: userPrompt, mode, excludeStyles, onlyOneStyle }: AnalyzeRequest = await req.json();
 
-    if (!images || images.length === 0) {
-      throw new Error("No images provided");
+    const hasImages = Array.isArray(images) && images.length > 0;
+    const hasPrompt = typeof userPrompt === "string" && userPrompt.trim().length > 0;
+    if (!hasImages && !hasPrompt) {
+      throw new Error("Provide images or a style prompt");
     }
 
     // Fetch prompt template from DB
@@ -156,15 +159,20 @@ serve(async (req) => {
     if (onlyOneStyle) {
       effectivePrompt += `\n\nReturn ONLY ONE style in the "styles" array (the single best new match).`;
     }
+    if (hasPrompt) {
+      effectivePrompt += `\n\nNO IMAGES are provided. Instead, base the entire analysis on this user-written style description:\n"""${userPrompt!.trim()}"""\nTreat it as if you were looking at rooms that perfectly match the description. Populate "perImage" with a single synthesized entry (imageIndex 0) reflecting the description.`;
+    }
     const content: any[] = [{ type: "text", text: effectivePrompt }];
-    for (const imageUrl of images) {
-      content.push({
-        type: "image_url",
-        image_url: { url: imageUrl }
-      });
+    if (hasImages) {
+      for (const imageUrl of images) {
+        content.push({
+          type: "image_url",
+          image_url: { url: imageUrl }
+        });
+      }
     }
 
-    console.log(`Analyzing ${images.length} images in ${mode} mode`);
+    console.log(`Analyzing ${hasImages ? images.length : 0} images${hasPrompt ? " + prompt" : ""} in ${mode} mode`);
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
