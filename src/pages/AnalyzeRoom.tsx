@@ -50,7 +50,20 @@ const AnalyzeRoom = () => {
   const { toast } = useToast();
   
   const [uploadedImages, setUploadedImages] = useState<string[]>(() => getInitialState().images);
-  const stylePrompt: string | undefined = (location.state as { prompt?: string } | null)?.prompt;
+  const stylePrompt: string | undefined = (() => {
+    const fromState = (location.state as { prompt?: string } | null)?.prompt;
+    if (fromState && fromState.trim().length > 0) return fromState;
+    try {
+      const cached = sessionStorage.getItem("capture_vision");
+      if (cached) {
+        const parsed = JSON.parse(cached) as { mode?: string; prompt?: string };
+        if (parsed?.mode === "describe" && parsed.prompt && parsed.prompt.trim().length > 0) {
+          return parsed.prompt;
+        }
+      }
+    } catch { /* ignore */ }
+    return undefined;
+  })();
   const isPromptMode = Boolean(stylePrompt && stylePrompt.trim().length > 0);
   const [isUploading, setIsUploading] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
