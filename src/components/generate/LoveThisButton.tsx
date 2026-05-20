@@ -1,7 +1,8 @@
 import { Button } from "@/components/ui/button";
-import { Loader2, Lock, Sparkles, ThumbsDown, Wand2 } from "lucide-react";
+import { Loader2, Lock, Sparkles, ThumbsDown, Wand2, Ruler } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { trackEvent } from "@/lib/analytics";
 import { useToast } from "@/hooks/use-toast";
 
@@ -15,12 +16,29 @@ interface LoveThisButtonProps {
 const LoveThisButton = ({ isLocked, isLoading, onLock, designId }: LoveThisButtonProps) => {
   const [disliked, setDisliked] = useState(false);
   const { toast } = useToast();
+  const navigate = useNavigate();
+
+  const handleFloorPlan = () => {
+    trackEvent("journey_start" as any, "floor-plan-from-generate", { design_id: designId });
+    navigate("/floor-plan", { state: { fromDesign: designId, preserveChoices: true } });
+  };
 
   if (isLocked) {
     return (
-      <div className="flex items-center justify-center gap-2 py-3 px-6 rounded-full bg-primary/10 text-primary border border-primary/30">
-        <Lock className="w-4 h-4" />
-        <span className="font-medium">Refining this design</span>
+      <div className="flex items-center justify-center gap-3 flex-wrap">
+        <div className="flex items-center justify-center gap-2 py-3 px-6 rounded-full bg-primary/10 text-primary border border-primary/30">
+          <Lock className="w-4 h-4" />
+          <span className="font-medium">Refining this design</span>
+        </div>
+        <Button
+          size="lg"
+          variant="outline"
+          className="rounded-full px-6 py-6 text-base font-semibold group"
+          onClick={handleFloorPlan}
+        >
+          <Ruler className="w-5 h-5 mr-2 group-hover:rotate-6 transition-transform" />
+          Continue with floor plan
+        </Button>
       </div>
     );
   }
@@ -73,6 +91,17 @@ const LoveThisButton = ({ isLocked, isLoading, onLock, designId }: LoveThisButto
         title="Not what I wanted"
       >
         <ThumbsDown className="w-5 h-5" />
+      </Button>
+      <Button
+        size="lg"
+        variant="outline"
+        className="rounded-full px-6 py-6 text-base font-semibold group"
+        onClick={handleFloorPlan}
+        disabled={isLoading}
+        title="Build a custom floor plan from these choices"
+      >
+        <Ruler className="w-5 h-5 mr-2 group-hover:rotate-6 transition-transform" />
+        Continue with floor plan
       </Button>
     </div>
   );
