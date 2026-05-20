@@ -563,13 +563,13 @@ interface LayoutSuggestion {
 const FloorPlan = () => {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
-  const { updateQuizData } = useQuiz();
+  const { quizData, updateQuizData } = useQuiz();
 
   // Steps: 0=shape, 1=dimensions, 2=room type & furniture, 3=openings, 4=layout, 5=style
   const [step, setStep] = useState(0);
   const [selectedShape, setSelectedShape] = useState<RoomShape | null>(null);
   const [dimensions, setDimensions] = useState<Record<string, number>>({});
-  const [selectedRoomType, setSelectedRoomType] = useState<string>("");
+  const [selectedRoomType, setSelectedRoomType] = useState<string>(quizData.roomType || "");
   const [selectedFurniture, setSelectedFurniture] = useState<string[]>([]);
   const [openings, setOpenings] = useState<RoomOpening[]>([]);
   const [activeOpeningType, setActiveOpeningType] = useState<OpeningType>("door");
@@ -617,6 +617,20 @@ const FloorPlan = () => {
       return data as { id: string; room_type: string; room_label: string; furniture_items: string[]; description: string | null }[];
     },
   });
+
+  // Pre-select room type from quiz context (e.g. when arriving from a finished design)
+  useEffect(() => {
+    if (!roomConfigs || roomConfigs.length === 0) return;
+    if (selectedRoomType) return;
+    const fromQuiz = (quizData.roomType || "").toLowerCase();
+    if (!fromQuiz) return;
+    const norm = (s: string) => s.toLowerCase().replace(/[-_\s]+/g, "");
+    const match = roomConfigs.find((rc) => norm(rc.room_type) === norm(fromQuiz));
+    if (match) {
+      setSelectedRoomType(match.room_type);
+      setSelectedFurniture([...match.furniture_items]);
+    }
+  }, [roomConfigs, quizData.roomType, selectedRoomType]);
 
   // Fetch CMS styles (optional override)
   const { data: cmsStyles } = useQuery({
@@ -1222,7 +1236,11 @@ const FloorPlan = () => {
             <div className="space-y-6">
               <div className="text-center space-y-2">
                 <h1 className="text-2xl md:text-3xl font-bold">Select Room Type & Furniture</h1>
-                <p className="text-muted-foreground">Choose what type of room this is, then pick the furniture you want</p>
+                <p className="text-muted-foreground">
+                  {quizData.roomType
+                    ? "We've pre-selected your room from your design — adjust the furniture below."
+                    : "Choose what type of room this is, then pick the furniture you want"}
+                </p>
               </div>
 
               <div className="grid md:grid-cols-2 gap-8 items-start">
