@@ -7,6 +7,7 @@ import IntentStep from "@/components/quiz/steps/IntentStep";
 import { useQuiz } from "@/contexts/QuizContext";
 import { Card, CardContent } from "@/components/ui/card";
 import { trackEvent } from "@/lib/analytics";
+import GroundYourSpace, { type GroundData } from "@/components/start/GroundYourSpace";
 
 import existingRoomVisual from "@/assets/start/existing-room.jpg";
 import floorPlanVisual from "@/assets/start/floor-plan.jpg";
@@ -18,12 +19,12 @@ const Start = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, loading } = useAuth();
-  const { quizData } = useQuiz();
+  const { quizData, updateQuizData } = useQuiz();
   const isPro = new URLSearchParams(location.search).get("as") === "pro";
-  const [freshStep, setFreshStep] = useState(false);
+  const [freshStage, setFreshStage] = useState<"intent" | "ground" | "paths">("intent");
 
   useEffect(() => {
-    if (quizData.intent === "starting-fresh") setFreshStep(true);
+    if (quizData.intent === "starting-fresh" && freshStage === "intent") setFreshStage("ground");
   }, [quizData.intent]);
 
   const intro = useMemo(() => {
@@ -153,16 +154,31 @@ const Start = () => {
 
           {!isPro ? (
             <div className="max-w-3xl mx-auto">
-              {!freshStep ? (
+              {freshStage === "intent" ? (
                 <Card className="border-border/50 bg-card/80 backdrop-blur-sm max-w-2xl mx-auto">
                   <CardContent className="p-6">
                     <IntentStep />
                   </CardContent>
                 </Card>
+              ) : freshStage === "ground" ? (
+                <Card className="border-border/50 bg-card/80 backdrop-blur-sm max-w-2xl mx-auto">
+                  <CardContent className="p-6">
+                    <GroundYourSpace
+                      onBack={() => setFreshStage("intent")}
+                      onComplete={(data: GroundData) => {
+                        updateQuizData({ roomType: data.startRoom });
+                        try {
+                          sessionStorage.setItem("ground_your_space", JSON.stringify(data));
+                        } catch { /* ignore */ }
+                        setFreshStage("paths");
+                      }}
+                    />
+                  </CardContent>
+                </Card>
               ) : (
                 <div>
                   <button
-                    onClick={() => setFreshStep(false)}
+                    onClick={() => setFreshStage("ground")}
                     className="text-sm text-muted-foreground hover:text-foreground mb-4 inline-flex items-center gap-1"
                   >
                     ← Back
