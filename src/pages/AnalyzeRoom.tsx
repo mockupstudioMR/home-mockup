@@ -198,9 +198,16 @@ const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(() =
 
       setAnalysisResult(data);
       setEditableColors(data.dominantColors || []);
-      // New analysis → reset moodboard step
-      setIsCreatingMoodboard(false);
-      setMoodboardReady(false);
+      // Auto-select first style + jump straight to moodboard creation for prompt mode
+      if (isPromptMode) {
+        setSelectedStyleIndex(0);
+        setIsCreatingMoodboard(true);
+        setMoodboardReady(false);
+      } else {
+        // New analysis → reset moodboard step
+        setIsCreatingMoodboard(false);
+        setMoodboardReady(false);
+      }
       toast({
         title: "Analysis complete!",
         description: `Detected ${data.styles.length} interior styles`,
