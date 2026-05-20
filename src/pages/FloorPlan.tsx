@@ -591,7 +591,7 @@ const FloorPlan = () => {
   const [floorPlanImageUrl, setFloorPlanImageUrl] = useState<string>("");
 
   // Style step
-  const [selectedStyle, setSelectedStyle] = useState<string>("");
+  const [selectedStyle, setSelectedStyle] = useState<string>(quizData.stylePreference || "");
   const [referenceImageUrl, setReferenceImageUrl] = useState<string>("");
   const [uploadingRef, setUploadingRef] = useState(false);
 
@@ -825,7 +825,8 @@ const FloorPlan = () => {
         furnitureItems: selectedFurniture,
         openings: openings.map(o => ({ type: o.type, wall: o.wall, position: o.position })),
         walls: wallsData,
-        // Layout is generated based on room geometry only — style is chosen after
+        style: selectedStyle || undefined,
+        referenceImageUrl: referenceImageUrl || undefined,
       };
       if (selectedShape.id === "custom") {
         body.customWalls = customWalls;
