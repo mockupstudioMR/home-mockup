@@ -10,7 +10,7 @@ const intents = [
   {
     value: "updating-current" as const,
     label: "🛋️ Updating my current space",
-    description: "A full refresh or just the right piece",
+    description: "New Sofa? Fresh styling? Full room glow-up?",
   },
   {
     value: "gathering-inspiration" as const,
