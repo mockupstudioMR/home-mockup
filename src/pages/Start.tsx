@@ -8,6 +8,7 @@ import { useQuiz } from "@/contexts/QuizContext";
 import { Card, CardContent } from "@/components/ui/card";
 import { trackEvent } from "@/lib/analytics";
 import GroundYourSpace, { type GroundData } from "@/components/start/GroundYourSpace";
+import CaptureVision, { type VisionData } from "@/components/start/CaptureVision";
 
 import existingRoomVisual from "@/assets/start/existing-room.jpg";
 import floorPlanVisual from "@/assets/start/floor-plan.jpg";
@@ -21,7 +22,7 @@ const Start = () => {
   const { user, loading } = useAuth();
   const { quizData, updateQuizData } = useQuiz();
   const isPro = new URLSearchParams(location.search).get("as") === "pro";
-  const [freshStage, setFreshStage] = useState<"intent" | "ground" | "paths">("intent");
+  const [freshStage, setFreshStage] = useState<"intent" | "ground" | "vision" | "paths">("intent");
 
   useEffect(() => {
     if (quizData.intent === "starting-fresh" && freshStage === "intent") setFreshStage("ground");
@@ -170,7 +171,28 @@ const Start = () => {
                         try {
                           sessionStorage.setItem("ground_your_space", JSON.stringify(data));
                         } catch { /* ignore */ }
-                        setFreshStage("paths");
+                        setFreshStage("vision");
+                      }}
+                    />
+                  </CardContent>
+                </Card>
+              ) : freshStage === "vision" ? (
+                <Card className="border-border/50 bg-card/80 backdrop-blur-sm max-w-2xl mx-auto">
+                  <CardContent className="p-6">
+                    <CaptureVision
+                      onBack={() => setFreshStage("ground")}
+                      onComplete={(data: VisionData) => {
+                        try {
+                          sessionStorage.setItem("capture_vision", JSON.stringify(data));
+                        } catch { /* ignore */ }
+                        trackEvent("vision_captured", data.mode, { from: "start-fresh" });
+                        if (data.mode === "upload") {
+                          navigate("/analyze-room");
+                        } else if (data.mode === "discover") {
+                          navigate("/style-tree");
+                        } else {
+                          navigate("/analyze-room", { state: { prompt: data.prompt } });
+                        }
                       }}
                     />
                   </CardContent>
@@ -178,7 +200,7 @@ const Start = () => {
               ) : (
                 <div>
                   <button
-                    onClick={() => setFreshStage("ground")}
+                    onClick={() => setFreshStage("vision")}
                     className="text-sm text-muted-foreground hover:text-foreground mb-4 inline-flex items-center gap-1"
                   >
                     ← Back
