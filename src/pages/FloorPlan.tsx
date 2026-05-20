@@ -618,6 +618,20 @@ const FloorPlan = () => {
     },
   });
 
+  // Pre-select room type from quiz context (e.g. when arriving from a finished design)
+  useEffect(() => {
+    if (!roomConfigs || roomConfigs.length === 0) return;
+    if (selectedRoomType) return;
+    const fromQuiz = (quizData.roomType || "").toLowerCase();
+    if (!fromQuiz) return;
+    const norm = (s: string) => s.toLowerCase().replace(/[-_\s]+/g, "");
+    const match = roomConfigs.find((rc) => norm(rc.room_type) === norm(fromQuiz));
+    if (match) {
+      setSelectedRoomType(match.room_type);
+      setSelectedFurniture([...match.furniture_items]);
+    }
+  }, [roomConfigs, quizData.roomType, selectedRoomType]);
+
   // Fetch CMS styles (optional override)
   const { data: cmsStyles } = useQuery({
     queryKey: ["cms-quiz-styles"],
