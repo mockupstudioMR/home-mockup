@@ -591,7 +591,7 @@ const FloorPlan = () => {
   const [floorPlanImageUrl, setFloorPlanImageUrl] = useState<string>("");
 
   // Style step
-  const [selectedStyle, setSelectedStyle] = useState<string>("");
+  const [selectedStyle, setSelectedStyle] = useState<string>(quizData.stylePreference || "");
   const [referenceImageUrl, setReferenceImageUrl] = useState<string>("");
   const [uploadingRef, setUploadingRef] = useState(false);
 
@@ -825,7 +825,8 @@ const FloorPlan = () => {
         furnitureItems: selectedFurniture,
         openings: openings.map(o => ({ type: o.type, wall: o.wall, position: o.position })),
         walls: wallsData,
-        // Layout is generated based on room geometry only — style is chosen after
+        style: selectedStyle || undefined,
+        referenceImageUrl: referenceImageUrl || undefined,
       };
       if (selectedShape.id === "custom") {
         body.customWalls = customWalls;
@@ -849,7 +850,7 @@ const FloorPlan = () => {
     } finally {
       setGenerating(false);
     }
-  }, [selectedShape, dimensions, selectedRoomType, selectedFurniture, openings, buildWallsClockwise, customWalls, layout, itemScores, itemNotes]);
+  }, [selectedShape, dimensions, selectedRoomType, selectedFurniture, openings, buildWallsClockwise, customWalls, layout, itemScores, itemNotes, selectedStyle, referenceImageUrl]);
 
   const undoLayout = useCallback(() => {
     if (!previousLayout) return;
@@ -1725,9 +1726,19 @@ const FloorPlan = () => {
                         <RotateCcw className="w-4 h-4 mr-2 -scale-x-100" /> Undo
                       </Button>
                     )}
-                    <Button onClick={() => setStep(5)} disabled={!layout}>
-                      Next: Style <ArrowRight className="w-4 h-4 ml-2" />
-                    </Button>
+                    {selectedStyle || referenceImageUrl ? (
+                      <Button onClick={saveFeedbackAndProceed} disabled={!layout || savingFeedback}>
+                        {savingFeedback ? (
+                          <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Saving...</>
+                        ) : (
+                          <><Save className="w-4 h-4 mr-2" /> Generate Design</>
+                        )}
+                      </Button>
+                    ) : (
+                      <Button onClick={() => setStep(5)} disabled={!layout}>
+                        Next: Style <ArrowRight className="w-4 h-4 ml-2" />
+                      </Button>
+                    )}
                   </div>
                 </>
               )}
