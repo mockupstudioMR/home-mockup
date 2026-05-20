@@ -563,13 +563,13 @@ interface LayoutSuggestion {
 const FloorPlan = () => {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
-  const { updateQuizData } = useQuiz();
+  const { quizData, updateQuizData } = useQuiz();
 
   // Steps: 0=shape, 1=dimensions, 2=room type & furniture, 3=openings, 4=layout, 5=style
   const [step, setStep] = useState(0);
   const [selectedShape, setSelectedShape] = useState<RoomShape | null>(null);
   const [dimensions, setDimensions] = useState<Record<string, number>>({});
-  const [selectedRoomType, setSelectedRoomType] = useState<string>("");
+  const [selectedRoomType, setSelectedRoomType] = useState<string>(quizData.roomType || "");
   const [selectedFurniture, setSelectedFurniture] = useState<string[]>([]);
   const [openings, setOpenings] = useState<RoomOpening[]>([]);
   const [activeOpeningType, setActiveOpeningType] = useState<OpeningType>("door");
