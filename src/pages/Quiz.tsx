@@ -17,6 +17,7 @@ const Quiz = () => {
   const { user, loading } = useAuth();
   const { quizData, currentStep, setCurrentStep, resetQuiz } = useQuiz();
   const { toast } = useToast();
+  const autoSubmittedRef = (typeof window !== "undefined") ? (window as any) : null;
 
   useEffect(() => {
     if (!loading && !user) {
@@ -75,6 +76,15 @@ const Quiz = () => {
       }
     }
   };
+
+  // If the room was already chosen earlier in the flow (e.g. GroundYourSpace),
+  // skip this screen entirely and jump straight to generation.
+  useEffect(() => {
+    if (loading || !user) return;
+    if (!quizData.roomType) return;
+    handleNext();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading, user, quizData.roomType]);
 
   const handleBack = () => {
     if (currentStep > 0) {
