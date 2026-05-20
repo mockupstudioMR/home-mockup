@@ -185,7 +185,7 @@ const Start = () => {
                         try {
                           sessionStorage.setItem("capture_vision", JSON.stringify(data));
                         } catch { /* ignore */ }
-                        trackEvent("vision_captured", data.mode, { from: "start-fresh" });
+                        trackEvent("journey_start", `vision-${data.mode}`, { from: "start-fresh" });
                         if (data.mode === "upload") {
                           navigate("/analyze-room");
                         } else if (data.mode === "discover") {
