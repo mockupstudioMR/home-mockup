@@ -1236,7 +1236,11 @@ const FloorPlan = () => {
             <div className="space-y-6">
               <div className="text-center space-y-2">
                 <h1 className="text-2xl md:text-3xl font-bold">Select Room Type & Furniture</h1>
-                <p className="text-muted-foreground">Choose what type of room this is, then pick the furniture you want</p>
+                <p className="text-muted-foreground">
+                  {quizData.roomType
+                    ? "We've pre-selected your room from your design — adjust the furniture below."
+                    : "Choose what type of room this is, then pick the furniture you want"}
+                </p>
               </div>
 
               <div className="grid md:grid-cols-2 gap-8 items-start">
