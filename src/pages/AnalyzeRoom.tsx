@@ -50,6 +50,8 @@ const AnalyzeRoom = () => {
   const { toast } = useToast();
   
   const [uploadedImages, setUploadedImages] = useState<string[]>(() => getInitialState().images);
+  const stylePrompt: string | undefined = (location.state as { prompt?: string } | null)?.prompt;
+  const isPromptMode = Boolean(stylePrompt && stylePrompt.trim().length > 0);
   const [isUploading, setIsUploading] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
 const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(() => getInitialState().result);
@@ -174,14 +176,14 @@ const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(() =
   };
 
   const analyzeImages = async () => {
-    if (uploadedImages.length === 0) return;
+    if (uploadedImages.length === 0 && !isPromptMode) return;
 
     setIsAnalyzing(true);
     try {
       const aiImages = uploadedImages.map(getAiOptimizedImageUrl);
       trackEvent("ai_call", "analyze-room", { fn: "analyze-style" });
       const { data, error } = await supabase.functions.invoke("analyze-style", {
-        body: { images: aiImages, mode: "room" },
+        body: { images: aiImages, mode: "room", prompt: isPromptMode ? stylePrompt : undefined },
       });
 
       if (error) throw error;
