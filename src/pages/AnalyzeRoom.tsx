@@ -588,6 +588,24 @@ const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(() =
             </Card>
           )}
 
+          {/* Prompt mode loader — shown while analyzing from a text description */}
+          {!analysisResult && isPromptMode && (
+            <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
+              <CardContent className="p-10 flex flex-col items-center justify-center text-center">
+                <div className="relative mb-5">
+                  <Sparkles className="w-12 h-12 text-primary animate-pulse" />
+                  <Loader2 className="w-16 h-16 text-primary/40 animate-spin absolute -top-2 -left-2" />
+                </div>
+                <h3 className="text-xl font-semibold mb-2">Reading your description…</h3>
+                {stylePrompt && (
+                  <p className="text-sm text-muted-foreground italic max-w-md">
+                    "{stylePrompt}"
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
           {/* Analysis Result */}
           {analysisResult && (
             <Card className="border-primary/30 bg-card/80 backdrop-blur-sm">
