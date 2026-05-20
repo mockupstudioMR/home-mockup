@@ -50,6 +50,8 @@ const AnalyzeRoom = () => {
   const { toast } = useToast();
   
   const [uploadedImages, setUploadedImages] = useState<string[]>(() => getInitialState().images);
+  const stylePrompt: string | undefined = (location.state as { prompt?: string } | null)?.prompt;
+  const isPromptMode = Boolean(stylePrompt && stylePrompt.trim().length > 0);
   const [isUploading, setIsUploading] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
 const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(() => getInitialState().result);
@@ -80,6 +82,14 @@ const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(() =
   useEffect(() => {
     try { sessionStorage.removeItem(STORAGE_KEY); } catch { /* ignore */ }
   }, [uploadedImages, analysisResult]);
+
+  // Prompt-driven path: skip upload, run analysis immediately on mount.
+  useEffect(() => {
+    if (isPromptMode && !analysisResult && !isAnalyzing) {
+      analyzeImages();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isPromptMode]);
 
   // Upload optimized image to storage and return public URL (with retry on transient errors)
   const uploadToStorage = async (file: File): Promise<string | null> => {
@@ -174,14 +184,14 @@ const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(() =
   };
 
   const analyzeImages = async () => {
-    if (uploadedImages.length === 0) return;
+    if (uploadedImages.length === 0 && !isPromptMode) return;
 
     setIsAnalyzing(true);
     try {
       const aiImages = uploadedImages.map(getAiOptimizedImageUrl);
       trackEvent("ai_call", "analyze-room", { fn: "analyze-style" });
       const { data, error } = await supabase.functions.invoke("analyze-style", {
-        body: { images: aiImages, mode: "room" },
+        body: { images: aiImages, mode: "room", prompt: isPromptMode ? stylePrompt : undefined },
       });
 
       if (error) throw error;
@@ -477,11 +487,15 @@ const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(() =
                 ? "Your Moodboard"
                 : analysisResult
                 ? (isExistingRoom ? "We detected these styles" : "Style Matches")
+                : isPromptMode
+                ? "Matching your style…"
                 : (isExistingRoom ? "Upload photos of your room" : "Upload Room Inspiration")}
             </h1>
             {!analysisResult && (
               <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-                {isExistingRoom
+                {isPromptMode
+                  ? "We're translating your description into a personalized moodboard"
+                  : isExistingRoom
                   ? "Show us how it looks now — we'll detect everything in it"
                   : "Share photos of rooms you love and we'll analyze the styles to create your personalized moodboard"}
               </p>
@@ -489,7 +503,7 @@ const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(() =
           </div>
 
           {/* Upload Area — hidden once analysis exists */}
-          {!analysisResult && (
+          {!analysisResult && !isPromptMode && (
             <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
               <CardContent className="p-6">
                 {uploadedImages.length === 0 && !isUploading ? (
@@ -569,6 +583,24 @@ const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(() =
                       </Button>
                     )}
                   </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Prompt mode loader — shown while analyzing from a text description */}
+          {!analysisResult && isPromptMode && (
+            <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
+              <CardContent className="p-10 flex flex-col items-center justify-center text-center">
+                <div className="relative mb-5">
+                  <Sparkles className="w-12 h-12 text-primary animate-pulse" />
+                  <Loader2 className="w-16 h-16 text-primary/40 animate-spin absolute -top-2 -left-2" />
+                </div>
+                <h3 className="text-xl font-semibold mb-2">Reading your description…</h3>
+                {stylePrompt && (
+                  <p className="text-sm text-muted-foreground italic max-w-md">
+                    "{stylePrompt}"
+                  </p>
                 )}
               </CardContent>
             </Card>
