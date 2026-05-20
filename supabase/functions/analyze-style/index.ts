@@ -130,7 +130,10 @@ serve(async (req) => {
     const hasImages = Array.isArray(images) && images.length > 0;
     const hasPrompt = typeof userPrompt === "string" && userPrompt.trim().length > 0;
     if (!hasImages && !hasPrompt) {
-      throw new Error("Provide images or a style prompt");
+      return new Response(
+        JSON.stringify({ error: "Provide images or a style prompt" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     // Fetch prompt template from DB
