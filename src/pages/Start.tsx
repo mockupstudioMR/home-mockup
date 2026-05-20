@@ -190,6 +190,8 @@ const Start = () => {
                           navigate("/analyze-room");
                         } else if (data.mode === "discover") {
                           navigate("/style-tree");
+                        } else if (data.mode === "floor-plan") {
+                          navigate("/floor-plan");
                         } else {
                           navigate("/analyze-room", { state: { prompt: data.prompt } });
                         }

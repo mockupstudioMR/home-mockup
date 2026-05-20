@@ -1,12 +1,13 @@
 import { useState } from "react";
-import { Upload, Sparkles, Palette, ArrowRight, ArrowLeft } from "lucide-react";
+import { Upload, Sparkles, Palette, Ruler, ArrowRight, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 
 export type VisionData =
   | { mode: "upload" }
   | { mode: "describe"; prompt: string }
-  | { mode: "discover" };
+  | { mode: "discover" }
+  | { mode: "floor-plan" };
 
 interface Props {
   onBack: () => void;
@@ -35,6 +36,12 @@ const CaptureVision = ({ onBack, onComplete }: Props) => {
       icon: <Palette className="w-5 h-5" />,
       title: "Discover styles",
       description: "Browse curated directions and pick what speaks to you",
+    },
+    {
+      id: "floor-plan" as const,
+      icon: <Ruler className="w-5 h-5" />,
+      title: "Continue with floor plan",
+      description: "Draw your room shape and get AI-generated layouts",
     },
   ];
 
