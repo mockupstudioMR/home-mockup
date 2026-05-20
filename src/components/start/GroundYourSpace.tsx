@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { ArrowRight, ArrowLeft, Sparkles, Home, Building2, Building, Hotel, KeyRound, Hammer, Wand2, PackageOpen, Sofa, Bed, UtensilsCrossed, Monitor, Bath, LayoutGrid, Utensils, Check } from "lucide-react";
+import { ArrowRight, ArrowLeft, Sparkles, Home, Building2, Building, Hotel, KeyRound, Hammer, Wand2, PackageOpen, Sofa, Bed, UtensilsCrossed, Monitor, Bath, LayoutGrid, Utensils, Check, Construction } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export interface GroundData {
@@ -41,6 +41,7 @@ const ROOMS = [
 ];
 
 const HOUSE_STATES = [
+  { id: "core-shell", label: "Core & shell", description: "Bare walls — needs flooring, paint, fixtures", icon: <Construction className="w-5 h-5" /> },
   { id: "empty", label: "Empty", description: "Blank canvas, nothing in yet", icon: <PackageOpen className="w-5 h-5" /> },
   { id: "partial", label: "Partially furnished", description: "A few pieces, need the rest", icon: <Sofa className="w-5 h-5" /> },
   { id: "redoing", label: "Redoing it all", description: "Furnished but starting over", icon: <Wand2 className="w-5 h-5" /> },
