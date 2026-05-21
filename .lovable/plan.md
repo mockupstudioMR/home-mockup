@@ -1,60 +1,40 @@
+## WhatsApp Quiz via Twilio
 
+Deliver the HomeMockUp quiz as a WhatsApp chat: the user enters their phone number, our backend sends them numbered questions through Twilio's WhatsApp Business API, they reply with a number (e.g. "2") for each option, and when complete we save it as a `quiz_responses` row tied to their account and link back to the app to generate the design.
 
-## Layered Design Refinement
+### What gets built
 
-Restructure the `/generate` refinement panel so users can adjust the design in three sequential layers, each with its own controls and regeneration scope.
+**1. Twilio connector**
+Connect Twilio via the standard connector (gateway-managed credentials, no secrets to paste). I'll guide you to enable WhatsApp on your Twilio sender (or use the Twilio Sandbox number for testing).
 
-### The three layers
+**2. Database** — new table `whatsapp_quiz_sessions`
+- `id`, `user_id` (nullable — sessions can start anonymously and link on completion), `phone_e164`, `current_step` (int), `answers` (jsonb), `status` ('active' | 'completed' | 'abandoned'), `last_message_sid`, timestamps
+- RLS: users can read their own sessions; service role writes everything from edge functions
+- Index on `phone_e164` for fast inbound lookup
 
-1. **Architecture** — wall color/material/finish, ceiling color/treatment, floor (already supported), trim/molding
-2. **Furniture** — sofa, bed, tables, storage (swap, restyle, recolor, remove)
-3. **Decor** — lighting, rugs, art, plants, accessories
+**3. Edge functions**
+- `whatsapp-quiz-start` (called from the app): accepts `{ phone, userId }`, creates a session, sends the first WhatsApp message via Twilio gateway
+- `whatsapp-quiz-webhook` (public, `verify_jwt = false`): receives Twilio inbound webhooks (`application/x-www-form-urlencoded`), looks up the session by `From`, validates the reply against the current step's options, advances state, sends the next question or the completion message + deep link, and on completion writes a `quiz_responses` row
 
-Each layer is shown as a tab/accordion in the refinement panel. Architecture is selected by default (matches the natural top-down design order). Switching layers filters the moodboard items shown and the refinement actions available.
+**4. Quiz script**
+A single shared `whatsappQuiz.ts` module (used by both edge functions) defines the question list, valid answers, and how to render each one as WhatsApp text (e.g. "What room? \n1️⃣ Living room \n2️⃣ Bedroom \n…"). Matches the current in-app quiz schema (`style_preference`, `color_palette`, `room_type`, `budget_feel`, `intent`).
 
-### UI changes
+**5. UI entry point** — `src/components/quiz/WhatsAppQuizCard.tsx`
+Card on the Quiz page with a phone input (E.164), country code, "Send me the quiz on WhatsApp" button. Calls `whatsapp-quiz-start`, shows a confirmation toast, and a "Check status" link that polls the session row and redirects to `/generate` once `status = 'completed'`.
 
-**`src/components/generate/RefinementPanel.tsx`**
-- Add a 3-step layer selector at the top: `Architecture → Furniture → Decor` with a progress indicator (filled dots + connector line) so the layered nature is visible.
-- Per layer, show:
-  - **Architecture**: color swatches for walls + ceiling, finish chips (matte / satin / textured / wood paneling / wallpaper), free-text "describe wall/ceiling change" box. Reuses existing `replace-wall` edge function for wall changes; ceiling handled via `color_material` action scoped to ceiling.
-  - **Furniture**: filtered moodboard items where `kind === "furniture"` (incl. must-include) with existing swap / recolor / remove actions.
-  - **Decor**: filtered items where `kind === "decor"` with the same actions.
-- A "Lock previous layers" toggle (default ON) tells the generator to preserve architecture when refining furniture, and preserve architecture+furniture when refining decor.
+### Technical notes (for the dev)
 
-**`src/components/generate/MoodboardElementsPanel.tsx`**
-- Accept an optional `activeLayer` prop. When set, dim/hide sections that don't belong to the active layer so the moodboard reflects what the user is currently editing.
-- "Architecture" section already exists conceptually as `material` — rename/remap to a new `architecture` kind covering walls, ceiling, floor, trim.
+- Twilio WhatsApp sender format is `whatsapp:+E164`. The webhook receives `From=whatsapp:+...` and `Body=...` — we strip the prefix before lookup.
+- All Twilio calls go through `https://connector-gateway.lovable.dev/twilio/Messages.json` with `Authorization: Bearer ${LOVABLE_API_KEY}` and `X-Connection-Api-Key: ${TWILIO_API_KEY}`. Body is `application/x-www-form-urlencoded`.
+- The Twilio webhook URL to paste into the Twilio console: `https://bofbkmgsefjnfbtvjgdz.supabase.co/functions/v1/whatsapp-quiz-webhook`. I'll show this after deploy.
+- For testing without an approved WhatsApp sender, Twilio offers a sandbox — the user joins by texting "join <code>" to Twilio's sandbox number, then can receive messages immediately.
+- SMS Pumping Protection + Geo Permissions: I'll remind you to enable these in the Twilio console before going live, per Twilio's anti-abuse guidance.
+- The in-app quiz UI stays as-is. WhatsApp is an additional channel, not a replacement.
 
-**`src/components/generate/MoodboardRefinePanel.tsx`** (host)
-- Holds the new `activeLayer` state, persists it in `sessionStorage` so switching tabs doesn't reset the user's place.
-- Passes layer + lock flag down to the generation request.
+### What you'll need to do after I build
 
-### Generation pipeline
+1. Approve the Twilio connector connection when prompted
+2. In Twilio console: enable WhatsApp on a sender (or join the sandbox), then paste the webhook URL I provide into the "When a message comes in" field
+3. Test by texting your WhatsApp number from the app
 
-**`supabase/functions/generate-design/index.ts`**
-- Accept new payload fields: `refinementLayer: "architecture" | "furniture" | "decor"` and `lockedLayers: string[]`.
-- Inject layer-aware instructions into the prompt:
-  - Architecture refinement → "Preserve all furniture and decor positions/identities exactly. Only modify walls, ceiling, floor, and architectural finishes."
-  - Furniture refinement → "Preserve walls, ceiling, floor finishes exactly. Only modify furniture as instructed."
-  - Decor refinement → "Preserve architecture and furniture exactly. Only modify decor (lighting, rugs, art, plants, accessories)."
-- Reuse the existing scene-preservation prompt scaffolding documented in the structured-refinement memory.
-
-### Data model
-
-No schema changes required. The layer + locked-layers metadata is sent per generation request and stored in the existing `generated_designs.refinement_metadata` JSON column (already used for undo stack).
-
-### Out of scope
-
-- No changes to `/analyze-room` moodboard composition.
-- No new edge functions — reuses `generate-design` and `replace-wall`.
-- Undo stack continues to work unchanged; each layered edit is one undo step.
-
-### Files touched
-
-- `src/components/generate/RefinementPanel.tsx` (add layer selector + per-layer controls)
-- `src/components/generate/MoodboardRefinePanel.tsx` (host state, pass-through)
-- `src/components/generate/MoodboardElementsPanel.tsx` (filter by active layer, add `architecture` kind)
-- `src/pages/Generate.tsx` (forward `refinementLayer` + `lockedLayers` to the edge function)
-- `supabase/functions/generate-design/index.ts` (layer-aware prompt injection)
-
+Want me to proceed?
