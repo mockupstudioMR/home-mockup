@@ -2,6 +2,42 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { STEPS, parseTextAnswer, renderTextStep, advanceAndSend, sendWhatsApp, firstMessage } from "../_shared/whatsappQuiz.ts";
 
+async function downloadTwilioMediaToStorage(
+  admin: ReturnType<typeof createClient>,
+  mediaUrl: string,
+  sessionId: string,
+  contentType: string,
+): Promise<string> {
+  const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+  const TWILIO_API_KEY = Deno.env.get("TWILIO_API_KEY");
+  if (!LOVABLE_API_KEY || !TWILIO_API_KEY) throw new Error("Twilio gateway credentials missing");
+
+  // Twilio media URL: https://api.twilio.com/2010-04-01/Accounts/{Sid}/Messages/{MSid}/Media/{MeSid}
+  // Gateway auto-prepends /2010-04-01/Accounts/{Sid}, so strip everything up to and including the Sid.
+  const m = mediaUrl.match(/\/2010-04-01\/Accounts\/[^/]+(\/.*)$/);
+  const pathSuffix = m ? m[1] : new URL(mediaUrl).pathname;
+  const gatewayUrl = `https://connector-gateway.lovable.dev/twilio${pathSuffix}`;
+
+  const res = await fetch(gatewayUrl, {
+    headers: {
+      Authorization: `Bearer ${LOVABLE_API_KEY}`,
+      "X-Connection-Api-Key": TWILIO_API_KEY,
+    },
+    redirect: "follow",
+  });
+  if (!res.ok) throw new Error(`Twilio media fetch failed [${res.status}]: ${await res.text()}`);
+  const bytes = new Uint8Array(await res.arrayBuffer());
+  const ext = contentType.split("/")[1]?.split(";")[0] || "jpg";
+  const path = `wa/${sessionId}/wa-${Date.now()}.${ext}`;
+  const { error: upErr } = await admin.storage.from("room-photos").upload(path, bytes, {
+    contentType,
+    upsert: true,
+  });
+  if (upErr) throw upErr;
+  const { data } = admin.storage.from("room-photos").getPublicUrl(path);
+  return data.publicUrl;
+}
+
 // Public endpoint — Twilio webhook. verify_jwt is disabled via supabase/config.toml.
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
