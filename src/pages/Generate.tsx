@@ -538,6 +538,7 @@ const Generate = () => {
     }
 
     if (!quizData) {
+      if (waHydrating) return; // wait for WhatsApp session hydration
       navigate("/quiz");
       return;
     }
