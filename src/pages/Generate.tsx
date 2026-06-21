@@ -22,6 +22,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import type { QuizData } from "@/contexts/QuizContext";
+import { useQuiz } from "@/contexts/QuizContext";
 import DesignImage from "@/components/generate/DesignImage";
 import { trackEvent } from "@/lib/analytics";
 
