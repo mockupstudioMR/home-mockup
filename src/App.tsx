@@ -28,6 +28,7 @@ const NotFound = lazy(() => import("./pages/NotFound"));
 const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
 const DesignerDashboard = lazy(() => import("./pages/DesignerDashboard"));
 const ShopDashboard = lazy(() => import("./pages/ShopDashboard"));
+const WhatsAppPicker = lazy(() => import("./pages/WhatsAppPicker"));
 
 const PageLoader = () => (
   <div className="min-h-screen flex items-center justify-center">
@@ -126,6 +127,7 @@ const App = () => (
                 </ProtectedRoute>
               } />
 
+              <Route path="/wa/:sessionId/:visualKind" element={<WhatsAppPicker />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
             </Suspense>

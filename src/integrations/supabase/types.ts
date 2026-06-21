@@ -921,6 +921,48 @@ export type Database = {
         }
         Relationships: []
       }
+      whatsapp_quiz_sessions: {
+        Row: {
+          answers: Json
+          created_at: string
+          current_step: number
+          id: string
+          last_message_sid: string | null
+          phone_e164: string
+          status: string
+          step_token: string | null
+          step_token_expires_at: string | null
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          answers?: Json
+          created_at?: string
+          current_step?: number
+          id?: string
+          last_message_sid?: string | null
+          phone_e164: string
+          status?: string
+          step_token?: string | null
+          step_token_expires_at?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          answers?: Json
+          created_at?: string
+          current_step?: number
+          id?: string
+          last_message_sid?: string | null
+          phone_e164?: string
+          status?: string
+          step_token?: string | null
+          step_token_expires_at?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
