@@ -1,70 +1,75 @@
 ## Goal
 
-Let users complete the entire HomeMockUp quiz inside WhatsApp. They tap "Start on WhatsApp" in the app, get a chat from our Twilio number, answer each question by replying with a number, and when finished receive a link back to `/generate` where their design is built from the answers they gave on WhatsApp.
-
-The current in-app quiz stays available as a fallback, but WhatsApp becomes the primary path from the Quiz page.
+Run the full HomeMockUp quiz inside WhatsApp. Text-only questions are answered by replying with a number. Questions that need visuals (style moodboard, color palette, inspiration image, floor plan) are sent as a **one-time link** to a tiny web picker; the user taps, picks visually, and WhatsApp continues with the next question automatically. On completion, the user gets a link back to `/generate`.
 
 ## User flow
 
-1. On `/quiz` the user sees one card: "Take the quiz on WhatsApp" with a phone input (country code + number).
-2. They tap **Send me the quiz**. We create a session and Twilio sends message 1.
-3. In WhatsApp they answer each question by replying with the option number (`1`, `2`, `3`…). Free-text questions (e.g. inspiration link, optional notes) accept any text. They can reply `skip` for optional steps and `restart` to start over.
-4. After the last answer, WhatsApp sends a completion message with a deep link: `https://home-mockup.lovable.app/generate?wa_session=<id>`.
-5. Opening that link signs the user in (or prompts auth), loads their answers into `QuizContext`, writes a `quiz_responses` row, and runs generation exactly like the in-app quiz does today.
+1. On `/quiz`, the user enters their phone number and taps **Send me the quiz on WhatsApp**.
+2. WhatsApp sends message 1. They reply with numbers for text questions (`1`, `2`, …), `skip` for optional, `restart` to reset.
+3. For visual questions, WhatsApp sends a short message + a unique link like `https://home-mockup.lovable.app/wa/<sessionId>/<step>?t=<token>`. The user taps, picks on a minimal mobile-first picker page, the picker posts the choice to our backend, and the next WhatsApp message arrives within a second.
+4. After the last answer, WhatsApp sends a deep link `…/generate?wa_session=<id>` which hydrates `QuizContext` and runs generation.
 
-## Quiz script over WhatsApp
+## Question routing (text vs link)
 
-The current quiz collects: `intent`, `roomType` (only required step today), and uses defaults for the rest (`style_preference=modern-minimal`, `color_palette=neutral`, `budget_feel=mid-range`, `furniture_source=open`). WhatsApp version asks the same things the user could be asked in the app, in this order, with numbered options matching the in-app step components:
+| Step | Mode | Source component |
+| --- | --- | --- |
+| Intent | text (numbered) | `IntentStep` |
+| Room type | text (numbered) | `RoomStep` |
+| Style preference | **link → picker** | `StyleStep` moodboards (`styleMoodboards.ts`) |
+| Color palette | **link → picker** | `ColorStep` swatches |
+| Budget feel | text (numbered) | `BudgetStep` |
+| Must-have elements | text (multi: `1,3,5` or `skip`) | `ElementsStep` |
+| Furniture source | text (numbered) | `FurnitureSourceStep` |
+| Inspiration image (optional) | **link → picker/uploader** | `ImageStep` (gallery + upload) |
+| Floor plan (if room needs it) | **link → picker** | reuses existing `FloorPlan` page in a lightweight standalone mode |
 
-1. Intent — Starting fresh / Updating current / Just gathering inspiration (`IntentStep`)
-2. Room type — Living room / Bedroom / Kitchen / Dining / Office / Bathroom / Kids / Outdoor (`RoomStep`)
-3. Style — options from `StyleStep`
-4. Color palette — options from `ColorStep`
-5. Budget feel — options from `BudgetStep`
-6. Must-have elements — multi-select, reply with comma-separated numbers (e.g. `1,3,5`), or `skip`
-7. Furniture source — Shop products only / Open to anything (`FurnitureSourceStep`)
-8. Optional inspiration image — "Reply with a link, or `skip`"
-
-A shared `whatsappQuiz.ts` module defines the question list, valid answers, and renders each message (e.g. `"What room? \n1️⃣ Living room \n2️⃣ Bedroom \n…\nReply with a number."`). Used by both edge functions and by the resume-on-web step so option labels stay in sync.
+Each visual question is delivered as: `"Pick your style here 👇 https://…/wa/<id>/style?t=<token> (link expires when you pick)"`.
 
 ## What gets built
 
-**1. Twilio connector**
-Gateway-managed, no secrets pasted. After approval you'll enable WhatsApp on a sender (or use the Twilio sandbox for testing) and paste our webhook URL into the "When a message comes in" field.
+**1. Twilio connector** — gateway-managed, no secrets pasted.
 
-**2. Database** — new table `whatsapp_quiz_sessions`
-- `id uuid`, `user_id uuid null`, `phone_e164 text`, `current_step int`, `answers jsonb`, `status text` (`active` | `completed` | `abandoned`), `last_message_sid text`, `created_at`, `updated_at`
+**2. DB** — `whatsapp_quiz_sessions`
+- `id uuid pk`, `user_id uuid null`, `phone_e164 text`, `current_step int`, `answers jsonb`, `status text`, `step_token text` (rotated per visual step so old links die), `step_token_expires_at timestamptz`, `last_message_sid text`, timestamps
 - Index on `phone_e164`
-- RLS: users can read sessions where `user_id = auth.uid()` or where they hold the matching `wa_session` id; service role does all writes
-- GRANTs for `authenticated` and `service_role` in the same migration
+- RLS: `user_id = auth.uid()` for reads; picker pages read/write via service-role edge function using `step_token` (no auth required); GRANTs for `authenticated` + `service_role`.
 
 **3. Edge functions**
-- `whatsapp-quiz-start` (auth required): `{ phone, userId? }` → creates a session, sends message 1 via Twilio gateway, returns `{ sessionId }`.
-- `whatsapp-quiz-webhook` (public, `verify_jwt = false`): receives Twilio inbound (`application/x-www-form-urlencoded`), looks up active session by `From`, validates the reply against current step, advances state, sends next question. On completion sends the deep link and marks session `completed`. Handles `restart` and `skip`.
-- `whatsapp-quiz-claim` (auth required): `{ sessionId }` → verifies session belongs to the caller (or links it if `user_id` was null), returns the `answers` object so the client can hydrate `QuizContext` and trigger generation.
+- `whatsapp-quiz-start` (auth): `{ phone }` → create session, send msg 1.
+- `whatsapp-quiz-webhook` (public, `verify_jwt=false`): Twilio inbound. Validates Twilio signature. Advances text steps. When the next step is visual, sends the picker link with a fresh `step_token`.
+- `whatsapp-quiz-step` (public, `verify_jwt=false`): the picker page calls this with `{ sessionId, step, token, value }`. Validates token + step, stores answer, rotates token, triggers the next WhatsApp message via Twilio, returns `{ ok: true, nextStep }`.
+- `whatsapp-quiz-claim` (auth): `{ sessionId }` → returns answers for `/generate` hydration.
 
-**4. Frontend changes**
-- `src/components/quiz/WhatsAppQuizCard.tsx` — phone input (E.164), country code select, "Send me the quiz on WhatsApp" button, post-send state showing "Open WhatsApp" link (`wa.me`) and a "Check status" poller.
-- `src/pages/Quiz.tsx` — replace the current step UI with the WhatsApp card. Keep a small "Prefer to answer here?" link that reveals the existing in-app steps as a fallback.
-- `src/pages/Generate.tsx` — detect `?wa_session=<id>` on mount; call `whatsapp-quiz-claim`, map the returned answers into `QuizContext` via `updateQuizData`, then run the same generation kickoff that the in-app flow does today.
+**4. Frontend**
+- `src/components/quiz/WhatsAppQuizCard.tsx` — phone input + send button + status poller.
+- `src/pages/Quiz.tsx` — show the WhatsApp card as primary; small "answer here instead" link reveals existing in-app steps as fallback.
+- `src/pages/WhatsAppPicker.tsx` (new, route `/wa/:sessionId/:step`) — minimal, no auth, mobile-first. Renders the matching visual picker:
+  - `style` → reuses `styleMoodboards.ts` grid
+  - `color` → reuses palette swatches from `ColorStep`
+  - `image` → reuses `ImageStep` gallery + upload (writes to `room-photos`)
+  - `floorplan` → embeds existing `FloorPlan` picker in a slimmed standalone shell
+  After submit, shows: "Got it! Check WhatsApp for the next question 💬" and closes.
+- `src/pages/Generate.tsx` — detect `?wa_session=<id>`, call `whatsapp-quiz-claim`, hydrate `QuizContext`, run normal generation.
 
-**5. Status & resilience**
-- Webhook validates Twilio signature using the connector secret to reject spoofed inbound.
-- Invalid reply → friendly retry message ("Please reply with a number from 1 to N, or `skip`").
-- Inactivity / abandoned sessions: a session older than 24h with `status='active'` is marked `abandoned` on next inbound from that phone (no cron needed for v1).
+**5. Security / resilience**
+- Twilio signature validation on webhook.
+- `step_token` is a single-use random string, rotated after each picker submit and expired after 30 min; old links return a friendly "this link expired, check WhatsApp for a new one" page.
+- Invalid text reply → friendly retry with the option list.
+- Session inactive >24h → marked `abandoned` on next inbound.
 
 ## Technical notes
 
-- Twilio sender format: `whatsapp:+E164`. Inbound `From=whatsapp:+...` — strip the prefix before lookup.
-- All Twilio calls go through `https://connector-gateway.lovable.dev/twilio/Messages.json` with `Authorization: Bearer ${LOVABLE_API_KEY}` and `X-Connection-Api-Key: ${TWILIO_API_KEY}`, body `application/x-www-form-urlencoded`.
-- Webhook URL to paste into Twilio: `https://bofbkmgsefjnfbtvjgdz.supabase.co/functions/v1/whatsapp-quiz-webhook` (shown again after deploy).
-- For testing without an approved WhatsApp sender, use the Twilio Sandbox — text `join <code>` to Twilio's sandbox number, then sessions work immediately.
-- Reminder to enable **SMS Pumping Protection** and **Geo Permissions** in the Twilio console before going live.
+- Twilio sender: `whatsapp:+E164`. Inbound `From=whatsapp:+...` — strip prefix.
+- Twilio calls: `https://connector-gateway.lovable.dev/twilio/Messages.json`, headers `Authorization: Bearer ${LOVABLE_API_KEY}` + `X-Connection-Api-Key: ${TWILIO_API_KEY}`, body `application/x-www-form-urlencoded`.
+- Webhook URL to paste in Twilio: `https://bofbkmgsefjnfbtvjgdz.supabase.co/functions/v1/whatsapp-quiz-webhook`.
+- Picker pages render even when the user is logged out — the `step_token` is the only auth they need for that single step.
+- For testing without an approved WhatsApp sender, use the Twilio sandbox (`join <code>`).
+- Enable **SMS Pumping Protection** + **Geo Permissions** in Twilio before going live.
 
 ## What you'll do after I build
 
-1. Approve the Twilio connector when prompted.
-2. In Twilio console: enable WhatsApp on a sender (or join the sandbox), paste the webhook URL into "When a message comes in".
-3. Test by sending yourself the quiz from the app and replying on WhatsApp.
+1. Approve the Twilio connector.
+2. In Twilio: enable WhatsApp on a sender (or join sandbox), paste the webhook URL.
+3. Test from the app.
 
 Proceed?
