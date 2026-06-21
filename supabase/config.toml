@@ -1,1 +1,7 @@
 project_id = "bofbkmgsefjnfbtvjgdz"
+
+[functions.whatsapp-quiz-webhook]
+verify_jwt = false
+
+[functions.whatsapp-quiz-step]
+verify_jwt = false
