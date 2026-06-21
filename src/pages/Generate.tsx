@@ -156,7 +156,44 @@ const Generate = () => {
   const { user, loading } = useAuth();
   const { toast } = useToast();
 
-  const { quizData: contextQuizData } = useQuiz();
+  const { quizData: contextQuizData, updateQuizData } = useQuiz();
+
+  // Hydrate from WhatsApp quiz session if ?wa_session=<id> is present.
+  const waSessionId = new URLSearchParams(location.search).get("wa_session");
+  const [waHydrating, setWaHydrating] = useState(!!waSessionId && !contextQuizData?.roomType);
+  useEffect(() => {
+    if (!waSessionId) return;
+    if (contextQuizData?.roomType) { setWaHydrating(false); return; }
+    let cancelled = false;
+    (async () => {
+      try {
+        const { data, error } = await supabase.functions.invoke("whatsapp-quiz-claim", { body: { sessionId: waSessionId } });
+        if (error) throw error;
+        const payload = data as { ok?: boolean; answers?: Record<string, unknown>; error?: string };
+        if (payload?.error || !payload?.answers) throw new Error(payload?.error ?? "No answers");
+        const a = payload.answers;
+        if (cancelled) return;
+        updateQuizData({
+          intent: (a.intent as QuizData["intent"]) ?? undefined,
+          roomType: (a.roomType as string) ?? "",
+          stylePreference: (a.stylePreference as string) ?? "modern_minimal",
+          colorPalette: (a.colorPalette as string) ?? "neutral",
+          budgetFeel: (a.budgetFeel as string) ?? "mid-range",
+          mustHaveElements: Array.isArray(a.mustHaveElements) ? (a.mustHaveElements as string[]) : [],
+          furnitureSource: (a.furnitureSource as "shop_only" | "open") ?? "open",
+          sourceImageUrl: (a.sourceImageUrl as string) || undefined,
+        });
+        sessionStorage.setItem("generate_quiz_nonce", crypto.randomUUID());
+        setWaHydrating(false);
+      } catch (e) {
+        console.error("[Generate] wa claim error", e);
+        toast({ title: "Couldn't load WhatsApp quiz", description: (e as Error).message, variant: "destructive" });
+        setWaHydrating(false);
+      }
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [waSessionId]);
   const routeQuizData = location.state?.quizData as QuizData | undefined;
   // Fallback: if user arrived without route state but already has a chosen
   // roomType in the quiz context (e.g. from Start → moodboard flow), use that
