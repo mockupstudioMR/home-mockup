@@ -11,6 +11,7 @@ Deno.serve(async (req) => {
     const from = String(form.get("From") ?? ""); // e.g. "whatsapp:+1415..."
     const bodyRaw = String(form.get("Body") ?? "").trim();
     const phone = from.replace(/^whatsapp:/, "");
+    const numMedia = parseInt(String(form.get("NumMedia") ?? "0"), 10) || 0;
     if (!phone) return new Response("ok");
 
     const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
@@ -43,6 +44,38 @@ Deno.serve(async (req) => {
     }
 
     const answers = { ...(session.answers as Record<string, unknown>) };
+
+    // Handle inbound media (photo via WhatsApp)
+    if (numMedia > 0) {
+      const mediaUrl = String(form.get("MediaUrl0") ?? "");
+      const contentType = String(form.get("MediaContentType0") ?? "image/jpeg");
+      if (mediaUrl && contentType.startsWith("image/")) {
+        try {
+          const publicUrl = await downloadTwilioMediaToStorage(admin, mediaUrl, session.id, contentType);
+          answers.sourceImageUrl = publicUrl;
+          await admin.from("whatsapp_quiz_sessions").update({ answers }).eq("id", session.id);
+
+          // If on style step, accept image as reference and advance (keep any prior style pick or leave blank for default)
+          if (step.kind === "link" && step.visualKind === "style") {
+            if (!answers.stylePreference) answers.stylePreference = "modern_minimal";
+            await sendWhatsApp(phone, "📸 Got your reference image! Saved as inspiration.");
+            await advanceAndSend(admin, session.id, phone, session.current_step + 1, answers);
+            return new Response("ok");
+          }
+          if (step.kind === "optional-link" && step.visualKind === "image") {
+            answers[step.id] = publicUrl;
+            await advanceAndSend(admin, session.id, phone, session.current_step + 1, answers);
+            return new Response("ok");
+          }
+          await sendWhatsApp(phone, "📸 Saved your image as inspiration. Continuing…\n\n" + renderTextStep(step));
+          return new Response("ok");
+        } catch (mediaErr) {
+          console.error("twilio media download failed", mediaErr);
+          await sendWhatsApp(phone, "Hmm, I couldn't read that image. Try sending it again, or tap the link to upload.");
+          return new Response("ok");
+        }
+      }
+    }
 
     if (step.kind === "link") {
       await sendWhatsApp(phone, `Please tap the link above to pick ${step.visualKind}. Reply 'restart' to start over.`);
