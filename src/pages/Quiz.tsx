@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuiz } from "@/contexts/QuizContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import QuizProgress from "@/components/quiz/QuizProgress";
 import RoomStep from "@/components/quiz/steps/RoomStep";
+import WhatsAppQuizCard from "@/components/quiz/WhatsAppQuizCard";
 import { ArrowLeft, Sparkles, Home } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -18,6 +19,7 @@ const Quiz = () => {
   const { quizData, currentStep, setCurrentStep, resetQuiz } = useQuiz();
   const { toast } = useToast();
   const autoSubmittedRef = useRef(false);
+  const [useFallback, setUseFallback] = useState(false);
 
   useEffect(() => {
     if (!loading && !user) {
