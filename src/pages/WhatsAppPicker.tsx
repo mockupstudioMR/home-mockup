@@ -36,6 +36,8 @@ const WhatsAppPicker = () => {
   const { toast } = useToast();
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
+  const [styleRefUrl, setStyleRefUrl] = useState<string | null>(null);
+  const [selectedStyle, setSelectedStyle] = useState<string | null>(null);
 
   const submit = async (value: unknown) => {
     if (!sessionId || !visualKind || !token) return;
@@ -69,6 +71,30 @@ const WhatsAppPicker = () => {
     }
   };
 
+  const uploadStyleRef = async (file: File) => {
+    setSubmitting(true);
+    try {
+      const path = `wa/${sessionId}/style-${Date.now()}-${file.name}`;
+      const { error: upErr } = await supabase.storage.from("room-photos").upload(path, file, { upsert: true });
+      if (upErr) throw upErr;
+      const { data } = supabase.storage.from("room-photos").getPublicUrl(path);
+      setStyleRefUrl(data.publicUrl);
+      toast({ title: "Reference image added" });
+    } catch (e) {
+      toast({ title: "Upload failed", description: (e as Error).message, variant: "destructive" });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const submitStyle = () => {
+    if (!selectedStyle && !styleRefUrl) {
+      toast({ title: "Pick a style or upload an image", variant: "destructive" });
+      return;
+    }
+    submit({ style: selectedStyle ?? undefined, referenceImageUrl: styleRefUrl ?? undefined });
+  };
+
   if (done) {
     return (
       <div className="min-h-screen flex items-center justify-center p-6 bg-gradient-to-br from-background via-secondary/20 to-primary/10">
@@ -94,13 +120,39 @@ const WhatsAppPicker = () => {
         </div>
 
         {visualKind === "style" && (
-          <div className="grid grid-cols-2 gap-3">
-            {STYLES.map((s) => (
-              <button key={s.value} disabled={submitting} onClick={() => submit(s.value)} className="group rounded-xl overflow-hidden border-2 border-border hover:border-primary transition disabled:opacity-50">
-                <img src={s.img} alt={s.label} className="w-full aspect-square object-cover" />
-                <div className="p-2 text-sm font-medium text-center">{s.label}</div>
-              </button>
-            ))}
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-3">
+              {STYLES.map((s) => {
+                const isSel = selectedStyle === s.value;
+                return (
+                  <button
+                    key={s.value}
+                    disabled={submitting}
+                    onClick={() => setSelectedStyle(isSel ? null : s.value)}
+                    className={`group rounded-xl overflow-hidden border-2 transition disabled:opacity-50 ${isSel ? "border-primary ring-2 ring-primary/30" : "border-border hover:border-primary"}`}
+                  >
+                    <img src={s.img} alt={s.label} className="w-full aspect-square object-cover" />
+                    <div className="p-2 text-sm font-medium text-center">{s.label}</div>
+                  </button>
+                );
+              })}
+            </div>
+            <Card>
+              <CardContent className="p-4 space-y-3">
+                <div className="text-sm font-medium">Add a reference image (optional)</div>
+                <p className="text-xs text-muted-foreground">Upload a photo or moodboard that inspires you — we'll blend it with your style pick.</p>
+                <Input type="file" accept="image/*" disabled={submitting} onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadStyleRef(f); }} />
+                {styleRefUrl && (
+                  <div className="flex items-center gap-3">
+                    <img src={styleRefUrl} alt="reference" className="w-16 h-16 object-cover rounded-lg border" />
+                    <button className="text-xs text-muted-foreground underline" onClick={() => setStyleRefUrl(null)}>Remove</button>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+            <Button className="w-full" size="lg" disabled={submitting || (!selectedStyle && !styleRefUrl)} onClick={submitStyle}>
+              Continue
+            </Button>
           </div>
         )}
 
