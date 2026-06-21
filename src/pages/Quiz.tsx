@@ -1,4 +1,4 @@
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuiz } from "@/contexts/QuizContext";
@@ -15,6 +15,7 @@ const TOTAL_STEPS = 1;
 
 const Quiz = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, loading } = useAuth();
   const { quizData, currentStep, setCurrentStep, resetQuiz } = useQuiz();
   const { toast } = useToast();
@@ -81,14 +82,20 @@ const Quiz = () => {
 
   // If the room was already chosen earlier in the flow (e.g. GroundYourSpace),
   // skip this screen entirely and jump straight to generation.
+  // Only auto-skip when the user was just redirected here from that flow
+  // (location.state.fromGroundYourSpace), NOT when they land on /quiz
+  // directly with a stale cached roomType from sessionStorage — otherwise
+  // the page flashes and immediately navigates away, which feels broken.
   useEffect(() => {
     if (loading || !user) return;
     if (!quizData.roomType) return;
     if (autoSubmittedRef.current) return;
+    const state = location.state as { fromGroundYourSpace?: boolean } | null;
+    if (!state?.fromGroundYourSpace) return;
     autoSubmittedRef.current = true;
     handleNext();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loading, user, quizData.roomType]);
+  }, [loading, user, quizData.roomType, location.state]);
 
   const handleBack = () => {
     if (currentStep > 0) {
