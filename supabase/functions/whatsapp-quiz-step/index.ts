@@ -40,7 +40,13 @@ Deno.serve(async (req) => {
     }
 
     const answers = { ...(session.answers as Record<string, unknown>) };
-    answers[step.id] = value;
+    if (step.id === "stylePreference" && value && typeof value === "object" && !Array.isArray(value)) {
+      const v = value as { style?: string; referenceImageUrl?: string };
+      if (v.style) answers.stylePreference = v.style;
+      if (v.referenceImageUrl) answers.sourceImageUrl = v.referenceImageUrl;
+    } else {
+      answers[step.id] = value;
+    }
     await advanceAndSend(admin, session.id, session.phone_e164, session.current_step + 1, answers);
     return new Response(JSON.stringify({ ok: true }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (e) {
