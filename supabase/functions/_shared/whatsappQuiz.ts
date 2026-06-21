@@ -41,17 +41,6 @@ export const STEPS: QuestionStep[] = [
   { id: "stylePreference", kind: "link", visualKind: "style", prompt: "Time to pick your design style 🎨" },
   { id: "colorPalette", kind: "link", visualKind: "color", prompt: "Pick the color palette that feels like home 🎨" },
   {
-    id: "budgetFeel",
-    kind: "text",
-    prompt: "What's your budget feel?",
-    options: [
-      { value: "budget-friendly", label: "Budget-friendly" },
-      { value: "mid-range", label: "Mid-range" },
-      { value: "high-end", label: "High-end" },
-      { value: "luxury", label: "Luxury / no limit" },
-    ],
-  },
-  {
     id: "mustHaveElements",
     kind: "multi",
     prompt: "Any must-have elements? (reply with numbers separated by commas, or 'skip')",
@@ -73,7 +62,6 @@ export const STEPS: QuestionStep[] = [
       { value: "shop_only", label: "Only from partner shops" },
     ],
   },
-  { id: "sourceImageUrl", kind: "optional-link", visualKind: "image", prompt: "Got an inspiration image? (optional)" },
 ];
 
 export function firstMessage(): string {
