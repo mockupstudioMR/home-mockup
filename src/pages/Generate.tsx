@@ -22,6 +22,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import type { QuizData } from "@/contexts/QuizContext";
+import { useQuiz } from "@/contexts/QuizContext";
 import DesignImage from "@/components/generate/DesignImage";
 import { trackEvent } from "@/lib/analytics";
 
@@ -155,7 +156,13 @@ const Generate = () => {
   const { user, loading } = useAuth();
   const { toast } = useToast();
 
-  const quizData = location.state?.quizData as QuizData | undefined;
+  const { quizData: contextQuizData } = useQuiz();
+  const routeQuizData = location.state?.quizData as QuizData | undefined;
+  // Fallback: if user arrived without route state but already has a chosen
+  // roomType in the quiz context (e.g. from Start → moodboard flow), use that
+  // instead of bouncing back to /quiz.
+  const quizData: QuizData | undefined =
+    routeQuizData || (contextQuizData?.roomType ? contextQuizData : undefined);
   const resumeDesignId = location.state?.resumeDesignId as string | undefined;
   const existingRoomImagesFromState = (location.state?.quizData?.existingRoomImages || location.state?.existingRoomImages) as string[] | undefined;
   const keepElementsFromState = location.state?.keepElements as string[] | undefined;
