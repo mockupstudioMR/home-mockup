@@ -127,8 +127,8 @@ const App = () => (
                 </ProtectedRoute>
               } />
 
-              <Route path="*" element={<NotFound />} />
               <Route path="/wa/:sessionId/:visualKind" element={<WhatsAppPicker />} />
+              <Route path="*" element={<NotFound />} />
             </Routes>
             </Suspense>
           </BrowserRouter>
