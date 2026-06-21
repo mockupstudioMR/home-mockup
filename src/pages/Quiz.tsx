@@ -141,30 +141,25 @@ const Quiz = () => {
         {/* Progress */}
         <QuizProgress currentStep={currentStep} totalSteps={TOTAL_STEPS} />
 
-        {/* Quiz Card */}
-        <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
-          <CardContent className="p-6">{renderStep()}</CardContent>
-        </Card>
-
-        {/* Navigation */}
-        <div className="flex gap-3">
-          <Button
-            variant="outline"
-            onClick={() => navigate(-1)}
-            className="flex-1"
-          >
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Back
-          </Button>
-          <Button
-            onClick={handleNext}
-            disabled={!canProceed()}
-            className="flex-1"
-          >
-            <Sparkles className="w-4 h-4 mr-2" />
-            {currentStep < TOTAL_STEPS - 1 ? "Next" : "Generate Design"}
-          </Button>
-        </div>
+        {useFallback ? (
+          <>
+            <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
+              <CardContent className="p-6">{renderStep()}</CardContent>
+            </Card>
+            <div className="flex gap-3">
+              <Button variant="outline" onClick={() => navigate(-1)} className="flex-1">
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Back
+              </Button>
+              <Button onClick={handleNext} disabled={!canProceed()} className="flex-1">
+                <Sparkles className="w-4 h-4 mr-2" />
+                {currentStep < TOTAL_STEPS - 1 ? "Next" : "Generate Design"}
+              </Button>
+            </div>
+          </>
+        ) : (
+          <WhatsAppQuizCard onFallback={() => setUseFallback(true)} />
+        )}
       </div>
     </div>
   );
