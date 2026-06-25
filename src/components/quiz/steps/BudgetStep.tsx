@@ -30,7 +30,6 @@ const BudgetStep = () => {
     <div className="space-y-6">
       <div className="text-center space-y-2">
         <h2 className="text-2xl font-bold">What's your budget feel?</h2>
-        <p className="text-muted-foreground">This helps us suggest appropriate styles</p>
       </div>
 
       <div className="grid gap-3">

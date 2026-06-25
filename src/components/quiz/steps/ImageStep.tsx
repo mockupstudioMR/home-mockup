@@ -91,9 +91,6 @@ const ImageStep = () => {
     <div className="space-y-6">
       <div className="text-center space-y-2">
         <h2 className="text-2xl font-bold">Add an inspiration image</h2>
-        <p className="text-muted-foreground">
-          Upload your room or choose from our gallery
-        </p>
       </div>
 
       {/* Upload Area */}

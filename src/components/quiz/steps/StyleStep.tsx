@@ -90,7 +90,6 @@ const StyleStep = () => {
     <div className="space-y-6">
       <div className="text-center space-y-2">
         <h2 className="text-2xl font-bold">What's your design style?</h2>
-        <p className="text-muted-foreground">Choose one or more aesthetics — we'll blend them</p>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
