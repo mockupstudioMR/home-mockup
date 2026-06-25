@@ -156,11 +156,9 @@ const Start = () => {
           {!isPro ? (
             <div className="max-w-3xl mx-auto">
               {freshStage === "intent" ? (
-                <Card className="border-border/50 bg-card/80 backdrop-blur-sm max-w-2xl mx-auto">
-                  <CardContent className="p-6">
-                    <IntentStep />
-                  </CardContent>
-                </Card>
+                <div className="max-w-5xl mx-auto">
+                  <IntentStep />
+                </div>
               ) : freshStage === "ground" ? (
                 <Card className="border-border/50 bg-card/80 backdrop-blur-sm max-w-2xl mx-auto">
                   <CardContent className="p-6">
