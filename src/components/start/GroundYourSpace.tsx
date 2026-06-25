@@ -213,13 +213,14 @@ const GroundYourSpace = ({ onBack, onComplete, onStepChange }: Props) => {
             <p className="text-center text-sm text-muted-foreground">No rooms selected — go back and pick a few.</p>
           )}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
-            {selectedRoomMeta.map((r) => (
+            {selectedRoomMeta.map((r, i) => (
               <BigCard
                 key={r.id}
                 active={data.startRoom === r.id}
                 onClick={() => setData((d) => ({ ...d, startRoom: r.id }))}
                 icon={r.icon}
                 label={r.label}
+                gradient={GRADIENTS[i % GRADIENTS.length]}
               />
             ))}
           </div>
