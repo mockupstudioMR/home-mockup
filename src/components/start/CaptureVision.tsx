@@ -106,17 +106,17 @@ const CaptureVision = ({ onBack, onComplete }: Props) => {
   const options = [
     {
       id: "upload" as const,
-      icon: <Upload className="w-5 h-5" />,
+      icon: <Upload className="w-8 h-8" />,
       label: "Upload inspiration",
     },
     {
       id: "describe" as const,
-      icon: <PenLine className="w-5 h-5" />,
+      icon: <PenLine className="w-8 h-8" />,
       label: "Describe your style",
     },
     {
       id: "discover" as const,
-      icon: <Palette className="w-5 h-5" />,
+      icon: <Palette className="w-8 h-8" />,
       label: "Discover styles",
     },
   ];
