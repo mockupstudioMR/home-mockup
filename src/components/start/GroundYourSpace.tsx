@@ -78,28 +78,24 @@ const BigCard = ({
     type="button"
     onClick={onClick}
     className={cn(
-      "group relative block rounded-2xl overflow-hidden border shadow-sm transition-all duration-500 text-left p-8 md:p-10 min-h-[280px] flex flex-col justify-between bg-gradient-to-br",
+      "group relative block rounded-2xl overflow-hidden border shadow-sm transition-all duration-500 text-center p-8 md:p-10 min-h-[280px] flex flex-col items-center justify-center gap-6 bg-gradient-to-br",
       gradient ?? "from-primary/50 to-secondary/40",
       active
         ? "border-primary shadow-lg shadow-primary/20"
         : "border-border/50 hover:shadow-xl hover:border-primary/40"
     )}
   >
-    <div className="flex flex-col items-center">
-      <div className="w-16 h-16 rounded-2xl bg-background/90 text-primary flex items-center justify-center shadow-md">
-        {icon}
+    <div className="w-16 h-16 rounded-2xl bg-background/90 text-primary flex items-center justify-center shadow-md">
+      {icon}
+    </div>
+    {active && (
+      <div className="absolute top-6 right-6 w-7 h-7 rounded-full bg-primary flex items-center justify-center shadow-sm">
+        <Check className="w-4 h-4 text-primary-foreground" />
       </div>
-      {active && (
-        <div className="absolute top-6 right-6 w-7 h-7 rounded-full bg-primary flex items-center justify-center shadow-sm">
-          <Check className="w-4 h-4 text-primary-foreground" />
-        </div>
-      )}
-    </div>
-    <div>
-      <h3 className="text-xl md:text-2xl font-bold tracking-tight group-hover:text-primary transition-colors break-words">
-        {label}
-      </h3>
-    </div>
+    )}
+    <h3 className="text-xl md:text-2xl font-bold tracking-tight group-hover:text-primary transition-colors break-words">
+      {label}
+    </h3>
   </button>
 );
 
