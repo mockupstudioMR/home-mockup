@@ -144,14 +144,12 @@ const Start = () => {
               {firstName ? `Welcome, ${firstName}` : "Start your journey"}
             </p>
             <h1 className="text-4xl md:text-5xl font-bold tracking-tight">
-              {freshStage === "path" ? "Who are you?" : "What's brought you here?"}
+              {freshStage === "path" ? "Who are you?" : "Let's get started"}
             </h1>
             <p className="text-muted-foreground text-base md:text-lg max-w-xl mx-auto">
               {freshStage === "path"
                 ? `Choose the experience that fits you best.`
-                : intro?.vision
-                ? `We've got your vision in mind — pick the path that matches what you have today.`
-                : `Pick the path that matches what you have today`}
+                : `A few quick questions so we can tailor everything to you.`}
             </p>
           </div>
 
