@@ -239,6 +239,7 @@ const Start = () => {
                     } catch { /* ignore */ }
                     setFreshStage("vision");
                   }}
+                  onStepChange={setGroundStep}
                 />
               ) : freshStage === "vision" ? (
                 <Card className="border-border/50 bg-card/80 backdrop-blur-sm max-w-2xl mx-auto">
