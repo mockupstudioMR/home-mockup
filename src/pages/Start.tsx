@@ -11,6 +11,10 @@ import GroundYourSpace, { type GroundData } from "@/components/start/GroundYourS
 import CaptureVision, { type VisionData } from "@/components/start/CaptureVision";
 import IntentStep from "@/components/quiz/steps/IntentStep";
 
+interface StartLocationState {
+  fromChoosePath?: boolean;
+}
+
 import existingRoomVisual from "@/assets/start/existing-room.jpg";
 import floorPlanVisual from "@/assets/start/floor-plan.jpg";
 import uploadRoomVisual from "@/assets/start/upload-room.jpg";
