@@ -5,19 +5,19 @@ import { cn } from "@/lib/utils";
 const intents = [
   {
     value: "starting-fresh" as const,
-    label: "🏠 Setting up a new space",
+    label: "Setting up a new space",
     icon: <Home className="w-8 h-8" />,
     gradient: "from-primary/30 to-secondary/30",
   },
   {
     value: "updating-current" as const,
-    label: "✨ Redesigning what I have",
+    label: "Redesigning what I have",
     icon: <Sparkles className="w-8 h-8" />,
     gradient: "from-accent/30 to-primary/20",
   },
   {
     value: "gathering-inspiration" as const,
-    label: "💭 Just exploring for now",
+    label: "Just exploring for now",
     icon: <Compass className="w-8 h-8" />,
     gradient: "from-secondary/30 to-accent/30",
   },
