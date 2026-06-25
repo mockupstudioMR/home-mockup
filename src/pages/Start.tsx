@@ -202,7 +202,7 @@ const Start = () => {
                 <Card className="border-border/50 bg-card/80 backdrop-blur-sm max-w-2xl mx-auto">
                   <CardContent className="p-6">
                     <GroundYourSpace
-                      onBack={() => setFreshStage("intent")}
+                      onBack={() => setFreshStage("path")}
                       onComplete={(data: GroundData) => {
                         updateQuizData({ roomType: data.startRoom });
                         try {
