@@ -160,6 +160,8 @@ const Start = () => {
                   : groundStep === "state"
                   ? "What's the state of the place?"
                   : "Where do you want to start?"
+                : freshStage === "vision"
+                ? "Capture the vision"
                 : "Let's get started"}
             </h1>
             <p className="text-muted-foreground text-base md:text-lg max-w-xl mx-auto">
@@ -175,6 +177,8 @@ const Start = () => {
                   : groundStep === "state"
                   ? "Tell us where you're starting from."
                   : "Pick one room to begin with — you can do the rest later."
+                : freshStage === "vision"
+                ? "How would you like to share your style?"
                 : `A few quick questions so we can tailor everything to you.`}
             </p>
           </div>
