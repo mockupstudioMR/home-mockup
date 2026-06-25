@@ -6,19 +6,19 @@ const intents = [
   {
     value: "starting-fresh" as const,
     label: "Setting up a new space",
-    icon: <Home className="w-5 h-5" />,
+    icon: <Home className="w-8 h-8" />,
     gradient: "from-primary/30 to-secondary/30",
   },
   {
     value: "updating-current" as const,
     label: "Redesigning what I have",
-    icon: <Sparkles className="w-5 h-5" />,
+    icon: <Sparkles className="w-8 h-8" />,
     gradient: "from-accent/30 to-primary/20",
   },
   {
     value: "gathering-inspiration" as const,
     label: "Just exploring for now",
-    icon: <Compass className="w-5 h-5" />,
+    icon: <Compass className="w-8 h-8" />,
     gradient: "from-secondary/30 to-accent/30",
   },
 ];
@@ -36,24 +36,24 @@ const IntentStep = () => {
             type="button"
             onClick={() => updateQuizData({ intent: intent.value })}
             className={cn(
-              "group relative block rounded-2xl overflow-hidden border shadow-sm transition-all duration-500 text-left p-4 md:p-5 min-h-[120px] flex flex-col justify-between bg-gradient-to-br",
+              "group relative block rounded-2xl overflow-hidden border shadow-sm transition-all duration-500 text-left p-8 md:p-10 min-h-[280px] flex flex-col justify-between bg-gradient-to-br",
               selected
                 ? "border-primary shadow-lg shadow-primary/10"
                 : "border-border/50 hover:shadow-xl hover:border-primary/30"
             )}
           >
             <div className="flex items-start justify-between">
-              <div className="w-10 h-10 rounded-xl bg-background/90 text-primary flex items-center justify-center shadow-md">
+              <div className="w-16 h-16 rounded-2xl bg-background/90 text-primary flex items-center justify-center shadow-md">
                 {intent.icon}
               </div>
               {selected && (
-                <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center shadow-sm">
-                  <Check className="w-5 h-5 text-primary-foreground" />
+                <div className="w-7 h-7 rounded-full bg-primary flex items-center justify-center shadow-sm">
+                  <Check className="w-4 h-4 text-primary-foreground" />
                 </div>
               )}
             </div>
             <div>
-              <h2 className="text-sm md:text-base font-bold tracking-tight group-hover:text-primary transition-colors">
+              <h2 className="text-xl md:text-2xl font-bold tracking-tight group-hover:text-primary transition-colors break-words">
                 {intent.label}
               </h2>
             </div>

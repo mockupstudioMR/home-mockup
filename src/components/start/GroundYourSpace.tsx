@@ -17,28 +17,28 @@ interface Props {
 }
 
 const PROPERTY_TYPES = [
-  { id: "apartment", label: "Apartment", icon: <Building2 className="w-5 h-5" /> },
-  { id: "house", label: "House", icon: <Home className="w-5 h-5" /> },
-  { id: "studio", label: "Studio", icon: <Hotel className="w-5 h-5" /> },
-  { id: "loft", label: "Loft", icon: <LayoutGrid className="w-5 h-5" /> },
+  { id: "apartment", label: "Apartment", icon: <Building2 className="w-8 h-8" /> },
+  { id: "house", label: "House", icon: <Home className="w-8 h-8" /> },
+  { id: "studio", label: "Studio", icon: <Hotel className="w-8 h-8" /> },
+  { id: "loft", label: "Loft", icon: <LayoutGrid className="w-8 h-8" /> },
 ];
 
 const ROOMS = [
-  { id: "living-room", label: "Living Room", icon: <Sofa className="w-5 h-5" /> },
-  { id: "bedroom", label: "Bedroom", icon: <Bed className="w-5 h-5" /> },
-  { id: "kitchen", label: "Kitchen", icon: <UtensilsCrossed className="w-5 h-5" /> },
-  { id: "dining-living", label: "Dining + Living", icon: <Utensils className="w-5 h-5" /> },
-  { id: "office", label: "Home Office", icon: <Monitor className="w-5 h-5" /> },
-  { id: "bathroom", label: "Bathroom", icon: <Bath className="w-5 h-5" /> },
-  { id: "open-space-kitchen-dining-living", label: "Open Space", icon: <LayoutGrid className="w-5 h-5" /> },
-  { id: "studio-apartment", label: "Studio Layout", icon: <Home className="w-5 h-5" /> },
+  { id: "living-room", label: "Living Room", icon: <Sofa className="w-8 h-8" /> },
+  { id: "bedroom", label: "Bedroom", icon: <Bed className="w-8 h-8" /> },
+  { id: "kitchen", label: "Kitchen", icon: <UtensilsCrossed className="w-8 h-8" /> },
+  { id: "dining-living", label: "Dining + Living", icon: <Utensils className="w-8 h-8" /> },
+  { id: "office", label: "Home Office", icon: <Monitor className="w-8 h-8" /> },
+  { id: "bathroom", label: "Bathroom", icon: <Bath className="w-8 h-8" /> },
+  { id: "open-space-kitchen-dining-living", label: "Open Space", icon: <LayoutGrid className="w-8 h-8" /> },
+  { id: "studio-apartment", label: "Studio Layout", icon: <Home className="w-8 h-8" /> },
 ];
 
 const HOUSE_STATES = [
-  { id: "core-shell", label: "Core & shell", icon: <Construction className="w-5 h-5" /> },
-  { id: "empty", label: "Empty", icon: <PackageOpen className="w-5 h-5" /> },
-  { id: "partial", label: "Partially furnished", icon: <Sofa className="w-5 h-5" /> },
-  { id: "redoing", label: "Redoing it all", icon: <Wand2 className="w-5 h-5" /> },
+  { id: "core-shell", label: "Core & shell", icon: <Construction className="w-8 h-8" /> },
+  { id: "empty", label: "Empty", icon: <PackageOpen className="w-8 h-8" /> },
+  { id: "partial", label: "Partially furnished", icon: <Sofa className="w-8 h-8" /> },
+  { id: "redoing", label: "Redoing it all", icon: <Wand2 className="w-8 h-8" /> },
 ];
 
 const ROOM_CAPTIONS: Record<string, string> = {
@@ -69,14 +69,14 @@ const BigCard = ({
     type="button"
     onClick={onClick}
     className={cn(
-      "group relative block rounded-2xl overflow-hidden border shadow-sm transition-all duration-500 text-left p-4 md:p-5 min-h-[120px] flex flex-col justify-between bg-gradient-to-br from-primary/20 to-secondary/20",
+      "group relative block rounded-2xl overflow-hidden border shadow-sm transition-all duration-500 text-left p-8 md:p-10 min-h-[280px] flex flex-col justify-between bg-gradient-to-br from-primary/20 to-secondary/20",
       active
         ? "border-primary shadow-lg shadow-primary/10"
         : "border-border/50 hover:shadow-xl hover:border-primary/30"
     )}
   >
     <div className="flex items-start justify-between">
-      <div className="w-10 h-10 rounded-xl bg-background/90 text-primary flex items-center justify-center shadow-md">
+      <div className="w-16 h-16 rounded-2xl bg-background/90 text-primary flex items-center justify-center shadow-md">
         {icon}
       </div>
       {active && (
@@ -86,7 +86,7 @@ const BigCard = ({
       )}
     </div>
     <div>
-      <h3 className="text-sm md:text-base font-bold tracking-tight group-hover:text-primary transition-colors">
+      <h3 className="text-xl md:text-2xl font-bold tracking-tight group-hover:text-primary transition-colors break-words">
         {label}
       </h3>
     </div>
