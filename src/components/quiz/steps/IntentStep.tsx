@@ -53,7 +53,7 @@ const IntentStep = () => {
               )}
             </div>
             <div>
-              <h2 className="text-2xl md:text-3xl font-bold tracking-tight mb-3 group-hover:text-primary transition-colors">
+              <h2 className="text-xl md:text-2xl font-bold tracking-tight mb-3 group-hover:text-primary transition-colors">
                 {intent.label}
               </h2>
             </div>
