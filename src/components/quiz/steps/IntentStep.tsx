@@ -4,18 +4,18 @@ import QuizOption from "../QuizOption";
 const intents = [
   {
     value: "starting-fresh" as const,
-    label: "🏠 Starting fresh in a new space",
+    label: "🏠 Setting up a new space",
     description: "Moving in, renovating, or starting from scratch",
   },
   {
     value: "updating-current" as const,
-    label: "🛋️ Updating my current space",
-    description: "New Sofa? Fresh styling? Full room glow-up?",
+    label: "✨ Redesigning what I have",
+    description: "New sofa, fresh styling, or a full room glow-up",
   },
   {
     value: "gathering-inspiration" as const,
-    label: "💭 Gathering inspiration",
-    description: "No rush, just exploring",
+    label: "💭 Just exploring for now",
+    description: "No rush, just looking around",
   },
 ];
 
