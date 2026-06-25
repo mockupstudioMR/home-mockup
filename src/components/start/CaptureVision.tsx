@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Upload, PenLine, Palette, ArrowRight, ArrowLeft, Check } from "lucide-react";
+import { useState, useRef, useCallback, useEffect } from "react";
+import { Upload, PenLine, Palette, ArrowRight, ArrowLeft, Check, Mic, MicOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
@@ -56,6 +56,52 @@ const VisionCard = ({
 const CaptureVision = ({ onBack, onComplete }: Props) => {
   const [mode, setMode] = useState<"choose" | "describe">("choose");
   const [prompt, setPrompt] = useState("");
+  const [isListening, setIsListening] = useState(false);
+  const recognitionRef = useRef<any>(null);
+
+  const startListening = useCallback(() => {
+    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SR) return;
+
+    const recognition = new SR();
+    recognition.lang = "en-US";
+    recognition.interimResults = true;
+    recognition.continuous = true;
+    recognition.maxAlternatives = 1;
+
+    recognition.onresult = (event: any) => {
+      let finalTranscript = "";
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const transcript = event.results[i][0].transcript;
+        if (event.results[i].isFinal) {
+          finalTranscript += transcript + " ";
+        }
+      }
+      if (finalTranscript) {
+        setPrompt((prev) => (prev ? prev + " " + finalTranscript.trim() : finalTranscript.trim()));
+      }
+    };
+
+    recognition.onerror = () => {
+      setIsListening(false);
+    };
+
+    recognition.onend = () => {
+      setIsListening(false);
+    };
+
+    recognition.start();
+    recognitionRef.current = recognition;
+    setIsListening(true);
+  }, []);
+
+  const stopListening = useCallback(() => {
+    if (recognitionRef.current) {
+      recognitionRef.current.stop();
+      recognitionRef.current = null;
+    }
+    setIsListening(false);
+  }, []);
 
   const options = [
     {
@@ -98,13 +144,28 @@ const CaptureVision = ({ onBack, onComplete }: Props) => {
       ) : (
         <div className="space-y-3 max-w-xl mx-auto">
           <label className="text-sm font-medium">Describe your style</label>
-          <Textarea
-            value={prompt}
-            onChange={(e) => setPrompt(e.target.value)}
-            placeholder="e.g. Warm Mediterranean with arched openings, terracotta tones, woven textures, lots of natural light..."
-            className="min-h-[140px]"
-            autoFocus
-          />
+          <div className="relative">
+            <Textarea
+              value={prompt}
+              onChange={(e) => setPrompt(e.target.value)}
+              placeholder="e.g. Warm Mediterranean with arched openings, terracotta tones, woven textures, lots of natural light..."
+              className="min-h-[140px] pr-12"
+              autoFocus
+            />
+            <button
+              type="button"
+              onClick={isListening ? stopListening : startListening}
+              className={cn(
+                "absolute bottom-3 right-3 w-9 h-9 rounded-full flex items-center justify-center transition-all",
+                isListening
+                  ? "bg-destructive text-white shadow-md animate-pulse"
+                  : "bg-primary/10 text-primary hover:bg-primary/20"
+              )}
+              title={isListening ? "Stop listening" : "Speak your style"}
+            >
+              {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+            </button>
+          </div>
           <p className="text-xs text-muted-foreground">
             Mention colors, materials, mood, or any reference you have in mind.
           </p>
