@@ -160,6 +160,8 @@ const Start = () => {
                   : groundStep === "state"
                   ? "What's the state of the place?"
                   : "Where do you want to start?"
+                : freshStage === "vision"
+                ? "Capture the vision"
                 : "Let's get started"}
             </h1>
             <p className="text-muted-foreground text-base md:text-lg max-w-xl mx-auto">
@@ -175,6 +177,8 @@ const Start = () => {
                   : groundStep === "state"
                   ? "Tell us where you're starting from."
                   : "Pick one room to begin with — you can do the rest later."
+                : freshStage === "vision"
+                ? "How would you like to share your style?"
                 : `A few quick questions so we can tailor everything to you.`}
             </p>
           </div>
@@ -242,28 +246,22 @@ const Start = () => {
                   onStepChange={setGroundStep}
                 />
               ) : freshStage === "vision" ? (
-                <Card className="border-border/50 bg-card/80 backdrop-blur-sm max-w-2xl mx-auto">
-                  <CardContent className="p-6">
-                    <CaptureVision
-                      onBack={() => setFreshStage("ground")}
-                      onComplete={(data: VisionData) => {
-                        try {
-                          sessionStorage.setItem("capture_vision", JSON.stringify(data));
-                        } catch { /* ignore */ }
-                        trackEvent("journey_start", `vision-${data.mode}`, { from: "start-fresh" });
-                        if (data.mode === "upload") {
-                          navigate("/analyze-room");
-                        } else if (data.mode === "discover") {
-                          navigate("/style-tree");
-                        } else if (data.mode === "floor-plan") {
-                          navigate("/floor-plan");
-                        } else {
-                          navigate("/analyze-room", { state: { prompt: data.prompt } });
-                        }
-                      }}
-                    />
-                  </CardContent>
-                </Card>
+                <CaptureVision
+                  onBack={() => setFreshStage("ground")}
+                  onComplete={(data: VisionData) => {
+                    try {
+                      sessionStorage.setItem("capture_vision", JSON.stringify(data));
+                    } catch { /* ignore */ }
+                    trackEvent("journey_start", `vision-${data.mode}`, { from: "start-fresh" });
+                    if (data.mode === "upload") {
+                      navigate("/analyze-room");
+                    } else if (data.mode === "discover") {
+                      navigate("/style-tree");
+                    } else {
+                      navigate("/analyze-room", { state: { prompt: data.prompt } });
+                    }
+                  }}
+                />
               ) : (
                 <div>
                   <button
