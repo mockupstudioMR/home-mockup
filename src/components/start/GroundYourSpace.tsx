@@ -152,11 +152,6 @@ const GroundYourSpace = ({ onBack, onComplete, onStepChange }: Props) => {
 
   return (
     <div className="space-y-6">
-      <div className="text-center space-y-2">
-        <h2 className="text-2xl md:text-3xl font-bold tracking-tight">{question}</h2>
-        <p className="text-muted-foreground text-sm md:text-base">{subtitle}</p>
-      </div>
-
       {step === "property" && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
           {PROPERTY_TYPES.map((p) => (
