@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Send, RefreshCw, Upload, X, Loader2, Palette, ArrowLeftRight, Plus, LayoutGrid, Undo2 } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { Send, RefreshCw, Upload, X, Loader2, Palette, ArrowLeftRight, Plus, LayoutGrid, Undo2, MessageSquare } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-export type ModificationType = "color_material" | "swap_item" | "add_remove" | "layout";
+export type ModificationType = "general" | "color_material" | "swap_item" | "add_remove" | "layout";
 
 interface RefinementPanelProps {
   modificationInput: string;
@@ -21,6 +22,13 @@ interface RefinementPanelProps {
 }
 
 const MODIFICATION_TYPES = [
+  {
+    type: "general" as ModificationType,
+    label: "General feedback",
+    icon: MessageSquare,
+    placeholder: "Tell us in your own words what to refine — e.g. make it cozier, more minimal, brighter, swap the palette to warm earth tones, add more greenery...",
+    description: "Free-form refinement — describe anything you'd like changed in plain language",
+  },
   {
     type: "color_material" as ModificationType,
     label: "Color / Material",
@@ -67,6 +75,7 @@ const RefinementPanel = ({
   const [selectedType, setSelectedType] = useState<ModificationType>("color_material");
 
   const activeType = MODIFICATION_TYPES.find((t) => t.type === selectedType)!;
+  const isGeneral = selectedType === "general";
 
   return (
     <div className="space-y-4 pt-3 border-t border-border/50">
@@ -136,13 +145,27 @@ const RefinementPanel = ({
       </div>
 
       {/* Input + buttons */}
-      <div className="flex gap-2">
-        <Input
-          placeholder={activeType.placeholder}
-          value={modificationInput}
-          onChange={(e) => onModificationInputChange(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && modificationInput.trim() && onModify(selectedType)}
-        />
+      <div className="flex gap-2 items-start">
+        {isGeneral ? (
+          <Textarea
+            placeholder={activeType.placeholder}
+            value={modificationInput}
+            onChange={(e) => onModificationInputChange(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && (e.metaKey || e.ctrlKey) && modificationInput.trim()) {
+                onModify(selectedType);
+              }
+            }}
+            className="min-h-[96px]"
+          />
+        ) : (
+          <Input
+            placeholder={activeType.placeholder}
+            value={modificationInput}
+            onChange={(e) => onModificationInputChange(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && modificationInput.trim() && onModify(selectedType)}
+          />
+        )}
         <Button
           onClick={() => onModify(selectedType)}
           disabled={!modificationInput.trim() || generating}
