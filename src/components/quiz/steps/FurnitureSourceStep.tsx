@@ -29,9 +29,6 @@ const FurnitureSourceStep = () => {
     <div className="space-y-4">
       <div className="text-center space-y-2">
         <h2 className="text-xl font-semibold">Furniture Source</h2>
-        <p className="text-sm text-muted-foreground">
-          Would you like furniture exclusively from our partner shops or are you open to any style?
-        </p>
       </div>
 
       <div className="grid gap-3">

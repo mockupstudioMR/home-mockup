@@ -28,7 +28,6 @@ const ElementsStep = () => {
     <div className="space-y-6">
       <div className="text-center space-y-2">
         <h2 className="text-2xl font-bold">Must-have elements?</h2>
-        <p className="text-muted-foreground">Select all that apply (optional)</p>
       </div>
 
       <div className="grid grid-cols-2 gap-3">
