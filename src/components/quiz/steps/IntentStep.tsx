@@ -25,7 +25,7 @@ const IntentStep = () => {
   return (
     <div className="space-y-6">
       <div className="text-center space-y-2">
-        <h2 className="text-2xl font-bold">Why are you here today?</h2>
+        <h2 className="text-2xl font-bold">What's brought you here?</h2>
         <p className="text-muted-foreground">This helps us tailor the next steps to you</p>
       </div>
 
