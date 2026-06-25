@@ -138,51 +138,6 @@ const GroundYourSpace = ({ onBack, onComplete }: Props) => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <button
-          onClick={goPrev}
-          className="text-sm text-muted-foreground hover:text-foreground inline-flex items-center gap-1"
-        >
-          <ArrowLeft className="w-4 h-4" /> Back
-        </button>
-        <div className="flex items-center gap-1.5">
-          {steps.map((s, i) => (
-            <div
-              key={s}
-              className={cn(
-                "h-1.5 rounded-full transition-all",
-                i <= stepIndex ? "bg-primary w-6" : "bg-border w-3"
-              )}
-            />
-          ))}
-        </div>
-      </div>
-
-      <div className="text-center space-y-2">
-        <p className="text-xs uppercase tracking-[0.18em] text-primary font-medium inline-flex items-center gap-1.5">
-          <Sparkles className="w-3.5 h-3.5" /> Ground your space
-        </p>
-        {step === "property" && (
-          <>
-            <h2 className="text-2xl md:text-3xl font-bold tracking-tight">What kind of place?</h2>
-          </>
-        )}
-        {step === "rooms" && (
-          <>
-            <h2 className="text-2xl md:text-3xl font-bold tracking-tight">Which rooms are on your list?</h2>
-          </>
-        )}
-        {step === "state" && (
-          <>
-            <h2 className="text-2xl md:text-3xl font-bold tracking-tight">What's the state of the place?</h2>
-          </>
-        )}
-        {step === "start-room" && (
-          <>
-            <h2 className="text-2xl md:text-3xl font-bold tracking-tight">Where do you want to start?</h2>
-          </>
-        )}
-      </div>
 
       {step === "property" && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
