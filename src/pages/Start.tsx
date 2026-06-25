@@ -167,6 +167,14 @@ const Start = () => {
                 ? `Choose the experience that fits you best.`
                 : freshStage === "intent"
                 ? `Select what matches your situation.`
+                : freshStage === "ground"
+                ? groundStep === "property"
+                  ? "Choose the type of property you're working with."
+                  : groundStep === "rooms"
+                  ? "Select all the spaces you want to design."
+                  : groundStep === "state"
+                  ? "Tell us where you're starting from."
+                  : "Pick one room to begin with — you can do the rest later."
                 : `A few quick questions so we can tailor everything to you.`}
             </p>
           </div>
