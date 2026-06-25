@@ -171,15 +171,16 @@ const GroundYourSpace = ({ onBack, onComplete, onStepChange }: Props) => {
       {step === "rooms" && (
         <div className="space-y-4">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
-            {ROOMS.map((r) => (
-              <BigCard
-                key={r.id}
-                active={data.rooms.includes(r.id)}
-                onClick={() => toggleRoom(r.id)}
-                icon={r.icon}
-                label={r.label}
-              />
-            ))}
+          {ROOMS.map((r, i) => (
+            <BigCard
+              key={r.id}
+              active={data.rooms.includes(r.id)}
+              onClick={() => toggleRoom(r.id)}
+              icon={r.icon}
+              label={r.label}
+              gradient={GRADIENTS[(i + 1) % GRADIENTS.length]}
+            />
+          ))}
           </div>
           <button
             onClick={goNext}
