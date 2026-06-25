@@ -44,9 +44,13 @@ const Start = () => {
 
   useEffect(() => {
     if (quizData.intent && freshStage === "intent") {
-      setFreshStage("ground");
+      if (quizData.intent === "gathering-inspiration") {
+        navigate("/style-tree");
+      } else {
+        setFreshStage("ground");
+      }
     }
-  }, [quizData.intent, freshStage]);
+  }, [quizData.intent, freshStage, navigate]);
 
   const entryOptions = [
     {
