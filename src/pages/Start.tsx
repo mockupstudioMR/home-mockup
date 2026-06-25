@@ -147,7 +147,9 @@ const Start = () => {
               {freshStage === "path" ? "Who are you?" : "What's brought you here?"}
             </h1>
             <p className="text-muted-foreground text-base md:text-lg max-w-xl mx-auto">
-              {intro?.vision
+              {freshStage === "path"
+                ? `Choose the experience that fits you best.`
+                : intro?.vision
                 ? `We've got your vision in mind — pick the path that matches what you have today.`
                 : `Pick the path that matches what you have today`}
             </p>
