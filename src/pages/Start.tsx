@@ -210,7 +210,7 @@ const Start = () => {
                      }}
                     className="group relative block rounded-2xl overflow-hidden border border-border/50 bg-card shadow-sm hover:shadow-xl hover:border-primary/40 transition-all duration-500 text-left p-8 md:p-10 min-h-[280px] flex flex-col justify-between bg-gradient-to-br from-primary/50 to-secondary/40"
                   >
-                    <div className="w-16 h-16 rounded-2xl bg-background/90 text-primary flex items-center justify-center shadow-md mb-6">
+                    <div className="w-16 h-16 rounded-2xl bg-background/90 text-primary flex items-center justify-center shadow-md mb-6 mx-auto">
                       <Home className="w-8 h-8" />
                     </div>
                     <div>
@@ -230,7 +230,7 @@ const Start = () => {
                     onClick={() => navigate("/start?as=pro", { replace: true })}
                     className="group relative block rounded-2xl overflow-hidden border border-border/50 bg-card shadow-sm hover:shadow-xl hover:border-primary/40 transition-all duration-500 text-left p-8 md:p-10 min-h-[280px] flex flex-col justify-between bg-gradient-to-br from-accent/50 to-primary/40"
                   >
-                    <div className="w-16 h-16 rounded-2xl bg-background/90 text-primary flex items-center justify-center shadow-md mb-6">
+                    <div className="w-16 h-16 rounded-2xl bg-background/90 text-primary flex items-center justify-center shadow-md mb-6 mx-auto">
                       <Briefcase className="w-8 h-8" />
                     </div>
                     <div>
@@ -325,7 +325,7 @@ const Start = () => {
                       }}
                       className={`group rounded-2xl border border-border/50 bg-gradient-to-br ${option.gradient} hover:border-primary/40 hover:shadow-lg transition-all duration-300 p-5 text-left flex flex-col gap-3`}
                     >
-                      <div className="w-11 h-11 rounded-xl bg-background/90 text-primary flex items-center justify-center shadow-sm">
+                      <div className="w-11 h-11 rounded-xl bg-background/90 text-primary flex items-center justify-center shadow-sm mx-auto">
                         {option.icon}
                       </div>
                       <div>
