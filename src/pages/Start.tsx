@@ -24,6 +24,7 @@ const Start = () => {
   const { quizData, updateQuizData } = useQuiz();
   const isPro = new URLSearchParams(location.search).get("as") === "pro";
   const [freshStage, setFreshStage] = useState<"path" | "intent" | "ground" | "vision" | "paths">("path");
+  const [groundStep, setGroundStep] = useState<string>("property");
 
   const intro = useMemo(() => {
     const fromState = (location.state as { intro?: { name?: string; roomType?: string; vision?: string } } | null)?.intro;
@@ -152,7 +153,13 @@ const Start = () => {
                 : freshStage === "intent"
                 ? "What's brought you here?"
                 : freshStage === "ground"
-                ? "What kind of place?"
+                ? groundStep === "property"
+                  ? "What kind of place?"
+                  : groundStep === "rooms"
+                  ? "Which rooms are on your list?"
+                  : groundStep === "state"
+                  ? "What's the state of the place?"
+                  : "Where do you want to start?"
                 : "Let's get started"}
             </h1>
             <p className="text-muted-foreground text-base md:text-lg max-w-xl mx-auto">
@@ -160,6 +167,14 @@ const Start = () => {
                 ? `Choose the experience that fits you best.`
                 : freshStage === "intent"
                 ? `Select what matches your situation.`
+                : freshStage === "ground"
+                ? groundStep === "property"
+                  ? "Choose the type of property you're working with."
+                  : groundStep === "rooms"
+                  ? "Select all the spaces you want to design."
+                  : groundStep === "state"
+                  ? "Tell us where you're starting from."
+                  : "Pick one room to begin with — you can do the rest later."
                 : `A few quick questions so we can tailor everything to you.`}
             </p>
           </div>
@@ -224,6 +239,7 @@ const Start = () => {
                     } catch { /* ignore */ }
                     setFreshStage("vision");
                   }}
+                  onStepChange={setGroundStep}
                 />
               ) : freshStage === "vision" ? (
                 <Card className="border-border/50 bg-card/80 backdrop-blur-sm max-w-2xl mx-auto">

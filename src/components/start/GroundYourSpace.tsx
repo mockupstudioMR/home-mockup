@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ArrowRight, Sparkles, Home, Building2, Hotel, Wand2, PackageOpen, Sofa, Bed, UtensilsCrossed, Monitor, Bath, LayoutGrid, Utensils, Check, Construction } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -13,6 +13,7 @@ export interface GroundData {
 interface Props {
   onBack: () => void;
   onComplete: (data: GroundData) => void;
+  onStepChange?: (step: Step) => void;
 }
 
 const PROPERTY_TYPES = [
@@ -92,7 +93,7 @@ const BigCard = ({
   </button>
 );
 
-const GroundYourSpace = ({ onBack, onComplete }: Props) => {
+const GroundYourSpace = ({ onBack, onComplete, onStepChange }: Props) => {
   const [step, setStep] = useState<Step>("property");
   const [data, setData] = useState<GroundData>({
     useCase: "",
@@ -101,6 +102,10 @@ const GroundYourSpace = ({ onBack, onComplete }: Props) => {
     houseState: "",
     startRoom: "",
   });
+
+  useEffect(() => {
+    onStepChange?.(step);
+  }, [step, onStepChange]);
 
   const steps: Step[] = ["property", "rooms", "state", "start-room"];
   const stepIndex = steps.indexOf(step);
@@ -138,7 +143,6 @@ const GroundYourSpace = ({ onBack, onComplete }: Props) => {
 
   return (
     <div className="space-y-6">
-
       {step === "property" && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
           {PROPERTY_TYPES.map((p) => (
