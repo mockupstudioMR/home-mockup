@@ -208,7 +208,7 @@ const Start = () => {
                        updateQuizData({ intent: undefined });
                        setFreshStage("intent");
                      }}
-                    className="group relative block rounded-2xl overflow-hidden border border-border/50 bg-card shadow-sm hover:shadow-xl hover:border-primary/30 transition-all duration-500 text-left p-8 md:p-10 min-h-[280px] flex flex-col justify-between bg-gradient-to-br from-primary/30 to-secondary/30"
+                    className="group relative block rounded-2xl overflow-hidden border border-border/50 bg-card shadow-sm hover:shadow-xl hover:border-primary/40 transition-all duration-500 text-left p-8 md:p-10 min-h-[280px] flex flex-col justify-between bg-gradient-to-br from-primary/50 to-secondary/40"
                   >
                     <div className="w-16 h-16 rounded-2xl bg-background/90 text-primary flex items-center justify-center shadow-md mb-6">
                       <Home className="w-8 h-8" />
@@ -228,7 +228,7 @@ const Start = () => {
                   </button>
                   <button
                     onClick={() => navigate("/start?as=pro", { replace: true })}
-                    className="group relative block rounded-2xl overflow-hidden border border-border/50 bg-card shadow-sm hover:shadow-xl hover:border-primary/30 transition-all duration-500 text-left p-8 md:p-10 min-h-[280px] flex flex-col justify-between bg-gradient-to-br from-accent/30 to-primary/20"
+                    className="group relative block rounded-2xl overflow-hidden border border-border/50 bg-card shadow-sm hover:shadow-xl hover:border-primary/40 transition-all duration-500 text-left p-8 md:p-10 min-h-[280px] flex flex-col justify-between bg-gradient-to-br from-accent/50 to-primary/40"
                   >
                     <div className="w-16 h-16 rounded-2xl bg-background/90 text-primary flex items-center justify-center shadow-md mb-6">
                       <Briefcase className="w-8 h-8" />
