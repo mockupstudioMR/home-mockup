@@ -157,7 +157,50 @@ const Start = () => {
 
           {!isPro ? (
             <div className="max-w-3xl mx-auto">
-              {freshStage === "intent" ? (
+              {freshStage === "path" ? (
+                <div className="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto -mx-4 md:-mx-16">
+                  <button
+                    onClick={() => setFreshStage("intent")}
+                    className="group relative block rounded-2xl overflow-hidden border border-border/50 bg-card shadow-sm hover:shadow-xl hover:border-primary/30 transition-all duration-500 text-left p-8 md:p-10 min-h-[280px] flex flex-col justify-between bg-gradient-to-br from-primary/30 to-secondary/30"
+                  >
+                    <div className="w-16 h-16 rounded-2xl bg-background/90 text-primary flex items-center justify-center shadow-md mb-6">
+                      <Home className="w-8 h-8" />
+                    </div>
+                    <div>
+                      <h2 className="text-2xl md:text-3xl font-bold tracking-tight mb-3 group-hover:text-primary transition-colors">
+                        I'm designing my home
+                      </h2>
+                      <p className="text-muted-foreground leading-relaxed mb-5">
+                        Redesign your space, explore styles, and bring your vision to life.
+                      </p>
+                      <span className="inline-flex items-center gap-2 text-sm font-semibold text-foreground group-hover:text-primary transition-colors">
+                        Continue
+                        <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                      </span>
+                    </div>
+                  </button>
+                  <button
+                    onClick={() => navigate("/start?as=pro", { replace: true })}
+                    className="group relative block rounded-2xl overflow-hidden border border-border/50 bg-card shadow-sm hover:shadow-xl hover:border-primary/30 transition-all duration-500 text-left p-8 md:p-10 min-h-[280px] flex flex-col justify-between bg-gradient-to-br from-accent/30 to-primary/20"
+                  >
+                    <div className="w-16 h-16 rounded-2xl bg-background/90 text-primary flex items-center justify-center shadow-md mb-6">
+                      <Briefcase className="w-8 h-8" />
+                    </div>
+                    <div>
+                      <h2 className="text-2xl md:text-3xl font-bold tracking-tight mb-3 group-hover:text-primary transition-colors">
+                        I'm a professional
+                      </h2>
+                      <p className="text-muted-foreground leading-relaxed mb-5">
+                        Furniture shops, designers & real estate — grow your business with AI tools.
+                      </p>
+                      <span className="inline-flex items-center gap-2 text-sm font-semibold text-foreground group-hover:text-primary transition-colors">
+                        Continue
+                        <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                      </span>
+                    </div>
+                  </button>
+                </div>
+              ) : freshStage === "intent" ? (
                 <div className="max-w-5xl mx-auto">
                   <IntentStep />
                 </div>
