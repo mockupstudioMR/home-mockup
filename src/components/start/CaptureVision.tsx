@@ -144,13 +144,28 @@ const CaptureVision = ({ onBack, onComplete }: Props) => {
       ) : (
         <div className="space-y-3 max-w-xl mx-auto">
           <label className="text-sm font-medium">Describe your style</label>
-          <Textarea
-            value={prompt}
-            onChange={(e) => setPrompt(e.target.value)}
-            placeholder="e.g. Warm Mediterranean with arched openings, terracotta tones, woven textures, lots of natural light..."
-            className="min-h-[140px]"
-            autoFocus
-          />
+          <div className="relative">
+            <Textarea
+              value={prompt}
+              onChange={(e) => setPrompt(e.target.value)}
+              placeholder="e.g. Warm Mediterranean with arched openings, terracotta tones, woven textures, lots of natural light..."
+              className="min-h-[140px] pr-12"
+              autoFocus
+            />
+            <button
+              type="button"
+              onClick={isListening ? stopListening : startListening}
+              className={cn(
+                "absolute bottom-3 right-3 w-9 h-9 rounded-full flex items-center justify-center transition-all",
+                isListening
+                  ? "bg-destructive text-white shadow-md animate-pulse"
+                  : "bg-primary/10 text-primary hover:bg-primary/20"
+              )}
+              title={isListening ? "Stop listening" : "Speak your style"}
+            >
+              {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+            </button>
+          </div>
           <p className="text-xs text-muted-foreground">
             Mention colors, materials, mood, or any reference you have in mind.
           </p>
