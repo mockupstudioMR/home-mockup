@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Upload, Sparkles, Palette, ArrowRight, ArrowLeft, Check } from "lucide-react";
+import { Upload, PenLine, Palette, ArrowRight, ArrowLeft, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
