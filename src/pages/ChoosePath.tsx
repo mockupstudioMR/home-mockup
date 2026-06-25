@@ -12,6 +12,7 @@ const ChoosePath = () => {
       title: "I'm designing my home",
       description: "Redesign your space, explore styles, and bring your vision to life.",
       path: "/start",
+      state: { fromChoosePath: true },
       gradient: "from-primary/30 to-secondary/30",
     },
     {
