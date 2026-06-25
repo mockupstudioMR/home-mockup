@@ -55,7 +55,7 @@ const ChoosePath = () => {
             {options.map((option) => (
               <button
                 key={option.id}
-                onClick={() => navigate(option.path)}
+                onClick={() => navigate(option.path, option.state ? { state: option.state } : undefined)}
                 className={`group relative block rounded-2xl overflow-hidden border border-border/50 bg-card shadow-sm hover:shadow-xl hover:border-primary/30 transition-all duration-500 text-left p-8 md:p-10 min-h-[280px] flex flex-col justify-between bg-gradient-to-br ${option.gradient}`}
               >
                 <div className="w-16 h-16 rounded-2xl bg-background/90 text-primary flex items-center justify-center shadow-md mb-6">
