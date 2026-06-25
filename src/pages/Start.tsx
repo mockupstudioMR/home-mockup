@@ -151,6 +151,8 @@ const Start = () => {
                 ? "Who are you?"
                 : freshStage === "intent"
                 ? "What's brought you here?"
+                : freshStage === "ground"
+                ? "What kind of place?"
                 : "Let's get started"}
             </h1>
             <p className="text-muted-foreground text-base md:text-lg max-w-xl mx-auto">
@@ -213,20 +215,16 @@ const Start = () => {
               ) : freshStage === "intent" ? (
                 <IntentStep />
               ) : freshStage === "ground" ? (
-                <Card className="border-border/50 bg-card/80 backdrop-blur-sm max-w-2xl mx-auto">
-                  <CardContent className="p-6">
-                    <GroundYourSpace
-                      onBack={() => setFreshStage("intent")}
-                      onComplete={(data: GroundData) => {
-                        updateQuizData({ roomType: data.startRoom });
-                        try {
-                          sessionStorage.setItem("ground_your_space", JSON.stringify(data));
-                        } catch { /* ignore */ }
-                        setFreshStage("vision");
-                      }}
-                    />
-                  </CardContent>
-                </Card>
+                <GroundYourSpace
+                  onBack={() => setFreshStage("intent")}
+                  onComplete={(data: GroundData) => {
+                    updateQuizData({ roomType: data.startRoom });
+                    try {
+                      sessionStorage.setItem("ground_your_space", JSON.stringify(data));
+                    } catch { /* ignore */ }
+                    setFreshStage("vision");
+                  }}
+                />
               ) : freshStage === "vision" ? (
                 <Card className="border-border/50 bg-card/80 backdrop-blur-sm max-w-2xl mx-auto">
                   <CardContent className="p-6">
