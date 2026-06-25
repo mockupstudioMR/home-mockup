@@ -25,32 +25,32 @@ const VisionCard = ({
   icon: React.ReactNode;
   label: string;
 }) => (
-  <button
-    type="button"
-    onClick={onClick}
-    className={cn(
-      "group relative block rounded-2xl overflow-hidden border shadow-sm transition-all duration-500 text-left p-4 md:p-5 min-h-[120px] flex flex-col justify-between bg-gradient-to-br from-primary/20 to-secondary/20",
-      active
-        ? "border-primary shadow-lg shadow-primary/10"
-        : "border-border/50 hover:shadow-xl hover:border-primary/30"
-    )}
-  >
-    <div className="flex items-start justify-between">
-      <div className="w-10 h-10 rounded-xl bg-background/90 text-primary flex items-center justify-center shadow-md">
-        {icon}
-      </div>
-      {active && (
-        <div className="w-7 h-7 rounded-full bg-primary flex items-center justify-center shadow-sm">
-          <Check className="w-4 h-4 text-primary-foreground" />
-        </div>
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "group relative block rounded-2xl overflow-hidden border shadow-sm transition-all duration-500 text-left p-8 md:p-10 min-h-[280px] flex flex-col justify-between bg-gradient-to-br from-primary/20 to-secondary/20",
+        active
+          ? "border-primary shadow-lg shadow-primary/10"
+          : "border-border/50 hover:shadow-xl hover:border-primary/30"
       )}
-    </div>
-    <div>
-      <h3 className="text-sm md:text-base font-bold tracking-tight group-hover:text-primary transition-colors">
-        {label}
-      </h3>
-    </div>
-  </button>
+    >
+      <div className="flex items-start justify-between">
+        <div className="w-16 h-16 rounded-2xl bg-background/90 text-primary flex items-center justify-center shadow-md">
+          {icon}
+        </div>
+        {active && (
+          <div className="w-7 h-7 rounded-full bg-primary flex items-center justify-center shadow-sm">
+            <Check className="w-4 h-4 text-primary-foreground" />
+          </div>
+        )}
+      </div>
+      <div>
+        <h3 className="text-xl md:text-2xl font-bold tracking-tight group-hover:text-primary transition-colors break-words">
+          {label}
+        </h3>
+      </div>
+    </button>
 );
 
 const CaptureVision = ({ onBack, onComplete }: Props) => {
