@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ArrowRight, Sparkles, Home, Building2, Hotel, Wand2, PackageOpen, Sofa, Bed, UtensilsCrossed, Monitor, Bath, LayoutGrid, Utensils, Check, Construction } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -13,6 +13,7 @@ export interface GroundData {
 interface Props {
   onBack: () => void;
   onComplete: (data: GroundData) => void;
+  onStepChange?: (step: Step) => void;
 }
 
 const PROPERTY_TYPES = [
@@ -92,7 +93,7 @@ const BigCard = ({
   </button>
 );
 
-const GroundYourSpace = ({ onBack, onComplete }: Props) => {
+const GroundYourSpace = ({ onBack, onComplete, onStepChange }: Props) => {
   const [step, setStep] = useState<Step>("property");
   const [data, setData] = useState<GroundData>({
     useCase: "",
@@ -101,6 +102,10 @@ const GroundYourSpace = ({ onBack, onComplete }: Props) => {
     houseState: "",
     startRoom: "",
   });
+
+  useEffect(() => {
+    onStepChange?.(step);
+  }, [step, onStepChange]);
 
   const steps: Step[] = ["property", "rooms", "state", "start-room"];
   const stepIndex = steps.indexOf(step);
@@ -136,8 +141,21 @@ const GroundYourSpace = ({ onBack, onComplete }: Props) => {
 
   const selectedRoomMeta = ROOMS.filter((r) => data.rooms.includes(r.id));
 
+  const stepQuestions: Record<Step, { question: string; subtitle: string }> = {
+    property: { question: "What kind of place?", subtitle: "Choose the type of property you're working with." },
+    rooms: { question: "Which rooms are on your list?", subtitle: "Select all the spaces you want to design." },
+    state: { question: "What's the state of the place?", subtitle: "Tell us where you're starting from." },
+    "start-room": { question: "Where do you want to start?", subtitle: "Pick one room to begin with — you can do the rest later." },
+  };
+
+  const { question, subtitle } = stepQuestions[step];
+
   return (
     <div className="space-y-6">
+      <div className="text-center space-y-2">
+        <h2 className="text-2xl md:text-3xl font-bold tracking-tight">{question}</h2>
+        <p className="text-muted-foreground text-sm md:text-base">{subtitle}</p>
+      </div>
 
       {step === "property" && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
