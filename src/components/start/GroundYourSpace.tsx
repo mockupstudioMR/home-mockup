@@ -194,13 +194,14 @@ const GroundYourSpace = ({ onBack, onComplete, onStepChange }: Props) => {
 
       {step === "state" && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
-          {HOUSE_STATES.map((s) => (
+          {HOUSE_STATES.map((s, i) => (
             <BigCard
               key={s.id}
               active={data.houseState === s.id}
               onClick={() => { setData((d) => ({ ...d, houseState: s.id })); setTimeout(goNext, 150); }}
               icon={s.icon}
               label={s.label}
+              gradient={GRADIENTS[(i + 2) % GRADIENTS.length]}
             />
           ))}
         </div>
