@@ -56,6 +56,57 @@ const VisionCard = ({
 const CaptureVision = ({ onBack, onComplete }: Props) => {
   const [mode, setMode] = useState<"choose" | "describe">("choose");
   const [prompt, setPrompt] = useState("");
+  const [isListening, setIsListening] = useState(false);
+  const [speechSupported, setSpeechSupported] = useState(false);
+  const recognitionRef = useRef<SpeechRecognition | null>(null);
+
+  const startListening = useCallback(() => {
+    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SR) return;
+
+    setSpeechSupported(true);
+    const recognition = new SR();
+    recognition.lang = "en-US";
+    recognition.interimResults = true;
+    recognition.continuous = true;
+    recognition.maxAlternatives = 1;
+
+    recognition.onresult = (event: SpeechRecognitionEvent) => {
+      let finalTranscript = "";
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const transcript = event.results[i][0].transcript;
+        if (event.results[i].isFinal) {
+          finalTranscript += transcript + " ";
+        }
+      }
+      if (finalTranscript) {
+        setPrompt((prev) => (prev ? prev + " " + finalTranscript.trim() : finalTranscript.trim()));
+      }
+    };
+
+    recognition.onerror = () => {
+      setIsListening(false);
+    };
+
+    recognition.onend = () => {
+      setIsListening(false);
+    };
+
+    recognition.start();
+    recognitionRef.current = recognition;
+    setIsListening(true);
+  }, []);
+
+  const stopListening = useCallback(() => {
+    recognitionRef.current?.stop();
+    recognitionRef.current = null;
+    setIsListening(false);
+  }, []);
+
+  useState(() => {
+    const supported = !!(window as any).SpeechRecognition || !!(window as any).webkitSpeechRecognition;
+    setSpeechSupported(supported);
+  });
 
   const options = [
     {
