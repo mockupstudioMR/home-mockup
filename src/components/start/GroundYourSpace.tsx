@@ -141,15 +141,6 @@ const GroundYourSpace = ({ onBack, onComplete, onStepChange }: Props) => {
 
   const selectedRoomMeta = ROOMS.filter((r) => data.rooms.includes(r.id));
 
-  const stepQuestions: Record<Step, { question: string; subtitle: string }> = {
-    property: { question: "What kind of place?", subtitle: "Choose the type of property you're working with." },
-    rooms: { question: "Which rooms are on your list?", subtitle: "Select all the spaces you want to design." },
-    state: { question: "What's the state of the place?", subtitle: "Tell us where you're starting from." },
-    "start-room": { question: "Where do you want to start?", subtitle: "Pick one room to begin with — you can do the rest later." },
-  };
-
-  const { question, subtitle } = stepQuestions[step];
-
   return (
     <div className="space-y-6">
       {step === "property" && (
