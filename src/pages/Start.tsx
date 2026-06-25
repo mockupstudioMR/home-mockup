@@ -43,6 +43,14 @@ const Start = () => {
   }, [user, loading, navigate]);
 
   useEffect(() => {
+    const state = location.state as StartLocationState | null;
+    if (state?.fromChoosePath && freshStage === "path") {
+      setFreshStage("intent");
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [location.state, freshStage, location.pathname, navigate]);
+
+  useEffect(() => {
     if (quizData.intent && freshStage === "intent") {
       if (quizData.intent === "gathering-inspiration") {
         navigate("/style-tree");
