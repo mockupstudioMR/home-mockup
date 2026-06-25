@@ -207,6 +207,8 @@ const Start = () => {
                     </div>
                   </button>
                 </div>
+              ) : freshStage === "intent" ? (
+                <IntentStep />
               ) : freshStage === "ground" ? (
                 <Card className="border-border/50 bg-card/80 backdrop-blur-sm max-w-2xl mx-auto">
                   <CardContent className="p-6">
