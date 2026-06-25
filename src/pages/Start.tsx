@@ -246,28 +246,22 @@ const Start = () => {
                   onStepChange={setGroundStep}
                 />
               ) : freshStage === "vision" ? (
-                <Card className="border-border/50 bg-card/80 backdrop-blur-sm max-w-2xl mx-auto">
-                  <CardContent className="p-6">
-                    <CaptureVision
-                      onBack={() => setFreshStage("ground")}
-                      onComplete={(data: VisionData) => {
-                        try {
-                          sessionStorage.setItem("capture_vision", JSON.stringify(data));
-                        } catch { /* ignore */ }
-                        trackEvent("journey_start", `vision-${data.mode}`, { from: "start-fresh" });
-                        if (data.mode === "upload") {
-                          navigate("/analyze-room");
-                        } else if (data.mode === "discover") {
-                          navigate("/style-tree");
-                        } else if (data.mode === "floor-plan") {
-                          navigate("/floor-plan");
-                        } else {
-                          navigate("/analyze-room", { state: { prompt: data.prompt } });
-                        }
-                      }}
-                    />
-                  </CardContent>
-                </Card>
+                <CaptureVision
+                  onBack={() => setFreshStage("ground")}
+                  onComplete={(data: VisionData) => {
+                    try {
+                      sessionStorage.setItem("capture_vision", JSON.stringify(data));
+                    } catch { /* ignore */ }
+                    trackEvent("journey_start", `vision-${data.mode}`, { from: "start-fresh" });
+                    if (data.mode === "upload") {
+                      navigate("/analyze-room");
+                    } else if (data.mode === "discover") {
+                      navigate("/style-tree");
+                    } else {
+                      navigate("/analyze-room", { state: { prompt: data.prompt } });
+                    }
+                  }}
+                />
               ) : (
                 <div>
                   <button
