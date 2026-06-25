@@ -22,11 +22,7 @@ const Start = () => {
   const { user, loading } = useAuth();
   const { quizData, updateQuizData } = useQuiz();
   const isPro = new URLSearchParams(location.search).get("as") === "pro";
-  const [freshStage, setFreshStage] = useState<"path" | "intent" | "ground" | "vision" | "paths">("path");
-
-  useEffect(() => {
-    if (quizData.intent === "starting-fresh" && freshStage === "intent") setFreshStage("ground");
-  }, [quizData.intent]);
+  const [freshStage, setFreshStage] = useState<"path" | "ground" | "vision" | "paths">("path");
 
   const intro = useMemo(() => {
     const fromState = (location.state as { intro?: { name?: string; roomType?: string; vision?: string } } | null)?.intro;
