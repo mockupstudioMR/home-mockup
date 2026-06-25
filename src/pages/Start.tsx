@@ -9,6 +9,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { trackEvent } from "@/lib/analytics";
 import GroundYourSpace, { type GroundData } from "@/components/start/GroundYourSpace";
 import CaptureVision, { type VisionData } from "@/components/start/CaptureVision";
+import IntentStep from "@/components/quiz/steps/IntentStep";
 
 import existingRoomVisual from "@/assets/start/existing-room.jpg";
 import floorPlanVisual from "@/assets/start/floor-plan.jpg";
@@ -22,7 +23,7 @@ const Start = () => {
   const { user, loading } = useAuth();
   const { quizData, updateQuizData } = useQuiz();
   const isPro = new URLSearchParams(location.search).get("as") === "pro";
-  const [freshStage, setFreshStage] = useState<"path" | "ground" | "vision" | "paths">("path");
+  const [freshStage, setFreshStage] = useState<"path" | "intent" | "ground" | "vision" | "paths">("path");
 
   const intro = useMemo(() => {
     const fromState = (location.state as { intro?: { name?: string; roomType?: string; vision?: string } } | null)?.intro;
@@ -39,6 +40,12 @@ const Start = () => {
       navigate("/auth");
     }
   }, [user, loading, navigate]);
+
+  useEffect(() => {
+    if (quizData.intent && freshStage === "intent") {
+      setFreshStage("ground");
+    }
+  }, [quizData.intent, freshStage]);
 
   const entryOptions = [
     {
@@ -140,11 +147,17 @@ const Start = () => {
               {firstName ? `Welcome, ${firstName}` : "Start your journey"}
             </p>
             <h1 className="text-4xl md:text-5xl font-bold tracking-tight">
-              {freshStage === "path" ? "Who are you?" : "Let's get started"}
+              {freshStage === "path"
+                ? "Who are you?"
+                : freshStage === "intent"
+                ? "What's brought you here?"
+                : "Let's get started"}
             </h1>
             <p className="text-muted-foreground text-base md:text-lg max-w-xl mx-auto">
               {freshStage === "path"
                 ? `Choose the experience that fits you best.`
+                : freshStage === "intent"
+                ? `Select what matches your situation.`
                 : `A few quick questions so we can tailor everything to you.`}
             </p>
           </div>
@@ -154,7 +167,7 @@ const Start = () => {
               {freshStage === "path" ? (
                 <div className="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto -mx-4 md:-mx-16">
                   <button
-                    onClick={() => setFreshStage("ground")}
+                    onClick={() => setFreshStage("intent")}
                     className="group relative block rounded-2xl overflow-hidden border border-border/50 bg-card shadow-sm hover:shadow-xl hover:border-primary/30 transition-all duration-500 text-left p-8 md:p-10 min-h-[280px] flex flex-col justify-between bg-gradient-to-br from-primary/30 to-secondary/30"
                   >
                     <div className="w-16 h-16 rounded-2xl bg-background/90 text-primary flex items-center justify-center shadow-md mb-6">
@@ -194,11 +207,13 @@ const Start = () => {
                     </div>
                   </button>
                 </div>
+              ) : freshStage === "intent" ? (
+                <IntentStep />
               ) : freshStage === "ground" ? (
                 <Card className="border-border/50 bg-card/80 backdrop-blur-sm max-w-2xl mx-auto">
                   <CardContent className="p-6">
                     <GroundYourSpace
-                      onBack={() => setFreshStage("path")}
+                      onBack={() => setFreshStage("intent")}
                       onComplete={(data: GroundData) => {
                         updateQuizData({ roomType: data.startRoom });
                         try {
