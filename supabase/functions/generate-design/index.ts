@@ -349,7 +349,7 @@ serve(async (req) => {
     const isScenePreviewMode = enrichedRequestData.isScenePreview && enrichedRequestData.existingRoomImages?.length;
     
     // Validate and collect product images
-    const maxProductImages = 4;
+    const maxProductImages = 3;
     let validProductImageUrls: string[] = [];
     if (enrichedRequestData.productImageUrls && enrichedRequestData.productImageUrls.length > 0) {
       const candidateUrls = enrichedRequestData.productImageUrls.slice(0, maxProductImages + 2);
@@ -404,7 +404,7 @@ serve(async (req) => {
       // MUST-INCLUDE items FIRST — these get the highest visual weight from the model.
       // The user explicitly pinned these and expects them to appear EXACTLY in the design.
       const mustImgs = (enrichedRequestData.mustIncludeItems || [])
-        .map((m) => m.imageUrl).filter(Boolean).slice(0, 4) as string[];
+        .map((m) => m.imageUrl).filter(Boolean).slice(0, 2) as string[];
       for (const u of mustImgs) contentParts.push({ type: "image_url", image_url: { url: u } });
       if (mustImgs.length > 0) addDebug("Must-include images", `Added ${mustImgs.length} must-include exact-match image(s) FIRST`);
 
@@ -418,7 +418,7 @@ serve(async (req) => {
       // Style moodboard images for the user-selected style(s) — visual references
       // for color palette, materials and furniture vibe. Cap at 3 to avoid context bloat.
       if (enrichedRequestData.styleImageUrls && enrichedRequestData.styleImageUrls.length > 0) {
-        const styleImgs = enrichedRequestData.styleImageUrls.slice(0, 3);
+        const styleImgs = enrichedRequestData.styleImageUrls.slice(0, 2);
         for (const imgUrl of styleImgs) {
           contentParts.push({ type: "image_url", image_url: { url: imgUrl } });
         }
@@ -427,13 +427,13 @@ serve(async (req) => {
 
       // Furniture references — inspiration
       const furnImgs = (enrichedRequestData.furnitureReferences || [])
-        .map((f) => f.imageUrl).filter(Boolean).slice(0, 3) as string[];
+        .map((f) => f.imageUrl).filter(Boolean).slice(0, 2) as string[];
       for (const u of furnImgs) contentParts.push({ type: "image_url", image_url: { url: u } });
       if (furnImgs.length > 0) addDebug("Furniture references", `Added ${furnImgs.length} furniture inspiration image(s)`);
 
       // Decor references — inspiration
       const decorImgs = (enrichedRequestData.decorReferences || [])
-        .map((d) => d.imageUrl).filter(Boolean).slice(0, 3) as string[];
+        .map((d) => d.imageUrl).filter(Boolean).slice(0, 2) as string[];
       for (const u of decorImgs) contentParts.push({ type: "image_url", image_url: { url: u } });
       if (decorImgs.length > 0) addDebug("Decor references", `Added ${decorImgs.length} decor inspiration image(s)`);
     }
@@ -501,7 +501,7 @@ serve(async (req) => {
 
       let data: any;
       try {
-        const rawText = await response.text();
+        let rawText: string | null = await response.text();
         if (!rawText || rawText.trim().length === 0) {
           addDebug("Empty response body", `Attempt ${attempt} returned empty body`);
           if (attempt < maxRetries) {
@@ -511,6 +511,8 @@ serve(async (req) => {
           throw new Error("AI gateway returned empty response after all attempts");
         }
         data = JSON.parse(rawText);
+        // Free the raw string immediately — base64 images make it multi-MB
+        rawText = null;
       } catch (parseErr) {
         if (parseErr instanceof SyntaxError) {
           addDebug("JSON parse error", `Attempt ${attempt}: ${parseErr.message}`);
