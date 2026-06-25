@@ -1,7 +1,7 @@
 import { useNavigate, useLocation } from "react-router-dom";
 import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { Home, Palette, Upload, Package, ArrowRight, Ruler, Sparkles } from "lucide-react";
+import { Home, Palette, Upload, Package, ArrowRight, Ruler, Sparkles, Briefcase } from "lucide-react";
 import Logo from "@/components/Logo";
 import IntentStep from "@/components/quiz/steps/IntentStep";
 import { useQuiz } from "@/contexts/QuizContext";
