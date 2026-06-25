@@ -144,7 +144,7 @@ const Start = () => {
               {firstName ? `Welcome, ${firstName}` : "Start your journey"}
             </p>
             <h1 className="text-4xl md:text-5xl font-bold tracking-tight">
-              What's brought you here?
+              {freshStage === "path" ? "Who are you?" : "What's brought you here?"}
             </h1>
             <p className="text-muted-foreground text-base md:text-lg max-w-xl mx-auto">
               {intro?.vision
