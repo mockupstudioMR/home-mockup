@@ -1,7 +1,7 @@
 import { useNavigate, useLocation } from "react-router-dom";
 import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { Home, Palette, Upload, Package, ArrowRight, Ruler, Sparkles } from "lucide-react";
+import { Home, Palette, Upload, Package, ArrowRight, Ruler, Sparkles, Briefcase } from "lucide-react";
 import Logo from "@/components/Logo";
 import IntentStep from "@/components/quiz/steps/IntentStep";
 import { useQuiz } from "@/contexts/QuizContext";
@@ -22,7 +22,7 @@ const Start = () => {
   const { user, loading } = useAuth();
   const { quizData, updateQuizData } = useQuiz();
   const isPro = new URLSearchParams(location.search).get("as") === "pro";
-  const [freshStage, setFreshStage] = useState<"intent" | "ground" | "vision" | "paths">("intent");
+  const [freshStage, setFreshStage] = useState<"path" | "intent" | "ground" | "vision" | "paths">("path");
 
   useEffect(() => {
     if (quizData.intent === "starting-fresh" && freshStage === "intent") setFreshStage("ground");
@@ -144,10 +144,12 @@ const Start = () => {
               {firstName ? `Welcome, ${firstName}` : "Start your journey"}
             </p>
             <h1 className="text-4xl md:text-5xl font-bold tracking-tight">
-              What's brought you here?
+              {freshStage === "path" ? "Who are you?" : "What's brought you here?"}
             </h1>
             <p className="text-muted-foreground text-base md:text-lg max-w-xl mx-auto">
-              {intro?.vision
+              {freshStage === "path"
+                ? `Choose the experience that fits you best.`
+                : intro?.vision
                 ? `We've got your vision in mind — pick the path that matches what you have today.`
                 : `Pick the path that matches what you have today`}
             </p>
@@ -155,7 +157,50 @@ const Start = () => {
 
           {!isPro ? (
             <div className="max-w-3xl mx-auto">
-              {freshStage === "intent" ? (
+              {freshStage === "path" ? (
+                <div className="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto -mx-4 md:-mx-16">
+                  <button
+                    onClick={() => setFreshStage("intent")}
+                    className="group relative block rounded-2xl overflow-hidden border border-border/50 bg-card shadow-sm hover:shadow-xl hover:border-primary/30 transition-all duration-500 text-left p-8 md:p-10 min-h-[280px] flex flex-col justify-between bg-gradient-to-br from-primary/30 to-secondary/30"
+                  >
+                    <div className="w-16 h-16 rounded-2xl bg-background/90 text-primary flex items-center justify-center shadow-md mb-6">
+                      <Home className="w-8 h-8" />
+                    </div>
+                    <div>
+                      <h2 className="text-2xl md:text-3xl font-bold tracking-tight mb-3 group-hover:text-primary transition-colors">
+                        I'm designing my home
+                      </h2>
+                      <p className="text-muted-foreground leading-relaxed mb-5">
+                        Redesign your space, explore styles, and bring your vision to life.
+                      </p>
+                      <span className="inline-flex items-center gap-2 text-sm font-semibold text-foreground group-hover:text-primary transition-colors">
+                        Continue
+                        <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                      </span>
+                    </div>
+                  </button>
+                  <button
+                    onClick={() => navigate("/start?as=pro", { replace: true })}
+                    className="group relative block rounded-2xl overflow-hidden border border-border/50 bg-card shadow-sm hover:shadow-xl hover:border-primary/30 transition-all duration-500 text-left p-8 md:p-10 min-h-[280px] flex flex-col justify-between bg-gradient-to-br from-accent/30 to-primary/20"
+                  >
+                    <div className="w-16 h-16 rounded-2xl bg-background/90 text-primary flex items-center justify-center shadow-md mb-6">
+                      <Briefcase className="w-8 h-8" />
+                    </div>
+                    <div>
+                      <h2 className="text-2xl md:text-3xl font-bold tracking-tight mb-3 group-hover:text-primary transition-colors">
+                        I'm a professional
+                      </h2>
+                      <p className="text-muted-foreground leading-relaxed mb-5">
+                        Furniture shops, designers & real estate — grow your business with AI tools.
+                      </p>
+                      <span className="inline-flex items-center gap-2 text-sm font-semibold text-foreground group-hover:text-primary transition-colors">
+                        Continue
+                        <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                      </span>
+                    </div>
+                  </button>
+                </div>
+              ) : freshStage === "intent" ? (
                 <div className="max-w-5xl mx-auto">
                   <IntentStep />
                 </div>
