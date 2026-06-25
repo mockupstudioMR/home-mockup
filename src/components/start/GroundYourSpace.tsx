@@ -85,12 +85,12 @@ const BigCard = ({
         : "border-border/50 hover:shadow-xl hover:border-primary/40"
     )}
   >
-    <div className="flex items-start justify-between">
+    <div className="flex flex-col items-center">
       <div className="w-16 h-16 rounded-2xl bg-background/90 text-primary flex items-center justify-center shadow-md">
         {icon}
       </div>
       {active && (
-        <div className="w-7 h-7 rounded-full bg-primary flex items-center justify-center shadow-sm">
+        <div className="absolute top-6 right-6 w-7 h-7 rounded-full bg-primary flex items-center justify-center shadow-sm">
           <Check className="w-4 h-4 text-primary-foreground" />
         </div>
       )}
