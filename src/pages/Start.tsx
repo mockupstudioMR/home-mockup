@@ -153,7 +153,13 @@ const Start = () => {
                 : freshStage === "intent"
                 ? "What's brought you here?"
                 : freshStage === "ground"
-                ? "What kind of place?"
+                ? groundStep === "property"
+                  ? "What kind of place?"
+                  : groundStep === "rooms"
+                  ? "Which rooms are on your list?"
+                  : groundStep === "state"
+                  ? "What's the state of the place?"
+                  : "Where do you want to start?"
                 : "Let's get started"}
             </h1>
             <p className="text-muted-foreground text-base md:text-lg max-w-xl mx-auto">
