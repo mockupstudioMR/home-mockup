@@ -65,7 +65,7 @@ const CaptureVision = ({ onBack, onComplete }: Props) => {
     },
     {
       id: "describe" as const,
-      icon: <Sparkles className="w-5 h-5" />,
+      icon: <PenLine className="w-5 h-5" />,
       label: "Describe your style",
     },
     {
