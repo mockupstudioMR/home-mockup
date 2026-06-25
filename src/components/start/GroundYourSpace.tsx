@@ -54,25 +54,35 @@ const ROOM_CAPTIONS: Record<string, string> = {
 
 type Step = "property" | "rooms" | "state" | "start-room";
 
+const GRADIENTS = [
+  "from-primary/50 to-secondary/40",
+  "from-secondary/50 to-accent/40",
+  "from-accent/50 to-primary/40",
+  "from-primary/40 to-accent/50",
+];
+
 const BigCard = ({
   active,
   onClick,
   icon,
   label,
+  gradient,
 }: {
   active: boolean;
   onClick: () => void;
   icon: React.ReactNode;
   label: string;
+  gradient?: string;
 }) => (
   <button
     type="button"
     onClick={onClick}
     className={cn(
-      "group relative block rounded-2xl overflow-hidden border shadow-sm transition-all duration-500 text-left p-8 md:p-10 min-h-[280px] flex flex-col justify-between bg-gradient-to-br from-primary/20 to-secondary/20",
+      "group relative block rounded-2xl overflow-hidden border shadow-sm transition-all duration-500 text-left p-8 md:p-10 min-h-[280px] flex flex-col justify-between bg-gradient-to-br",
+      gradient ?? "from-primary/50 to-secondary/40",
       active
-        ? "border-primary shadow-lg shadow-primary/10"
-        : "border-border/50 hover:shadow-xl hover:border-primary/30"
+        ? "border-primary shadow-lg shadow-primary/20"
+        : "border-border/50 hover:shadow-xl hover:border-primary/40"
     )}
   >
     <div className="flex items-start justify-between">
@@ -145,13 +155,14 @@ const GroundYourSpace = ({ onBack, onComplete, onStepChange }: Props) => {
     <div className="space-y-6">
       {step === "property" && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
-          {PROPERTY_TYPES.map((p) => (
+          {PROPERTY_TYPES.map((p, i) => (
             <BigCard
               key={p.id}
               active={data.propertyType === p.id}
               onClick={() => { setData((d) => ({ ...d, propertyType: p.id })); setTimeout(goNext, 150); }}
               icon={p.icon}
               label={p.label}
+              gradient={GRADIENTS[i % GRADIENTS.length]}
             />
           ))}
         </div>
@@ -160,15 +171,16 @@ const GroundYourSpace = ({ onBack, onComplete, onStepChange }: Props) => {
       {step === "rooms" && (
         <div className="space-y-4">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
-            {ROOMS.map((r) => (
-              <BigCard
-                key={r.id}
-                active={data.rooms.includes(r.id)}
-                onClick={() => toggleRoom(r.id)}
-                icon={r.icon}
-                label={r.label}
-              />
-            ))}
+          {ROOMS.map((r, i) => (
+            <BigCard
+              key={r.id}
+              active={data.rooms.includes(r.id)}
+              onClick={() => toggleRoom(r.id)}
+              icon={r.icon}
+              label={r.label}
+              gradient={GRADIENTS[(i + 1) % GRADIENTS.length]}
+            />
+          ))}
           </div>
           <button
             onClick={goNext}
@@ -182,13 +194,14 @@ const GroundYourSpace = ({ onBack, onComplete, onStepChange }: Props) => {
 
       {step === "state" && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
-          {HOUSE_STATES.map((s) => (
+          {HOUSE_STATES.map((s, i) => (
             <BigCard
               key={s.id}
               active={data.houseState === s.id}
               onClick={() => { setData((d) => ({ ...d, houseState: s.id })); setTimeout(goNext, 150); }}
               icon={s.icon}
               label={s.label}
+              gradient={GRADIENTS[(i + 2) % GRADIENTS.length]}
             />
           ))}
         </div>
@@ -200,13 +213,14 @@ const GroundYourSpace = ({ onBack, onComplete, onStepChange }: Props) => {
             <p className="text-center text-sm text-muted-foreground">No rooms selected — go back and pick a few.</p>
           )}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
-            {selectedRoomMeta.map((r) => (
+            {selectedRoomMeta.map((r, i) => (
               <BigCard
                 key={r.id}
                 active={data.startRoom === r.id}
                 onClick={() => setData((d) => ({ ...d, startRoom: r.id }))}
                 icon={r.icon}
                 label={r.label}
+                gradient={GRADIENTS[i % GRADIENTS.length]}
               />
             ))}
           </div>

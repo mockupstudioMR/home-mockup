@@ -208,7 +208,7 @@ const Start = () => {
                        updateQuizData({ intent: undefined });
                        setFreshStage("intent");
                      }}
-                    className="group relative block rounded-2xl overflow-hidden border border-border/50 bg-card shadow-sm hover:shadow-xl hover:border-primary/30 transition-all duration-500 text-left p-8 md:p-10 min-h-[280px] flex flex-col justify-between bg-gradient-to-br from-primary/30 to-secondary/30"
+                    className="group relative block rounded-2xl overflow-hidden border border-border/50 bg-card shadow-sm hover:shadow-xl hover:border-primary/40 transition-all duration-500 text-left p-8 md:p-10 min-h-[280px] flex flex-col justify-between bg-gradient-to-br from-primary/50 to-secondary/40"
                   >
                     <div className="w-16 h-16 rounded-2xl bg-background/90 text-primary flex items-center justify-center shadow-md mb-6">
                       <Home className="w-8 h-8" />
@@ -228,7 +228,7 @@ const Start = () => {
                   </button>
                   <button
                     onClick={() => navigate("/start?as=pro", { replace: true })}
-                    className="group relative block rounded-2xl overflow-hidden border border-border/50 bg-card shadow-sm hover:shadow-xl hover:border-primary/30 transition-all duration-500 text-left p-8 md:p-10 min-h-[280px] flex flex-col justify-between bg-gradient-to-br from-accent/30 to-primary/20"
+                    className="group relative block rounded-2xl overflow-hidden border border-border/50 bg-card shadow-sm hover:shadow-xl hover:border-primary/40 transition-all duration-500 text-left p-8 md:p-10 min-h-[280px] flex flex-col justify-between bg-gradient-to-br from-accent/50 to-primary/40"
                   >
                     <div className="w-16 h-16 rounded-2xl bg-background/90 text-primary flex items-center justify-center shadow-md mb-6">
                       <Briefcase className="w-8 h-8" />
@@ -298,6 +298,7 @@ const Start = () => {
                       title: "Floor Plan",
                       description: "Draw your room shape and get AI-generated layouts",
                       path: "/floor-plan",
+                      gradient: "from-primary/50 to-secondary/40",
                     },
                     {
                       id: "inspiration",
@@ -305,6 +306,7 @@ const Start = () => {
                       title: "Inspiration",
                       description: "Explore styles and build a vision for your space",
                       path: "/analyze-room",
+                      gradient: "from-secondary/50 to-accent/40",
                     },
                     {
                       id: "include-products",
@@ -312,6 +314,7 @@ const Start = () => {
                       title: "Stuff I want to include",
                       description: "Upload furniture or decor and design a room around it",
                       path: "/analyze-products",
+                      gradient: "from-accent/50 to-primary/40",
                     },
                   ].map((option) => (
                     <button
@@ -320,9 +323,9 @@ const Start = () => {
                         trackEvent("journey_start", option.id, { from: "start-fresh", path: option.path });
                         navigate(option.path);
                       }}
-                      className="group rounded-2xl border border-border/50 bg-card hover:border-primary/30 hover:shadow-lg transition-all duration-300 p-5 text-left flex flex-col gap-3"
+                      className={`group rounded-2xl border border-border/50 bg-gradient-to-br ${option.gradient} hover:border-primary/40 hover:shadow-lg transition-all duration-300 p-5 text-left flex flex-col gap-3`}
                     >
-                      <div className="w-11 h-11 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
+                      <div className="w-11 h-11 rounded-xl bg-background/90 text-primary flex items-center justify-center shadow-sm">
                         {option.icon}
                       </div>
                       <div>

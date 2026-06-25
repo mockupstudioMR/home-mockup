@@ -14,25 +14,34 @@ interface Props {
   onComplete: (data: VisionData) => void;
 }
 
+const VISION_GRADIENTS = [
+  "from-primary/50 to-secondary/40",
+  "from-secondary/50 to-accent/40",
+  "from-accent/50 to-primary/40",
+];
+
 const VisionCard = ({
   active,
   onClick,
   icon,
   label,
+  gradient,
 }: {
   active: boolean;
   onClick: () => void;
   icon: React.ReactNode;
   label: string;
+  gradient?: string;
 }) => (
     <button
       type="button"
       onClick={onClick}
       className={cn(
-        "group relative block rounded-2xl overflow-hidden border shadow-sm transition-all duration-500 text-left p-8 md:p-10 min-h-[280px] flex flex-col justify-between bg-gradient-to-br from-primary/20 to-secondary/20",
+        "group relative block rounded-2xl overflow-hidden border shadow-sm transition-all duration-500 text-left p-8 md:p-10 min-h-[280px] flex flex-col justify-between bg-gradient-to-br",
+        gradient ?? "from-primary/50 to-secondary/40",
         active
-          ? "border-primary shadow-lg shadow-primary/10"
-          : "border-border/50 hover:shadow-xl hover:border-primary/30"
+          ? "border-primary shadow-lg shadow-primary/20"
+          : "border-border/50 hover:shadow-xl hover:border-primary/40"
       )}
     >
       <div className="flex items-start justify-between">
@@ -125,7 +134,7 @@ const CaptureVision = ({ onBack, onComplete }: Props) => {
     <div className="space-y-6">
       {mode === "choose" ? (
         <div className="grid grid-cols-3 gap-4">
-          {options.map((o) => (
+          {options.map((o, i) => (
             <VisionCard
               key={o.id}
               active={false}
@@ -138,6 +147,7 @@ const CaptureVision = ({ onBack, onComplete }: Props) => {
               }}
               icon={o.icon}
               label={o.label}
+              gradient={VISION_GRADIENTS[i % VISION_GRADIENTS.length]}
             />
           ))}
         </div>
