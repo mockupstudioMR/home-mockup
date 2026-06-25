@@ -17,28 +17,28 @@ interface Props {
 }
 
 const PROPERTY_TYPES = [
-  { id: "apartment", label: "Apartment", icon: <Building2 className="w-5 h-5" /> },
-  { id: "house", label: "House", icon: <Home className="w-5 h-5" /> },
-  { id: "studio", label: "Studio", icon: <Hotel className="w-5 h-5" /> },
-  { id: "loft", label: "Loft", icon: <LayoutGrid className="w-5 h-5" /> },
+  { id: "apartment", label: "Apartment", icon: <Building2 className="w-8 h-8" /> },
+  { id: "house", label: "House", icon: <Home className="w-8 h-8" /> },
+  { id: "studio", label: "Studio", icon: <Hotel className="w-8 h-8" /> },
+  { id: "loft", label: "Loft", icon: <LayoutGrid className="w-8 h-8" /> },
 ];
 
 const ROOMS = [
-  { id: "living-room", label: "Living Room", icon: <Sofa className="w-5 h-5" /> },
-  { id: "bedroom", label: "Bedroom", icon: <Bed className="w-5 h-5" /> },
-  { id: "kitchen", label: "Kitchen", icon: <UtensilsCrossed className="w-5 h-5" /> },
-  { id: "dining-living", label: "Dining + Living", icon: <Utensils className="w-5 h-5" /> },
-  { id: "office", label: "Home Office", icon: <Monitor className="w-5 h-5" /> },
-  { id: "bathroom", label: "Bathroom", icon: <Bath className="w-5 h-5" /> },
-  { id: "open-space-kitchen-dining-living", label: "Open Space", icon: <LayoutGrid className="w-5 h-5" /> },
-  { id: "studio-apartment", label: "Studio Layout", icon: <Home className="w-5 h-5" /> },
+  { id: "living-room", label: "Living Room", icon: <Sofa className="w-8 h-8" /> },
+  { id: "bedroom", label: "Bedroom", icon: <Bed className="w-8 h-8" /> },
+  { id: "kitchen", label: "Kitchen", icon: <UtensilsCrossed className="w-8 h-8" /> },
+  { id: "dining-living", label: "Dining + Living", icon: <Utensils className="w-8 h-8" /> },
+  { id: "office", label: "Home Office", icon: <Monitor className="w-8 h-8" /> },
+  { id: "bathroom", label: "Bathroom", icon: <Bath className="w-8 h-8" /> },
+  { id: "open-space-kitchen-dining-living", label: "Open Space", icon: <LayoutGrid className="w-8 h-8" /> },
+  { id: "studio-apartment", label: "Studio Layout", icon: <Home className="w-8 h-8" /> },
 ];
 
 const HOUSE_STATES = [
-  { id: "core-shell", label: "Core & shell", icon: <Construction className="w-5 h-5" /> },
-  { id: "empty", label: "Empty", icon: <PackageOpen className="w-5 h-5" /> },
-  { id: "partial", label: "Partially furnished", icon: <Sofa className="w-5 h-5" /> },
-  { id: "redoing", label: "Redoing it all", icon: <Wand2 className="w-5 h-5" /> },
+  { id: "core-shell", label: "Core & shell", icon: <Construction className="w-8 h-8" /> },
+  { id: "empty", label: "Empty", icon: <PackageOpen className="w-8 h-8" /> },
+  { id: "partial", label: "Partially furnished", icon: <Sofa className="w-8 h-8" /> },
+  { id: "redoing", label: "Redoing it all", icon: <Wand2 className="w-8 h-8" /> },
 ];
 
 const ROOM_CAPTIONS: Record<string, string> = {
