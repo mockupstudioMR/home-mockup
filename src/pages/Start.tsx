@@ -160,7 +160,7 @@ const Start = () => {
               {freshStage === "path" ? (
                 <div className="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto -mx-4 md:-mx-16">
                   <button
-                    onClick={() => setFreshStage("intent")}
+                    onClick={() => setFreshStage("ground")}
                     className="group relative block rounded-2xl overflow-hidden border border-border/50 bg-card shadow-sm hover:shadow-xl hover:border-primary/30 transition-all duration-500 text-left p-8 md:p-10 min-h-[280px] flex flex-col justify-between bg-gradient-to-br from-primary/30 to-secondary/30"
                   >
                     <div className="w-16 h-16 rounded-2xl bg-background/90 text-primary flex items-center justify-center shadow-md mb-6">
