@@ -298,6 +298,7 @@ const Start = () => {
                       title: "Floor Plan",
                       description: "Draw your room shape and get AI-generated layouts",
                       path: "/floor-plan",
+                      gradient: "from-primary/50 to-secondary/40",
                     },
                     {
                       id: "inspiration",
@@ -305,6 +306,7 @@ const Start = () => {
                       title: "Inspiration",
                       description: "Explore styles and build a vision for your space",
                       path: "/analyze-room",
+                      gradient: "from-secondary/50 to-accent/40",
                     },
                     {
                       id: "include-products",
@@ -312,6 +314,7 @@ const Start = () => {
                       title: "Stuff I want to include",
                       description: "Upload furniture or decor and design a room around it",
                       path: "/analyze-products",
+                      gradient: "from-accent/50 to-primary/40",
                     },
                   ].map((option) => (
                     <button
@@ -320,9 +323,9 @@ const Start = () => {
                         trackEvent("journey_start", option.id, { from: "start-fresh", path: option.path });
                         navigate(option.path);
                       }}
-                      className="group rounded-2xl border border-border/50 bg-card hover:border-primary/30 hover:shadow-lg transition-all duration-300 p-5 text-left flex flex-col gap-3"
+                      className={`group rounded-2xl border border-border/50 bg-gradient-to-br ${option.gradient} hover:border-primary/40 hover:shadow-lg transition-all duration-300 p-5 text-left flex flex-col gap-3`}
                     >
-                      <div className="w-11 h-11 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
+                      <div className="w-11 h-11 rounded-xl bg-background/90 text-primary flex items-center justify-center shadow-sm">
                         {option.icon}
                       </div>
                       <div>
