@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Home, Palette, Upload, Package, ArrowRight, Ruler, Sparkles, Briefcase } from "lucide-react";
 import Logo from "@/components/Logo";
-import IntentStep from "@/components/quiz/steps/IntentStep";
+
 import { useQuiz } from "@/contexts/QuizContext";
 import { Card, CardContent } from "@/components/ui/card";
 import { trackEvent } from "@/lib/analytics";
