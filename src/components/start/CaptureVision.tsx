@@ -1,18 +1,57 @@
 import { useState } from "react";
-import { Upload, Sparkles, Palette, Ruler, ArrowRight, ArrowLeft } from "lucide-react";
+import { Upload, Sparkles, Palette, ArrowRight, ArrowLeft, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { cn } from "@/lib/utils";
 
 export type VisionData =
   | { mode: "upload" }
   | { mode: "describe"; prompt: string }
-  | { mode: "discover" }
-  | { mode: "floor-plan" };
+  | { mode: "discover" };
 
 interface Props {
   onBack: () => void;
   onComplete: (data: VisionData) => void;
 }
+
+const VisionCard = ({
+  active,
+  onClick,
+  icon,
+  label,
+}: {
+  active: boolean;
+  onClick: () => void;
+  icon: React.ReactNode;
+  label: string;
+}) => (
+  <button
+    type="button"
+    onClick={onClick}
+    className={cn(
+      "group relative block rounded-2xl overflow-hidden border shadow-sm transition-all duration-500 text-left p-4 md:p-5 min-h-[120px] flex flex-col justify-between bg-gradient-to-br from-primary/20 to-secondary/20",
+      active
+        ? "border-primary shadow-lg shadow-primary/10"
+        : "border-border/50 hover:shadow-xl hover:border-primary/30"
+    )}
+  >
+    <div className="flex items-start justify-between">
+      <div className="w-10 h-10 rounded-xl bg-background/90 text-primary flex items-center justify-center shadow-md">
+        {icon}
+      </div>
+      {active && (
+        <div className="w-7 h-7 rounded-full bg-primary flex items-center justify-center shadow-sm">
+          <Check className="w-4 h-4 text-primary-foreground" />
+        </div>
+      )}
+    </div>
+    <div>
+      <h3 className="text-sm md:text-base font-bold tracking-tight group-hover:text-primary transition-colors">
+        {label}
+      </h3>
+    </div>
+  </button>
+);
 
 const CaptureVision = ({ onBack, onComplete }: Props) => {
   const [mode, setMode] = useState<"choose" | "describe">("choose");
@@ -22,42 +61,28 @@ const CaptureVision = ({ onBack, onComplete }: Props) => {
     {
       id: "upload" as const,
       icon: <Upload className="w-5 h-5" />,
-      title: "Upload inspiration",
-      description: "Drop in photos of rooms you love — we'll detect the styles",
+      label: "Upload inspiration",
     },
     {
       id: "describe" as const,
       icon: <Sparkles className="w-5 h-5" />,
-      title: "Describe your style",
-      description: "Tell us in your own words — a few sentences is enough",
+      label: "Describe your style",
     },
     {
       id: "discover" as const,
       icon: <Palette className="w-5 h-5" />,
-      title: "Discover styles",
-      description: "Browse curated directions and pick what speaks to you",
-    },
-    {
-      id: "floor-plan" as const,
-      icon: <Ruler className="w-5 h-5" />,
-      title: "Continue with floor plan",
-      description: "Draw your room shape and get AI-generated layouts",
+      label: "Discover styles",
     },
   ];
 
   return (
     <div className="space-y-6">
-      <div className="text-center space-y-2">
-        <p className="text-xs uppercase tracking-[0.18em] text-primary font-medium">Step 2 of 2</p>
-        <h2 className="text-2xl md:text-3xl font-bold tracking-tight">Capture the vision</h2>
-        <p className="text-muted-foreground text-sm">How would you like to share your style?</p>
-      </div>
-
       {mode === "choose" ? (
-        <div className="grid gap-3">
+        <div className="grid grid-cols-3 gap-4">
           {options.map((o) => (
-            <button
+            <VisionCard
               key={o.id}
+              active={false}
               onClick={() => {
                 if (o.id === "describe") {
                   setMode("describe");
@@ -65,23 +90,13 @@ const CaptureVision = ({ onBack, onComplete }: Props) => {
                   onComplete({ mode: o.id });
                 }
               }}
-              className="group rounded-2xl border border-border/50 bg-card hover:border-primary/40 hover:shadow-md transition-all p-4 text-left flex items-center gap-4"
-            >
-              <div className="w-11 h-11 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
-                {o.icon}
-              </div>
-              <div className="flex-1 min-w-0">
-                <h3 className="font-semibold tracking-tight group-hover:text-primary transition-colors">
-                  {o.title}
-                </h3>
-                <p className="text-sm text-muted-foreground leading-relaxed">{o.description}</p>
-              </div>
-              <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all shrink-0" />
-            </button>
+              icon={o.icon}
+              label={o.label}
+            />
           ))}
         </div>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-3 max-w-xl mx-auto">
           <label className="text-sm font-medium">Describe your style</label>
           <Textarea
             value={prompt}
@@ -96,7 +111,7 @@ const CaptureVision = ({ onBack, onComplete }: Props) => {
         </div>
       )}
 
-      <div className="flex justify-between pt-2">
+      <div className="flex justify-between pt-2 max-w-xl mx-auto">
         <Button
           variant="ghost"
           onClick={() => (mode === "describe" ? setMode("choose") : onBack())}
