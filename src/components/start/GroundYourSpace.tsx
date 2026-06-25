@@ -155,13 +155,14 @@ const GroundYourSpace = ({ onBack, onComplete, onStepChange }: Props) => {
     <div className="space-y-6">
       {step === "property" && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
-          {PROPERTY_TYPES.map((p) => (
+          {PROPERTY_TYPES.map((p, i) => (
             <BigCard
               key={p.id}
               active={data.propertyType === p.id}
               onClick={() => { setData((d) => ({ ...d, propertyType: p.id })); setTimeout(goNext, 150); }}
               icon={p.icon}
               label={p.label}
+              gradient={GRADIENTS[i % GRADIENTS.length]}
             />
           ))}
         </div>
