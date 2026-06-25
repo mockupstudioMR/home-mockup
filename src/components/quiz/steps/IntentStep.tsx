@@ -2,24 +2,27 @@ import { useQuiz } from "@/contexts/QuizContext";
 import { Home, Sparkles, Compass, ArrowRight, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+const INTENT_GRADIENTS = [
+  "from-primary/50 to-secondary/40",
+  "from-secondary/50 to-accent/40",
+  "from-accent/50 to-primary/40",
+];
+
 const intents = [
   {
     value: "starting-fresh" as const,
     label: "Setting up a new space",
     icon: <Home className="w-8 h-8" />,
-    gradient: "from-primary/30 to-secondary/30",
   },
   {
     value: "updating-current" as const,
     label: "Redesigning what I have",
     icon: <Sparkles className="w-8 h-8" />,
-    gradient: "from-accent/30 to-primary/20",
   },
   {
     value: "gathering-inspiration" as const,
     label: "Just exploring for now",
     icon: <Compass className="w-8 h-8" />,
-    gradient: "from-secondary/30 to-accent/30",
   },
 ];
 
@@ -28,7 +31,7 @@ const IntentStep = () => {
 
   return (
     <div className="grid grid-cols-3 gap-4">
-      {intents.map((intent) => {
+      {intents.map((intent, i) => {
         const selected = quizData.intent === intent.value;
         return (
           <button
@@ -37,9 +40,10 @@ const IntentStep = () => {
             onClick={() => updateQuizData({ intent: intent.value })}
             className={cn(
               "group relative block rounded-2xl overflow-hidden border shadow-sm transition-all duration-500 text-left p-8 md:p-10 min-h-[280px] flex flex-col justify-between bg-gradient-to-br",
+              INTENT_GRADIENTS[i % INTENT_GRADIENTS.length],
               selected
-                ? "border-primary shadow-lg shadow-primary/10"
-                : "border-border/50 hover:shadow-xl hover:border-primary/30"
+                ? "border-primary shadow-lg shadow-primary/20"
+                : "border-border/50 hover:shadow-xl hover:border-primary/40"
             )}
           >
             <div className="flex items-start justify-between">
