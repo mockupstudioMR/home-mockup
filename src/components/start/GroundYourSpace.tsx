@@ -69,14 +69,14 @@ const BigCard = ({
     type="button"
     onClick={onClick}
     className={cn(
-      "group relative block rounded-2xl overflow-hidden border shadow-sm transition-all duration-500 text-left p-4 md:p-5 min-h-[120px] flex flex-col justify-between bg-gradient-to-br from-primary/20 to-secondary/20",
+      "group relative block rounded-2xl overflow-hidden border shadow-sm transition-all duration-500 text-left p-8 md:p-10 min-h-[280px] flex flex-col justify-between bg-gradient-to-br from-primary/20 to-secondary/20",
       active
         ? "border-primary shadow-lg shadow-primary/10"
         : "border-border/50 hover:shadow-xl hover:border-primary/30"
     )}
   >
     <div className="flex items-start justify-between">
-      <div className="w-10 h-10 rounded-xl bg-background/90 text-primary flex items-center justify-center shadow-md">
+      <div className="w-16 h-16 rounded-2xl bg-background/90 text-primary flex items-center justify-center shadow-md">
         {icon}
       </div>
       {active && (
@@ -86,7 +86,7 @@ const BigCard = ({
       )}
     </div>
     <div>
-      <h3 className="text-sm md:text-base font-bold tracking-tight group-hover:text-primary transition-colors">
+      <h3 className="text-xl md:text-2xl font-bold tracking-tight group-hover:text-primary transition-colors break-words">
         {label}
       </h3>
     </div>
