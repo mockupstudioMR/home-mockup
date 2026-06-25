@@ -185,7 +185,7 @@ const GroundYourSpace = ({ onBack, onComplete }: Props) => {
       </div>
 
       {step === "property" && (
-        <div className="grid grid-cols-2 md:grid-cols-2 gap-4 md:gap-6">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
           {PROPERTY_TYPES.map((p) => (
             <BigCard
               key={p.id}
@@ -200,7 +200,7 @@ const GroundYourSpace = ({ onBack, onComplete }: Props) => {
 
       {step === "rooms" && (
         <div className="space-y-4">
-          <div className="grid grid-cols-2 md:grid-cols-2 gap-4 md:gap-6">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
             {ROOMS.map((r) => (
               <BigCard
                 key={r.id}
@@ -222,7 +222,7 @@ const GroundYourSpace = ({ onBack, onComplete }: Props) => {
       )}
 
       {step === "state" && (
-        <div className="grid grid-cols-2 md:grid-cols-2 gap-4 md:gap-6">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
           {HOUSE_STATES.map((s) => (
             <BigCard
               key={s.id}
@@ -240,7 +240,7 @@ const GroundYourSpace = ({ onBack, onComplete }: Props) => {
           {selectedRoomMeta.length === 0 && (
             <p className="text-center text-sm text-muted-foreground">No rooms selected — go back and pick a few.</p>
           )}
-          <div className="grid grid-cols-2 md:grid-cols-2 gap-4 md:gap-6">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
             {selectedRoomMeta.map((r) => (
               <BigCard
                 key={r.id}
