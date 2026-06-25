@@ -134,7 +134,7 @@ const CaptureVision = ({ onBack, onComplete }: Props) => {
     <div className="space-y-6">
       {mode === "choose" ? (
         <div className="grid grid-cols-3 gap-4">
-          {options.map((o) => (
+          {options.map((o, i) => (
             <VisionCard
               key={o.id}
               active={false}
@@ -147,6 +147,7 @@ const CaptureVision = ({ onBack, onComplete }: Props) => {
               }}
               icon={o.icon}
               label={o.label}
+              gradient={VISION_GRADIENTS[i % VISION_GRADIENTS.length]}
             />
           ))}
         </div>
