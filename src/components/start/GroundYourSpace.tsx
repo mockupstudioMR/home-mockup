@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { ArrowRight, ArrowLeft, Sparkles, Home, Building2, Building, Hotel, KeyRound, Hammer, Wand2, PackageOpen, Sofa, Bed, UtensilsCrossed, Monitor, Bath, LayoutGrid, Utensils, Check, Construction } from "lucide-react";
+import { ArrowRight, ArrowLeft, Sparkles, Home, Building2, Hotel, Wand2, PackageOpen, Sofa, Bed, UtensilsCrossed, Monitor, Bath, LayoutGrid, Utensils, Check, Construction } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export interface GroundData {
@@ -15,36 +15,29 @@ interface Props {
   onComplete: (data: GroundData) => void;
 }
 
-const USE_CASES = [
-  { id: "moving-in", label: "Just moved in", icon: <KeyRound className="w-5 h-5" /> },
-  { id: "renovating", label: "Renovating", icon: <Hammer className="w-5 h-5" /> },
-  { id: "new-build", label: "New build", icon: <Building className="w-5 h-5" /> },
-  { id: "refresh", label: "Full refresh", icon: <Wand2 className="w-5 h-5" /> },
-];
-
 const PROPERTY_TYPES = [
-  { id: "apartment", label: "Apartment", icon: <Building2 className="w-5 h-5" /> },
-  { id: "house", label: "House", icon: <Home className="w-5 h-5" /> },
-  { id: "studio", label: "Studio", icon: <Hotel className="w-5 h-5" /> },
-  { id: "loft", label: "Loft", icon: <LayoutGrid className="w-5 h-5" /> },
+  { id: "apartment", label: "Apartment", icon: <Building2 className="w-8 h-8" /> },
+  { id: "house", label: "House", icon: <Home className="w-8 h-8" /> },
+  { id: "studio", label: "Studio", icon: <Hotel className="w-8 h-8" /> },
+  { id: "loft", label: "Loft", icon: <LayoutGrid className="w-8 h-8" /> },
 ];
 
 const ROOMS = [
-  { id: "living-room", label: "Living Room", icon: <Sofa className="w-5 h-5" /> },
-  { id: "bedroom", label: "Bedroom", icon: <Bed className="w-5 h-5" /> },
-  { id: "kitchen", label: "Kitchen", icon: <UtensilsCrossed className="w-5 h-5" /> },
-  { id: "dining-living", label: "Dining + Living", icon: <Utensils className="w-5 h-5" /> },
-  { id: "office", label: "Home Office", icon: <Monitor className="w-5 h-5" /> },
-  { id: "bathroom", label: "Bathroom", icon: <Bath className="w-5 h-5" /> },
-  { id: "open-space-kitchen-dining-living", label: "Open Space", icon: <LayoutGrid className="w-5 h-5" /> },
-  { id: "studio-apartment", label: "Studio Layout", icon: <Home className="w-5 h-5" /> },
+  { id: "living-room", label: "Living Room", icon: <Sofa className="w-8 h-8" /> },
+  { id: "bedroom", label: "Bedroom", icon: <Bed className="w-8 h-8" /> },
+  { id: "kitchen", label: "Kitchen", icon: <UtensilsCrossed className="w-8 h-8" /> },
+  { id: "dining-living", label: "Dining + Living", icon: <Utensils className="w-8 h-8" /> },
+  { id: "office", label: "Home Office", icon: <Monitor className="w-8 h-8" /> },
+  { id: "bathroom", label: "Bathroom", icon: <Bath className="w-8 h-8" /> },
+  { id: "open-space-kitchen-dining-living", label: "Open Space", icon: <LayoutGrid className="w-8 h-8" /> },
+  { id: "studio-apartment", label: "Studio Layout", icon: <Home className="w-8 h-8" /> },
 ];
 
 const HOUSE_STATES = [
-  { id: "core-shell", label: "Core & shell", description: "Bare walls — needs flooring, paint, fixtures", icon: <Construction className="w-5 h-5" /> },
-  { id: "empty", label: "Empty", description: "Blank canvas, nothing in yet", icon: <PackageOpen className="w-5 h-5" /> },
-  { id: "partial", label: "Partially furnished", description: "A few pieces, need the rest", icon: <Sofa className="w-5 h-5" /> },
-  { id: "redoing", label: "Redoing it all", description: "Furnished but starting over", icon: <Wand2 className="w-5 h-5" /> },
+  { id: "core-shell", label: "Core & shell", icon: <Construction className="w-8 h-8" /> },
+  { id: "empty", label: "Empty", icon: <PackageOpen className="w-8 h-8" /> },
+  { id: "partial", label: "Partially furnished", icon: <Sofa className="w-8 h-8" /> },
+  { id: "redoing", label: "Redoing it all", icon: <Wand2 className="w-8 h-8" /> },
 ];
 
 const ROOM_CAPTIONS: Record<string, string> = {
@@ -58,26 +51,49 @@ const ROOM_CAPTIONS: Record<string, string> = {
   "studio-apartment": "One room, one cohesive vibe — perfect first project.",
 };
 
-type Step = "use-case" | "property" | "rooms" | "state" | "start-room";
+type Step = "property" | "rooms" | "state" | "start-room";
 
-const Chip = ({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) => (
+const BigCard = ({
+  active,
+  onClick,
+  icon,
+  label,
+}: {
+  active: boolean;
+  onClick: () => void;
+  icon: React.ReactNode;
+  label: string;
+}) => (
   <button
     type="button"
     onClick={onClick}
     className={cn(
-      "flex items-center gap-2 px-4 py-3 rounded-xl border-2 text-sm font-medium transition-all text-left",
+      "group relative block rounded-2xl overflow-hidden border shadow-sm transition-all duration-500 text-left p-6 md:p-8 min-h-[200px] flex flex-col justify-between bg-gradient-to-br from-primary/20 to-secondary/20",
       active
-        ? "border-primary bg-primary/10 text-foreground shadow-sm"
-        : "border-border bg-card hover:border-primary/40 hover:bg-accent/40"
+        ? "border-primary shadow-lg shadow-primary/10"
+        : "border-border/50 hover:shadow-xl hover:border-primary/30"
     )}
   >
-    {children}
-    {active && <Check className="w-4 h-4 ml-auto text-primary" />}
+    <div className="flex items-start justify-between">
+      <div className="w-14 h-14 rounded-2xl bg-background/90 text-primary flex items-center justify-center shadow-md">
+        {icon}
+      </div>
+      {active && (
+        <div className="w-7 h-7 rounded-full bg-primary flex items-center justify-center shadow-sm">
+          <Check className="w-4 h-4 text-primary-foreground" />
+        </div>
+      )}
+    </div>
+    <div>
+      <h3 className="text-lg md:text-xl font-bold tracking-tight group-hover:text-primary transition-colors">
+        {label}
+      </h3>
+    </div>
   </button>
 );
 
 const GroundYourSpace = ({ onBack, onComplete }: Props) => {
-  const [step, setStep] = useState<Step>("use-case");
+  const [step, setStep] = useState<Step>("property");
   const [data, setData] = useState<GroundData>({
     useCase: "",
     propertyType: "",
@@ -86,7 +102,7 @@ const GroundYourSpace = ({ onBack, onComplete }: Props) => {
     startRoom: "",
   });
 
-  const steps: Step[] = ["use-case", "property", "rooms", "state", "start-room"];
+  const steps: Step[] = ["property", "rooms", "state", "start-room"];
   const stepIndex = steps.indexOf(step);
 
   const goPrev = () => {
@@ -104,7 +120,6 @@ const GroundYourSpace = ({ onBack, onComplete }: Props) => {
 
   const canContinue = useMemo(() => {
     switch (step) {
-      case "use-case": return !!data.useCase;
       case "property": return !!data.propertyType;
       case "rooms": return data.rooms.length > 0;
       case "state": return !!data.houseState;
@@ -147,68 +162,53 @@ const GroundYourSpace = ({ onBack, onComplete }: Props) => {
         <p className="text-xs uppercase tracking-[0.18em] text-primary font-medium inline-flex items-center gap-1.5">
           <Sparkles className="w-3.5 h-3.5" /> Ground your space
         </p>
-        {step === "use-case" && (
-          <>
-            <h2 className="text-2xl md:text-3xl font-bold tracking-tight">What's the occasion?</h2>
-            <p className="text-muted-foreground">A quick tap so we tailor everything to you</p>
-          </>
-        )}
         {step === "property" && (
           <>
             <h2 className="text-2xl md:text-3xl font-bold tracking-tight">What kind of place?</h2>
-            <p className="text-muted-foreground">Pick the closest match</p>
           </>
         )}
         {step === "rooms" && (
           <>
             <h2 className="text-2xl md:text-3xl font-bold tracking-tight">Which rooms are on your list?</h2>
-            <p className="text-muted-foreground">Tap all that apply — you can change this later</p>
           </>
         )}
         {step === "state" && (
           <>
             <h2 className="text-2xl md:text-3xl font-bold tracking-tight">What's the state of the place?</h2>
-            <p className="text-muted-foreground">So we know where to begin</p>
           </>
         )}
         {step === "start-room" && (
           <>
             <h2 className="text-2xl md:text-3xl font-bold tracking-tight">Where do you want to start?</h2>
-            <p className="text-muted-foreground">Pick one room to focus on first</p>
           </>
         )}
       </div>
 
-      {step === "use-case" && (
-        <div className="grid grid-cols-2 gap-3">
-          {USE_CASES.map((u) => (
-            <Chip key={u.id} active={data.useCase === u.id} onClick={() => { setData((d) => ({ ...d, useCase: u.id })); setTimeout(goNext, 150); }}>
-              <span className="text-primary">{u.icon}</span>
-              <span>{u.label}</span>
-            </Chip>
-          ))}
-        </div>
-      )}
-
       {step === "property" && (
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-2 gap-4 md:gap-6">
           {PROPERTY_TYPES.map((p) => (
-            <Chip key={p.id} active={data.propertyType === p.id} onClick={() => { setData((d) => ({ ...d, propertyType: p.id })); setTimeout(goNext, 150); }}>
-              <span className="text-primary">{p.icon}</span>
-              <span>{p.label}</span>
-            </Chip>
+            <BigCard
+              key={p.id}
+              active={data.propertyType === p.id}
+              onClick={() => { setData((d) => ({ ...d, propertyType: p.id })); setTimeout(goNext, 150); }}
+              icon={p.icon}
+              label={p.label}
+            />
           ))}
         </div>
       )}
 
       {step === "rooms" && (
         <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-2 gap-4 md:gap-6">
             {ROOMS.map((r) => (
-              <Chip key={r.id} active={data.rooms.includes(r.id)} onClick={() => toggleRoom(r.id)}>
-                <span className="text-primary">{r.icon}</span>
-                <span>{r.label}</span>
-              </Chip>
+              <BigCard
+                key={r.id}
+                active={data.rooms.includes(r.id)}
+                onClick={() => toggleRoom(r.id)}
+                icon={r.icon}
+                label={r.label}
+              />
             ))}
           </div>
           <button
@@ -222,64 +222,41 @@ const GroundYourSpace = ({ onBack, onComplete }: Props) => {
       )}
 
       {step === "state" && (
-        <div className="grid gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-2 gap-4 md:gap-6">
           {HOUSE_STATES.map((s) => (
-            <button
+            <BigCard
               key={s.id}
+              active={data.houseState === s.id}
               onClick={() => { setData((d) => ({ ...d, houseState: s.id })); setTimeout(goNext, 150); }}
-              className={cn(
-                "flex items-start gap-3 p-4 rounded-xl border-2 text-left transition-all",
-                data.houseState === s.id
-                  ? "border-primary bg-primary/10"
-                  : "border-border bg-card hover:border-primary/40 hover:bg-accent/40"
-              )}
-            >
-              <div className="shrink-0 w-10 h-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
-                {s.icon}
-              </div>
-              <div className="flex-1">
-                <p className="font-semibold">{s.label}</p>
-                <p className="text-sm text-muted-foreground">{s.description}</p>
-              </div>
-            </button>
+              icon={s.icon}
+              label={s.label}
+            />
           ))}
         </div>
       )}
 
       {step === "start-room" && (
-        <div className="space-y-3">
+        <div className="space-y-4">
           {selectedRoomMeta.length === 0 && (
             <p className="text-center text-sm text-muted-foreground">No rooms selected — go back and pick a few.</p>
           )}
-          {selectedRoomMeta.map((r) => {
-            const active = data.startRoom === r.id;
-            return (
-              <button
+          <div className="grid grid-cols-2 md:grid-cols-2 gap-4 md:gap-6">
+            {selectedRoomMeta.map((r) => (
+              <BigCard
                 key={r.id}
+                active={data.startRoom === r.id}
                 onClick={() => setData((d) => ({ ...d, startRoom: r.id }))}
-                className={cn(
-                  "w-full flex items-start gap-3 p-4 rounded-xl border-2 text-left transition-all",
-                  active
-                    ? "border-primary bg-primary/10 shadow-sm"
-                    : "border-border bg-card hover:border-primary/40 hover:bg-accent/40"
-                )}
-              >
-                <div className="shrink-0 w-11 h-11 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
-                  {r.icon}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <p className="font-semibold">{r.label}</p>
-                    {active && <Check className="w-4 h-4 text-primary" />}
-                  </div>
-                  <p className="text-sm text-muted-foreground mt-0.5 inline-flex items-start gap-1.5">
-                    <Sparkles className="w-3.5 h-3.5 text-primary shrink-0 mt-0.5" />
-                    <span>{ROOM_CAPTIONS[r.id] ?? "A solid place to start."}</span>
-                  </p>
-                </div>
-              </button>
-            );
-          })}
+                icon={r.icon}
+                label={r.label}
+              />
+            ))}
+          </div>
+          {selectedRoomMeta.length > 0 && data.startRoom && ROOM_CAPTIONS[data.startRoom] && (
+            <p className="text-center text-sm text-muted-foreground inline-flex items-start gap-1.5 w-full justify-center">
+              <Sparkles className="w-3.5 h-3.5 text-primary shrink-0 mt-0.5" />
+              <span>{ROOM_CAPTIONS[data.startRoom]}</span>
+            </p>
+          )}
           <button
             onClick={goNext}
             disabled={!canContinue}
