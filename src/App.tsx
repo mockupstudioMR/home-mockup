@@ -29,6 +29,7 @@ const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
 const DesignerDashboard = lazy(() => import("./pages/DesignerDashboard"));
 const ShopDashboard = lazy(() => import("./pages/ShopDashboard"));
 const WhatsAppPicker = lazy(() => import("./pages/WhatsAppPicker"));
+const DesignJourney = lazy(() => import("./pages/DesignJourney"));
 
 const PageLoader = () => (
   <div className="min-h-screen flex items-center justify-center">
@@ -128,6 +129,11 @@ const App = () => (
               } />
 
               <Route path="/wa/:sessionId/:visualKind" element={<WhatsAppPicker />} />
+              <Route path="/design-journey/:designId" element={
+                <ProtectedRoute allowedRoles={["user"]}>
+                  <DesignJourney />
+                </ProtectedRoute>
+              } />
               <Route path="*" element={<NotFound />} />
             </Routes>
             </Suspense>
