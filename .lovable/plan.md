@@ -1,75 +1,96 @@
-## Goal
+# Design Journey — Apple-quality cinematic experience
 
-Run the full HomeMockUp quiz inside WhatsApp. Text-only questions are answered by replying with a number. Questions that need visuals (style moodboard, color palette, inspiration image, floor plan) are sent as a **one-time link** to a tiny web picker; the user taps, picks visually, and WhatsApp continues with the next question automatically. On completion, the user gets a link back to `/generate`.
+A new full-screen, story-driven experience that plays after the user uploads a room photo and their design is generated. It replaces the current static result view with a 10-screen guided journey.
 
-## User flow
+## Scope
 
-1. On `/quiz`, the user enters their phone number and taps **Send me the quiz on WhatsApp**.
-2. WhatsApp sends message 1. They reply with numbers for text questions (`1`, `2`, …), `skip` for optional, `restart` to reset.
-3. For visual questions, WhatsApp sends a short message + a unique link like `https://home-mockup.lovable.app/wa/<sessionId>/<step>?t=<token>`. The user taps, picks on a minimal mobile-first picker page, the picker posts the choice to our backend, and the next WhatsApp message arrives within a second.
-4. After the last answer, WhatsApp sends a deep link `…/generate?wa_session=<id>` which hydrates `QuizContext` and runs generation.
+- New route: `/design-journey/:designId` (opens after generation finishes)
+- Homeowner path only for now (does not touch the Professional path or existing `/generate` layout)
+- Frontend/presentation only — reuses existing generated design data, style analysis, product matches, and budget data already produced by the current backend. No new edge functions.
 
-## Question routing (text vs link)
+## Route & entry points
 
-| Step | Mode | Source component |
-| --- | --- | --- |
-| Intent | text (numbered) | `IntentStep` |
-| Room type | text (numbered) | `RoomStep` |
-| Style preference | **link → picker** | `StyleStep` moodboards (`styleMoodboards.ts`) |
-| Color palette | **link → picker** | `ColorStep` swatches |
-| Budget feel | text (numbered) | `BudgetStep` |
-| Must-have elements | text (multi: `1,3,5` or `skip`) | `ElementsStep` |
-| Furniture source | text (numbered) | `FurnitureSourceStep` |
-| Inspiration image (optional) | **link → picker/uploader** | `ImageStep` (gallery + upload) |
-| Floor plan (if room needs it) | **link → picker** | reuses existing `FloorPlan` page in a lightweight standalone mode |
+- After a design is generated in the homeowner flow, add a primary CTA "Enter your design journey →" that navigates to `/design-journey/:designId`.
+- Keep the current results screen as a fallback (accessible via a small "Classic view" link).
+- Deep-linkable: journey loads the design + related data by id.
 
-Each visual question is delivered as: `"Pick your style here 👇 https://…/wa/<id>/style?t=<token> (link expires when you pick)"`.
+## Screens (10)
 
-## What gets built
+Each screen is a full-viewport section with Framer Motion enter/exit animations, generous whitespace, large type, and a persistent minimal nav.
 
-**1. Twilio connector** — gateway-managed, no secrets pasted.
+1. **Hero Reveal** — before→after morph, then draggable comparison slider. Headline "Your room has been transformed." CTA "Explore My Design →".
+2. **Style DNA** — staggered cards: Primary Style, Secondary Style, Mood, Color Palette (animated circles), Materials (icons), Lifestyle Match.
+3. **Design Evolution** — horizontal, swipeable timeline of versions (Original → Concept → Professional → Luxury → Final) with crossfade + bottom progress dots.
+4. **Why We Changed It** — redesigned room with numbered hotspots that pop in one by one; clicking opens a glass card, background blurs.
+5. **Room Health Score** — big circular gauge counts 0→score; category bars animate left-to-right (Style, Comfort, Lighting, Flow, Storage, Luxury, Personality).
+6. **Shopping Experience** — premium product cards (image, name, price, reason, match %, store) with Essential / Recommended / Premium / Budget filter chips; animated layout transitions.
+7. **Budget** — animated donut with Essential / Recommended / Luxury toggle; changing tier animates products + total.
+8. **Implementation Roadmap** — vertical week-by-week timeline that reveals on scroll with animated checkmarks.
+9. **Before vs After** — large immersive drag slider with version buttons (Original / AI / Professional / Luxury).
+10. **Share & Next Steps** — celebratory summary (score, style, budget, products count) + Download Design Book, Share, Continue Shopping, Start Another Room. Subtle floating gradient particles.
 
-**2. DB** — `whatsapp_quiz_sessions`
-- `id uuid pk`, `user_id uuid null`, `phone_e164 text`, `current_step int`, `answers jsonb`, `status text`, `step_token text` (rotated per visual step so old links die), `step_token_expires_at timestamptz`, `last_message_sid text`, timestamps
-- Index on `phone_e164`
-- RLS: `user_id = auth.uid()` for reads; picker pages read/write via service-role edge function using `step_token` (no auth required); GRANTs for `authenticated` + `service_role`.
+## Navigation
 
-**3. Edge functions**
-- `whatsapp-quiz-start` (auth): `{ phone }` → create session, send msg 1.
-- `whatsapp-quiz-webhook` (public, `verify_jwt=false`): Twilio inbound. Validates Twilio signature. Advances text steps. When the next step is visual, sends the picker link with a fresh `step_token`.
-- `whatsapp-quiz-step` (public, `verify_jwt=false`): the picker page calls this with `{ sessionId, step, token, value }`. Validates token + step, stores answer, rotates token, triggers the next WhatsApp message via Twilio, returns `{ ok: true, nextStep }`.
-- `whatsapp-quiz-claim` (auth): `{ sessionId }` → returns answers for `/generate` hydration.
+- Persistent top bar: thin progress indicator (10 segments), Back, Save.
+- Persistent bottom-right: "Next →" pill.
+- Keyboard: ←/→ to move, Esc to exit.
+- Scroll-snap between sections on desktop; swipe on mobile.
 
-**4. Frontend**
-- `src/components/quiz/WhatsAppQuizCard.tsx` — phone input + send button + status poller.
-- `src/pages/Quiz.tsx` — show the WhatsApp card as primary; small "answer here instead" link reveals existing in-app steps as fallback.
-- `src/pages/WhatsAppPicker.tsx` (new, route `/wa/:sessionId/:step`) — minimal, no auth, mobile-first. Renders the matching visual picker:
-  - `style` → reuses `styleMoodboards.ts` grid
-  - `color` → reuses palette swatches from `ColorStep`
-  - `image` → reuses `ImageStep` gallery + upload (writes to `room-photos`)
-  - `floorplan` → embeds existing `FloorPlan` picker in a slimmed standalone shell
-  After submit, shows: "Got it! Check WhatsApp for the next question 💬" and closes.
-- `src/pages/Generate.tsx` — detect `?wa_session=<id>`, call `whatsapp-quiz-claim`, hydrate `QuizContext`, run normal generation.
+## Motion system
 
-**5. Security / resilience**
-- Twilio signature validation on webhook.
-- `step_token` is a single-use random string, rotated after each picker submit and expired after 30 min; old links return a friendly "this link expired, check WhatsApp for a new one" page.
-- Invalid text reply → friendly retry with the option list.
-- Session inactive >24h → marked `abandoned` on next inbound.
+- Framer Motion (`framer-motion` already fits the stack; install if missing).
+- Reusable primitives:
+  - `<Section>` wrapper: fade + slide-up on enter, blur-out on exit (300–600ms, ease `[0.22, 1, 0.36, 1]`).
+  - `<Stagger>` for card lists (60–100ms child delay).
+  - `<CountUp>` for numeric reveals.
+  - `<Reveal>` intersection-observer wrapper for scroll-triggered fades.
+- Respect `prefers-reduced-motion` (disable morph/parallax, keep fades short).
 
-## Technical notes
+## Visual language
 
-- Twilio sender: `whatsapp:+E164`. Inbound `From=whatsapp:+...` — strip prefix.
-- Twilio calls: `https://connector-gateway.lovable.dev/twilio/Messages.json`, headers `Authorization: Bearer ${LOVABLE_API_KEY}` + `X-Connection-Api-Key: ${TWILIO_API_KEY}`, body `application/x-www-form-urlencoded`.
-- Webhook URL to paste in Twilio: `https://bofbkmgsefjnfbtvjgdz.supabase.co/functions/v1/whatsapp-quiz-webhook`.
-- Picker pages render even when the user is logged out — the `step_token` is the only auth they need for that single step.
-- For testing without an approved WhatsApp sender, use the Twilio sandbox (`join <code>`).
-- Enable **SMS Pumping Protection** + **Geo Permissions** in Twilio before going live.
+- White background, `bg-background` with subtle warm gradient washes per screen.
+- Large display type (existing font stack, tighter tracking on H1s: `text-5xl md:text-7xl font-semibold tracking-tight`).
+- Rounded-3xl cards, soft shadows (`shadow-[0_20px_60px_-30px_hsl(var(--primary)/0.25)]`), occasional glass panels (`backdrop-blur-xl bg-card/60 border border-border/50`).
+- All colors via semantic tokens — no hardcoded hex in components.
 
-## What you'll do after I build
+## Data sources (reused, no backend changes)
 
-1. Approve the Twilio connector.
-2. In Twilio: enable WhatsApp on a sender (or join sandbox), paste the webhook URL.
-3. Test from the app.
+- `generated_designs` row → original + final image, title, description.
+- Existing style analysis → Style DNA fields (fallbacks when missing).
+- Existing product matches → Shopping + Budget screens.
+- Existing highlights → Hotspots for "Why we changed it".
+- Health score + roadmap: derive on the client from existing analysis fields; if a field is absent, hide that sub-item gracefully (never show empty state as broken).
 
-Proceed?
+## Technical structure
+
+```text
+src/pages/DesignJourney.tsx                # route shell, section orchestration, nav
+src/components/journey/
+  JourneyNav.tsx                           # progress + back/next/save
+  Section.tsx                              # motion wrapper
+  primitives/{CountUp,Reveal,Stagger}.tsx
+  screens/
+    HeroReveal.tsx
+    StyleDNA.tsx
+    DesignEvolution.tsx
+    WhyWeChangedIt.tsx
+    HealthScore.tsx
+    Shopping.tsx
+    Budget.tsx
+    Roadmap.tsx
+    BeforeAfter.tsx
+    ShareNextSteps.tsx
+  hooks/useJourneyData.ts                  # loads design + related data by id
+```
+
+- Route wired in `src/App.tsx`.
+- Add `framer-motion` if not present.
+- No changes to edge functions, schema, or the Professional flow.
+
+## Out of scope (this pass)
+
+- Generating new "Concept / Luxury" variants — Screen 3 uses whatever variants already exist; if only one image exists, it shows a single frame with a subtle Ken Burns effect and a note that more versions can be generated.
+- Real "Download Design Book" PDF export — button stub that opens a toast "Coming soon" unless you want it built now.
+- Analytics events.
+
+Confirm and I'll build it.
