@@ -414,6 +414,12 @@ const ConclusionVisuals = ({
     });
   };
 
+  const isPinned = (label?: string) => {
+    const l = (label || "").trim().toLowerCase();
+    if (!l) return false;
+    return mustInclude.some((m) => m.label.toLowerCase() === l);
+  };
+
 
   // Generate an AI visual for a dragged-in label that has no image yet
   const generateAiReferenceForLabel = async (
