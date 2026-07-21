@@ -980,8 +980,10 @@ const ConclusionVisuals = ({
           </button>
         </div>
       </div>
+      )}
 
       {/* Decor References — AI-generated + uploads, accessories, textiles, lighting */}
+      {showSection("decor") && (
       <div>
         <div className="mb-3">
           <span className="inline-block px-3 py-1 text-[11px] uppercase tracking-wider font-semibold bg-accent/70 text-foreground/80 rounded-[2px] -rotate-1 shadow-sm border border-border/40">
@@ -1086,8 +1088,10 @@ const ConclusionVisuals = ({
           </button>
         </div>
       </div>
+      )}
 
       {/* Architecture References — wall treatments, mouldings, ceilings, flooring, built-ins */}
+      {showSection("architecture") && (
       <div>
         <div className="mb-3">
           <span className="inline-block px-3 py-1 text-[11px] uppercase tracking-wider font-semibold bg-muted text-foreground/80 rounded-[2px] rotate-[2deg] shadow-sm border border-border/40">
@@ -1192,8 +1196,10 @@ const ConclusionVisuals = ({
           </button>
         </div>
       </div>
+      )}
 
       {/* Dominant Colors */}
+      {showSection("colors") && (
       <div>
         <div className="flex items-center justify-between mb-3">
           <div>
