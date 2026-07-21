@@ -35,6 +35,8 @@ interface ConclusionVisualsProps {
   extraMaterials?: string[];
   /** Map of styleName -> iconic item label (e.g., "Wassily chair") for single-item style ref visuals. */
   iconicItems?: Record<string, string>;
+  /** Description of the inspiration room shown in the panel — furniture references are derived from THIS room. */
+  roomDescription?: string;
   /** Items the user MUST keep — appear in their own section with their actual images. */
   mustIncludeItems?: { label: string; imageUrl?: string }[];
   roomType?: string;
