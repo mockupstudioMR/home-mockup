@@ -40,7 +40,7 @@ const Gallery = () => {
 
   const [designs, setDesigns] = useState<Design[]>([]);
   const [loadingDesigns, setLoadingDesigns] = useState(true);
-  const [loadError, setLoadError] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [filter, setFilter] = useState<"all" | "favorites">("all");
   const [resumingId, setResumingId] = useState<string | null>(null);
   const [retryTick, setRetryTick] = useState(0);
@@ -53,26 +53,32 @@ const Gallery = () => {
 
     const fetchDesigns = async () => {
       setLoadingDesigns(true);
-      setLoadError(false);
+      setLoadError(null);
       const maxAttempts = 3;
       let delayMs = 600;
       let lastError: unknown = null;
 
       for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+        const controller = new AbortController();
+        const timeoutId = window.setTimeout(() => controller.abort(), 10000);
+
         try {
           const { data, error } = await supabase
             .from("generated_designs")
             .select("id, image_url, prompt, is_favorite, created_at, quiz_response_id, room_id")
             .eq("user_id", user.id)
             .order("created_at", { ascending: false })
-            .limit(50);
+            .limit(50)
+            .abortSignal(controller.signal);
 
+          window.clearTimeout(timeoutId);
           if (cancelled) return;
           if (error) throw error;
           setDesigns(data || []);
           if (!cancelled) setLoadingDesigns(false);
           return;
         } catch (err) {
+          window.clearTimeout(timeoutId);
           lastError = err;
           if (cancelled) return;
           if (attempt < maxAttempts) {
@@ -84,7 +90,12 @@ const Gallery = () => {
 
       if (cancelled) return;
       console.error("Failed to load designs:", lastError);
-      setLoadError(true);
+      const isTimeout = lastError instanceof DOMException && lastError.name === "AbortError";
+      setLoadError(
+        isTimeout
+          ? "The gallery request is timing out before the backend responds."
+          : "The gallery could not load your saved designs."
+      );
       setLoadingDesigns(false);
     };
 
@@ -369,9 +380,10 @@ const Gallery = () => {
         ) : loadError ? (
           <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
             <CardContent className="py-20 text-center space-y-4">
-              <p className="text-muted-foreground">
-                Couldn't load your designs. Check your connection and try again.
-              </p>
+              <div className="space-y-2">
+                <p className="font-medium">Couldn't load your designs</p>
+                <p className="text-muted-foreground">{loadError}</p>
+              </div>
               <Button onClick={() => setRetryTick((t) => t + 1)}>Retry</Button>
             </CardContent>
           </Card>
