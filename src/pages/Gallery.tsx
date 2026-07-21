@@ -40,6 +40,7 @@ const Gallery = () => {
 
   const [designs, setDesigns] = useState<Design[]>([]);
   const [loadingDesigns, setLoadingDesigns] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [filter, setFilter] = useState<"all" | "favorites">("all");
   const [resumingId, setResumingId] = useState<string | null>(null);
   
@@ -51,34 +52,45 @@ const Gallery = () => {
 
     const fetchDesigns = async () => {
       setLoadingDesigns(true);
-      try {
-        const { data, error } = await supabase
-          .from("generated_designs")
-          .select("id, image_url, prompt, is_favorite, created_at, quiz_response_id, room_id")
-          .eq("user_id", user.id)
-          .order("created_at", { ascending: false })
-          .limit(50);
+      setLoadError(false);
+      const maxAttempts = 3;
+      let delayMs = 600;
+      let lastError: unknown = null;
 
-        if (cancelled) return;
-        if (error) throw error;
-        setDesigns(data || []);
-      } catch (error) {
-        if (cancelled) return;
-        console.error("Failed to load designs:", error);
-        toast({
-          title: "Error",
-          description: "Failed to load designs. Please try again.",
-          variant: "destructive",
-        });
-      } finally {
-        if (!cancelled) setLoadingDesigns(false);
+      for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+        try {
+          const { data, error } = await supabase
+            .from("generated_designs")
+            .select("id, image_url, prompt, is_favorite, created_at, quiz_response_id, room_id")
+            .eq("user_id", user.id)
+            .order("created_at", { ascending: false })
+            .limit(50);
+
+          if (cancelled) return;
+          if (error) throw error;
+          setDesigns(data || []);
+          if (!cancelled) setLoadingDesigns(false);
+          return;
+        } catch (err) {
+          lastError = err;
+          if (cancelled) return;
+          if (attempt < maxAttempts) {
+            await new Promise((r) => setTimeout(r, delayMs));
+            delayMs *= 2;
+          }
+        }
       }
+
+      if (cancelled) return;
+      console.error("Failed to load designs:", lastError);
+      setLoadError(true);
+      setLoadingDesigns(false);
     };
 
     fetchDesigns();
 
     return () => { cancelled = true; };
-  }, [user?.id]);
+  }, [user?.id, retryTick]);
 
   const handleDelete = async (id: string) => {
     try {
