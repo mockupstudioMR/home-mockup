@@ -1026,7 +1026,7 @@ const ConclusionVisuals = ({
                     )}
                     <button
                       type="button"
-                      onClick={() => setFurnitureReferences((prev) => prev.filter((m) => m.label !== item.label))}
+                      onClick={() => setFurnitureReferences((prev) => prev.filter((_, i) => i !== idx))}
                       className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/50 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
                       aria-label="Remove"
                     >
@@ -1177,7 +1177,7 @@ const ConclusionVisuals = ({
                     )}
                     <button
                       type="button"
-                      onClick={() => setDecorReferences((prev) => prev.filter((m) => m.label !== item.label))}
+                      onClick={() => setDecorReferences((prev) => prev.filter((_, i) => i !== idx))}
                       className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/50 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
                       aria-label="Remove"
                     >
@@ -1304,7 +1304,7 @@ const ConclusionVisuals = ({
                     )}
                     <button
                       type="button"
-                      onClick={() => setArchitectureReferences((prev) => prev.filter((m) => m.label !== item.label))}
+                      onClick={() => setArchitectureReferences((prev) => prev.filter((_, i) => i !== idx))}
                       className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/50 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
                       aria-label="Remove"
                     >
