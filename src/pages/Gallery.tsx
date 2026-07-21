@@ -43,6 +43,7 @@ const Gallery = () => {
   const [loadError, setLoadError] = useState(false);
   const [filter, setFilter] = useState<"all" | "favorites">("all");
   const [resumingId, setResumingId] = useState<string | null>(null);
+  const [retryTick, setRetryTick] = useState(0);
   
 
   useEffect(() => {
