@@ -32,15 +32,39 @@ interface AnalysisResult {
 
 const STORAGE_KEY = "analyze_room_cache";
 
-// Always start fresh — clear any cached images/results from previous journeys.
-const getInitialState = (): { images: string[]; result: AnalysisResult | null } => {
+// Persist across navigation so users can go Back to Moodboard without losing work.
+interface PersistedState {
+  images: string[];
+  result: AnalysisResult | null;
+  selectedStyleIndex: number | null;
+  selectedInspirations: string[];
+  inspirationDetailsMap: Record<string, { label: string; description: string; type: string }>;
+  editableColors: string[];
+  moodboardExtras: string[];
+  moodboardReady: boolean;
+  moodboardStep: number;
+  pinnedVisuals: { label: string; imageUrl: string }[];
+  moodboard: {
+    materials: { label: string; imageUrl?: string }[];
+    references: { label: string; imageUrl?: string }[];
+    furnitureReferences: { label: string; imageUrl?: string }[];
+    decorReferences: { label: string; imageUrl?: string }[];
+    architectureReferences: { label: string; imageUrl?: string }[];
+    mustInclude: { label: string; imageUrl?: string }[];
+  };
+}
+
+const loadPersisted = (): Partial<PersistedState> => {
   try {
-    sessionStorage.removeItem(STORAGE_KEY);
+    const raw = sessionStorage.getItem(STORAGE_KEY);
+    if (!raw) return {};
+    return JSON.parse(raw) as Partial<PersistedState>;
   } catch {
-    // ignore
+    return {};
   }
-  return { images: [], result: null };
 };
+
+const persisted = loadPersisted();
 
 const AnalyzeRoom = () => {
   const navigate = useNavigate();
@@ -50,7 +74,7 @@ const AnalyzeRoom = () => {
   const { updateQuizData } = useQuiz();
   const { toast } = useToast();
   
-  const [uploadedImages, setUploadedImages] = useState<string[]>(() => getInitialState().images);
+  const [uploadedImages, setUploadedImages] = useState<string[]>(() => persisted.images || []);
   const stylePrompt: string | undefined = (() => {
     const fromState = (location.state as { prompt?: string } | null)?.prompt;
     if (fromState && fromState.trim().length > 0) return fromState;
@@ -68,22 +92,22 @@ const AnalyzeRoom = () => {
   const isPromptMode = Boolean(stylePrompt && stylePrompt.trim().length > 0);
   const [isUploading, setIsUploading] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(() => getInitialState().result);
-  const [selectedStyleIndex, setSelectedStyleIndex] = useState<number | null>(null);
-  const [selectedInspirations, setSelectedInspirations] = useState<string[]>([]);
-  const [inspirationDetailsMap, setInspirationDetailsMap] = useState<Record<string, { label: string; description: string; type: string }>>({});
-  const [editableColors, setEditableColors] = useState<string[]>(() => getInitialState().result?.dominantColors || []);
+  const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(() => persisted.result || null);
+  const [selectedStyleIndex, setSelectedStyleIndex] = useState<number | null>(persisted.selectedStyleIndex ?? null);
+  const [selectedInspirations, setSelectedInspirations] = useState<string[]>(persisted.selectedInspirations || []);
+  const [inspirationDetailsMap, setInspirationDetailsMap] = useState<Record<string, { label: string; description: string; type: string }>>(persisted.inspirationDetailsMap || {});
+  const [editableColors, setEditableColors] = useState<string[]>(persisted.editableColors || persisted.result?.dominantColors || []);
   const [refreshKeys, setRefreshKeys] = useState<Record<number, number>>({});
   // (conclusion moodboard manages its own regeneration internally)
   const [isDetectingMore, setIsDetectingMore] = useState(false);
-  const [moodboardExtras, setMoodboardExtras] = useState<string[]>([]);
+  const [moodboardExtras, setMoodboardExtras] = useState<string[]>(persisted.moodboardExtras || []);
   // Two-step flow: after analysis the user picks/confirms a style first,
   // then explicitly triggers moodboard creation (which seeds 3 furniture +
   // 3 decor references behind a loading screen).
   const [isCreatingMoodboard, setIsCreatingMoodboard] = useState(false);
-  const [moodboardReady, setMoodboardReady] = useState(false);
-  const [moodboardStep, setMoodboardStep] = useState(0);
-  const [pinnedVisuals, setPinnedVisuals] = useState<{ label: string; imageUrl: string }[]>([]);
+  const [moodboardReady, setMoodboardReady] = useState<boolean>(persisted.moodboardReady || false);
+  const [moodboardStep, setMoodboardStep] = useState<number>(persisted.moodboardStep ?? 0);
+  const [pinnedVisuals, setPinnedVisuals] = useState<{ label: string; imageUrl: string }[]>(persisted.pinnedVisuals || []);
   const [moodboard, setMoodboard] = useState<{
     materials: { label: string; imageUrl?: string }[];
     references: { label: string; imageUrl?: string }[];
@@ -91,12 +115,28 @@ const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(() =
     decorReferences: { label: string; imageUrl?: string }[];
     architectureReferences: { label: string; imageUrl?: string }[];
     mustInclude: { label: string; imageUrl?: string }[];
-  }>({ materials: [], references: [], furnitureReferences: [], decorReferences: [], architectureReferences: [], mustInclude: [] });
+  }>(persisted.moodboard || { materials: [], references: [], furnitureReferences: [], decorReferences: [], architectureReferences: [], mustInclude: [] });
 
-  // No persistence — every visit to /analyze-room starts with a clean slate.
+  // Persist state so users can navigate away (e.g. to /generate) and return via
+  // "Back to Moodboard" without losing their design, analysis, or moodboard.
   useEffect(() => {
-    try { sessionStorage.removeItem(STORAGE_KEY); } catch { /* ignore */ }
-  }, [uploadedImages, analysisResult]);
+    try {
+      const snapshot: PersistedState = {
+        images: uploadedImages,
+        result: analysisResult,
+        selectedStyleIndex,
+        selectedInspirations,
+        inspirationDetailsMap,
+        editableColors,
+        moodboardExtras,
+        moodboardReady,
+        moodboardStep,
+        pinnedVisuals,
+        moodboard,
+      };
+      sessionStorage.setItem(STORAGE_KEY, JSON.stringify(snapshot));
+    } catch { /* ignore quota */ }
+  }, [uploadedImages, analysisResult, selectedStyleIndex, selectedInspirations, inspirationDetailsMap, editableColors, moodboardExtras, moodboardReady, moodboardStep, pinnedVisuals, moodboard]);
 
   // Prompt-driven path: skip upload, run analysis immediately on mount.
   useEffect(() => {
