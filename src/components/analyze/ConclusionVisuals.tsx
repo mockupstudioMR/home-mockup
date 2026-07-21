@@ -862,11 +862,20 @@ const ConclusionVisuals = ({
       {/* Furniture References — AI-generated + uploads, inspiration, "use similar" */}
       {showSection("furniture") && (
       <div>
-        <div className="mb-3">
+        <div className="mb-3 flex items-center gap-2 flex-wrap">
           <span className="inline-block px-3 py-1 text-[11px] uppercase tracking-wider font-semibold bg-secondary/80 text-foreground/80 rounded-[2px] rotate-1 shadow-sm border border-border/40">
             Furniture
           </span>
-          <span className="ml-2 text-[11px] text-muted-foreground italic font-serif">— AI inspiration in your style. Click Keep to pin into Must-include above.</span>
+          <span className="text-[11px] text-muted-foreground italic font-serif flex-1">— AI inspiration in your style. Click Keep to pin into Must-include above.</span>
+          <button
+            type="button"
+            onClick={() => pinAllToMustInclude(furnitureReferences)}
+            disabled={furnitureReferences.length === 0}
+            className="inline-flex items-center gap-1 px-2 py-1 rounded-sm bg-primary/90 text-primary-foreground text-[10px] uppercase tracking-wider font-semibold shadow-sm hover:bg-primary disabled:opacity-40"
+            title="Pin every furniture reference into Must-include"
+          >
+            <Pin className="w-2.5 h-2.5" /> Keep all
+          </button>
         </div>
         <div
           onDragOver={(e) => {
@@ -998,11 +1007,20 @@ const ConclusionVisuals = ({
       {/* Decor References — AI-generated + uploads, accessories, textiles, lighting */}
       {showSection("decor") && (
       <div>
-        <div className="mb-3">
+        <div className="mb-3 flex items-center gap-2 flex-wrap">
           <span className="inline-block px-3 py-1 text-[11px] uppercase tracking-wider font-semibold bg-accent/70 text-foreground/80 rounded-[2px] -rotate-1 shadow-sm border border-border/40">
             Decor
           </span>
-          <span className="ml-2 text-[11px] text-muted-foreground italic font-serif">— lamps, vases, art, cushions, rugs · drag from must-keep here too</span>
+          <span className="text-[11px] text-muted-foreground italic font-serif flex-1">— lamps, vases, art, cushions, rugs · drag from must-keep here too</span>
+          <button
+            type="button"
+            onClick={() => pinAllToMustInclude(decorReferences)}
+            disabled={decorReferences.length === 0}
+            className="inline-flex items-center gap-1 px-2 py-1 rounded-sm bg-primary/90 text-primary-foreground text-[10px] uppercase tracking-wider font-semibold shadow-sm hover:bg-primary disabled:opacity-40"
+            title="Pin every decor reference into Must-include"
+          >
+            <Pin className="w-2.5 h-2.5" /> Keep all
+          </button>
         </div>
         <div
           onDragOver={(e) => handleReferenceDragOver(e, "decor")}
@@ -1106,11 +1124,20 @@ const ConclusionVisuals = ({
       {/* Architecture References — wall treatments, mouldings, ceilings, flooring, built-ins */}
       {showSection("architecture") && (
       <div>
-        <div className="mb-3">
+        <div className="mb-3 flex items-center gap-2 flex-wrap">
           <span className="inline-block px-3 py-1 text-[11px] uppercase tracking-wider font-semibold bg-muted text-foreground/80 rounded-[2px] rotate-[2deg] shadow-sm border border-border/40">
             Architecture Reference
           </span>
-          <span className="ml-2 text-[11px] text-muted-foreground italic font-serif">— wall details, floor details, ceiling details, mouldings, built-ins</span>
+          <span className="text-[11px] text-muted-foreground italic font-serif flex-1">— wall details, floor details, ceiling details, mouldings, built-ins</span>
+          <button
+            type="button"
+            onClick={() => pinAllToMustInclude(architectureReferences)}
+            disabled={architectureReferences.length === 0}
+            className="inline-flex items-center gap-1 px-2 py-1 rounded-sm bg-primary/90 text-primary-foreground text-[10px] uppercase tracking-wider font-semibold shadow-sm hover:bg-primary disabled:opacity-40"
+            title="Pin every architecture reference into Must-include"
+          >
+            <Pin className="w-2.5 h-2.5" /> Keep all
+          </button>
         </div>
         <div
           onDragOver={(e) => handleReferenceDragOver(e, "architecture")}
