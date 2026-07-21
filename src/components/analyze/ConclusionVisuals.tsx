@@ -289,6 +289,65 @@ const ConclusionVisuals = ({
   const [newMustInclude, setNewMustInclude] = useState("");
   const [addingMustInclude, setAddingMustInclude] = useState(false);
   const [uploadingMustInclude, setUploadingMustInclude] = useState(false);
+  const [addProductOpen, setAddProductOpen] = useState(false);
+  const [addProductUrl, setAddProductUrl] = useState("");
+  const [addProductLoading, setAddProductLoading] = useState(false);
+  const [addProductError, setAddProductError] = useState<string | null>(null);
+
+  const addMustIncludeItem = (label: string, imageUrl?: string) => {
+    setMustInclude((prev) => {
+      const base = (label || "Product").slice(0, 60);
+      let name = base; let i = 2;
+      while (prev.some((m) => m.label.toLowerCase() === name.toLowerCase())) {
+        name = `${base} ${i++}`;
+      }
+      return [...prev, { label: name, imageUrl }];
+    });
+  };
+
+  const submitAddProductUrl = async () => {
+    const url = addProductUrl.trim();
+    if (!url) return;
+    setAddProductLoading(true);
+    setAddProductError(null);
+    try {
+      const { data, error } = await supabase.functions.invoke("scrape-product-image", { body: { url } });
+      if (error) throw error;
+      if (!data?.success || !data?.imageUrl) throw new Error(data?.error || "Could not fetch product");
+      addMustIncludeItem(data.title || "Product", data.imageUrl);
+      setAddProductUrl("");
+      setAddProductOpen(false);
+    } catch (e) {
+      setAddProductError(e instanceof Error ? e.message : "Failed to fetch product");
+    } finally {
+      setAddProductLoading(false);
+    }
+  };
+
+  const handleAddProductImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    e.target.value = "";
+    if (!files.length) return;
+    setAddProductLoading(true);
+    setAddProductError(null);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { setAddProductError("Please sign in first"); return; }
+      for (const file of files) {
+        if (!file.type.startsWith("image/")) continue;
+        const optimizedFile = await optimizeImageFile(file, { maxDimension: 2048 });
+        const path = `${user.id}/must-include/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.webp`;
+        const { error: upErr } = await supabase.storage.from("room-photos").upload(path, optimizedFile, { contentType: optimizedFile.type });
+        if (upErr) { setAddProductError(upErr.message); continue; }
+        const { data: urlData } = supabase.storage.from("room-photos").getPublicUrl(path);
+        const baseLabel = file.name.replace(/\.[^.]+$/, "").slice(0, 40) || "Product";
+        addMustIncludeItem(baseLabel, urlData.publicUrl);
+      }
+      setAddProductOpen(false);
+    } finally {
+      setAddProductLoading(false);
+    }
+  };
   const commitNewMustInclude = () => {
     const v = newMustInclude.trim();
     if (v && !mustInclude.some((m) => m.label.toLowerCase() === v.toLowerCase())) {
@@ -1105,29 +1164,20 @@ const ConclusionVisuals = ({
               }}
             />
           </label>
-          <label
+          <button
+            type="button"
+            onClick={() => { setAddProductError(null); setAddProductOpen(true); }}
             className={cn(
               "relative w-28 aspect-square flex flex-col items-center justify-center gap-1 -rotate-[2deg] shadow-[0_4px_10px_-4px_hsl(var(--foreground)/0.3)] transition-transform hover:rotate-0 ring-2 ring-primary/40",
-              uploadingMustInclude ? "bg-primary/20 text-foreground/70 cursor-wait" : "bg-primary/30 hover:bg-primary/40 text-foreground/80 cursor-pointer",
+              "bg-primary/30 hover:bg-primary/40 text-foreground/80 cursor-pointer",
             )}
             style={{ clipPath: "polygon(0 0, 100% 0, 100% 92%, 88% 100%, 0 100%)" }}
-            title="Pin a piece you want to keep — we'll design around it"
+            title="Add a product from a link or an image"
           >
             <span aria-hidden className="absolute -top-2 left-1/2 -translate-x-1/2 w-3 h-3 rounded-full bg-primary shadow-[0_1px_2px_hsl(var(--foreground)/0.4)] z-10" />
-            {uploadingMustInclude ? (
-              <><Loader2 className="w-4 h-4 animate-spin" /><span className="text-[10px] font-serif italic">Uploading…</span></>
-            ) : (
-              <><Plus className="w-5 h-5" /><span className="text-[11px] font-serif italic">Pin to keep</span></>
-            )}
-            <input
-              type="file"
-              accept="image/*"
-              multiple
-              className="hidden"
-              onChange={handleMustIncludeUpload}
-              disabled={uploadingMustInclude}
-            />
-          </label>
+            <Plus className="w-5 h-5" />
+            <span className="text-[11px] font-serif italic">Add product</span>
+          </button>
           <button
             type="button"
             onClick={() => generateAiReference("furniture", setFurnitureReferences, setGeneratingFurnitureRef)}
@@ -1713,6 +1763,46 @@ const ConclusionVisuals = ({
               </div>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={addProductOpen} onOpenChange={(o) => { if (!addProductLoading) setAddProductOpen(o); }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Add a product</DialogTitle>
+            <DialogDescription>Paste a product link or upload an image — we'll pin it to your must-keep list.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <label className="text-[11px] uppercase tracking-wider text-muted-foreground">Paste a link</label>
+              <div className="flex gap-2">
+                <Input
+                  value={addProductUrl}
+                  onChange={(e) => setAddProductUrl(e.target.value)}
+                  placeholder="https://…"
+                  disabled={addProductLoading}
+                  onKeyDown={(e) => { if (e.key === "Enter") submitAddProductUrl(); }}
+                />
+                <Button onClick={submitAddProductUrl} disabled={addProductLoading || !addProductUrl.trim()}>
+                  {addProductLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Fetch"}
+                </Button>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 text-[11px] uppercase tracking-wider text-muted-foreground">
+              <div className="flex-1 h-px bg-border" /> or <div className="flex-1 h-px bg-border" />
+            </div>
+            <label
+              className={cn(
+                "flex flex-col items-center justify-center gap-2 py-6 rounded-md border border-dashed cursor-pointer hover:border-primary/50 hover:bg-accent/30 transition-colors",
+                addProductLoading && "opacity-50 cursor-wait",
+              )}
+            >
+              {addProductLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Upload className="w-5 h-5" />}
+              <span className="text-xs">Upload an image</span>
+              <input type="file" accept="image/*" multiple className="hidden" disabled={addProductLoading} onChange={handleAddProductImage} />
+            </label>
+            {addProductError && <p className="text-xs text-destructive">{addProductError}</p>}
+          </div>
         </DialogContent>
       </Dialog>
     </div>
