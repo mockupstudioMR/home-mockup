@@ -1974,10 +1974,10 @@ RULES:
 
       <div className="max-w-5xl mx-auto relative z-10 p-4 md:p-6 space-y-8">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="sticky top-0 z-30 -mx-4 md:-mx-6 px-4 md:px-6 py-3 flex items-center justify-between bg-background/85 backdrop-blur-md border-b border-border/50">
           <button
             onClick={() => navigate(-1)}
-            className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            className="inline-flex items-center gap-2 rounded-full bg-primary/10 hover:bg-primary/20 text-primary px-3 py-1.5 text-sm font-medium transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />
             <span>Back to Moodboard</span>
