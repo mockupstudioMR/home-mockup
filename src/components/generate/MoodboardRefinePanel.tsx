@@ -623,6 +623,44 @@ const MoodboardRefinePanel = ({
       </div>
 
       <div className="p-5 space-y-5">
+        {/* Guided intro banner — asks the current step's question */}
+        <div className="rounded-xl border border-primary/30 bg-gradient-to-br from-primary/10 via-secondary/10 to-accent/10 p-4">
+          <p className="text-[10px] uppercase tracking-[0.18em] text-primary font-semibold mb-1">
+            Step {guidedStep + 1} of {LAYERS.length} · {LAYERS[guidedStep].label}
+          </p>
+          {guidedStep === 0 && (
+            <>
+              <h4 className="text-lg font-semibold tracking-tight" style={{ fontFamily: "Georgia, serif" }}>
+                What does your space look like?
+              </h4>
+              <p className="text-sm text-muted-foreground mt-1">
+                Which architectural elements have to go in there? Pick the walls,
+                floor, ceiling finishes and materials that define the shell of the room.
+              </p>
+            </>
+          )}
+          {guidedStep === 1 && (
+            <>
+              <h4 className="text-lg font-semibold tracking-tight" style={{ fontFamily: "Georgia, serif" }}>
+                What furniture belongs here?
+              </h4>
+              <p className="text-sm text-muted-foreground mt-1">
+                Choose the sofa, bed, tables and storage pieces that anchor the room.
+              </p>
+            </>
+          )}
+          {guidedStep === 2 && (
+            <>
+              <h4 className="text-lg font-semibold tracking-tight" style={{ fontFamily: "Georgia, serif" }}>
+                Now the finishing touches.
+              </h4>
+              <p className="text-sm text-muted-foreground mt-1">
+                Add lighting, rugs, art, plants and accessories to complete the mood.
+              </p>
+            </>
+          )}
+        </div>
+
         {/* Layer selector — Architecture → Furniture → Decor */}
         <div className="space-y-3">
           <div className="flex items-center justify-between">
@@ -646,16 +684,19 @@ const MoodboardRefinePanel = ({
               const Icon = l.icon;
               const isActive = activeLayer === l.id;
               const isLocked = lockedLayers.includes(l.id);
+              const isRevealed = idx <= guidedStep;
               return (
                 <div key={l.id} className="flex items-stretch flex-1 min-w-0">
                   <button
                     type="button"
-                    onClick={() => updateActiveLayer(l.id)}
+                    onClick={() => isRevealed && updateActiveLayer(l.id)}
+                    disabled={!isRevealed}
                     className={cn(
                       "flex-1 min-w-0 flex flex-col items-start gap-1 rounded-xl border px-3 py-2.5 text-left transition-all",
                       isActive
                         ? "bg-primary/10 border-primary text-foreground shadow-sm"
                         : "bg-card border-border hover:border-primary/40",
+                      !isRevealed && "opacity-40 cursor-not-allowed hover:border-border",
                     )}
                   >
                     <div className="flex items-center gap-2 w-full">
@@ -676,7 +717,9 @@ const MoodboardRefinePanel = ({
                         )}
                       />
                       <span className="text-xs font-medium truncate">{l.label}</span>
-                      {isLocked && (
+                      {!isRevealed ? (
+                        <Lock className="w-3 h-3 ml-auto text-muted-foreground shrink-0" />
+                      ) : isLocked && (
                         <Lock className="w-3 h-3 ml-auto text-muted-foreground shrink-0" />
                       )}
                     </div>
@@ -699,6 +742,22 @@ const MoodboardRefinePanel = ({
               );
             })}
           </div>
+
+          {guidedStep < LAYERS.length - 1 && (
+            <div className="flex justify-end pt-1">
+              <Button
+                type="button"
+                size="sm"
+                variant="secondary"
+                onClick={advanceGuidedStep}
+                disabled={disabled}
+                className="gap-1.5"
+              >
+                Continue to {LAYERS[guidedStep + 1].label}
+                <ArrowRight className="w-3.5 h-3.5" />
+              </Button>
+            </div>
+          )}
         </div>
 
         {(inDesign.furniture.length > 0 || inDesign.decor.length > 0 || inDesign.architecture.length > 0) && (
