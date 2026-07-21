@@ -463,6 +463,30 @@ const ConclusionVisuals = ({
     setArchitectureReferences((prev) => dedupe(prev));
   }, [furnitureReferences.length, decorReferences.length, architectureReferences.length]);
 
+  // When the parent shows only the Must-include step, auto-pin everything the
+  // user has seen across earlier sections so nothing they "kept" is missing.
+  useEffect(() => {
+    if (!visibleSections) return;
+    if (visibleSections.length !== 1 || visibleSections[0] !== "must-include") return;
+    setMustInclude((prev) => {
+      const next = [...prev];
+      const seen = new Set(next.map((m) => m.label.toLowerCase()));
+      const push = (label: string, imageUrl?: string) => {
+        const l = (label || "").trim();
+        if (!l) return;
+        const k = l.toLowerCase();
+        if (seen.has(k)) return;
+        seen.add(k);
+        next.push({ label: l, imageUrl: imageUrl || undefined });
+      };
+      furnitureReferences.forEach((r) => push(r.label, r.imageUrl));
+      decorReferences.forEach((r) => push(r.label, r.imageUrl));
+      architectureReferences.forEach((r) => push(r.label, r.imageUrl));
+      materials.forEach((m) => push(m, materialImages[m]));
+      return next.length === prev.length ? prev : next;
+    });
+  }, [visibleSections, furnitureReferences, decorReferences, architectureReferences, materials, materialImages]);
+
   // "Add detail" dialog: pick between uploading a reference or describing via text/voice.
   const [addDetailOpen, setAddDetailOpen] = useState(false);
   const [addDetailMode, setAddDetailMode] = useState<"choose" | "describe">("choose");
