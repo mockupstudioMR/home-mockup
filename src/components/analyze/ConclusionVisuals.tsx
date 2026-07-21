@@ -48,6 +48,14 @@ interface ConclusionVisualsProps {
   onSeedReady?: () => void;
 }
 
+export type ConclusionSection =
+  | "must-include"
+  | "furniture"
+  | "decor"
+  | "architecture"
+  | "colors"
+  | "materials";
+
 type VisualKind = "material" | "styleReference";
 
 interface VisualChipProps {
