@@ -141,9 +141,7 @@ const App = () => (
                 </ProtectedRoute>
               } />
               <Route path="/analyze-room" element={
-                <ProtectedRoute allowedRoles={["user"]}>
-                  <AnalyzeRoom />
-                </ProtectedRoute>
+                <AnalyzeRoom />
               } />
               <Route path="/analyze-products" element={
                 <ProtectedRoute allowedRoles={["user"]}>
