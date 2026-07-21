@@ -346,6 +346,61 @@ const ConclusionVisuals = ({
   const [uploadingArchitectureRef, setUploadingArchitectureRef] = useState(false);
   const [generatingArchitectureRef, setGeneratingArchitectureRef] = useState(false);
 
+  // "Add detail" dialog: pick between uploading a reference or describing via text/voice.
+  const [addDetailOpen, setAddDetailOpen] = useState(false);
+  const [addDetailMode, setAddDetailMode] = useState<"choose" | "describe">("choose");
+  const [describeText, setDescribeText] = useState("");
+  const [describeListening, setDescribeListening] = useState(false);
+  const describeRecognitionRef = useRef<any>(null);
+  const architectureUploadRef = useRef<HTMLInputElement | null>(null);
+
+  const startDescribeListening = () => {
+    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SR) return;
+    const recognition = new SR();
+    recognition.lang = "en-US";
+    recognition.interimResults = true;
+    recognition.continuous = true;
+    recognition.onresult = (event: any) => {
+      let finalTranscript = "";
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        if (event.results[i].isFinal) finalTranscript += event.results[i][0].transcript + " ";
+      }
+      if (finalTranscript) {
+        setDescribeText((prev) => (prev ? prev + " " + finalTranscript.trim() : finalTranscript.trim()));
+      }
+    };
+    recognition.onerror = () => setDescribeListening(false);
+    recognition.onend = () => setDescribeListening(false);
+    recognition.start();
+    describeRecognitionRef.current = recognition;
+    setDescribeListening(true);
+  };
+
+  const stopDescribeListening = () => {
+    if (describeRecognitionRef.current) {
+      describeRecognitionRef.current.stop();
+      describeRecognitionRef.current = null;
+    }
+    setDescribeListening(false);
+  };
+
+  const submitDescribeDetail = () => {
+    const label = describeText.trim();
+    if (!label) return;
+    let added = false;
+    setArchitectureReferences((prev) => {
+      if (prev.some((m) => m.label.toLowerCase() === label.toLowerCase())) return prev;
+      added = true;
+      return [...prev, { label }];
+    });
+    if (added) generateAiReferenceForLabel(label, "architecture", setArchitectureReferences);
+    stopDescribeListening();
+    setDescribeText("");
+    setAddDetailMode("choose");
+    setAddDetailOpen(false);
+  };
+
   // Drag-and-drop hover state for the two reference sections
   const [isFurnitureDropActive, setIsFurnitureDropActive] = useState(false);
   const [isDecorDropActive, setIsDecorDropActive] = useState(false);
