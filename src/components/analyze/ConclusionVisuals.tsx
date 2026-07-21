@@ -987,8 +987,13 @@ const ConclusionVisuals = ({
                     <Pin className={`w-2.5 h-2.5 ${isPinned(item.label) ? "fill-current" : ""}`} /> {isPinned(item.label) ? "Pinned" : "Keep"}
                   </button>
                   <div className="aspect-square overflow-hidden bg-muted/40 relative">
-                    {item.imageUrl && (
+                    {item.imageUrl ? (
                       <img src={getThumbnailImageUrl(item.imageUrl)} alt={item.label} className="w-full h-full object-cover" loading="lazy" decoding="async" />
+                    ) : (
+                      <div className="absolute inset-0 flex flex-col items-center justify-center gap-1.5 bg-gradient-to-br from-muted/60 to-muted/30 animate-pulse">
+                        <Loader2 className="w-5 h-5 animate-spin text-primary/70" />
+                        <span className="text-[9px] uppercase tracking-wider text-muted-foreground font-semibold">Generating…</span>
+                      </div>
                     )}
                     <button
                       type="button"
@@ -1133,8 +1138,13 @@ const ConclusionVisuals = ({
                     <Pin className={`w-2.5 h-2.5 ${isPinned(item.label) ? "fill-current" : ""}`} /> {isPinned(item.label) ? "Pinned" : "Keep"}
                   </button>
                   <div className="aspect-square overflow-hidden bg-muted/40 relative">
-                    {item.imageUrl && (
+                    {item.imageUrl ? (
                       <img src={getThumbnailImageUrl(item.imageUrl)} alt={item.label} className="w-full h-full object-cover" loading="lazy" decoding="async" />
+                    ) : (
+                      <div className="absolute inset-0 flex flex-col items-center justify-center gap-1.5 bg-gradient-to-br from-muted/60 to-muted/30 animate-pulse">
+                        <Loader2 className="w-5 h-5 animate-spin text-primary/70" />
+                        <span className="text-[9px] uppercase tracking-wider text-muted-foreground font-semibold">Generating…</span>
+                      </div>
                     )}
                     <button
                       type="button"
@@ -1255,8 +1265,13 @@ const ConclusionVisuals = ({
                     <Pin className={`w-2.5 h-2.5 ${isPinned(item.label) ? "fill-current" : ""}`} /> {isPinned(item.label) ? "Pinned" : "Keep"}
                   </button>
                   <div className="aspect-square overflow-hidden bg-muted/40 relative">
-                    {item.imageUrl && (
+                    {item.imageUrl ? (
                       <img src={getThumbnailImageUrl(item.imageUrl)} alt={item.label} className="w-full h-full object-cover" loading="lazy" decoding="async" />
+                    ) : (
+                      <div className="absolute inset-0 flex flex-col items-center justify-center gap-1.5 bg-gradient-to-br from-muted/60 to-muted/30 animate-pulse">
+                        <Loader2 className="w-5 h-5 animate-spin text-primary/70" />
+                        <span className="text-[9px] uppercase tracking-wider text-muted-foreground font-semibold">Generating…</span>
+                      </div>
                     )}
                     <button
                       type="button"
