@@ -375,6 +375,26 @@ const ConclusionVisuals = ({
   const [uploadingArchitectureRef, setUploadingArchitectureRef] = useState(false);
   const [generatingArchitectureRef, setGeneratingArchitectureRef] = useState(false);
 
+  // Dedupe reference lists by label (case-insensitive) — prevents duplicate
+  // cards which would otherwise cause a single Pin/Delete to appear to
+  // affect "two in a row" because they share the same label.
+  useEffect(() => {
+    const dedupe = (arr: { label: string; imageUrl?: string }[]) => {
+      const seen = new Set<string>();
+      const out: typeof arr = [];
+      for (const it of arr) {
+        const k = (it.label || "").trim().toLowerCase();
+        if (!k || seen.has(k)) continue;
+        seen.add(k);
+        out.push(it);
+      }
+      return out.length === arr.length ? arr : out;
+    };
+    setFurnitureReferences((prev) => dedupe(prev));
+    setDecorReferences((prev) => dedupe(prev));
+    setArchitectureReferences((prev) => dedupe(prev));
+  }, [furnitureReferences.length, decorReferences.length, architectureReferences.length]);
+
   // "Add detail" dialog: pick between uploading a reference or describing via text/voice.
   const [addDetailOpen, setAddDetailOpen] = useState(false);
   const [addDetailMode, setAddDetailMode] = useState<"choose" | "describe">("choose");
@@ -1026,7 +1046,7 @@ const ConclusionVisuals = ({
                     )}
                     <button
                       type="button"
-                      onClick={() => setFurnitureReferences((prev) => prev.filter((m) => m.label !== item.label))}
+                      onClick={() => setFurnitureReferences((prev) => prev.filter((_, i) => i !== idx))}
                       className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/50 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
                       aria-label="Remove"
                     >
@@ -1177,7 +1197,7 @@ const ConclusionVisuals = ({
                     )}
                     <button
                       type="button"
-                      onClick={() => setDecorReferences((prev) => prev.filter((m) => m.label !== item.label))}
+                      onClick={() => setDecorReferences((prev) => prev.filter((_, i) => i !== idx))}
                       className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/50 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
                       aria-label="Remove"
                     >
@@ -1304,7 +1324,7 @@ const ConclusionVisuals = ({
                     )}
                     <button
                       type="button"
-                      onClick={() => setArchitectureReferences((prev) => prev.filter((m) => m.label !== item.label))}
+                      onClick={() => setArchitectureReferences((prev) => prev.filter((_, i) => i !== idx))}
                       className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/50 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
                       aria-label="Remove"
                     >
