@@ -1532,6 +1532,76 @@ const ConclusionVisuals = ({
         </div>
       </div>
       )}
+
+      <Dialog open={addDetailOpen} onOpenChange={(o) => { setAddDetailOpen(o); if (!o) { stopDescribeListening(); setAddDetailMode("choose"); } }}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Add architectural detail</DialogTitle>
+            <DialogDescription>
+              {addDetailMode === "choose"
+                ? "Choose how you want to add a detail."
+                : "Describe the detail you have in mind — we'll generate a reference."}
+            </DialogDescription>
+          </DialogHeader>
+
+          {addDetailMode === "choose" ? (
+            <div className="grid grid-cols-2 gap-4 pt-2">
+              <button
+                type="button"
+                onClick={() => architectureUploadRef.current?.click()}
+                className="group flex flex-col items-center justify-center gap-3 p-6 rounded-xl border border-border bg-gradient-to-br from-accent/40 to-secondary/40 hover:from-accent/60 hover:to-secondary/60 transition-all min-h-[180px]"
+              >
+                <Upload className="w-8 h-8 text-foreground/70 group-hover:text-primary transition-colors" />
+                <span className="text-base font-semibold">Upload reference</span>
+                <span className="text-[11px] text-muted-foreground text-center">Add an image from your device</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setAddDetailMode("describe")}
+                className="group flex flex-col items-center justify-center gap-3 p-6 rounded-xl border border-border bg-gradient-to-br from-primary/20 to-accent/30 hover:from-primary/30 hover:to-accent/50 transition-all min-h-[180px]"
+              >
+                <Pencil className="w-8 h-8 text-foreground/70 group-hover:text-primary transition-colors" />
+                <span className="text-base font-semibold">Describe something I want</span>
+                <span className="text-[11px] text-muted-foreground text-center">Type or speak — we'll generate it</span>
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-4 pt-2">
+              <div className="relative">
+                <Textarea
+                  value={describeText}
+                  onChange={(e) => setDescribeText(e.target.value)}
+                  placeholder="e.g. arched doorway with limewash finish, herringbone oak floor, exposed wood beams…"
+                  rows={5}
+                  className="pr-12 resize-none"
+                  autoFocus
+                />
+                <button
+                  type="button"
+                  onClick={describeListening ? stopDescribeListening : startDescribeListening}
+                  className={cn(
+                    "absolute bottom-2 right-2 w-9 h-9 rounded-full flex items-center justify-center transition-all",
+                    describeListening
+                      ? "bg-primary text-primary-foreground animate-pulse"
+                      : "bg-muted hover:bg-primary hover:text-primary-foreground text-foreground/70",
+                  )}
+                  aria-label={describeListening ? "Stop voice input" : "Start voice input"}
+                >
+                  {describeListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+                </button>
+              </div>
+              <div className="flex items-center justify-between gap-2">
+                <Button variant="ghost" onClick={() => { stopDescribeListening(); setAddDetailMode("choose"); }}>
+                  Back
+                </Button>
+                <Button onClick={submitDescribeDetail} disabled={!describeText.trim()}>
+                  <Send className="w-4 h-4 mr-1.5" /> Add detail
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
