@@ -903,11 +903,11 @@ const AnalyzeRoom = () => {
                         Back
                       </Button>
                     )}
-                    {moodboardStep < 4 ? (
+                    {moodboardStep < 5 ? (
                       <Button
                         size="lg"
                         className="flex-1"
-                        onClick={() => setMoodboardStep((s) => Math.min(4, s + 1))}
+                        onClick={() => setMoodboardStep((s) => Math.min(5, s + 1))}
                       >
                         Next
                       </Button>
