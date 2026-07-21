@@ -320,6 +320,36 @@ const MoodboardRefinePanel = ({
     }
   };
 
+  // Guided step-by-step reveal: start with Architecture only, unlock
+  // Furniture → Decor as the user confirms each step. Persisted so a
+  // reload keeps the user where they were.
+  const GUIDED_STEP_KEY = "generate_guided_moodboard_step";
+  const [guidedStep, setGuidedStep] = useState<number>(() => {
+    try {
+      const v = sessionStorage.getItem(GUIDED_STEP_KEY);
+      const n = v ? parseInt(v, 10) : 0;
+      return Number.isFinite(n) ? Math.max(0, Math.min(LAYERS.length - 1, n)) : 0;
+    } catch {
+      return 0;
+    }
+  });
+  const advanceGuidedStep = () => {
+    const next = Math.min(LAYERS.length - 1, guidedStep + 1);
+    setGuidedStep(next);
+    try {
+      sessionStorage.setItem(GUIDED_STEP_KEY, String(next));
+    } catch {
+      /* ignore */
+    }
+    updateActiveLayer(LAYERS[next].id);
+  };
+  const activeLayerIdx = LAYERS.findIndex((l) => l.id === activeLayer);
+  // If a stale sessionStorage value picked a layer that's not yet unlocked,
+  // snap the active layer back to the last unlocked one.
+  if (activeLayerIdx > guidedStep) {
+    updateActiveLayer(LAYERS[guidedStep].id);
+  }
+
   const updateLockPrevious = (v: boolean) => {
     setLockPrevious(v);
     try {
