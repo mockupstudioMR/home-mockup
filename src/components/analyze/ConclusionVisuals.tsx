@@ -1164,29 +1164,20 @@ const ConclusionVisuals = ({
               }}
             />
           </label>
-          <label
+          <button
+            type="button"
+            onClick={() => { setAddProductError(null); setAddProductOpen(true); }}
             className={cn(
               "relative w-28 aspect-square flex flex-col items-center justify-center gap-1 -rotate-[2deg] shadow-[0_4px_10px_-4px_hsl(var(--foreground)/0.3)] transition-transform hover:rotate-0 ring-2 ring-primary/40",
-              uploadingMustInclude ? "bg-primary/20 text-foreground/70 cursor-wait" : "bg-primary/30 hover:bg-primary/40 text-foreground/80 cursor-pointer",
+              "bg-primary/30 hover:bg-primary/40 text-foreground/80 cursor-pointer",
             )}
             style={{ clipPath: "polygon(0 0, 100% 0, 100% 92%, 88% 100%, 0 100%)" }}
-            title="Pin a piece you want to keep — we'll design around it"
+            title="Add a product from a link or an image"
           >
             <span aria-hidden className="absolute -top-2 left-1/2 -translate-x-1/2 w-3 h-3 rounded-full bg-primary shadow-[0_1px_2px_hsl(var(--foreground)/0.4)] z-10" />
-            {uploadingMustInclude ? (
-              <><Loader2 className="w-4 h-4 animate-spin" /><span className="text-[10px] font-serif italic">Uploading…</span></>
-            ) : (
-              <><Plus className="w-5 h-5" /><span className="text-[11px] font-serif italic">Pin to keep</span></>
-            )}
-            <input
-              type="file"
-              accept="image/*"
-              multiple
-              className="hidden"
-              onChange={handleMustIncludeUpload}
-              disabled={uploadingMustInclude}
-            />
-          </label>
+            <Plus className="w-5 h-5" />
+            <span className="text-[11px] font-serif italic">Add product</span>
+          </button>
           <button
             type="button"
             onClick={() => generateAiReference("furniture", setFurnitureReferences, setGeneratingFurnitureRef)}
