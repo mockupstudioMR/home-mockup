@@ -852,13 +852,35 @@ const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(() =
 
                 {/* Step 2 CTA: continue once moodboard is ready */}
                 {isCreatingMoodboard && moodboardReady && (
-                  <Button
-                    size="lg"
-                    className="w-full"
-                    onClick={handleContinue}
-                  >
-                    Continue with your own unique moodboard
-                  </Button>
+                  <div className="flex gap-3">
+                    {moodboardStep > 0 && (
+                      <Button
+                        size="lg"
+                        variant="outline"
+                        onClick={() => setMoodboardStep((s) => Math.max(0, s - 1))}
+                      >
+                        <ArrowLeft className="w-4 h-4 mr-1" />
+                        Back
+                      </Button>
+                    )}
+                    {moodboardStep < 4 ? (
+                      <Button
+                        size="lg"
+                        className="flex-1"
+                        onClick={() => setMoodboardStep((s) => Math.min(4, s + 1))}
+                      >
+                        Next
+                      </Button>
+                    ) : (
+                      <Button
+                        size="lg"
+                        className="flex-1"
+                        onClick={handleContinue}
+                      >
+                        Continue with your own unique moodboard
+                      </Button>
+                    )}
+                  </div>
                 )}
               </CardContent>
             </Card>
