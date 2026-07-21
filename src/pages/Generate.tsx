@@ -2160,6 +2160,7 @@ RULES:
             canUndo={imageHistoryStack.length > 0}
             generating={generating}
             disabled={!design || generating}
+            onBack={() => setDesign({ ...design, isLocked: false })}
           />
         </div>
         )}
