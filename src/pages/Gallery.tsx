@@ -68,7 +68,7 @@ const Gallery = () => {
             .select("id, image_url, prompt, is_favorite, created_at, quiz_response_id, room_id")
             .eq("user_id", user.id)
             .order("created_at", { ascending: false })
-            .limit(50)
+            .limit(500)
             .abortSignal(controller.signal);
 
           window.clearTimeout(timeoutId);
