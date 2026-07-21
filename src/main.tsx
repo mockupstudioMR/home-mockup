@@ -2,6 +2,18 @@ import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./index.css";
 
+window.addEventListener("vite:preloadError", () => {
+  const reloadKey = "hm_preload_reload_attempted";
+  if (sessionStorage.getItem(reloadKey) === "true") return;
+
+  sessionStorage.setItem(reloadKey, "true");
+  window.location.reload();
+});
+
+window.addEventListener("load", () => {
+  sessionStorage.removeItem("hm_preload_reload_attempted");
+});
+
 createRoot(document.getElementById("root")!).render(<App />);
 
 // --- PWA service worker registration (production only, never inside iframe/preview) ---
