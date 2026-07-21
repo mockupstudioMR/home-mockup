@@ -8,6 +8,7 @@ import { Home, ArrowLeft, Upload, X, Loader2, Sparkles, Plus, RefreshCw } from "
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import ConclusionVisuals from "@/components/analyze/ConclusionVisuals";
+import type { ConclusionSection } from "@/components/analyze/ConclusionVisuals";
 import TagVisual from "@/components/analyze/TagVisual";
 import { RefreshCw as RefreshIcon } from "lucide-react";
 import { trackEvent } from "@/lib/analytics";
@@ -81,6 +82,7 @@ const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(() =
   // 3 decor references behind a loading screen).
   const [isCreatingMoodboard, setIsCreatingMoodboard] = useState(false);
   const [moodboardReady, setMoodboardReady] = useState(false);
+  const [moodboardStep, setMoodboardStep] = useState(0);
   const [pinnedVisuals, setPinnedVisuals] = useState<{ label: string; imageUrl: string }[]>([]);
   const [moodboard, setMoodboard] = useState<{
     materials: { label: string; imageUrl?: string }[];
