@@ -1,4 +1,4 @@
-import { lazy, Suspense } from "react";
+import { Component, lazy, Suspense, type ComponentType, type ReactNode } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -11,25 +11,88 @@ import DevRoleSwitcher from "@/components/DevRoleSwitcher";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 
+const lazyWithReload = <T extends ComponentType<Record<string, never>>>(
+  importer: () => Promise<{ default: T }>,
+  chunkName: string
+) =>
+  lazy(async () => {
+    try {
+      const module = await importer();
+      sessionStorage.removeItem(`hm_chunk_reload_${chunkName}`);
+      return module;
+    } catch (error) {
+      const isImportFailure =
+        error instanceof TypeError ||
+        (error instanceof Error && /import|module|chunk|preload/i.test(error.message));
+      const reloadKey = `hm_chunk_reload_${chunkName}`;
+
+      if (isImportFailure && sessionStorage.getItem(reloadKey) !== "true") {
+        sessionStorage.setItem(reloadKey, "true");
+        window.location.reload();
+      }
+
+      throw error;
+    }
+  });
+
+class AppErrorBoundary extends Component<
+  { children: ReactNode },
+  { hasError: boolean }
+> {
+  state = { hasError: false };
+
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error: unknown) {
+    console.error("App render failed:", error);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="min-h-screen flex items-center justify-center bg-background p-6 text-center">
+          <div className="max-w-sm space-y-4">
+            <h1 className="text-2xl font-semibold">We need to refresh HomeMockUp</h1>
+            <p className="text-sm text-muted-foreground">
+              A new version is available. Refresh to load the latest experience.
+            </p>
+            <button
+              type="button"
+              className="rounded-md bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground shadow-sm transition hover:bg-primary/90"
+              onClick={() => window.location.reload()}
+            >
+              Refresh
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
+
 // Lazy load heavy pages
-const Start = lazy(() => import("./pages/Start"));
-const ChoosePath = lazy(() => import("./pages/ChoosePath"));
-const FloorPlan = lazy(() => import("./pages/FloorPlan"));
-const StyleTree = lazy(() => import("./pages/StyleTree"));
-const AnalyzeRoom = lazy(() => import("./pages/AnalyzeRoom"));
-const ExistingRoomFlow = lazy(() => import("./pages/ExistingRoomFlow"));
-const AnalyzeProducts = lazy(() => import("./pages/AnalyzeProducts"));
-const B2BSolutions = lazy(() => import("./pages/B2BSolutions"));
-const Quiz = lazy(() => import("./pages/Quiz"));
-const Generate = lazy(() => import("./pages/Generate"));
-const Gallery = lazy(() => import("./pages/Gallery"));
-const MyStats = lazy(() => import("./pages/MyStats"));
-const NotFound = lazy(() => import("./pages/NotFound"));
-const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
-const DesignerDashboard = lazy(() => import("./pages/DesignerDashboard"));
-const ShopDashboard = lazy(() => import("./pages/ShopDashboard"));
-const WhatsAppPicker = lazy(() => import("./pages/WhatsAppPicker"));
-const DesignJourney = lazy(() => import("./pages/DesignJourney"));
+const Start = lazyWithReload(() => import("./pages/Start"), "start");
+const ChoosePath = lazyWithReload(() => import("./pages/ChoosePath"), "choose-path");
+const FloorPlan = lazyWithReload(() => import("./pages/FloorPlan"), "floor-plan");
+const StyleTree = lazyWithReload(() => import("./pages/StyleTree"), "style-tree");
+const AnalyzeRoom = lazyWithReload(() => import("./pages/AnalyzeRoom"), "analyze-room");
+const ExistingRoomFlow = lazyWithReload(() => import("./pages/ExistingRoomFlow"), "existing-room");
+const AnalyzeProducts = lazyWithReload(() => import("./pages/AnalyzeProducts"), "analyze-products");
+const B2BSolutions = lazyWithReload(() => import("./pages/B2BSolutions"), "b2b-solutions");
+const Quiz = lazyWithReload(() => import("./pages/Quiz"), "quiz");
+const Generate = lazyWithReload(() => import("./pages/Generate"), "generate");
+const Gallery = lazyWithReload(() => import("./pages/Gallery"), "gallery");
+const MyStats = lazyWithReload(() => import("./pages/MyStats"), "my-stats");
+const NotFound = lazyWithReload(() => import("./pages/NotFound"), "not-found");
+const AdminDashboard = lazyWithReload(() => import("./pages/AdminDashboard"), "admin");
+const DesignerDashboard = lazyWithReload(() => import("./pages/DesignerDashboard"), "designer");
+const ShopDashboard = lazyWithReload(() => import("./pages/ShopDashboard"), "shop");
+const WhatsAppPicker = lazyWithReload(() => import("./pages/WhatsAppPicker"), "whatsapp-picker");
+const DesignJourney = lazyWithReload(() => import("./pages/DesignJourney"), "design-journey");
 
 const PageLoader = () => (
   <div className="min-h-screen flex items-center justify-center">
@@ -46,10 +109,11 @@ const App = () => (
         <TooltipProvider>
           <Toaster />
           <Sonner />
-          <BrowserRouter>
-            <DevRoleSwitcher />
-            <Suspense fallback={<PageLoader />}>
-            <Routes>
+          <AppErrorBoundary>
+            <BrowserRouter>
+              <DevRoleSwitcher />
+              <Suspense fallback={<PageLoader />}>
+              <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/b2b-solutions" element={<B2BSolutions />} />
               <Route path="/auth" element={<Auth />} />
@@ -135,9 +199,10 @@ const App = () => (
                 </ProtectedRoute>
               } />
               <Route path="*" element={<NotFound />} />
-            </Routes>
-            </Suspense>
-          </BrowserRouter>
+              </Routes>
+              </Suspense>
+            </BrowserRouter>
+          </AppErrorBoundary>
         </TooltipProvider>
       </QuizProvider>
     </AuthProvider>
