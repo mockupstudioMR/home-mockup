@@ -630,7 +630,7 @@ const MoodboardRefinePanel = ({
               className="gap-1.5 -ml-2 h-8"
             >
               <ArrowLeft className="w-3.5 h-3.5" />
-              Back
+              Back to Moodboard
             </Button>
           )}
           <Sparkles className="w-4 h-4 text-primary" />
