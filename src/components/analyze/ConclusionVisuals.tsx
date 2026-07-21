@@ -46,7 +46,17 @@ interface ConclusionVisualsProps {
   }) => void;
   /** Called once the initial auto-seeded references (3 furniture + 3 decor) are all generated. */
   onSeedReady?: () => void;
+  /** Restrict which sections render. Defaults to all. */
+  visibleSections?: ConclusionSection[];
 }
+
+export type ConclusionSection =
+  | "must-include"
+  | "furniture"
+  | "decor"
+  | "architecture"
+  | "colors"
+  | "materials";
 
 type VisualKind = "material" | "styleReference";
 
@@ -217,7 +227,10 @@ const ConclusionVisuals = ({
   roomType = "living room",
   onMoodboardChange,
   onSeedReady,
+  visibleSections,
 }: ConclusionVisualsProps) => {
+  const showSection = (s: ConclusionSection) =>
+    !visibleSections || visibleSections.includes(s);
   const styleSlug = useMemo(
     () => styleNames[0]?.toLowerCase().replace(/\s+/g, "-") || "modern-minimal",
     [styleNames],
@@ -744,7 +757,7 @@ const ConclusionVisuals = ({
         backgroundPosition: "0 0, 7px 11px",
       }}
     >
-      {/* Must-include — pinned items the design MUST keep */}
+      {showSection("must-include") && (
       <div>
         <div className="mb-3">
           <span className="inline-block px-3 py-1 text-[11px] uppercase tracking-wider font-semibold bg-primary/80 text-primary-foreground rounded-[2px] -rotate-1 shadow-sm border border-border/40">
@@ -831,8 +844,10 @@ const ConclusionVisuals = ({
           })}
         </div>
       </div>
+      )}
 
       {/* Furniture References — AI-generated + uploads, inspiration, "use similar" */}
+      {showSection("furniture") && (
       <div>
         <div className="mb-3">
           <span className="inline-block px-3 py-1 text-[11px] uppercase tracking-wider font-semibold bg-secondary/80 text-foreground/80 rounded-[2px] rotate-1 shadow-sm border border-border/40">
@@ -965,8 +980,10 @@ const ConclusionVisuals = ({
           </button>
         </div>
       </div>
+      )}
 
       {/* Decor References — AI-generated + uploads, accessories, textiles, lighting */}
+      {showSection("decor") && (
       <div>
         <div className="mb-3">
           <span className="inline-block px-3 py-1 text-[11px] uppercase tracking-wider font-semibold bg-accent/70 text-foreground/80 rounded-[2px] -rotate-1 shadow-sm border border-border/40">
@@ -1071,8 +1088,10 @@ const ConclusionVisuals = ({
           </button>
         </div>
       </div>
+      )}
 
       {/* Architecture References — wall treatments, mouldings, ceilings, flooring, built-ins */}
+      {showSection("architecture") && (
       <div>
         <div className="mb-3">
           <span className="inline-block px-3 py-1 text-[11px] uppercase tracking-wider font-semibold bg-muted text-foreground/80 rounded-[2px] rotate-[2deg] shadow-sm border border-border/40">
@@ -1177,8 +1196,10 @@ const ConclusionVisuals = ({
           </button>
         </div>
       </div>
+      )}
 
       {/* Dominant Colors */}
+      {showSection("colors") && (
       <div>
         <div className="flex items-center justify-between mb-3">
           <div>
@@ -1279,8 +1300,10 @@ const ConclusionVisuals = ({
           </label>
         </div>
       </div>
+      )}
 
       {/* Materials & Textures with visuals (drop target) */}
+      {showSection("materials") && (
       <div>
         <div className="mb-3">
           <span className="inline-block px-3 py-1 text-[11px] uppercase tracking-wider font-semibold bg-muted/80 text-foreground/80 rounded-[2px] rotate-1 shadow-sm border border-border/40">
@@ -1384,7 +1407,7 @@ const ConclusionVisuals = ({
           )}
         </div>
       </div>
-
+      )}
     </div>
   );
 };
