@@ -757,7 +757,7 @@ const ConclusionVisuals = ({
         backgroundPosition: "0 0, 7px 11px",
       }}
     >
-      {/* Must-include — pinned items the design MUST keep */}
+      {showSection("must-include") && (
       <div>
         <div className="mb-3">
           <span className="inline-block px-3 py-1 text-[11px] uppercase tracking-wider font-semibold bg-primary/80 text-primary-foreground rounded-[2px] -rotate-1 shadow-sm border border-border/40">
@@ -844,8 +844,10 @@ const ConclusionVisuals = ({
           })}
         </div>
       </div>
+      )}
 
       {/* Furniture References — AI-generated + uploads, inspiration, "use similar" */}
+      {showSection("furniture") && (
       <div>
         <div className="mb-3">
           <span className="inline-block px-3 py-1 text-[11px] uppercase tracking-wider font-semibold bg-secondary/80 text-foreground/80 rounded-[2px] rotate-1 shadow-sm border border-border/40">
