@@ -1,7 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import { X, Plus, Check, Pencil, Sparkles, Image as ImageIcon, Blend, Upload, Loader2, Pin } from "lucide-react";
+import { X, Plus, Check, Pencil, Sparkles, Image as ImageIcon, Blend, Upload, Loader2, Pin, Mic, MicOff, Send } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { getThumbnailImageUrl, optimizeImageFile } from "@/lib/imageOptimization";
@@ -342,6 +345,61 @@ const ConclusionVisuals = ({
   const [architectureReferences, setArchitectureReferences] = useState<{ label: string; imageUrl?: string }[]>([]);
   const [uploadingArchitectureRef, setUploadingArchitectureRef] = useState(false);
   const [generatingArchitectureRef, setGeneratingArchitectureRef] = useState(false);
+
+  // "Add detail" dialog: pick between uploading a reference or describing via text/voice.
+  const [addDetailOpen, setAddDetailOpen] = useState(false);
+  const [addDetailMode, setAddDetailMode] = useState<"choose" | "describe">("choose");
+  const [describeText, setDescribeText] = useState("");
+  const [describeListening, setDescribeListening] = useState(false);
+  const describeRecognitionRef = useRef<any>(null);
+  const architectureUploadRef = useRef<HTMLInputElement | null>(null);
+
+  const startDescribeListening = () => {
+    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SR) return;
+    const recognition = new SR();
+    recognition.lang = "en-US";
+    recognition.interimResults = true;
+    recognition.continuous = true;
+    recognition.onresult = (event: any) => {
+      let finalTranscript = "";
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        if (event.results[i].isFinal) finalTranscript += event.results[i][0].transcript + " ";
+      }
+      if (finalTranscript) {
+        setDescribeText((prev) => (prev ? prev + " " + finalTranscript.trim() : finalTranscript.trim()));
+      }
+    };
+    recognition.onerror = () => setDescribeListening(false);
+    recognition.onend = () => setDescribeListening(false);
+    recognition.start();
+    describeRecognitionRef.current = recognition;
+    setDescribeListening(true);
+  };
+
+  const stopDescribeListening = () => {
+    if (describeRecognitionRef.current) {
+      describeRecognitionRef.current.stop();
+      describeRecognitionRef.current = null;
+    }
+    setDescribeListening(false);
+  };
+
+  const submitDescribeDetail = () => {
+    const label = describeText.trim();
+    if (!label) return;
+    let added = false;
+    setArchitectureReferences((prev) => {
+      if (prev.some((m) => m.label.toLowerCase() === label.toLowerCase())) return prev;
+      added = true;
+      return [...prev, { label }];
+    });
+    if (added) generateAiReferenceForLabel(label, "architecture", setArchitectureReferences);
+    stopDescribeListening();
+    setDescribeText("");
+    setAddDetailMode("choose");
+    setAddDetailOpen(false);
+  };
 
   // Drag-and-drop hover state for the two reference sections
   const [isFurnitureDropActive, setIsFurnitureDropActive] = useState(false);
@@ -1214,7 +1272,10 @@ const ConclusionVisuals = ({
               </div>
             );
           })}
-          <label
+          <button
+            type="button"
+            onClick={() => { setAddDetailMode("choose"); setAddDetailOpen(true); }}
+            disabled={uploadingArchitectureRef}
             className={cn(
               "w-28 aspect-square flex flex-col items-center justify-center gap-1 rotate-[3deg] shadow-[0_4px_10px_-4px_hsl(var(--foreground)/0.3)] transition-transform hover:rotate-0",
               uploadingArchitectureRef ? "bg-accent/40 text-foreground/70 cursor-wait" : "bg-accent/60 hover:bg-accent text-foreground/80 cursor-pointer",
@@ -1226,18 +1287,20 @@ const ConclusionVisuals = ({
             ) : (
               <><Plus className="w-5 h-5" /><span className="text-[11px] font-serif italic">Add detail</span></>
             )}
-            <input
-              type="file" accept="image/*" multiple className="hidden" disabled={uploadingArchitectureRef}
-              onChange={async (e) => {
-                const files = Array.from(e.target.files || []);
-                e.target.value = "";
-                if (!files.length) return;
-                setUploadingArchitectureRef(true);
-                try { await uploadInspirationImages(files, "architecture-ref", setArchitectureReferences); }
-                finally { setUploadingArchitectureRef(false); }
-              }}
-            />
-          </label>
+          </button>
+          <input
+            ref={architectureUploadRef}
+            type="file" accept="image/*" multiple className="hidden" disabled={uploadingArchitectureRef}
+            onChange={async (e) => {
+              const files = Array.from(e.target.files || []);
+              e.target.value = "";
+              if (!files.length) return;
+              setAddDetailOpen(false);
+              setUploadingArchitectureRef(true);
+              try { await uploadInspirationImages(files, "architecture-ref", setArchitectureReferences); }
+              finally { setUploadingArchitectureRef(false); }
+            }}
+          />
           <button
             type="button"
             onClick={() => generateAiReference("architecture", setArchitectureReferences, setGeneratingArchitectureRef)}
@@ -1469,6 +1532,76 @@ const ConclusionVisuals = ({
         </div>
       </div>
       )}
+
+      <Dialog open={addDetailOpen} onOpenChange={(o) => { setAddDetailOpen(o); if (!o) { stopDescribeListening(); setAddDetailMode("choose"); } }}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Add architectural detail</DialogTitle>
+            <DialogDescription>
+              {addDetailMode === "choose"
+                ? "Choose how you want to add a detail."
+                : "Describe the detail you have in mind — we'll generate a reference."}
+            </DialogDescription>
+          </DialogHeader>
+
+          {addDetailMode === "choose" ? (
+            <div className="grid grid-cols-2 gap-4 pt-2">
+              <button
+                type="button"
+                onClick={() => architectureUploadRef.current?.click()}
+                className="group flex flex-col items-center justify-center gap-3 p-6 rounded-xl border border-border bg-gradient-to-br from-accent/40 to-secondary/40 hover:from-accent/60 hover:to-secondary/60 transition-all min-h-[180px]"
+              >
+                <Upload className="w-8 h-8 text-foreground/70 group-hover:text-primary transition-colors" />
+                <span className="text-base font-semibold">Upload reference</span>
+                <span className="text-[11px] text-muted-foreground text-center">Add an image from your device</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setAddDetailMode("describe")}
+                className="group flex flex-col items-center justify-center gap-3 p-6 rounded-xl border border-border bg-gradient-to-br from-primary/20 to-accent/30 hover:from-primary/30 hover:to-accent/50 transition-all min-h-[180px]"
+              >
+                <Pencil className="w-8 h-8 text-foreground/70 group-hover:text-primary transition-colors" />
+                <span className="text-base font-semibold">Describe something I want</span>
+                <span className="text-[11px] text-muted-foreground text-center">Type or speak — we'll generate it</span>
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-4 pt-2">
+              <div className="relative">
+                <Textarea
+                  value={describeText}
+                  onChange={(e) => setDescribeText(e.target.value)}
+                  placeholder="e.g. arched doorway with limewash finish, herringbone oak floor, exposed wood beams…"
+                  rows={5}
+                  className="pr-12 resize-none"
+                  autoFocus
+                />
+                <button
+                  type="button"
+                  onClick={describeListening ? stopDescribeListening : startDescribeListening}
+                  className={cn(
+                    "absolute bottom-2 right-2 w-9 h-9 rounded-full flex items-center justify-center transition-all",
+                    describeListening
+                      ? "bg-primary text-primary-foreground animate-pulse"
+                      : "bg-muted hover:bg-primary hover:text-primary-foreground text-foreground/70",
+                  )}
+                  aria-label={describeListening ? "Stop voice input" : "Start voice input"}
+                >
+                  {describeListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+                </button>
+              </div>
+              <div className="flex items-center justify-between gap-2">
+                <Button variant="ghost" onClick={() => { stopDescribeListening(); setAddDetailMode("choose"); }}>
+                  Back
+                </Button>
+                <Button onClick={submitDescribeDetail} disabled={!describeText.trim()}>
+                  <Send className="w-4 h-4 mr-1.5" /> Add detail
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
