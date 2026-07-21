@@ -366,6 +366,15 @@ const Gallery = () => {
           <div className="flex items-center justify-center py-20">
             <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
           </div>
+        ) : loadError ? (
+          <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
+            <CardContent className="py-20 text-center space-y-4">
+              <p className="text-muted-foreground">
+                Couldn't load your designs. Check your connection and try again.
+              </p>
+              <Button onClick={() => setRetryTick((t) => t + 1)}>Retry</Button>
+            </CardContent>
+          </Card>
         ) : filteredDesigns.length === 0 ? (
           <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
             <CardContent className="py-20 text-center">
