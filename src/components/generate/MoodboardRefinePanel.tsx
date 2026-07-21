@@ -346,9 +346,12 @@ const MoodboardRefinePanel = ({
   const activeLayerIdx = LAYERS.findIndex((l) => l.id === activeLayer);
   // If a stale sessionStorage value picked a layer that's not yet unlocked,
   // snap the active layer back to the last unlocked one.
-  if (activeLayerIdx > guidedStep) {
-    updateActiveLayer(LAYERS[guidedStep].id);
-  }
+  useEffect(() => {
+    if (activeLayerIdx > guidedStep) {
+      updateActiveLayer(LAYERS[guidedStep].id);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeLayerIdx, guidedStep]);
 
   const updateLockPrevious = (v: boolean) => {
     setLockPrevious(v);
