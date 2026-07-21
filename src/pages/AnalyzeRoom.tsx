@@ -696,7 +696,7 @@ const AnalyzeRoom = () => {
                           { title: "What inspires your space?", subtitle: analysisResult.moodboardDescription || "Here's the vibe we picked up from your references." },
                           { title: "How should the shell feel?", subtitle: "Walls, floors, ceilings, mouldings and built-ins." },
                           { title: "What colors and textures speak to you?", subtitle: "Your palette and the materials it lives on." },
-                          { title: "Which furniture pieces fit your vibe?", subtitle: `Three ${roomType || "room"} pieces picked to match your style. Pin favourites to keep them.` },
+                          { title: "Which furniture pieces fit your vibe?", subtitle: "Three pieces picked to match your style. Pin favourites to keep them." },
                           { title: "How should we accessorize?", subtitle: "Lamps, art, textiles and the little things that finish a room." },
                           { title: "Everything you want to keep", subtitle: "Here's your Must-include list — the pieces we'll design around." },
                         ];
