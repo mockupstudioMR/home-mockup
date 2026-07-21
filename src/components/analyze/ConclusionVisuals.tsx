@@ -401,6 +401,19 @@ const ConclusionVisuals = ({
     });
   };
 
+  const pinAllToMustInclude = (items: { label: string; imageUrl?: string }[]) => {
+    setMustInclude((prev) => {
+      const next = [...prev];
+      for (const it of items) {
+        const label = (it.label || "").trim();
+        if (!label) continue;
+        if (next.some((m) => m.label.toLowerCase() === label.toLowerCase())) continue;
+        next.push({ label, imageUrl: it.imageUrl || undefined });
+      }
+      return next;
+    });
+  };
+
 
   // Generate an AI visual for a dragged-in label that has no image yet
   const generateAiReferenceForLabel = async (
