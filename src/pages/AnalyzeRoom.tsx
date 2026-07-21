@@ -688,15 +688,17 @@ const AnalyzeRoom = () => {
                           [],
                           ["architecture"],
                           ["colors", "materials"],
-                          ["must-include", "furniture"],
+                          ["furniture"],
                           ["decor"],
+                          ["must-include"],
                         ];
                         const STEP_META = [
                           { title: "What inspires your space?", subtitle: analysisResult.moodboardDescription || "Here's the vibe we picked up from your references." },
                           { title: "How should the shell feel?", subtitle: "Walls, floors, ceilings, mouldings and built-ins." },
                           { title: "What colors and textures speak to you?", subtitle: "Your palette and the materials it lives on." },
-                          { title: "Which furniture pieces fit your vibe?", subtitle: "Pin favourites into Must-include to lock them in." },
+                          { title: "Which furniture pieces fit your vibe?", subtitle: "Three pieces picked to match your style. Pin favourites to keep them." },
                           { title: "How should we accessorize?", subtitle: "Lamps, art, textiles and the little things that finish a room." },
+                          { title: "Everything you want to keep", subtitle: "Here's your Must-include list — the pieces we'll design around." },
                         ];
                         const meta = STEP_META[moodboardStep];
                         const sections = STEP_SECTIONS[moodboardStep];
@@ -901,11 +903,11 @@ const AnalyzeRoom = () => {
                         Back
                       </Button>
                     )}
-                    {moodboardStep < 4 ? (
+                    {moodboardStep < 5 ? (
                       <Button
                         size="lg"
                         className="flex-1"
-                        onClick={() => setMoodboardStep((s) => Math.min(4, s + 1))}
+                        onClick={() => setMoodboardStep((s) => Math.min(5, s + 1))}
                       >
                         Next
                       </Button>
