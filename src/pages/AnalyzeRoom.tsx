@@ -405,10 +405,8 @@ const AnalyzeRoom = () => {
     );
   }
 
-  if (!user) {
-    navigate("/auth");
-    return null;
-  }
+  // Do not force auth here — the moodboard state is cached in sessionStorage
+  // so users returning via "Back to Moodboard" can always see their work.
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-secondary/20 to-primary/10 relative overflow-hidden">
