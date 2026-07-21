@@ -1765,6 +1765,46 @@ const ConclusionVisuals = ({
           )}
         </DialogContent>
       </Dialog>
+
+      <Dialog open={addProductOpen} onOpenChange={(o) => { if (!addProductLoading) setAddProductOpen(o); }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Add a product</DialogTitle>
+            <DialogDescription>Paste a product link or upload an image — we'll pin it to your must-keep list.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <label className="text-[11px] uppercase tracking-wider text-muted-foreground">Paste a link</label>
+              <div className="flex gap-2">
+                <Input
+                  value={addProductUrl}
+                  onChange={(e) => setAddProductUrl(e.target.value)}
+                  placeholder="https://…"
+                  disabled={addProductLoading}
+                  onKeyDown={(e) => { if (e.key === "Enter") submitAddProductUrl(); }}
+                />
+                <Button onClick={submitAddProductUrl} disabled={addProductLoading || !addProductUrl.trim()}>
+                  {addProductLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Fetch"}
+                </Button>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 text-[11px] uppercase tracking-wider text-muted-foreground">
+              <div className="flex-1 h-px bg-border" /> or <div className="flex-1 h-px bg-border" />
+            </div>
+            <label
+              className={cn(
+                "flex flex-col items-center justify-center gap-2 py-6 rounded-md border border-dashed cursor-pointer hover:border-primary/50 hover:bg-accent/30 transition-colors",
+                addProductLoading && "opacity-50 cursor-wait",
+              )}
+            >
+              {addProductLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Upload className="w-5 h-5" />}
+              <span className="text-xs">Upload an image</span>
+              <input type="file" accept="image/*" multiple className="hidden" disabled={addProductLoading} onChange={handleAddProductImage} />
+            </label>
+            {addProductError && <p className="text-xs text-destructive">{addProductError}</p>}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
