@@ -682,9 +682,14 @@ const ConclusionVisuals = ({
         furnitureName: pick,
         furnitureDescription: descByKind[kind],
       };
-      const { data, error } = await supabase.functions.invoke("generate-highlight-visuals", { body });
-      if (!error && data?.imageUrl) {
-        setter((prev) => [...prev, { label, imageUrl: data.imageUrl }]);
+      const MAX = 4;
+      for (let attempt = 1; attempt <= MAX; attempt++) {
+        const { data, error } = await supabase.functions.invoke("generate-highlight-visuals", { body });
+        if (!error && data?.imageUrl) {
+          setter((prev) => [...prev, { label, imageUrl: data.imageUrl }]);
+          break;
+        }
+        if (attempt < MAX) await new Promise((r) => setTimeout(r, 1500 * attempt + Math.random() * 500));
       }
     } catch { /* ignore */ } finally {
       setBusy(false);
