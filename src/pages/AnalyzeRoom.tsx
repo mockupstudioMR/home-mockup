@@ -766,6 +766,7 @@ const AnalyzeRoom = () => {
                             .filter((s) => s.iconicItem)
                             .map((s) => [s.styleName, s.iconicItem as string]),
                         )}
+                        roomDescription={analysisResult.moodboardDescription}
                         mustIncludeItems={pinnedVisuals}
                         extraMaterials={moodboardExtras}
                         onMoodboardChange={setMoodboard}
