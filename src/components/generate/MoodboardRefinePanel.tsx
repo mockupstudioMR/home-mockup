@@ -623,39 +623,39 @@ const MoodboardRefinePanel = ({
       </div>
 
       <div className="p-5 space-y-5">
-        {/* Guided intro banner — asks the current step's question */}
-        <div className="rounded-xl border border-primary/30 bg-gradient-to-br from-primary/10 via-secondary/10 to-accent/10 p-4">
-          <p className="text-[10px] uppercase tracking-[0.18em] text-primary font-semibold mb-1">
+        {/* Guided intro banner — quiz-style, one big question per step */}
+        <div className="rounded-2xl border border-primary/30 bg-gradient-to-br from-primary/10 via-secondary/10 to-accent/10 px-6 py-10 text-center">
+          <p className="text-[10px] uppercase tracking-[0.24em] text-primary font-semibold mb-3">
             Step {guidedStep + 1} of {LAYERS.length} · {LAYERS[guidedStep].label}
           </p>
           {guidedStep === 0 && (
             <>
-              <h4 className="text-lg font-semibold tracking-tight" style={{ fontFamily: "Georgia, serif" }}>
+              <h2 className="text-3xl md:text-4xl font-bold tracking-tight">
                 What does your space look like?
-              </h4>
-              <p className="text-sm text-muted-foreground mt-1">
-                Which architectural elements have to go in there? Pick the walls,
-                floor, ceiling finishes and materials that define the shell of the room.
+              </h2>
+              <p className="text-sm md:text-base text-muted-foreground mt-3 max-w-xl mx-auto">
+                Pick the three architectural pieces that define your room: floor,
+                wall style and wall color.
               </p>
             </>
           )}
           {guidedStep === 1 && (
             <>
-              <h4 className="text-lg font-semibold tracking-tight" style={{ fontFamily: "Georgia, serif" }}>
+              <h2 className="text-3xl md:text-4xl font-bold tracking-tight">
                 What furniture belongs here?
-              </h4>
-              <p className="text-sm text-muted-foreground mt-1">
-                Choose the sofa, bed, tables and storage pieces that anchor the room.
+              </h2>
+              <p className="text-sm md:text-base text-muted-foreground mt-3 max-w-xl mx-auto">
+                Choose up to five anchor pieces — sofa, bed, tables, storage.
               </p>
             </>
           )}
           {guidedStep === 2 && (
             <>
-              <h4 className="text-lg font-semibold tracking-tight" style={{ fontFamily: "Georgia, serif" }}>
+              <h2 className="text-3xl md:text-4xl font-bold tracking-tight">
                 Now the finishing touches.
-              </h4>
-              <p className="text-sm text-muted-foreground mt-1">
-                Add lighting, rugs, art, plants and accessories to complete the mood.
+              </h2>
+              <p className="text-sm md:text-base text-muted-foreground mt-3 max-w-xl mx-auto">
+                Up to five decor accents — lighting, rugs, art, plants.
               </p>
             </>
           )}
