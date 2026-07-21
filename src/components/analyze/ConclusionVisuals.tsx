@@ -1300,8 +1300,10 @@ const ConclusionVisuals = ({
           </label>
         </div>
       </div>
+      )}
 
       {/* Materials & Textures with visuals (drop target) */}
+      {showSection("materials") && (
       <div>
         <div className="mb-3">
           <span className="inline-block px-3 py-1 text-[11px] uppercase tracking-wider font-semibold bg-muted/80 text-foreground/80 rounded-[2px] rotate-1 shadow-sm border border-border/40">
