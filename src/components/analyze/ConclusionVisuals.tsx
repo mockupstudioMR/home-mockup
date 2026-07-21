@@ -414,6 +414,12 @@ const ConclusionVisuals = ({
     });
   };
 
+  const isPinned = (label?: string) => {
+    const l = (label || "").trim().toLowerCase();
+    if (!l) return false;
+    return mustInclude.some((m) => m.label.toLowerCase() === l);
+  };
+
 
   // Generate an AI visual for a dragged-in label that has no image yet
   const generateAiReferenceForLabel = async (
@@ -911,11 +917,16 @@ const ConclusionVisuals = ({
                   <button
                     type="button"
                     onClick={(e) => { e.stopPropagation(); pinToMustInclude(item, "furniture"); }}
-                    className="absolute top-1 left-1 z-10 inline-flex items-center gap-1 px-1.5 py-0.5 rounded-sm bg-background/90 text-foreground/80 text-[9px] uppercase tracking-wider font-semibold shadow-sm opacity-0 group-hover:opacity-100 hover:bg-primary hover:text-primary-foreground transition"
-                    title="Pin to Must-include"
-                    aria-pressed="false"
+                    disabled={isPinned(item.label)}
+                    className={`absolute top-1 left-1 z-10 inline-flex items-center gap-1 px-1.5 py-0.5 rounded-sm text-[9px] uppercase tracking-wider font-semibold shadow-sm transition ${
+                      isPinned(item.label)
+                        ? "bg-primary text-primary-foreground opacity-100 cursor-default"
+                        : "bg-background/90 text-foreground/80 opacity-0 group-hover:opacity-100 hover:bg-primary hover:text-primary-foreground"
+                    }`}
+                    title={isPinned(item.label) ? "Pinned to Must-include" : "Pin to Must-include"}
+                    aria-pressed={isPinned(item.label)}
                   >
-                    <Pin className="w-2.5 h-2.5" /> Keep
+                    <Pin className={`w-2.5 h-2.5 ${isPinned(item.label) ? "fill-current" : ""}`} /> {isPinned(item.label) ? "Pinned" : "Keep"}
                   </button>
                   <div className="aspect-square overflow-hidden bg-muted/40 relative">
                     {item.imageUrl && (
@@ -1052,11 +1063,16 @@ const ConclusionVisuals = ({
                   <button
                     type="button"
                     onClick={(e) => { e.stopPropagation(); pinToMustInclude(item, "decor"); }}
-                    className="absolute top-1 left-1 z-10 inline-flex items-center gap-1 px-1.5 py-0.5 rounded-sm bg-background/90 text-foreground/80 text-[9px] uppercase tracking-wider font-semibold shadow-sm opacity-0 group-hover:opacity-100 hover:bg-primary hover:text-primary-foreground transition"
-                    title="Pin to Must-include"
-                    aria-pressed="false"
+                    disabled={isPinned(item.label)}
+                    className={`absolute top-1 left-1 z-10 inline-flex items-center gap-1 px-1.5 py-0.5 rounded-sm text-[9px] uppercase tracking-wider font-semibold shadow-sm transition ${
+                      isPinned(item.label)
+                        ? "bg-primary text-primary-foreground opacity-100 cursor-default"
+                        : "bg-background/90 text-foreground/80 opacity-0 group-hover:opacity-100 hover:bg-primary hover:text-primary-foreground"
+                    }`}
+                    title={isPinned(item.label) ? "Pinned to Must-include" : "Pin to Must-include"}
+                    aria-pressed={isPinned(item.label)}
                   >
-                    <Pin className="w-2.5 h-2.5" /> Keep
+                    <Pin className={`w-2.5 h-2.5 ${isPinned(item.label) ? "fill-current" : ""}`} /> {isPinned(item.label) ? "Pinned" : "Keep"}
                   </button>
                   <div className="aspect-square overflow-hidden bg-muted/40 relative">
                     {item.imageUrl && (
@@ -1169,11 +1185,16 @@ const ConclusionVisuals = ({
                   <button
                     type="button"
                     onClick={(e) => { e.stopPropagation(); pinToMustInclude(item, "architecture"); }}
-                    className="absolute top-1 left-1 z-10 inline-flex items-center gap-1 px-1.5 py-0.5 rounded-sm bg-background/90 text-foreground/80 text-[9px] uppercase tracking-wider font-semibold shadow-sm opacity-0 group-hover:opacity-100 hover:bg-primary hover:text-primary-foreground transition"
-                    title="Pin to Must-include"
-                    aria-pressed="false"
+                    disabled={isPinned(item.label)}
+                    className={`absolute top-1 left-1 z-10 inline-flex items-center gap-1 px-1.5 py-0.5 rounded-sm text-[9px] uppercase tracking-wider font-semibold shadow-sm transition ${
+                      isPinned(item.label)
+                        ? "bg-primary text-primary-foreground opacity-100 cursor-default"
+                        : "bg-background/90 text-foreground/80 opacity-0 group-hover:opacity-100 hover:bg-primary hover:text-primary-foreground"
+                    }`}
+                    title={isPinned(item.label) ? "Pinned to Must-include" : "Pin to Must-include"}
+                    aria-pressed={isPinned(item.label)}
                   >
-                    <Pin className="w-2.5 h-2.5" /> Keep
+                    <Pin className={`w-2.5 h-2.5 ${isPinned(item.label) ? "fill-current" : ""}`} /> {isPinned(item.label) ? "Pinned" : "Keep"}
                   </button>
                   <div className="aspect-square overflow-hidden bg-muted/40 relative">
                     {item.imageUrl && (
