@@ -99,6 +99,23 @@ const VisualChip = ({
     setLoading(true);
     try {
       const itemForStyle = iconicItem || `signature ${label} furniture piece`;
+      const cacheStyle = kind === "material" ? styleSlug : label.toLowerCase().replace(/\s+/g, "-");
+      const cacheLabel = (kind === "material" ? label : itemForStyle).trim().toLowerCase();
+      // 1) Try the shared cache first so identical (style, kind, label) lookups
+      //    reuse a previously generated image instead of re-billing the AI.
+      try {
+        const { data: cached } = await supabase
+          .from("material_visuals")
+          .select("image_url")
+          .eq("style_slug", cacheStyle)
+          .eq("kind", kind)
+          .eq("label_key", cacheLabel)
+          .maybeSingle();
+        if (cached?.image_url) {
+          onImageReady(cached.image_url);
+          return;
+        }
+      } catch { /* ignore cache miss */ }
       const body =
         kind === "material"
           ? {
@@ -119,7 +136,19 @@ const VisualChip = ({
         "generate-highlight-visuals",
         { body },
       );
-      if (!error && data?.imageUrl) onImageReady(data.imageUrl);
+      if (!error && data?.imageUrl) {
+        onImageReady(data.imageUrl);
+        // 2) Persist the freshly generated visual so subsequent requests can
+        //    reuse it. Ignore duplicate-key errors (another client raced us).
+        try {
+          await supabase.from("material_visuals").insert({
+            style_slug: cacheStyle,
+            kind,
+            label: kind === "material" ? label : itemForStyle,
+            image_url: data.imageUrl,
+          });
+        } catch { /* ignore */ }
+      }
     } catch {
       /* ignore */
     } finally {
