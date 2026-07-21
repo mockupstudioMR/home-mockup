@@ -1429,11 +1429,23 @@ const ConclusionVisuals = ({
       {/* Materials & Textures with visuals (drop target) */}
       {showSection("materials") && (
       <div>
-        <div className="mb-3">
-          <span className="inline-block px-3 py-1 text-[11px] uppercase tracking-wider font-semibold bg-muted/80 text-foreground/80 rounded-[2px] rotate-1 shadow-sm border border-border/40">
-            Materials &amp; Textures
-          </span>
-          <span className="ml-2 text-[11px] text-muted-foreground italic font-serif">— drag tags here</span>
+        <div className="flex items-center justify-between mb-3">
+          <div>
+            <span className="inline-block px-3 py-1 text-[11px] uppercase tracking-wider font-semibold bg-muted/80 text-foreground/80 rounded-[2px] rotate-1 shadow-sm border border-border/40">
+              Materials &amp; Textures
+            </span>
+            <span className="ml-2 text-[11px] text-muted-foreground italic font-serif">— click Keep to pin into Must-include</span>
+          </div>
+          {materials.length > 0 && (
+            <button
+              type="button"
+              onClick={() => pinAllToMustInclude(materials.map((m) => ({ label: m, imageUrl: materialImages[m] })))}
+              className="inline-flex items-center gap-1 px-2 py-1 rounded-sm text-[10px] uppercase tracking-wider font-semibold bg-primary/10 text-primary hover:bg-primary hover:text-primary-foreground transition"
+              title="Pin every material into Must-include"
+            >
+              <Pin className="w-2.5 h-2.5" /> Keep all
+            </button>
+          )}
         </div>
         <div
           onDragOver={(e) => {
@@ -1473,18 +1485,33 @@ const ConclusionVisuals = ({
           )}
         >
           {materials.map((m) => (
-            <VisualChip
-              key={m}
-              label={m}
-              kind="material"
-              styleSlug={styleSlug}
-              roomType={roomType}
-              imageUrl={materialImages[m]}
-              autoGenerate={!materialImages[m]}
-              onImageReady={(url) => setMaterialImages((prev) => ({ ...prev, [m]: url }))}
-              onRename={(next) => renameMaterial(m, next)}
-              onRemove={() => removeMaterial(m)}
-            />
+            <div key={m} className="group relative">
+              <VisualChip
+                label={m}
+                kind="material"
+                styleSlug={styleSlug}
+                roomType={roomType}
+                imageUrl={materialImages[m]}
+                autoGenerate={!materialImages[m]}
+                onImageReady={(url) => setMaterialImages((prev) => ({ ...prev, [m]: url }))}
+                onRename={(next) => renameMaterial(m, next)}
+                onRemove={() => removeMaterial(m)}
+              />
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); pinToMustInclude({ label: m, imageUrl: materialImages[m] }, "decor"); }}
+                disabled={isPinned(m)}
+                className={`absolute top-1 left-1 z-10 inline-flex items-center gap-1 px-1.5 py-0.5 rounded-sm text-[9px] uppercase tracking-wider font-semibold shadow-sm transition ${
+                  isPinned(m)
+                    ? "bg-primary text-primary-foreground opacity-100 cursor-default"
+                    : "bg-background/90 text-foreground/80 opacity-0 group-hover:opacity-100 hover:bg-primary hover:text-primary-foreground"
+                }`}
+                title={isPinned(m) ? "Pinned to Must-include" : "Pin to Must-include"}
+                aria-pressed={isPinned(m)}
+              >
+                <Pin className={`w-2.5 h-2.5 ${isPinned(m) ? "fill-current" : ""}`} /> {isPinned(m) ? "Pinned" : "Keep"}
+              </button>
+            </div>
           ))}
 
           {addingMaterial ? (
