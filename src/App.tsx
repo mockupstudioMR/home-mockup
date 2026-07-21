@@ -1,4 +1,4 @@
-import { Component, lazy, Suspense, type ReactNode } from "react";
+import { Component, lazy, Suspense, type ComponentType, type ReactNode } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -11,8 +11,8 @@ import DevRoleSwitcher from "@/components/DevRoleSwitcher";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 
-const lazyWithReload = <T extends { default: React.ComponentType<any> }>(
-  importer: () => Promise<T>,
+const lazyWithReload = <T extends ComponentType<Record<string, never>>>(
+  importer: () => Promise<{ default: T }>,
   chunkName: string
 ) =>
   lazy(async () => {
