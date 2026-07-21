@@ -25,6 +25,7 @@ import {
   Check,
   ListChecks,
   ArrowRight,
+  ArrowLeft,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -342,6 +343,16 @@ const MoodboardRefinePanel = ({
       /* ignore */
     }
     updateActiveLayer(LAYERS[next].id);
+  };
+  const goBackGuidedStep = () => {
+    const prev = Math.max(0, guidedStep - 1);
+    setGuidedStep(prev);
+    try {
+      sessionStorage.setItem(GUIDED_STEP_KEY, String(prev));
+    } catch {
+      /* ignore */
+    }
+    updateActiveLayer(LAYERS[prev].id);
   };
   const activeLayerIdx = LAYERS.findIndex((l) => l.id === activeLayer);
   // If a stale sessionStorage value picked a layer that's not yet unlocked,
@@ -743,19 +754,36 @@ const MoodboardRefinePanel = ({
             })}
           </div>
 
-          {guidedStep < LAYERS.length - 1 && (
-            <div className="flex justify-end pt-1">
-              <Button
-                type="button"
-                size="sm"
-                variant="secondary"
-                onClick={advanceGuidedStep}
-                disabled={disabled}
-                className="gap-1.5"
-              >
-                Continue to {LAYERS[guidedStep + 1].label}
-                <ArrowRight className="w-3.5 h-3.5" />
-              </Button>
+          {(guidedStep > 0 || guidedStep < LAYERS.length - 1) && (
+            <div className="flex justify-between items-center pt-1">
+              {guidedStep > 0 ? (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  onClick={goBackGuidedStep}
+                  disabled={disabled}
+                  className="gap-1.5"
+                >
+                  <ArrowLeft className="w-3.5 h-3.5" />
+                  Back to {LAYERS[guidedStep - 1].label}
+                </Button>
+              ) : (
+                <span />
+              )}
+              {guidedStep < LAYERS.length - 1 && (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="secondary"
+                  onClick={advanceGuidedStep}
+                  disabled={disabled}
+                  className="gap-1.5"
+                >
+                  Continue to {LAYERS[guidedStep + 1].label}
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </Button>
+              )}
             </div>
           )}
         </div>
