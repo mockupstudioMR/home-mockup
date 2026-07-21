@@ -1407,7 +1407,7 @@ const ConclusionVisuals = ({
           )}
         </div>
       </div>
-
+      )}
     </div>
   );
 };
