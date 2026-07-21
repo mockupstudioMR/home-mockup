@@ -289,6 +289,65 @@ const ConclusionVisuals = ({
   const [newMustInclude, setNewMustInclude] = useState("");
   const [addingMustInclude, setAddingMustInclude] = useState(false);
   const [uploadingMustInclude, setUploadingMustInclude] = useState(false);
+  const [addProductOpen, setAddProductOpen] = useState(false);
+  const [addProductUrl, setAddProductUrl] = useState("");
+  const [addProductLoading, setAddProductLoading] = useState(false);
+  const [addProductError, setAddProductError] = useState<string | null>(null);
+
+  const addMustIncludeItem = (label: string, imageUrl?: string) => {
+    setMustInclude((prev) => {
+      const base = (label || "Product").slice(0, 60);
+      let name = base; let i = 2;
+      while (prev.some((m) => m.label.toLowerCase() === name.toLowerCase())) {
+        name = `${base} ${i++}`;
+      }
+      return [...prev, { label: name, imageUrl }];
+    });
+  };
+
+  const submitAddProductUrl = async () => {
+    const url = addProductUrl.trim();
+    if (!url) return;
+    setAddProductLoading(true);
+    setAddProductError(null);
+    try {
+      const { data, error } = await supabase.functions.invoke("scrape-product-image", { body: { url } });
+      if (error) throw error;
+      if (!data?.success || !data?.imageUrl) throw new Error(data?.error || "Could not fetch product");
+      addMustIncludeItem(data.title || "Product", data.imageUrl);
+      setAddProductUrl("");
+      setAddProductOpen(false);
+    } catch (e) {
+      setAddProductError(e instanceof Error ? e.message : "Failed to fetch product");
+    } finally {
+      setAddProductLoading(false);
+    }
+  };
+
+  const handleAddProductImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    e.target.value = "";
+    if (!files.length) return;
+    setAddProductLoading(true);
+    setAddProductError(null);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { setAddProductError("Please sign in first"); return; }
+      for (const file of files) {
+        if (!file.type.startsWith("image/")) continue;
+        const optimizedFile = await optimizeImageFile(file, { maxDimension: 2048 });
+        const path = `${user.id}/must-include/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.webp`;
+        const { error: upErr } = await supabase.storage.from("room-photos").upload(path, optimizedFile, { contentType: optimizedFile.type });
+        if (upErr) { setAddProductError(upErr.message); continue; }
+        const { data: urlData } = supabase.storage.from("room-photos").getPublicUrl(path);
+        const baseLabel = file.name.replace(/\.[^.]+$/, "").slice(0, 40) || "Product";
+        addMustIncludeItem(baseLabel, urlData.publicUrl);
+      }
+      setAddProductOpen(false);
+    } finally {
+      setAddProductLoading(false);
+    }
+  };
   const commitNewMustInclude = () => {
     const v = newMustInclude.trim();
     if (v && !mustInclude.some((m) => m.label.toLowerCase() === v.toLowerCase())) {
