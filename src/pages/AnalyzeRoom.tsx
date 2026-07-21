@@ -645,8 +645,42 @@ const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(() =
                       during the loading phase and reveal it once seeding is done. */}
                   {isCreatingMoodboard && (
                     <div className={moodboardReady ? "mb-6" : "hidden"}>
-                      {/* Uploaded inspiration photos — shown as polaroids */}
-                      {uploadedImages.length > 0 && (
+                      {(() => {
+                        const STEP_SECTIONS: ConclusionSection[][] = [
+                          [],
+                          ["architecture"],
+                          ["colors", "materials"],
+                          ["must-include", "furniture"],
+                          ["decor"],
+                        ];
+                        const STEP_META = [
+                          { title: "What inspires your space?", subtitle: analysisResult.moodboardDescription || "Here's the vibe we picked up from your references." },
+                          { title: "How should the shell feel?", subtitle: "Walls, floors, ceilings, mouldings and built-ins." },
+                          { title: "What colors and textures speak to you?", subtitle: "Your palette and the materials it lives on." },
+                          { title: "Which furniture pieces fit your vibe?", subtitle: "Pin favourites into Must-include to lock them in." },
+                          { title: "How should we accessorize?", subtitle: "Lamps, art, textiles and the little things that finish a room." },
+                        ];
+                        const meta = STEP_META[moodboardStep];
+                        const sections = STEP_SECTIONS[moodboardStep];
+                        return (
+                          <>
+                            {/* Quiz-style question header */}
+                            <div className="mb-6 text-center">
+                              <div className="text-xs uppercase tracking-[0.2em] text-muted-foreground mb-2">
+                                Step {moodboardStep + 1} of {STEP_META.length}
+                              </div>
+                              <h2 className="text-3xl md:text-4xl font-semibold leading-tight mb-2">
+                                {meta.title}
+                              </h2>
+                              {meta.subtitle && (
+                                <p className="text-sm md:text-base text-muted-foreground max-w-xl mx-auto">
+                                  {meta.subtitle}
+                                </p>
+                              )}
+                            </div>
+
+                            {/* Step 0: inspiration polaroids only */}
+                            {moodboardStep === 0 && uploadedImages.length > 0 && (
                         <div className="mb-5">
                           <span
                             className="block mb-3 text-xl text-foreground/75"
@@ -654,7 +688,7 @@ const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(() =
                           >
                             Your inspiration
                           </span>
-                          <div className="flex flex-wrap gap-3">
+                          <div className="flex flex-wrap gap-3 justify-center">
                             {uploadedImages.map((img, i) => {
                               const rot = ((i * 53) % 7) - 3;
                               return (
@@ -676,15 +710,9 @@ const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(() =
                           </div>
                         </div>
                       )}
-                      {analysisResult.moodboardDescription && (
-                        <p
-                          className="text-2xl md:text-[1.65rem] leading-snug mb-4 text-foreground/85"
-                          style={{ fontFamily: "'Caveat', cursive" }}
-                        >
-                          {analysisResult.moodboardDescription}
-                        </p>
-                      )}
-                      <ConclusionVisuals
+                            {/* ConclusionVisuals stays mounted (needed for seeding). Hidden on step 0. */}
+                            <div className={moodboardStep === 0 ? "hidden" : ""}>
+                              <ConclusionVisuals
                         dominantColors={editableColors}
                         onDominantColorsChange={setEditableColors}
                         styleNames={
@@ -702,7 +730,12 @@ const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(() =
                         extraMaterials={moodboardExtras}
                         onMoodboardChange={setMoodboard}
                         onSeedReady={() => setMoodboardReady(true)}
-                      />
+                                visibleSections={sections}
+                              />
+                            </div>
+                          </>
+                        );
+                      })()}
                     </div>
                   )}
 
