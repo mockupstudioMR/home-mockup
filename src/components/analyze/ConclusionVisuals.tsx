@@ -6,6 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { getThumbnailImageUrl, optimizeImageFile } from "@/lib/imageOptimization";
 import { MOODBOARD_DRAG_MIME } from "./TagVisual";
@@ -314,7 +315,10 @@ const ConclusionVisuals = ({
       const { data, error } = await supabase.functions.invoke("scrape-product-image", { body: { url } });
       if (error) throw error;
       if (!data?.success || !data?.imageUrl) throw new Error(data?.error || "Could not fetch product");
-      addMustIncludeItem(data.title || "Product", data.imageUrl);
+      const title = data.title || "Product";
+      addMustIncludeItem(title, data.imageUrl);
+      setFurnitureReferences((prev) => [...prev, { label: title.slice(0, 60), imageUrl: data.imageUrl }]);
+      toast.success("Product added");
       setAddProductUrl("");
       setAddProductOpen(false);
     } catch (e) {
@@ -342,7 +346,9 @@ const ConclusionVisuals = ({
         const { data: urlData } = supabase.storage.from("room-photos").getPublicUrl(path);
         const baseLabel = file.name.replace(/\.[^.]+$/, "").slice(0, 40) || "Product";
         addMustIncludeItem(baseLabel, urlData.publicUrl);
+        setFurnitureReferences((prev) => [...prev, { label: baseLabel, imageUrl: urlData.publicUrl }]);
       }
+      toast.success("Product added");
       setAddProductOpen(false);
     } finally {
       setAddProductLoading(false);
