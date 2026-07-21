@@ -405,6 +405,42 @@ export type Database = {
         }
         Relationships: []
       }
+      material_visuals: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          image_url: string
+          kind: string
+          label: string
+          label_key: string | null
+          style_slug: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          image_url: string
+          kind: string
+          label: string
+          label_key?: string | null
+          style_slug: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          image_url?: string
+          kind?: string
+          label?: string
+          label_key?: string | null
+          style_slug?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       notification_settings: {
         Row: {
           created_at: string
