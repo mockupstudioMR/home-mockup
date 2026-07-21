@@ -1272,7 +1272,10 @@ const ConclusionVisuals = ({
               </div>
             );
           })}
-          <label
+          <button
+            type="button"
+            onClick={() => { setAddDetailMode("choose"); setAddDetailOpen(true); }}
+            disabled={uploadingArchitectureRef}
             className={cn(
               "w-28 aspect-square flex flex-col items-center justify-center gap-1 rotate-[3deg] shadow-[0_4px_10px_-4px_hsl(var(--foreground)/0.3)] transition-transform hover:rotate-0",
               uploadingArchitectureRef ? "bg-accent/40 text-foreground/70 cursor-wait" : "bg-accent/60 hover:bg-accent text-foreground/80 cursor-pointer",
@@ -1284,18 +1287,20 @@ const ConclusionVisuals = ({
             ) : (
               <><Plus className="w-5 h-5" /><span className="text-[11px] font-serif italic">Add detail</span></>
             )}
-            <input
-              type="file" accept="image/*" multiple className="hidden" disabled={uploadingArchitectureRef}
-              onChange={async (e) => {
-                const files = Array.from(e.target.files || []);
-                e.target.value = "";
-                if (!files.length) return;
-                setUploadingArchitectureRef(true);
-                try { await uploadInspirationImages(files, "architecture-ref", setArchitectureReferences); }
-                finally { setUploadingArchitectureRef(false); }
-              }}
-            />
-          </label>
+          </button>
+          <input
+            ref={architectureUploadRef}
+            type="file" accept="image/*" multiple className="hidden" disabled={uploadingArchitectureRef}
+            onChange={async (e) => {
+              const files = Array.from(e.target.files || []);
+              e.target.value = "";
+              if (!files.length) return;
+              setAddDetailOpen(false);
+              setUploadingArchitectureRef(true);
+              try { await uploadInspirationImages(files, "architecture-ref", setArchitectureReferences); }
+              finally { setUploadingArchitectureRef(false); }
+            }}
+          />
           <button
             type="button"
             onClick={() => generateAiReference("architecture", setArchitectureReferences, setGeneratingArchitectureRef)}
