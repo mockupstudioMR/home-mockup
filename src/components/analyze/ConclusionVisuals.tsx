@@ -257,6 +257,7 @@ const ConclusionVisuals = ({
   seedElements,
   extraMaterials,
   iconicItems,
+  roomDescription,
   mustIncludeItems,
   roomType = "living room",
   onMoodboardChange,
