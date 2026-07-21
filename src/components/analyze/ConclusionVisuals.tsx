@@ -673,8 +673,11 @@ const ConclusionVisuals = ({
       const candidates = available.length > 0 ? available : pool;
       const pick = candidates[Math.floor(Math.random() * candidates.length)];
       const label = `${styleNames[0]} ${pick}`;
+      const roomCtx = roomDescription
+        ? ` The piece must look like it belongs to THIS specific inspiration room: "${roomDescription.slice(0, 400)}". Match its exact era, palette, materials and silhouette so it clearly comes from the SAME room.`
+        : "";
       const descByKind = {
-        furniture: `A single ${styleNames[0]}-style ${pick} as a hero product shot on a clean neutral background. ONE item only, no full room, no collage.`,
+        furniture: `A single ${styleNames[0]}-style ${pick} as a hero product shot on a clean neutral background. ONE item only, no full room, no collage.${roomCtx}`,
         decor: `A single ${styleNames[0]}-style ${pick} (decor/accessory) as a hero product shot on a clean neutral background. ONE item only, no full room, no collage.`,
         architecture: `A close-up architectural reference of ${pick} in a ${styleNames[0]} interior — wall treatment / moulding / ceiling / flooring / built-in detail. Clean photo, no furniture, no people.`,
       } as const;
