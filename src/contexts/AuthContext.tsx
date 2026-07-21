@@ -128,11 +128,31 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-    return { error };
+    const maxAttempts = 3;
+    let delayMs = 600;
+    let lastError: Error | null = null;
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      try {
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        if (!error) return { error: null };
+        // Auth errors (invalid creds, etc.) shouldn't be retried
+        const msg = error.message || "";
+        const isNetwork = /load failed|failed to fetch|network|timeout/i.test(msg);
+        if (!isNetwork) return { error };
+        lastError = error;
+      } catch (err) {
+        lastError = err as Error;
+      }
+      if (attempt < maxAttempts) {
+        await new Promise((r) => setTimeout(r, delayMs));
+        delayMs *= 2;
+      }
+    }
+    return {
+      error: new Error(
+        "Can't reach the server right now. Check your connection and try again."
+      ),
+    };
   };
 
   const signOut = async () => {
