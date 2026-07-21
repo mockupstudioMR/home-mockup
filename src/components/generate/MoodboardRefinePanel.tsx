@@ -618,21 +618,29 @@ const MoodboardRefinePanel = ({
 
   return (
     <div className="rounded-2xl border border-border/60 bg-card shadow-sm overflow-hidden">
+      {/* Persistent Back bar — always visible on every screen size */}
+      {onBack && (
+        <div className="sticky top-0 z-20 flex items-center justify-between gap-2 px-3 sm:px-5 py-2.5 border-b border-border/50 bg-background/95 backdrop-blur">
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            onClick={onBack}
+            className="gap-1.5 h-8 rounded-full bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20"
+          >
+            <ArrowLeft className="w-3.5 h-3.5" />
+            <span className="whitespace-nowrap">Back to Moodboard</span>
+          </Button>
+          <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+            <Sparkles className="w-3.5 h-3.5 text-primary" />
+            <span className="hidden xs:inline sm:inline">Refinement</span>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex items-center justify-between gap-3 px-5 py-3 border-b border-border/50 bg-muted/30">
         <div className="flex items-center gap-2">
-          {onBack && (
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={onBack}
-              className="gap-1.5 -ml-2 h-8"
-            >
-              <ArrowLeft className="w-3.5 h-3.5" />
-              Back to Moodboard
-            </Button>
-          )}
           <Sparkles className="w-4 h-4 text-primary" />
           <h3 className="text-sm font-semibold">
             Moodboard &amp; refinement
