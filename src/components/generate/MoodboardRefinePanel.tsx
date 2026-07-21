@@ -901,14 +901,24 @@ const MoodboardRefinePanel = ({
         </div>
 
         {SECTIONS.filter((s) => visibleKinds.includes(s.kind)).map(({ kind, title, addLabel: addBtn }) => {
-          const list = grouped[kind];
+          const maxItems = activeLayer === "architecture" ? 3 : 5;
+          const fullList = grouped[kind];
+          const list = fullList.slice(0, maxItems);
+          const hiddenCount = fullList.length - list.length;
           const pending = pendingByKind[kind];
           const hasPending = pending.additions.length > 0 || pending.removals.length > 0;
           return (
             <div key={kind}>
               <div className="flex items-center justify-between mb-2">
                 <p className="text-[11px] uppercase tracking-wide text-muted-foreground font-medium">
-                  {title}
+                  {kind === "material"
+                    ? "Floor · Wall style · Wall color"
+                    : title}
+                  {hiddenCount > 0 && (
+                    <span className="ml-2 text-muted-foreground/70 normal-case tracking-normal">
+                      +{hiddenCount} more hidden
+                    </span>
+                  )}
                 </p>
                 <span className="text-[10px] text-muted-foreground">
                   {list.filter((i) => i.used).length}/{list.length} used
