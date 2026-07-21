@@ -534,8 +534,7 @@ const ConclusionVisuals = ({
     kind: "furniture" | "decor" | "architecture",
     setter: React.Dispatch<React.SetStateAction<{ label: string; imageUrl?: string }[]>>,
   ) => {
-    try {
-      const descByKind: Record<typeof kind, string> = {
+    const descByKind: Record<typeof kind, string> = {
         furniture: `A single ${styleNames[0] || "modern"}-style "${label}" furniture piece as a hero product shot on a clean neutral background. ONE item only, no full room, no collage.`,
         decor: `A single ${styleNames[0] || "modern"}-style "${label}" decor/accessory item as a hero product shot on a clean neutral background. ONE item only, no full room, no collage.`,
         architecture: `A close-up architectural reference of "${label}" in a ${styleNames[0] || "modern"} interior style — wall treatment / moulding / ceiling / flooring / built-in detail. Clean photo, no furniture, no people.`,
@@ -547,11 +546,23 @@ const ConclusionVisuals = ({
         furnitureName: label,
         furnitureDescription: descByKind[kind],
       };
-      const { data, error } = await supabase.functions.invoke("generate-highlight-visuals", { body });
-      if (!error && data?.imageUrl) {
-        setter((prev) => prev.map((m) => (m.label === label ? { ...m, imageUrl: data.imageUrl } : m)));
+    const MAX = 4;
+    for (let attempt = 1; attempt <= MAX; attempt++) {
+      try {
+        const { data, error } = await supabase.functions.invoke("generate-highlight-visuals", { body });
+        if (!error && data?.imageUrl) {
+          setter((prev) => prev.map((m) => (m.label === label ? { ...m, imageUrl: data.imageUrl } : m)));
+          return;
+        }
+        // Edge fn returns { error: "Rate limits exceeded", retryable: true } with status 200
+        // supabase.functions.invoke surfaces that as data (no thrown error). Retry with backoff.
+      } catch { /* network / transient */ }
+      if (attempt < MAX) {
+        await new Promise((r) => setTimeout(r, 1500 * attempt + Math.random() * 500));
       }
-    } catch { /* ignore */ }
+    }
+    // Give up — drop the placeholder card so the user isn't stuck on a spinner.
+    setter((prev) => prev.filter((m) => m.label.toLowerCase() !== label.toLowerCase()));
   };
 
   const handleReferenceDrop = async (
@@ -671,9 +682,14 @@ const ConclusionVisuals = ({
         furnitureName: pick,
         furnitureDescription: descByKind[kind],
       };
-      const { data, error } = await supabase.functions.invoke("generate-highlight-visuals", { body });
-      if (!error && data?.imageUrl) {
-        setter((prev) => [...prev, { label, imageUrl: data.imageUrl }]);
+      const MAX = 4;
+      for (let attempt = 1; attempt <= MAX; attempt++) {
+        const { data, error } = await supabase.functions.invoke("generate-highlight-visuals", { body });
+        if (!error && data?.imageUrl) {
+          setter((prev) => [...prev, { label, imageUrl: data.imageUrl }]);
+          break;
+        }
+        if (attempt < MAX) await new Promise((r) => setTimeout(r, 1500 * attempt + Math.random() * 500));
       }
     } catch { /* ignore */ } finally {
       setBusy(false);
