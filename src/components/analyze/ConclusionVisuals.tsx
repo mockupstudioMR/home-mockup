@@ -46,6 +46,8 @@ interface ConclusionVisualsProps {
   }) => void;
   /** Called once the initial auto-seeded references (3 furniture + 3 decor) are all generated. */
   onSeedReady?: () => void;
+  /** Restrict which sections render. Defaults to all. */
+  visibleSections?: ConclusionSection[];
 }
 
 export type ConclusionSection =
@@ -225,7 +227,10 @@ const ConclusionVisuals = ({
   roomType = "living room",
   onMoodboardChange,
   onSeedReady,
+  visibleSections,
 }: ConclusionVisualsProps) => {
+  const showSection = (s: ConclusionSection) =>
+    !visibleSections || visibleSections.includes(s);
   const styleSlug = useMemo(
     () => styleNames[0]?.toLowerCase().replace(/\s+/g, "-") || "modern-minimal",
     [styleNames],
