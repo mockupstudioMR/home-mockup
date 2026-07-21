@@ -131,6 +131,8 @@ interface MoodboardRefinePanelProps {
   canUndo?: boolean;
   generating: boolean;
   disabled?: boolean;
+  /** Optional callback — when provided, shows a "Back" button in the header. */
+  onBack?: () => void;
 }
 
 const KIND_LABEL: Record<MoodboardItemKind, string> = {
@@ -239,6 +241,7 @@ const MoodboardRefinePanel = ({
   canUndo = false,
   generating,
   disabled,
+  onBack,
 }: MoodboardRefinePanelProps) => {
   const [editing, setEditing] = useState<MoodboardItem | null>(null);
   const [editLabel, setEditLabel] = useState("");
@@ -618,6 +621,18 @@ const MoodboardRefinePanel = ({
       {/* Header */}
       <div className="flex items-center justify-between gap-3 px-5 py-3 border-b border-border/50 bg-muted/30">
         <div className="flex items-center gap-2">
+          {onBack && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={onBack}
+              className="gap-1.5 -ml-2 h-8"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" />
+              Back
+            </Button>
+          )}
           <Sparkles className="w-4 h-4 text-primary" />
           <h3 className="text-sm font-semibold">
             Moodboard &amp; refinement
