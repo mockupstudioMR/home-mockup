@@ -72,7 +72,7 @@ const AnalyzeRoom = () => {
   const location = useLocation();
   const isExistingRoom = location.pathname.startsWith("/existing-room");
   const { user, loading } = useAuth();
-  const { updateQuizData } = useQuiz();
+  const { quizData, updateQuizData } = useQuiz();
   const { toast } = useToast();
   
   const [uploadedImages, setUploadedImages] = useState<string[]>(() => persisted.images || []);
