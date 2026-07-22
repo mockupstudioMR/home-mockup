@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import ConclusionVisuals from "@/components/analyze/ConclusionVisuals";
 import type { ConclusionSection } from "@/components/analyze/ConclusionVisuals";
+import MoodboardCollage from "@/components/analyze/MoodboardCollage";
 import TagVisual from "@/components/analyze/TagVisual";
 import { RefreshCw as RefreshIcon } from "lucide-react";
 import { trackEvent } from "@/lib/analytics";
@@ -718,39 +719,28 @@ const AnalyzeRoom = () => {
                               )}
                             </div>
 
-                            {/* Inspiration polaroids — always visible at the top of the moodboard */}
-                            {uploadedImages.length > 0 && (
-                        <div className="mb-5">
-                          <span
-                            className="block mb-3 text-xl text-foreground/75"
-                            style={{ fontFamily: "'Caveat', cursive" }}
-                          >
-                            Your inspiration
-                          </span>
-                          <div className="flex flex-wrap gap-3 justify-center">
-                            {uploadedImages.map((img, i) => {
-                              const rot = ((i * 53) % 7) - 3;
-                              return (
-                                <div
-                                  key={img}
-                                  className="bg-card p-1.5 pb-5 shadow-[0_6px_14px_-6px_hsl(var(--foreground)/0.35),0_2px_4px_-2px_hsl(var(--foreground)/0.2)] rounded-sm"
-                                  style={{ transform: `rotate(${rot}deg)` }}
-                                >
-                                  <img
-                                    src={getThumbnailImageUrl(img)}
-                                    alt={`Inspiration ${i + 1}`}
-                                    className="w-28 h-28 object-cover"
-                                    loading="lazy"
-                                    decoding="async"
-                                  />
-                                </div>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      )}
-                            {/* Full moodboard — every section rendered at once. */}
-                            <div>
+                            {/* Collage view — real moodboard aesthetic */}
+                            <div className="mb-8">
+                              <MoodboardCollage
+                                inspiration={uploadedImages}
+                                colors={editableColors}
+                                materials={moodboard.materials}
+                                architecture={moodboard.architectureReferences}
+                                furniture={moodboard.furnitureReferences}
+                                decor={moodboard.decorReferences}
+                                mustInclude={moodboard.mustInclude}
+                                headline="a moodboard, curated for you"
+                              />
+                            </div>
+
+                            {/* Editable moodboard sections — pin, add, refine */}
+                            <details className="group rounded-xl border border-border/60 bg-card/60 backdrop-blur-sm">
+                              <summary className="cursor-pointer list-none px-4 py-3 flex items-center justify-between text-sm font-medium text-foreground/80 hover:text-foreground">
+                                <span>Edit your moodboard — pin, add, refine</span>
+                                <span className="text-xs text-muted-foreground group-open:hidden">Open</span>
+                                <span className="text-xs text-muted-foreground hidden group-open:inline">Close</span>
+                              </summary>
+                              <div className="p-4 pt-0">
                               <ConclusionVisuals
                         dominantColors={editableColors}
                         onDominantColorsChange={setEditableColors}
@@ -772,7 +762,8 @@ const AnalyzeRoom = () => {
                         onSeedReady={() => setMoodboardReady(true)}
                                 visibleSections={sections}
                               />
-                            </div>
+                              </div>
+                            </details>
                           </>
                         );
                       })()}
