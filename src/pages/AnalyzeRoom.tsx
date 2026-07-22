@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import ConclusionVisuals from "@/components/analyze/ConclusionVisuals";
 import type { ConclusionSection } from "@/components/analyze/ConclusionVisuals";
+import MoodboardCollage from "@/components/analyze/MoodboardCollage";
 import TagVisual from "@/components/analyze/TagVisual";
 import { RefreshCw as RefreshIcon } from "lucide-react";
 import { trackEvent } from "@/lib/analytics";
