@@ -19,8 +19,7 @@ interface MoodboardCollageProps {
 
 type Tile =
   | { kind: "image"; src?: string; label?: string; span: string; pinned?: boolean }
-  | { kind: "colors"; colors: string[]; span: string }
-  | { kind: "text"; text: string; span: string };
+  | { kind: "colors"; colors: string[]; span: string };
 
 const ImageTile = ({
   src,
@@ -190,6 +189,7 @@ const MoodboardCollage = ({
               </div>
             );
           }
+          if (t.kind !== "image") return null;
           return (
             <div key={`t-${i}`} className={`${t.span} min-h-0`}>
               <ImageTile src={t.src} label={t.label} pinned={t.pinned} />
