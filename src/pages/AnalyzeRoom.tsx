@@ -684,30 +684,29 @@ const AnalyzeRoom = () => {
                   {isCreatingMoodboard && (
                     <div className={moodboardReady ? "mb-6" : "hidden"}>
                       {(() => {
-                        const STEP_SECTIONS: ConclusionSection[][] = [
-                          [],
-                          ["architecture"],
-                          ["colors", "materials"],
-                          ["furniture"],
-                          ["decor"],
-                          ["must-include"],
-                        ];
-                        const STEP_META = [
-                          { title: "What inspires your space?", subtitle: analysisResult.moodboardDescription || "Here's the vibe we picked up from your references." },
-                          { title: "How should the shell feel?", subtitle: "Walls, floors, ceilings, mouldings and built-ins." },
-                          { title: "What colors and textures speak to you?", subtitle: "Your palette and the materials it lives on." },
-                          { title: "Which furniture pieces fit your vibe?", subtitle: "Three pieces picked to match your style. Pin favourites to keep them." },
-                          { title: "How should we accessorize?", subtitle: "Lamps, art, textiles and the little things that finish a room." },
-                          { title: "Everything you want to keep", subtitle: "Here's your Must-include list — the pieces we'll design around." },
-                        ];
-                        const meta = STEP_META[moodboardStep];
-                        const sections = STEP_SECTIONS[moodboardStep];
+                         // Single-page moodboard: show every section at once so it
+                         // reads like a real moodboard collage — colors, materials,
+                         // architecture, furniture, decor — with Must-include kept.
+                         const STEP_SECTIONS: ConclusionSection[][] = [
+                           ["must-include", "colors", "materials", "architecture", "furniture", "decor"],
+                         ];
+                         const STEP_META = [
+                           {
+                             title: "Your moodboard",
+                             subtitle: analysisResult.moodboardDescription || "Colors, materials, architecture, furniture and decor — pinned together like a real moodboard. Your Must-include pieces stay up top.",
+                           },
+                         ];
+                         const meta = STEP_META[0];
+                         const sections = STEP_SECTIONS[0];
                         return (
                           <>
                             {/* Quiz-style question header */}
                             <div className="mb-6 text-center">
-                              <div className="text-xs uppercase tracking-[0.2em] text-muted-foreground mb-2">
-                                Step {moodboardStep + 1} of {STEP_META.length}
+                              <div
+                                className="text-xs uppercase tracking-[0.2em] text-muted-foreground mb-2"
+                                style={{ fontFamily: "'Caveat', cursive", letterSpacing: "0.15em", fontSize: "0.95rem", textTransform: "none" }}
+                              >
+                                a moodboard, curated for you
                               </div>
                               <h2 className="text-3xl md:text-4xl font-semibold leading-tight mb-2">
                                 {meta.title}
@@ -719,8 +718,8 @@ const AnalyzeRoom = () => {
                               )}
                             </div>
 
-                            {/* Step 0: inspiration polaroids only */}
-                            {moodboardStep === 0 && uploadedImages.length > 0 && (
+                            {/* Inspiration polaroids — always visible at the top of the moodboard */}
+                            {uploadedImages.length > 0 && (
                         <div className="mb-5">
                           <span
                             className="block mb-3 text-xl text-foreground/75"
@@ -750,8 +749,8 @@ const AnalyzeRoom = () => {
                           </div>
                         </div>
                       )}
-                            {/* ConclusionVisuals stays mounted (needed for seeding). Hidden on step 0. */}
-                            <div className={moodboardStep === 0 ? "hidden" : ""}>
+                            {/* Full moodboard — every section rendered at once. */}
+                            <div>
                               <ConclusionVisuals
                         dominantColors={editableColors}
                         onDominantColorsChange={setEditableColors}
@@ -893,35 +892,9 @@ const AnalyzeRoom = () => {
 
                 {/* Step 2 CTA: continue once moodboard is ready */}
                 {isCreatingMoodboard && moodboardReady && (
-                  <div className="flex gap-3">
-                    {moodboardStep > 0 && (
-                      <Button
-                        size="lg"
-                        variant="outline"
-                        onClick={() => setMoodboardStep((s) => Math.max(0, s - 1))}
-                      >
-                        <ArrowLeft className="w-4 h-4 mr-1" />
-                        Back
-                      </Button>
-                    )}
-                    {moodboardStep < 5 ? (
-                      <Button
-                        size="lg"
-                        className="flex-1"
-                        onClick={() => setMoodboardStep((s) => Math.min(5, s + 1))}
-                      >
-                        Next
-                      </Button>
-                    ) : (
-                      <Button
-                        size="lg"
-                        className="flex-1"
-                        onClick={handleContinue}
-                      >
-                        Continue with your own unique moodboard
-                      </Button>
-                    )}
-                  </div>
+                  <Button size="lg" className="w-full" onClick={handleContinue}>
+                    Continue with your own unique moodboard
+                  </Button>
                 )}
               </CardContent>
             </Card>
