@@ -320,9 +320,18 @@ const AnalyzeRoom = () => {
 
     const allInspirations = Array.from(aggregatedIds);
 
-    updateQuizData({
-      stylePreference: selectedStyle.styleName.toLowerCase().replace(/\s+/g, "-"),
+    const stylePref = selectedStyle.styleName.toLowerCase().replace(/\s+/g, "-");
+    const roomType = quizData?.roomType || "living_room";
+    const mergedQuizData = {
+      ...quizData,
+      stylePreference: stylePref,
       colorPalette: "neutral",
+      roomType,
+    };
+    updateQuizData({
+      stylePreference: stylePref,
+      colorPalette: "neutral",
+      roomType,
     });
     // Treat must-include items the same way the "Start with products" flow does:
     // pass them as `selectedProducts` + `productImageUrls` (with `includeProducts: true`)
@@ -341,6 +350,7 @@ const AnalyzeRoom = () => {
 
     navigate("/generate", {
       state: {
+        quizData: mergedQuizData,
         selectedStyle: {
           id: selectedStyle.styleName.toLowerCase().replace(/\s+/g, "-"),
           title: selectedStyle.styleName,
