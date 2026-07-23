@@ -348,12 +348,27 @@ serve(async (req) => {
     // then the scene image as layout reference
     const isScenePreviewMode = enrichedRequestData.isScenePreview && enrichedRequestData.existingRoomImages?.length;
     
+    // Collect must-include image URLs (user-pinned "must keeps" from moodboard).
+    // These get the HIGHEST visual priority — always attached first.
+    const mustIncludeUrls = (enrichedRequestData.mustIncludeItems || [])
+      .map((m) => m.imageUrl)
+      .filter(Boolean) as string[];
+
+    // Merge must-include images into productImageUrls so every must-keep is
+    // referenced by the model regardless of the branch below.
+    const combinedProductUrls = [
+      ...mustIncludeUrls,
+      ...((enrichedRequestData.productImageUrls || []).filter(
+        (u) => !mustIncludeUrls.includes(u),
+      )),
+    ];
+
     // Validate and collect product images
-    const maxProductImages = 3;
+    const maxProductImages = Math.max(3, mustIncludeUrls.length + 2);
     let validProductImageUrls: string[] = [];
-    if (enrichedRequestData.productImageUrls && enrichedRequestData.productImageUrls.length > 0) {
-      const candidateUrls = enrichedRequestData.productImageUrls.slice(0, maxProductImages + 2);
-      
+    if (combinedProductUrls.length > 0) {
+      const candidateUrls = combinedProductUrls.slice(0, maxProductImages + 2);
+
       for (const imageUrl of candidateUrls) {
         if (validProductImageUrls.length >= maxProductImages) break;
         try {
@@ -401,18 +416,17 @@ serve(async (req) => {
         addDebug("Source image", "Added source image to request");
       }
 
-      // MUST-INCLUDE items FIRST — these get the highest visual weight from the model.
-      // The user explicitly pinned these and expects them to appear EXACTLY in the design.
-      const mustImgs = (enrichedRequestData.mustIncludeItems || [])
-        .map((m) => m.imageUrl).filter(Boolean).slice(0, 2) as string[];
-      for (const u of mustImgs) contentParts.push({ type: "image_url", image_url: { url: u } });
-      if (mustImgs.length > 0) addDebug("Must-include images", `Added ${mustImgs.length} must-include exact-match image(s) FIRST`);
-
+      // Must-include images are already at the FRONT of validProductImageUrls
+      // (see combinedProductUrls above). The strict must-include prompt block
+      // references them as "the first N attached images".
       for (const imageUrl of validProductImageUrls) {
         contentParts.push({ type: "image_url", image_url: { url: imageUrl } });
       }
       if (validProductImageUrls.length > 0) {
-        addDebug("Product images", `Added ${validProductImageUrls.length}/${enrichedRequestData.productImageUrls!.length} product images to request`);
+        addDebug(
+          "Product + must-include images",
+          `Added ${validProductImageUrls.length} image(s); must-include first: ${mustIncludeUrls.length}`,
+        );
       }
 
       // Style moodboard images for the user-selected style(s) — visual references
