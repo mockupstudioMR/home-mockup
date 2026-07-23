@@ -21,14 +21,48 @@ import uploadRoomVisual from "@/assets/start/upload-room.jpg";
 import uploadProductsVisual from "@/assets/start/upload-products.jpg";
 import exploreStylesVisual from "@/assets/start/explore-styles.jpg";
 
+const FRESH_STAGE_KEY = "start_fresh_stage";
+type FreshStage = "path" | "intent" | "ground" | "vision" | "paths";
+
+const readFreshStage = (): FreshStage => {
+  try {
+    const raw = sessionStorage.getItem(FRESH_STAGE_KEY);
+    if (raw === "path" || raw === "intent" || raw === "ground" || raw === "vision" || raw === "paths") {
+      return raw;
+    }
+  } catch { /* ignore */ }
+  return "path";
+};
+
 const Start = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, loading } = useAuth();
   const { quizData, updateQuizData } = useQuiz();
   const isPro = new URLSearchParams(location.search).get("as") === "pro";
-  const [freshStage, setFreshStage] = useState<"path" | "intent" | "ground" | "vision" | "paths">("path");
+  const [freshStage, setFreshStageState] = useState<FreshStage>(readFreshStage);
   const [groundStep, setGroundStep] = useState<string>("property");
+
+  const setFreshStage = (s: FreshStage) => {
+    setFreshStageState(s);
+    try { sessionStorage.setItem(FRESH_STAGE_KEY, s); } catch { /* ignore */ }
+  };
+
+  // Hydrate wizard drafts so Continue never restarts the journey.
+  const groundDraft = useMemo(() => {
+    try {
+      const raw = sessionStorage.getItem("ground_your_space_draft");
+      if (raw) return JSON.parse(raw) as { data?: Partial<GroundData>; step?: string };
+    } catch { /* ignore */ }
+    return null;
+  }, []);
+  const visionDraft = useMemo(() => {
+    try {
+      const raw = sessionStorage.getItem("capture_vision_draft");
+      if (raw) return JSON.parse(raw) as { mode?: "choose" | "describe"; prompt?: string };
+    } catch { /* ignore */ }
+    return null;
+  }, []);
 
   const intro = useMemo(() => {
     const fromState = (location.state as { intro?: { name?: string; roomType?: string; vision?: string } } | null)?.intro;
@@ -256,10 +290,13 @@ const Start = () => {
                     updateQuizData({ roomType: data.startRoom });
                     try {
                       sessionStorage.setItem("ground_your_space", JSON.stringify(data));
+                      sessionStorage.removeItem("ground_your_space_draft");
                     } catch { /* ignore */ }
                     setFreshStage("vision");
                   }}
                   onStepChange={setGroundStep}
+                  initialData={groundDraft?.data}
+                  initialStep={groundDraft?.step as any}
                 />
               ) : freshStage === "vision" ? (
                 <CaptureVision
@@ -267,6 +304,8 @@ const Start = () => {
                   onComplete={(data: VisionData) => {
                     try {
                       sessionStorage.setItem("capture_vision", JSON.stringify(data));
+                      sessionStorage.removeItem("capture_vision_draft");
+                      sessionStorage.removeItem(FRESH_STAGE_KEY);
                     } catch { /* ignore */ }
                     trackEvent("journey_start", `vision-${data.mode}`, { from: "start-fresh" });
                     if (data.mode === "upload") {
@@ -277,6 +316,8 @@ const Start = () => {
                       navigate("/analyze-room", { state: { prompt: data.prompt } });
                     }
                   }}
+                  initialMode={visionDraft?.mode}
+                  initialPrompt={visionDraft?.prompt}
                 />
               ) : (
                 <div>

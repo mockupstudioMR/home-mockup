@@ -14,6 +14,8 @@ interface Props {
   onBack: () => void;
   onComplete: (data: GroundData) => void;
   onStepChange?: (step: Step) => void;
+  initialData?: Partial<GroundData>;
+  initialStep?: Step;
 }
 
 const PROPERTY_TYPES = [
@@ -99,19 +101,34 @@ const BigCard = ({
   </button>
 );
 
-const GroundYourSpace = ({ onBack, onComplete, onStepChange }: Props) => {
-  const [step, setStep] = useState<Step>("property");
+const VALID_STEPS: Step[] = ["property", "rooms", "state", "start-room"];
+
+const GroundYourSpace = ({ onBack, onComplete, onStepChange, initialData, initialStep }: Props) => {
+  const [step, setStep] = useState<Step>(
+    initialStep && VALID_STEPS.includes(initialStep) ? initialStep : "property",
+  );
   const [data, setData] = useState<GroundData>({
-    useCase: "",
-    propertyType: "",
-    rooms: [],
-    houseState: "",
-    startRoom: "",
+    useCase: initialData?.useCase ?? "",
+    propertyType: initialData?.propertyType ?? "",
+    rooms: initialData?.rooms ?? [],
+    houseState: initialData?.houseState ?? "",
+    startRoom: initialData?.startRoom ?? "",
   });
 
   useEffect(() => {
     onStepChange?.(step);
   }, [step, onStepChange]);
+
+  // Persist in-progress data + current step so navigating away and coming
+  // back (or refreshing the page) never restarts this wizard.
+  useEffect(() => {
+    try {
+      sessionStorage.setItem(
+        "ground_your_space_draft",
+        JSON.stringify({ data, step }),
+      );
+    } catch { /* ignore */ }
+  }, [data, step]);
 
   const steps: Step[] = ["property", "rooms", "state", "start-room"];
   const stepIndex = steps.indexOf(step);
