@@ -663,6 +663,16 @@ const Generate = () => {
         return;
       }
 
+      // Restore saved moodboard so "Back to Moodboard" opens the exact
+      // curated inspiration this design was generated from.
+      const savedMoodboard = (existingDesign as any).moodboard as GenerateMoodboard | null | undefined;
+      if (savedMoodboard && typeof savedMoodboard === "object") {
+        try {
+          sessionStorage.setItem("generate_moodboard_cache", JSON.stringify(savedMoodboard));
+          hydrateAnalyzeRoomCacheFromMoodboard(savedMoodboard);
+        } catch { /* ignore quota */ }
+      }
+
       // Generate and persist a title if missing
       const quizResp = existingDesign.quiz_responses as any;
       let designTitle = (existingDesign as any).title as string | null;
