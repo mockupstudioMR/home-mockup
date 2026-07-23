@@ -1,4 +1,5 @@
 import { getThumbnailImageUrl } from "@/lib/imageOptimization";
+import ImageWithLoader from "./ImageWithLoader";
 import { Pin } from "lucide-react";
 
 interface MoodboardItem {
@@ -38,17 +39,12 @@ const ImageTile = ({
         : "")
     }
   >
-    {src ? (
-      <img
-        src={getThumbnailImageUrl(src)}
-        alt={label || ""}
-        className="w-full h-full object-cover"
-        loading="lazy"
-        decoding="async"
-      />
-    ) : (
-      <div className="w-full h-full animate-pulse" />
-    )}
+    <ImageWithLoader
+      src={src ? getThumbnailImageUrl(src) : undefined}
+      alt={label || ""}
+      loading="lazy"
+      decoding="async"
+    />
     {pinned && (
       <>
         <span className="absolute inset-0 pointer-events-none bg-gradient-to-t from-primary/25 via-transparent to-transparent" />

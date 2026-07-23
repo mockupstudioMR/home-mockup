@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import ImageWithLoader from "./ImageWithLoader";
 import { X, Plus, Check, Pencil, Sparkles, Image as ImageIcon, Blend, Upload, Loader2, Pin, Mic, MicOff, Send } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
@@ -197,7 +198,7 @@ const VisualChip = ({
           {loading ? (
             <Skeleton className="w-full h-full" />
           ) : imageUrl ? (
-            <img src={imageUrl} alt={label} className="w-full h-full object-cover" />
+            <ImageWithLoader src={imageUrl} alt={label} />
           ) : (
             <button
               type="button"
@@ -1049,7 +1050,7 @@ const ConclusionVisuals = ({
                     <Pin className="w-2.5 h-2.5 fill-current" /> Kept
                   </button>
                   <div className="aspect-square overflow-hidden bg-muted/40 relative">
-                    <img src={getThumbnailImageUrl(item.imageUrl)} alt={item.label} className="w-full h-full object-cover" loading="lazy" decoding="async" />
+                    <ImageWithLoader src={getThumbnailImageUrl(item.imageUrl)} alt={item.label} loading="lazy" decoding="async" />
                     <button
                       type="button"
                       onClick={() => removeMustInclude(item.label)}
@@ -1148,7 +1149,7 @@ const ConclusionVisuals = ({
                   </button>
                   <div className="aspect-square overflow-hidden bg-muted/40 relative">
                     {item.imageUrl ? (
-                      <img src={getThumbnailImageUrl(item.imageUrl)} alt={item.label} className="w-full h-full object-cover" loading="lazy" decoding="async" />
+                      <ImageWithLoader src={getThumbnailImageUrl(item.imageUrl)} alt={item.label} loading="lazy" decoding="async" />
                     ) : (
                       <div className="absolute inset-0 flex flex-col items-center justify-center gap-1.5 bg-gradient-to-br from-muted/60 to-muted/30 animate-pulse">
                         <Loader2 className="w-5 h-5 animate-spin text-primary/70" />
@@ -1290,7 +1291,7 @@ const ConclusionVisuals = ({
                   </button>
                   <div className="aspect-square overflow-hidden bg-muted/40 relative">
                     {item.imageUrl ? (
-                      <img src={getThumbnailImageUrl(item.imageUrl)} alt={item.label} className="w-full h-full object-cover" loading="lazy" decoding="async" />
+                      <ImageWithLoader src={getThumbnailImageUrl(item.imageUrl)} alt={item.label} loading="lazy" decoding="async" />
                     ) : (
                       <div className="absolute inset-0 flex flex-col items-center justify-center gap-1.5 bg-gradient-to-br from-muted/60 to-muted/30 animate-pulse">
                         <Loader2 className="w-5 h-5 animate-spin text-primary/70" />
@@ -1417,7 +1418,7 @@ const ConclusionVisuals = ({
                   </button>
                   <div className="aspect-square overflow-hidden bg-muted/40 relative">
                     {item.imageUrl ? (
-                      <img src={getThumbnailImageUrl(item.imageUrl)} alt={item.label} className="w-full h-full object-cover" loading="lazy" decoding="async" />
+                      <ImageWithLoader src={getThumbnailImageUrl(item.imageUrl)} alt={item.label} loading="lazy" decoding="async" />
                     ) : (
                       <div className="absolute inset-0 flex flex-col items-center justify-center gap-1.5 bg-gradient-to-br from-muted/60 to-muted/30 animate-pulse">
                         <Loader2 className="w-5 h-5 animate-spin text-primary/70" />
