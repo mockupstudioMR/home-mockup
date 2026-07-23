@@ -331,7 +331,7 @@ serve(async (req) => {
 
     // Merge shop products with any explicitly selected products
     const allProducts = [
-      ...(requestData.selectedProducts || []),
+      ...((requestData.selectedProducts || []).map(normalizeProduct)),
       ...shopProducts,
     ];
     const allProductImageUrls = [
