@@ -79,7 +79,7 @@ export async function saveMoodboardAsset(input: SaveMoodboardAssetInput): Promis
     const sessionId = await getSessionId(userId);
     const mirrored = await mirrorToStorage(input.imageUrl, userId, input.section);
     const finalUrl = mirrored?.url || input.imageUrl;
-    await supabase.from("moodboard_assets").insert({
+    await supabase.from("moodboard_assets" as any).insert({
       user_id: userId,
       session_id: sessionId,
       design_id: input.designId ?? undefined,
@@ -122,7 +122,7 @@ export async function saveJourneyProduct(input: SaveJourneyProductInput): Promis
         finalImage = mirrored.url;
       }
     }
-    await supabase.from("journey_products").insert({
+    await supabase.from("journey_products" as any).insert({
       user_id: userId,
       session_id: sessionId,
       design_id: input.designId ?? undefined,
@@ -161,7 +161,7 @@ export async function saveStylePrompt(input: SaveStylePromptInput): Promise<void
         finalImage = mirrored.url;
       }
     }
-    await supabase.from("style_prompts").insert({
+    await supabase.from("style_prompts" as any).insert({
       user_id: userId,
       session_id: sessionId,
       input_kind: input.inputKind || "text",
@@ -189,7 +189,7 @@ export async function saveDesignJourneyMetadata(input: SaveDesignJourneyMetadata
   try {
     const userId = await getUserId();
     if (!userId) return;
-    await supabase.from("design_journey_metadata").upsert(
+    await supabase.from("design_journey_metadata" as any).upsert(
       {
         user_id: userId,
         design_id: input.designId,
