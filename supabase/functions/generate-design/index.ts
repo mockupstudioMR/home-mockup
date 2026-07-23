@@ -17,6 +17,19 @@ interface ProductInfo {
   image_urls?: string[];
 }
 
+// Normalize product objects coming from different client flows.
+// AnalyzeProducts sends { productName, category, description }; AnalyzeRoom's
+// must-include products use the same shape. Older callers use { name, type }.
+function normalizeProduct(p: any): any {
+  if (!p) return p;
+  return {
+    ...p,
+    name: p.name || p.productName || p.label || "Item",
+    type: p.type || p.category || "furniture",
+    category: p.category || p.type || "furniture",
+  };
+}
+
 interface GenerateRequest {
   stylePreference: string;
   colorPalette: string;
@@ -318,7 +331,7 @@ serve(async (req) => {
 
     // Merge shop products with any explicitly selected products
     const allProducts = [
-      ...(requestData.selectedProducts || []),
+      ...((requestData.selectedProducts || []).map(normalizeProduct)),
       ...shopProducts,
     ];
     const allProductImageUrls = [
@@ -348,12 +361,27 @@ serve(async (req) => {
     // then the scene image as layout reference
     const isScenePreviewMode = enrichedRequestData.isScenePreview && enrichedRequestData.existingRoomImages?.length;
     
+    // Collect must-include image URLs (user-pinned "must keeps" from moodboard).
+    // These get the HIGHEST visual priority — always attached first.
+    const mustIncludeUrls = (enrichedRequestData.mustIncludeItems || [])
+      .map((m) => m.imageUrl)
+      .filter(Boolean) as string[];
+
+    // Merge must-include images into productImageUrls so every must-keep is
+    // referenced by the model regardless of the branch below.
+    const combinedProductUrls = [
+      ...mustIncludeUrls,
+      ...((enrichedRequestData.productImageUrls || []).filter(
+        (u) => !mustIncludeUrls.includes(u),
+      )),
+    ];
+
     // Validate and collect product images
-    const maxProductImages = 3;
+    const maxProductImages = Math.max(3, mustIncludeUrls.length + 2);
     let validProductImageUrls: string[] = [];
-    if (enrichedRequestData.productImageUrls && enrichedRequestData.productImageUrls.length > 0) {
-      const candidateUrls = enrichedRequestData.productImageUrls.slice(0, maxProductImages + 2);
-      
+    if (combinedProductUrls.length > 0) {
+      const candidateUrls = combinedProductUrls.slice(0, maxProductImages + 2);
+
       for (const imageUrl of candidateUrls) {
         if (validProductImageUrls.length >= maxProductImages) break;
         try {
@@ -401,18 +429,17 @@ serve(async (req) => {
         addDebug("Source image", "Added source image to request");
       }
 
-      // MUST-INCLUDE items FIRST — these get the highest visual weight from the model.
-      // The user explicitly pinned these and expects them to appear EXACTLY in the design.
-      const mustImgs = (enrichedRequestData.mustIncludeItems || [])
-        .map((m) => m.imageUrl).filter(Boolean).slice(0, 2) as string[];
-      for (const u of mustImgs) contentParts.push({ type: "image_url", image_url: { url: u } });
-      if (mustImgs.length > 0) addDebug("Must-include images", `Added ${mustImgs.length} must-include exact-match image(s) FIRST`);
-
+      // Must-include images are already at the FRONT of validProductImageUrls
+      // (see combinedProductUrls above). The strict must-include prompt block
+      // references them as "the first N attached images".
       for (const imageUrl of validProductImageUrls) {
         contentParts.push({ type: "image_url", image_url: { url: imageUrl } });
       }
       if (validProductImageUrls.length > 0) {
-        addDebug("Product images", `Added ${validProductImageUrls.length}/${enrichedRequestData.productImageUrls!.length} product images to request`);
+        addDebug(
+          "Product + must-include images",
+          `Added ${validProductImageUrls.length} image(s); must-include first: ${mustIncludeUrls.length}`,
+        );
       }
 
       // Style moodboard images for the user-selected style(s) — visual references
@@ -681,7 +708,11 @@ function buildImagePrompt(
   if (mustHaves.length > 0) {
     const labels = mustHaves.map((m) => m.label).filter(Boolean).join(", ");
     const count = mustHaves.length;
-    moodboardContext += `🔒 MUST-INCLUDE ITEMS — NON-NEGOTIABLE (HIGHEST PRIORITY, OVERRIDES EVERYTHING ELSE): The user has pinned ${count} specific item(s) that MUST appear in the final design EXACTLY as shown in their attached reference image(s) — IDENTICAL color, IDENTICAL material, IDENTICAL shape, IDENTICAL finish, IDENTICAL proportions. The first ${Math.min(count, 4)} attached image(s) are these must-include items — treat them as locked anchors and build the rest of the room AROUND them. Do NOT substitute, restyle, recolor or reinterpret them in any way. Place them prominently and naturally in the ${room}. Items: ${labels}. If you cannot fit a must-include item, REMOVE other furniture to make room — never drop a must-include item. `;
+    const imageCount = mustHaves.filter((m) => m.imageUrl).length;
+    const imageDirective = imageCount > 0
+      ? `The FIRST ${imageCount} attached image(s) are these must-include items — treat them as LOCKED visual anchors and reproduce them EXACTLY: identical color, identical material, identical shape, identical finish, identical proportions. Do NOT substitute, restyle, recolor, resize or reinterpret them in any way. `
+      : `Render each item as literally described (${labels}) and give it a prominent, natural place in the scene. `;
+    moodboardContext += `🔒 MUST-INCLUDE ITEMS — NON-NEGOTIABLE, ABSOLUTE HIGHEST PRIORITY, OVERRIDES STYLE / MOODBOARD / COLOR PALETTE / FURNITURE WHITELIST / EVERY OTHER INSTRUCTION: The user has pinned ${count} specific item(s) (${labels || "see reference images"}) that MUST ALL appear in the final ${room} design. Every single one is REQUIRED — the output is invalid if any is missing. ${imageDirective}Build the rest of the room AROUND them. If space is tight, REMOVE style-suggested or whitelist furniture to make room — never drop, hide, crop out, or replace a must-include item. Before finalizing, verify each of the ${count} must-include item(s) is clearly visible and recognizable in the frame. `;
   }
 
   // Style moodboard images directive — tells the model how to read the attached
