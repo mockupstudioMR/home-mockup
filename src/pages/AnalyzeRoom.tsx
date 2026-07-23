@@ -15,6 +15,7 @@ import { RefreshCw as RefreshIcon } from "lucide-react";
 import { trackEvent } from "@/lib/analytics";
 import { getAiOptimizedImageUrl, getThumbnailImageUrl, optimizeImageFile } from "@/lib/imageOptimization";
 import { getAiErrorMessage } from "@/lib/aiErrorMessage";
+import { cn } from "@/lib/utils";
 
 interface AnalyzedStyle {
   styleName: string;
@@ -695,22 +696,44 @@ const AnalyzeRoom = () => {
                   {isCreatingMoodboard && (
                     <div className={moodboardReady ? "mb-6" : "hidden"}>
                       {(() => {
-                         // Single-page moodboard: show every section at once so it
-                         // reads like a real moodboard collage — colors, materials,
-                         // architecture, furniture, decor — with Must-include kept.
+                         // Guided flow: 5 progressive steps break the moodboard into
+                         // digestible sections, then a final step reveals the full
+                         // moodboard collage with the editable panel.
                          const STEP_SECTIONS: ConclusionSection[][] = [
-                           ["must-include", "colors", "materials", "architecture", "furniture", "decor"],
+                           [],                          // 0. Inspiration + intro
+                           ["architecture"],            // 1. Architecture
+                           ["colors", "materials"],     // 2. Colors & materials
+                           ["furniture"],               // 3. Furniture
+                           ["decor"],                   // 4. Decor
+                           ["must-include", "colors", "materials", "architecture", "furniture", "decor"], // 5. Full moodboard
                          ];
                          const STEP_META = [
-                           {
-                             title: "Your moodboard",
-                             subtitle: analysisResult.moodboardDescription || "Colors, materials, architecture, furniture and decor — pinned together like a real moodboard. Your Must-include pieces stay up top.",
-                           },
+                           { title: "Your inspiration", subtitle: analysisResult.moodboardDescription || "Here's the vibe we're building from. Let's break it down together." },
+                           { title: "Architecture", subtitle: "The bones of the space — walls, openings, structural references." },
+                           { title: "Colors & materials", subtitle: "The palette and textures that carry the mood." },
+                           { title: "Furniture", subtitle: "Key pieces that shape the room." },
+                           { title: "Decor", subtitle: "The finishing touches that make it yours." },
+                           { title: "Your moodboard", subtitle: "Everything pinned together. Refine, add, or continue to your design." },
                          ];
-                         const meta = STEP_META[0];
-                         const sections = STEP_SECTIONS[0];
+                         const step = Math.min(moodboardStep, STEP_SECTIONS.length - 1);
+                         const meta = STEP_META[step];
+                         const sections = STEP_SECTIONS[step];
+                         const isFinalStep = step === STEP_SECTIONS.length - 1;
+                         const isIntroStep = step === 0;
                         return (
                           <>
+                            {/* Progress dots */}
+                            <div className="flex justify-center gap-1.5 mb-4">
+                              {STEP_SECTIONS.map((_, i) => (
+                                <span
+                                  key={i}
+                                  className={cn(
+                                    "h-1.5 rounded-full transition-all",
+                                    i === step ? "w-8 bg-primary" : i < step ? "w-4 bg-primary/40" : "w-4 bg-border",
+                                  )}
+                                />
+                              ))}
+                            </div>
                             {/* Quiz-style question header */}
                             <div className="mb-6 text-center">
                               <div
@@ -729,29 +752,69 @@ const AnalyzeRoom = () => {
                               )}
                             </div>
 
-                            {/* Collage view — real moodboard aesthetic */}
-                            <div className="mb-8">
-                              <MoodboardCollage
-                                inspiration={uploadedImages}
-                                colors={editableColors}
-                                materials={moodboard.materials}
-                                architecture={moodboard.architectureReferences}
-                                furniture={moodboard.furnitureReferences}
-                                decor={moodboard.decorReferences}
-                                mustInclude={moodboard.mustInclude}
-                                headline="a moodboard, curated for you"
-                              />
-                            </div>
+                            {/* Intro step: show inspiration images */}
+                            {isIntroStep && uploadedImages.length > 0 && (
+                              <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-8">
+                                {uploadedImages.map((img, i) => (
+                                  <div key={i} className="aspect-square rounded-xl overflow-hidden border border-border/50">
+                                    <img src={getThumbnailImageUrl(img)} alt={`Inspiration ${i + 1}`} className="w-full h-full object-cover" />
+                                  </div>
+                                ))}
+                              </div>
+                            )}
 
-                            {/* Editable moodboard sections — pin, add, refine */}
-                            <details className="group rounded-xl border border-border/60 bg-card/60 backdrop-blur-sm">
-                              <summary className="cursor-pointer list-none px-4 py-3 flex items-center justify-between text-sm font-medium text-foreground/80 hover:text-foreground">
-                                <span>Edit your moodboard — pin, add, refine</span>
-                                <span className="text-xs text-muted-foreground group-open:hidden">Open</span>
-                                <span className="text-xs text-muted-foreground hidden group-open:inline">Close</span>
-                              </summary>
-                              <div className="p-4 pt-0">
-                              <ConclusionVisuals
+                            {/* Full collage — only on the final step */}
+                            {isFinalStep && (
+                              <div className="mb-8">
+                                <MoodboardCollage
+                                  inspiration={uploadedImages}
+                                  colors={editableColors}
+                                  materials={moodboard.materials}
+                                  architecture={moodboard.architectureReferences}
+                                  furniture={moodboard.furnitureReferences}
+                                  decor={moodboard.decorReferences}
+                                  mustInclude={moodboard.mustInclude}
+                                  headline="a moodboard, curated for you"
+                                />
+                              </div>
+                            )}
+
+                            {/* Section content — always mounted so it seeds in the background;
+                                on the final step wrap in a collapsible "Edit" panel. */}
+                            {isFinalStep ? (
+                              <details className="group rounded-xl border border-border/60 bg-card/60 backdrop-blur-sm">
+                                <summary className="cursor-pointer list-none px-4 py-3 flex items-center justify-between text-sm font-medium text-foreground/80 hover:text-foreground">
+                                  <span>Edit your moodboard — pin, add, refine</span>
+                                  <span className="text-xs text-muted-foreground group-open:hidden">Open</span>
+                                  <span className="text-xs text-muted-foreground hidden group-open:inline">Close</span>
+                                </summary>
+                                <div className="p-4 pt-0">
+                                  <ConclusionVisuals
+                                    dominantColors={editableColors}
+                                    onDominantColorsChange={setEditableColors}
+                                    styleNames={
+                                      selectedStyleIndex !== null
+                                        ? [analysisResult.styles[selectedStyleIndex].styleName]
+                                        : analysisResult.styles.map((s) => s.styleName)
+                                    }
+                                    seedElements={analysisResult.materials || []}
+                                    iconicItems={Object.fromEntries(
+                                      analysisResult.styles
+                                        .filter((s) => s.iconicItem)
+                                        .map((s) => [s.styleName, s.iconicItem as string]),
+                                    )}
+                                    roomDescription={analysisResult.moodboardDescription}
+                                    mustIncludeItems={pinnedVisuals}
+                                    extraMaterials={moodboardExtras}
+                                    onMoodboardChange={setMoodboard}
+                                    onSeedReady={() => setMoodboardReady(true)}
+                                    visibleSections={sections}
+                                  />
+                                </div>
+                              </details>
+                            ) : (
+                              <div className={isIntroStep ? "hidden" : ""}>
+                                <ConclusionVisuals
                         dominantColors={editableColors}
                         onDominantColorsChange={setEditableColors}
                         styleNames={
@@ -770,10 +833,32 @@ const AnalyzeRoom = () => {
                         extraMaterials={moodboardExtras}
                         onMoodboardChange={setMoodboard}
                         onSeedReady={() => setMoodboardReady(true)}
-                                visibleSections={sections}
-                              />
+                                  visibleSections={sections}
+                                />
                               </div>
-                            </details>
+                            )}
+
+                            {/* Step navigation */}
+                            <div className="mt-6 flex items-center justify-between gap-3">
+                              <Button
+                                type="button"
+                                variant="outline"
+                                disabled={step === 0}
+                                onClick={() => setMoodboardStep((s) => Math.max(0, s - 1))}
+                              >
+                                Back
+                              </Button>
+                              {!isFinalStep ? (
+                                <Button
+                                  type="button"
+                                  onClick={() => setMoodboardStep((s) => Math.min(STEP_SECTIONS.length - 1, s + 1))}
+                                >
+                                  Next
+                                </Button>
+                              ) : (
+                                <span className="text-xs text-muted-foreground">Step {step + 1} of {STEP_SECTIONS.length}</span>
+                              )}
+                            </div>
                           </>
                         );
                       })()}
@@ -884,6 +969,7 @@ const AnalyzeRoom = () => {
                     onClick={() => {
                       setMoodboardReady(false);
                       setIsCreatingMoodboard(true);
+                      setMoodboardStep(0);
                     }}
                   >
                     <Sparkles className="w-5 h-5 mr-2" />
@@ -891,10 +977,10 @@ const AnalyzeRoom = () => {
                   </Button>
                 )}
 
-                {/* Step 2 CTA: continue once moodboard is ready */}
-                {isCreatingMoodboard && moodboardReady && (
+                {/* Final CTA: continue to design — only visible on the last step */}
+                {isCreatingMoodboard && moodboardReady && moodboardStep >= 5 && (
                   <Button size="lg" className="w-full" onClick={handleContinue}>
-                    Continue with your own unique moodboard
+                    Continue to your design
                   </Button>
                 )}
               </CardContent>
