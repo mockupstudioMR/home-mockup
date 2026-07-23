@@ -70,6 +70,17 @@ const CaptureVision = ({ onBack, onComplete, initialMode, initialPrompt }: Props
   const [isListening, setIsListening] = useState(false);
   const recognitionRef = useRef<any>(null);
 
+  // Persist draft mode + prompt so pressing Continue elsewhere / navigating
+  // back never wipes what the user has typed.
+  useEffect(() => {
+    try {
+      sessionStorage.setItem(
+        "capture_vision_draft",
+        JSON.stringify({ mode, prompt }),
+      );
+    } catch { /* ignore */ }
+  }, [mode, prompt]);
+
   const startListening = useCallback(() => {
     const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SR) return;
