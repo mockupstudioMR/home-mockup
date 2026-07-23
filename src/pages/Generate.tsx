@@ -797,6 +797,15 @@ const Generate = () => {
         return;
       }
 
+      // Restore saved moodboard for this existing design so Back-to-Moodboard works.
+      const savedMoodboard = (existingDesign as any).moodboard as GenerateMoodboard | null | undefined;
+      if (savedMoodboard && typeof savedMoodboard === "object") {
+        try {
+          sessionStorage.setItem("generate_moodboard_cache", JSON.stringify(savedMoodboard));
+          hydrateAnalyzeRoomCacheFromMoodboard(savedMoodboard);
+        } catch { /* ignore */ }
+      }
+
       // Load existing design (same quiz session, returning user)
       let designTitle = (existingDesign as any).title as string | null;
       if (!designTitle) {
