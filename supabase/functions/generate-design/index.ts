@@ -17,6 +17,19 @@ interface ProductInfo {
   image_urls?: string[];
 }
 
+// Normalize product objects coming from different client flows.
+// AnalyzeProducts sends { productName, category, description }; AnalyzeRoom's
+// must-include products use the same shape. Older callers use { name, type }.
+function normalizeProduct(p: any): any {
+  if (!p) return p;
+  return {
+    ...p,
+    name: p.name || p.productName || p.label || "Item",
+    type: p.type || p.category || "furniture",
+    category: p.category || p.type || "furniture",
+  };
+}
+
 interface GenerateRequest {
   stylePreference: string;
   colorPalette: string;
