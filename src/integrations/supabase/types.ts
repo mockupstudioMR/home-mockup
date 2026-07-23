@@ -348,6 +348,39 @@ export type Database = {
           },
         ]
       }
+      journey_sessions: {
+        Row: {
+          created_at: string
+          history: Json
+          id: string
+          payload: Json
+          stage: string
+          sub_step: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          history?: Json
+          id?: string
+          payload?: Json
+          stage?: string
+          sub_step?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          history?: Json
+          id?: string
+          payload?: Json
+          stage?: string
+          sub_step?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       layout_feedback: {
         Row: {
           agreed: boolean
