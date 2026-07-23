@@ -320,6 +320,7 @@ const ConclusionVisuals = ({
       const title = data.title || "Product";
       addMustIncludeItem(title, data.imageUrl);
       setFurnitureReferences((prev) => [...prev, { label: title.slice(0, 60), imageUrl: data.imageUrl }]);
+      void saveJourneyProduct({ section: "furniture", name: title, sourceUrl: url, imageUrl: data.imageUrl });
       toast.success("Product added");
       setAddProductUrl("");
       setAddProductOpen(false);
@@ -349,6 +350,7 @@ const ConclusionVisuals = ({
         const baseLabel = file.name.replace(/\.[^.]+$/, "").slice(0, 40) || "Product";
         addMustIncludeItem(baseLabel, urlData.publicUrl);
         setFurnitureReferences((prev) => [...prev, { label: baseLabel, imageUrl: urlData.publicUrl }]);
+        void saveJourneyProduct({ section: "furniture", name: baseLabel, imageUrl: urlData.publicUrl });
       }
       toast.success("Product added");
       setAddProductOpen(false);
