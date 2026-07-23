@@ -843,8 +843,7 @@ const AnalyzeRoom = () => {
                               <Button
                                 type="button"
                                 variant="outline"
-                                disabled={step === 0}
-                                onClick={() => setMoodboardStep((s) => Math.max(0, s - 1))}
+                                onClick={() => navigate("/start")}
                               >
                                 Back
                               </Button>
