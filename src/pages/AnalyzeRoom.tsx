@@ -556,7 +556,7 @@ const AnalyzeRoom = () => {
           <div className="text-center space-y-3 py-4">
             <h1 className="text-3xl md:text-4xl font-bold tracking-tight">
               {isCreatingMoodboard
-                ? "Your Moodboard"
+                ? "What does your space look like?"
                 : analysisResult
                 ? (isExistingRoom ? "We detected these styles" : "Style Matches")
                 : isPromptMode
