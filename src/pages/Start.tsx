@@ -290,10 +290,13 @@ const Start = () => {
                     updateQuizData({ roomType: data.startRoom });
                     try {
                       sessionStorage.setItem("ground_your_space", JSON.stringify(data));
+                      sessionStorage.removeItem("ground_your_space_draft");
                     } catch { /* ignore */ }
                     setFreshStage("vision");
                   }}
                   onStepChange={setGroundStep}
+                  initialData={groundDraft?.data}
+                  initialStep={groundDraft?.step as any}
                 />
               ) : freshStage === "vision" ? (
                 <CaptureVision
@@ -301,6 +304,8 @@ const Start = () => {
                   onComplete={(data: VisionData) => {
                     try {
                       sessionStorage.setItem("capture_vision", JSON.stringify(data));
+                      sessionStorage.removeItem("capture_vision_draft");
+                      sessionStorage.removeItem(FRESH_STAGE_KEY);
                     } catch { /* ignore */ }
                     trackEvent("journey_start", `vision-${data.mode}`, { from: "start-fresh" });
                     if (data.mode === "upload") {
@@ -311,6 +316,8 @@ const Start = () => {
                       navigate("/analyze-room", { state: { prompt: data.prompt } });
                     }
                   }}
+                  initialMode={visionDraft?.mode}
+                  initialPrompt={visionDraft?.prompt}
                 />
               ) : (
                 <div>
