@@ -33,6 +33,13 @@ interface Design {
   room_id: string | null;
 }
 
+type DiagEntry = {
+  ts: string;
+  level: "info" | "warn" | "error";
+  message: string;
+  detail?: string;
+};
+
 const Gallery = () => {
   const navigate = useNavigate();
   const { user, loading } = useAuth();
@@ -44,7 +51,18 @@ const Gallery = () => {
   const [filter, setFilter] = useState<"all" | "favorites">("all");
   const [resumingId, setResumingId] = useState<string | null>(null);
   const [retryTick, setRetryTick] = useState(0);
-  
+  const [diag, setDiag] = useState<DiagEntry[]>([]);
+  const [showDiag, setShowDiag] = useState(false);
+
+  const log = (level: DiagEntry["level"], message: string, detail?: string) => {
+    const entry: DiagEntry = { ts: new Date().toISOString(), level, message, detail };
+    // eslint-disable-next-line no-console
+    console[level === "error" ? "error" : level === "warn" ? "warn" : "log"](
+      `[Gallery] ${message}`,
+      detail ?? ""
+    );
+    setDiag((prev) => [...prev, entry].slice(-100));
+  };
 
   useEffect(() => {
     if (!user) return;
@@ -54,13 +72,19 @@ const Gallery = () => {
     const fetchDesigns = async () => {
       setLoadingDesigns(true);
       setLoadError(null);
+      setDiag([]);
+      const url = (import.meta.env.VITE_SUPABASE_URL as string) || "(unset)";
+      log("info", "Starting fetch", `user=${user.id}  online=${navigator.onLine}  supabase=${url}`);
       const maxAttempts = 3;
       let delayMs = 600;
       let lastError: unknown = null;
 
       for (let attempt = 1; attempt <= maxAttempts; attempt++) {
         const controller = new AbortController();
-        const timeoutId = window.setTimeout(() => controller.abort(), 10000);
+        const timeoutMs = 10000;
+        const timeoutId = window.setTimeout(() => controller.abort(), timeoutMs);
+        const t0 = performance.now();
+        log("info", `Attempt ${attempt}/${maxAttempts}`, `timeout=${timeoutMs}ms`);
 
         try {
           const { data, error } = await supabase
@@ -72,16 +96,29 @@ const Gallery = () => {
             .abortSignal(controller.signal);
 
           window.clearTimeout(timeoutId);
+          const ms = Math.round(performance.now() - t0);
           if (cancelled) return;
-          if (error) throw error;
+          if (error) {
+            log("error", `Query error (${ms}ms)`, JSON.stringify(error));
+            throw error;
+          }
+          log("info", `Success (${ms}ms)`, `rows=${data?.length ?? 0}`);
           setDesigns(data || []);
           if (!cancelled) setLoadingDesigns(false);
           return;
         } catch (err) {
           window.clearTimeout(timeoutId);
+          const ms = Math.round(performance.now() - t0);
           lastError = err;
+          const isAbort = err instanceof DOMException && err.name === "AbortError";
+          log(
+            "warn",
+            `Attempt ${attempt} failed (${ms}ms)${isAbort ? " — timeout/abort" : ""}`,
+            err instanceof Error ? `${err.name}: ${err.message}` : JSON.stringify(err)
+          );
           if (cancelled) return;
           if (attempt < maxAttempts) {
+            log("info", `Retrying in ${delayMs}ms`);
             await new Promise((r) => setTimeout(r, delayMs));
             delayMs *= 2;
           }
@@ -89,13 +126,20 @@ const Gallery = () => {
       }
 
       if (cancelled) return;
-      console.error("Failed to load designs:", lastError);
       const isTimeout = lastError instanceof DOMException && lastError.name === "AbortError";
+      log(
+        "error",
+        "All attempts failed",
+        lastError instanceof Error
+          ? `${lastError.name}: ${lastError.message}`
+          : JSON.stringify(lastError)
+      );
       setLoadError(
         isTimeout
           ? "The gallery request is timing out before the backend responds."
           : "The gallery could not load your saved designs."
       );
+      setShowDiag(true);
       setLoadingDesigns(false);
     };
 
