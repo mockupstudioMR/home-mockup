@@ -16,6 +16,7 @@ import { trackEvent } from "@/lib/analytics";
 import { getAiOptimizedImageUrl, getThumbnailImageUrl, optimizeImageFile } from "@/lib/imageOptimization";
 import { getAiErrorMessage } from "@/lib/aiErrorMessage";
 import { cn } from "@/lib/utils";
+import { useJourneySession } from "@/hooks/useJourneySession";
 
 interface AnalyzedStyle {
   styleName: string;
@@ -75,6 +76,7 @@ const AnalyzeRoom = () => {
   const { user, loading } = useAuth();
   const { quizData, updateQuizData } = useQuiz();
   const { toast } = useToast();
+  const journey = useJourneySession();
   
   const [uploadedImages, setUploadedImages] = useState<string[]>(() => persisted.images || []);
   const stylePrompt: string | undefined = (() => {
@@ -119,6 +121,29 @@ const AnalyzeRoom = () => {
     mustInclude: { label: string; imageUrl?: string }[];
   }>(persisted.moodboard || { materials: [], references: [], furnitureReferences: [], decorReferences: [], architectureReferences: [], mustInclude: [] });
 
+  // Hydrate from DB once — if the user has a saved journey, prefer it over the
+  // local sessionStorage cache so returning from another device / tab restores
+  // exactly what was last persisted server-side.
+  const hydratedFromDbRef = (globalThis as any).__journeyHydratedRef ?? { current: false };
+  (globalThis as any).__journeyHydratedRef = hydratedFromDbRef;
+  useEffect(() => {
+    if (!journey.ready || hydratedFromDbRef.current) return;
+    hydratedFromDbRef.current = true;
+    const p = (journey.snapshot?.payload as any)?.analyzeRoom;
+    if (!p) return;
+    if (Array.isArray(p.images)) setUploadedImages(p.images);
+    if (p.result) setAnalysisResult(p.result);
+    if (typeof p.selectedStyleIndex === "number") setSelectedStyleIndex(p.selectedStyleIndex);
+    if (Array.isArray(p.selectedInspirations)) setSelectedInspirations(p.selectedInspirations);
+    if (p.inspirationDetailsMap) setInspirationDetailsMap(p.inspirationDetailsMap);
+    if (Array.isArray(p.editableColors)) setEditableColors(p.editableColors);
+    if (Array.isArray(p.moodboardExtras)) setMoodboardExtras(p.moodboardExtras);
+    if (typeof p.moodboardReady === "boolean") setMoodboardReady(p.moodboardReady);
+    if (typeof p.moodboardStep === "number") setMoodboardStep(p.moodboardStep);
+    if (Array.isArray(p.pinnedVisuals)) setPinnedVisuals(p.pinnedVisuals);
+    if (p.moodboard) setMoodboard(p.moodboard);
+  }, [journey.ready]);
+
   // Persist state so users can navigate away (e.g. to /generate) and return via
   // "Back to Moodboard" without losing their design, analysis, or moodboard.
   useEffect(() => {
@@ -137,6 +162,15 @@ const AnalyzeRoom = () => {
         moodboard,
       };
       sessionStorage.setItem(STORAGE_KEY, JSON.stringify(snapshot));
+      // Mirror to DB (debounced inside the hook) so returning to this screen
+      // fetches the moodboard instead of regenerating it from scratch.
+      if (journey.ready) {
+        journey.patch({
+          stage: "analyze",
+          sub_step: `step-${moodboardStep}`,
+          payload: { analyzeRoom: snapshot },
+        });
+      }
     } catch { /* ignore quota */ }
   }, [uploadedImages, analysisResult, selectedStyleIndex, selectedInspirations, inspirationDetailsMap, editableColors, moodboardExtras, moodboardReady, moodboardStep, pinnedVisuals, moodboard]);
 
@@ -843,8 +877,7 @@ const AnalyzeRoom = () => {
                               <Button
                                 type="button"
                                 variant="outline"
-                                disabled={step === 0}
-                                onClick={() => setMoodboardStep((s) => Math.max(0, s - 1))}
+                                onClick={() => navigate("/start")}
                               >
                                 Back
                               </Button>
