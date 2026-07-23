@@ -309,6 +309,45 @@ const Gallery = () => {
       ];
       generateKeys.forEach((key) => sessionStorage.removeItem(key));
 
+      // Restore the moodboard for this design so "Back to Moodboard" opens
+      // its curated inspiration instead of a blank / restarted moodboard.
+      try {
+        const { data: designRow } = await supabase
+          .from("generated_designs")
+          .select("moodboard")
+          .eq("id", design.id)
+          .maybeSingle();
+        const mb = (designRow as any)?.moodboard;
+        if (mb && typeof mb === "object") {
+          sessionStorage.setItem("generate_moodboard_cache", JSON.stringify(mb));
+          const existing = (() => {
+            try {
+              const raw = sessionStorage.getItem("analyze_room_cache");
+              return raw ? JSON.parse(raw) : {};
+            } catch { return {}; }
+          })();
+          const moodboard = {
+            materials: mb.materials || [],
+            references: mb.references || [],
+            furnitureReferences: mb.furnitureReferences || [],
+            decorReferences: mb.decorReferences || [],
+            architectureReferences: mb.architectureReferences || [],
+            mustInclude: mb.mustInclude || [],
+          };
+          sessionStorage.setItem("analyze_room_cache", JSON.stringify({
+            ...existing,
+            moodboard,
+            moodboardReady: true,
+            moodboardStep: 5,
+            editableColors: mb.colors || existing.editableColors || [],
+          }));
+        } else {
+          sessionStorage.removeItem("generate_moodboard_cache");
+        }
+      } catch (e) {
+        console.warn("[Gallery] moodboard restore failed", e);
+      }
+
       if (design.quiz_response_id) {
         // Fetch the quiz response to restore context
         const { data: quizResponse } = await supabase
