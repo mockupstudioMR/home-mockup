@@ -119,6 +119,10 @@ export const QuizProvider = ({ children }: { children: React.ReactNode }) => {
       'floor_plan_context',
       'room_spec_active',
       'room_spec_active_id',
+      // Start-fresh wizard drafts — clear so a brand-new journey restarts cleanly
+      'start_fresh_stage',
+      'ground_your_space_draft',
+      'capture_vision_draft',
     ];
     generateKeys.forEach((key) => sessionStorage.removeItem(key));
   }, []);
