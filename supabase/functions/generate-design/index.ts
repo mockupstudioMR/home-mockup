@@ -708,7 +708,11 @@ function buildImagePrompt(
   if (mustHaves.length > 0) {
     const labels = mustHaves.map((m) => m.label).filter(Boolean).join(", ");
     const count = mustHaves.length;
-    moodboardContext += `🔒 MUST-INCLUDE ITEMS — NON-NEGOTIABLE (HIGHEST PRIORITY, OVERRIDES EVERYTHING ELSE): The user has pinned ${count} specific item(s) that MUST appear in the final design EXACTLY as shown in their attached reference image(s) — IDENTICAL color, IDENTICAL material, IDENTICAL shape, IDENTICAL finish, IDENTICAL proportions. The first ${Math.min(count, 4)} attached image(s) are these must-include items — treat them as locked anchors and build the rest of the room AROUND them. Do NOT substitute, restyle, recolor or reinterpret them in any way. Place them prominently and naturally in the ${room}. Items: ${labels}. If you cannot fit a must-include item, REMOVE other furniture to make room — never drop a must-include item. `;
+    const imageCount = mustHaves.filter((m) => m.imageUrl).length;
+    const imageDirective = imageCount > 0
+      ? `The FIRST ${imageCount} attached image(s) are these must-include items — treat them as LOCKED visual anchors and reproduce them EXACTLY: identical color, identical material, identical shape, identical finish, identical proportions. Do NOT substitute, restyle, recolor, resize or reinterpret them in any way. `
+      : `Render each item as literally described (${labels}) and give it a prominent, natural place in the scene. `;
+    moodboardContext += `🔒 MUST-INCLUDE ITEMS — NON-NEGOTIABLE, ABSOLUTE HIGHEST PRIORITY, OVERRIDES STYLE / MOODBOARD / COLOR PALETTE / FURNITURE WHITELIST / EVERY OTHER INSTRUCTION: The user has pinned ${count} specific item(s) (${labels || "see reference images"}) that MUST ALL appear in the final ${room} design. Every single one is REQUIRED — the output is invalid if any is missing. ${imageDirective}Build the rest of the room AROUND them. If space is tight, REMOVE style-suggested or whitelist furniture to make room — never drop, hide, crop out, or replace a must-include item. Before finalizing, verify each of the ${count} must-include item(s) is clearly visible and recognizable in the frame. `;
   }
 
   // Style moodboard images directive — tells the model how to read the attached
