@@ -1,4 +1,5 @@
 import { getThumbnailImageUrl } from "@/lib/imageOptimization";
+import ImageWithLoader from "./ImageWithLoader";
 import { Pin } from "lucide-react";
 
 interface MoodboardItem {
