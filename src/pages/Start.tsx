@@ -21,14 +21,32 @@ import uploadRoomVisual from "@/assets/start/upload-room.jpg";
 import uploadProductsVisual from "@/assets/start/upload-products.jpg";
 import exploreStylesVisual from "@/assets/start/explore-styles.jpg";
 
+const FRESH_STAGE_KEY = "start_fresh_stage";
+type FreshStage = "path" | "intent" | "ground" | "vision" | "paths";
+
+const readFreshStage = (): FreshStage => {
+  try {
+    const raw = sessionStorage.getItem(FRESH_STAGE_KEY);
+    if (raw === "path" || raw === "intent" || raw === "ground" || raw === "vision" || raw === "paths") {
+      return raw;
+    }
+  } catch { /* ignore */ }
+  return "path";
+};
+
 const Start = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, loading } = useAuth();
   const { quizData, updateQuizData } = useQuiz();
   const isPro = new URLSearchParams(location.search).get("as") === "pro";
-  const [freshStage, setFreshStage] = useState<"path" | "intent" | "ground" | "vision" | "paths">("path");
+  const [freshStage, setFreshStageState] = useState<FreshStage>(readFreshStage);
   const [groundStep, setGroundStep] = useState<string>("property");
+
+  const setFreshStage = (s: FreshStage) => {
+    setFreshStageState(s);
+    try { sessionStorage.setItem(FRESH_STAGE_KEY, s); } catch { /* ignore */ }
+  };
 
   const intro = useMemo(() => {
     const fromState = (location.state as { intro?: { name?: string; roomType?: string; vision?: string } } | null)?.intro;
