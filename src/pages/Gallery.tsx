@@ -428,7 +428,47 @@ const Gallery = () => {
                 <p className="font-medium">Couldn't load your designs</p>
                 <p className="text-muted-foreground">{loadError}</p>
               </div>
-              <Button onClick={() => setRetryTick((t) => t + 1)}>Retry</Button>
+              <div className="flex items-center justify-center gap-2">
+                <Button onClick={() => setRetryTick((t) => t + 1)}>Retry</Button>
+                <Button variant="outline" onClick={() => setShowDiag((s) => !s)}>
+                  {showDiag ? "Hide" : "Show"} diagnostics
+                </Button>
+                <Button
+                  variant="ghost"
+                  onClick={() => {
+                    const text = diag
+                      .map((d) => `[${d.ts}] ${d.level.toUpperCase()} ${d.message}${d.detail ? " — " + d.detail : ""}`)
+                      .join("\n");
+                    navigator.clipboard.writeText(text);
+                    toast({ title: "Log copied" });
+                  }}
+                >
+                  Copy log
+                </Button>
+              </div>
+              {showDiag && (
+                <div className="text-left mx-auto max-w-2xl bg-muted/40 border border-border/50 rounded-md p-3 max-h-80 overflow-auto font-mono text-xs space-y-1">
+                  <div className="text-muted-foreground">
+                    online={String(navigator.onLine)} · url={String(import.meta.env.VITE_SUPABASE_URL || "(unset)")}
+                  </div>
+                  {diag.map((d, i) => (
+                    <div
+                      key={i}
+                      className={
+                        d.level === "error"
+                          ? "text-destructive"
+                          : d.level === "warn"
+                          ? "text-amber-600 dark:text-amber-400"
+                          : "text-foreground/80"
+                      }
+                    >
+                      <span className="text-muted-foreground">{d.ts.slice(11, 23)}</span>{" "}
+                      <span className="uppercase">[{d.level}]</span> {d.message}
+                      {d.detail && <div className="pl-6 text-muted-foreground whitespace-pre-wrap break-all">{d.detail}</div>}
+                    </div>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
         ) : filteredDesigns.length === 0 ? (
