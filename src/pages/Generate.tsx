@@ -569,6 +569,68 @@ const Generate = () => {
       });
   }, [design?.id, currentMoodboard]);
 
+  // Back-to-Moodboard handler: ensure a moodboard exists (in memory or DB).
+  // If neither has one, synthesize a minimal moodboard from the current
+  // analysis/design and persist it before navigating so /analyze-room always
+  // opens something coherent instead of restarting the journey.
+  const handleBackToMoodboard = async () => {
+    try {
+      // 1) In-memory moodboard is authoritative when present.
+      if (currentMoodboard) {
+        hydrateAnalyzeRoomCacheFromMoodboard(currentMoodboard);
+        navigate("/analyze-room");
+        return;
+      }
+
+      const designId = design?.id;
+
+      // 2) Fall back to the DB copy for this design.
+      if (designId) {
+        const { data, error } = await supabase
+          .from("generated_designs")
+          .select("moodboard")
+          .eq("id", designId)
+          .maybeSingle();
+        const savedMb = !error ? ((data as any)?.moodboard as GenerateMoodboard | null | undefined) : undefined;
+        if (savedMb && Object.keys(savedMb).length > 0) {
+          try { sessionStorage.setItem("generate_moodboard_cache", JSON.stringify(savedMb)); } catch { /* ignore */ }
+          hydrateAnalyzeRoomCacheFromMoodboard(savedMb);
+          navigate("/analyze-room");
+          return;
+        }
+      }
+
+      // 3) Nothing saved — synthesize a minimal moodboard from analysis + design.
+      const synthesized: GenerateMoodboard = {
+        colors: analysisResult?.dominantColors || [],
+        materials: [],
+        references: [],
+        furnitureReferences: [],
+        decorReferences: [],
+        architectureReferences: [],
+        mustInclude: [],
+      };
+
+      try { sessionStorage.setItem("generate_moodboard_cache", JSON.stringify(synthesized)); } catch { /* ignore */ }
+      hydrateAnalyzeRoomCacheFromMoodboard(synthesized);
+
+      if (designId) {
+        supabase
+          .from("generated_designs")
+          .update({ moodboard: synthesized } as any)
+          .eq("id", designId)
+          .then(({ error }) => {
+            if (error) console.warn("[Generate] failed to seed moodboard on back", error);
+          });
+      }
+
+      navigate("/analyze-room");
+    } catch (e) {
+      console.warn("[Generate] handleBackToMoodboard failed, navigating anyway", e);
+      navigate("/analyze-room");
+    }
+  };
+
   // Track the quiz data to detect new quizzes
   const lastQuizDataRef = useRef<string | null>(sessionStorage.getItem('generate_quiz_hash'));
 
@@ -2044,7 +2106,7 @@ RULES:
         {/* Header */}
         <div className="sticky top-0 z-30 -mx-4 md:-mx-6 px-4 md:px-6 py-3 flex items-center justify-between bg-background/85 backdrop-blur-md border-b border-border/50">
           <button
-            onClick={() => navigate("/analyze-room")}
+            onClick={handleBackToMoodboard}
             className="inline-flex items-center gap-2 rounded-full bg-primary/10 hover:bg-primary/20 text-primary px-3 py-1.5 text-sm font-medium transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />
@@ -2228,7 +2290,7 @@ RULES:
             canUndo={imageHistoryStack.length > 0}
             generating={generating}
             disabled={!design || generating}
-            onBack={() => navigate("/analyze-room")}
+            onBack={handleBackToMoodboard}
           />
         </div>
         )}
