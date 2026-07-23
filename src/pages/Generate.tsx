@@ -551,6 +551,24 @@ const Generate = () => {
     safeSessionStorage("generate_moodboard_cache", JSON.stringify(routeMoodboard));
   }, [routeMoodboard, safeSessionStorage]);
 
+  // Persist the moodboard onto the design row so it can be restored when the
+  // user re-opens the design later. Runs once per (designId, moodboard) pair.
+  const persistedMoodboardKeyRef = useRef<string | null>(null);
+  useEffect(() => {
+    const designId = design?.id;
+    if (!designId || !currentMoodboard) return;
+    const key = `${designId}:${JSON.stringify(currentMoodboard).length}`;
+    if (persistedMoodboardKeyRef.current === key) return;
+    persistedMoodboardKeyRef.current = key;
+    supabase
+      .from("generated_designs")
+      .update({ moodboard: currentMoodboard } as any)
+      .eq("id", designId)
+      .then(({ error }) => {
+        if (error) console.warn("[Generate] failed to persist moodboard", error);
+      });
+  }, [design?.id, currentMoodboard]);
+
   // Track the quiz data to detect new quizzes
   const lastQuizDataRef = useRef<string | null>(sessionStorage.getItem('generate_quiz_hash'));
 
