@@ -7,6 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
+import { saveMoodboardAsset, saveJourneyProduct } from "@/lib/journeyPersistence";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { getThumbnailImageUrl, optimizeImageFile } from "@/lib/imageOptimization";
@@ -319,6 +320,7 @@ const ConclusionVisuals = ({
       const title = data.title || "Product";
       addMustIncludeItem(title, data.imageUrl);
       setFurnitureReferences((prev) => [...prev, { label: title.slice(0, 60), imageUrl: data.imageUrl }]);
+      void saveJourneyProduct({ section: "furniture", name: title, sourceUrl: url, imageUrl: data.imageUrl });
       toast.success("Product added");
       setAddProductUrl("");
       setAddProductOpen(false);
@@ -348,6 +350,7 @@ const ConclusionVisuals = ({
         const baseLabel = file.name.replace(/\.[^.]+$/, "").slice(0, 40) || "Product";
         addMustIncludeItem(baseLabel, urlData.publicUrl);
         setFurnitureReferences((prev) => [...prev, { label: baseLabel, imageUrl: urlData.publicUrl }]);
+        void saveJourneyProduct({ section: "furniture", name: baseLabel, imageUrl: urlData.publicUrl });
       }
       toast.success("Product added");
       setAddProductOpen(false);
@@ -645,6 +648,7 @@ const ConclusionVisuals = ({
         const { data, error } = await supabase.functions.invoke("generate-highlight-visuals", { body });
         if (!error && data?.imageUrl) {
           setter((prev) => prev.map((m) => (m.label === label ? { ...m, imageUrl: data.imageUrl } : m)));
+          void saveMoodboardAsset({ section: kind, label, imageUrl: data.imageUrl, prompt: descByKind[kind], kind: "ai" });
           return;
         }
         // Edge fn returns { error: "Rate limits exceeded", retryable: true } with status 200
@@ -783,6 +787,7 @@ const ConclusionVisuals = ({
         const { data, error } = await supabase.functions.invoke("generate-highlight-visuals", { body });
         if (!error && data?.imageUrl) {
           setter((prev) => [...prev, { label, imageUrl: data.imageUrl }]);
+          void saveMoodboardAsset({ section: kind, label, imageUrl: data.imageUrl, prompt: descByKind[kind], kind: "ai" });
           break;
         }
         if (attempt < MAX) await new Promise((r) => setTimeout(r, 1500 * attempt + Math.random() * 500));

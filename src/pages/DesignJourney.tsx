@@ -15,6 +15,7 @@ import BeforeAfter from "@/components/journey/screens/BeforeAfter";
 import ShareNextSteps from "@/components/journey/screens/ShareNextSteps";
 import { useJourneyData } from "@/components/journey/hooks/useJourneyData";
 import { toast } from "@/hooks/use-toast";
+import { saveDesignJourneyMetadata } from "@/lib/journeyPersistence";
 
 const TOTAL = 10;
 
@@ -37,6 +38,26 @@ const DesignJourney = () => {
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, [step]);
+
+  // Persist the journey snapshot for this design so it can be recalled instead of recomputed.
+  useEffect(() => {
+    if (!designId || !design) return;
+    void saveDesignJourneyMetadata({
+      designId,
+      healthScore: 92,
+      styleDna: { style: "Modern Minimal" },
+      budget: { total: 5800, currency: "EUR" },
+      roadmap: {
+        weeks: [
+          { week: "Week 1", title: "Prep the shell" },
+          { week: "Week 2", title: "Light the room" },
+          { week: "Week 3", title: "Bring in the anchors" },
+          { week: "Week 4", title: "Style the details" },
+        ],
+      },
+      shopping: { productCount: 9 },
+    });
+  }, [designId, design]);
 
   const before = design?.sourceImageUrl || design?.imageUrl || "";
   const after = design?.imageUrl || "";

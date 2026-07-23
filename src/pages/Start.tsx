@@ -9,6 +9,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { trackEvent } from "@/lib/analytics";
 import GroundYourSpace, { type GroundData } from "@/components/start/GroundYourSpace";
 import CaptureVision, { type VisionData } from "@/components/start/CaptureVision";
+import { saveStylePrompt } from "@/lib/journeyPersistence";
 import IntentStep from "@/components/quiz/steps/IntentStep";
 
 interface StartLocationState {
@@ -313,6 +314,9 @@ const Start = () => {
                     } else if (data.mode === "discover") {
                       navigate("/style-tree");
                     } else {
+                      if (data.prompt) {
+                        void saveStylePrompt({ prompt: data.prompt, inputKind: "text" });
+                      }
                       navigate("/analyze-room", { state: { prompt: data.prompt } });
                     }
                   }}

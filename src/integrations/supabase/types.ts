@@ -227,6 +227,56 @@ export type Database = {
           },
         ]
       }
+      design_journey_metadata: {
+        Row: {
+          budget: Json
+          created_at: string
+          design_id: string
+          health_score: number | null
+          id: string
+          metadata: Json
+          roadmap: Json
+          shopping: Json
+          style_dna: Json
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          budget?: Json
+          created_at?: string
+          design_id: string
+          health_score?: number | null
+          id?: string
+          metadata?: Json
+          roadmap?: Json
+          shopping?: Json
+          style_dna?: Json
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          budget?: Json
+          created_at?: string
+          design_id?: string
+          health_score?: number | null
+          id?: string
+          metadata?: Json
+          roadmap?: Json
+          shopping?: Json
+          style_dna?: Json
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "design_journey_metadata_design_id_fkey"
+            columns: ["design_id"]
+            isOneToOne: true
+            referencedRelation: "generated_designs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       furniture_specs: {
         Row: {
           companion_of: string | null
@@ -347,6 +397,75 @@ export type Database = {
             columns: ["room_id"]
             isOneToOne: false
             referencedRelation: "rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      journey_products: {
+        Row: {
+          created_at: string
+          currency: string | null
+          design_id: string | null
+          id: string
+          image_url: string | null
+          is_pinned: boolean
+          metadata: Json
+          name: string | null
+          price: number | null
+          section: string | null
+          session_id: string | null
+          source_url: string | null
+          storage_path: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          currency?: string | null
+          design_id?: string | null
+          id?: string
+          image_url?: string | null
+          is_pinned?: boolean
+          metadata?: Json
+          name?: string | null
+          price?: number | null
+          section?: string | null
+          session_id?: string | null
+          source_url?: string | null
+          storage_path?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          currency?: string | null
+          design_id?: string | null
+          id?: string
+          image_url?: string | null
+          is_pinned?: boolean
+          metadata?: Json
+          name?: string | null
+          price?: number | null
+          section?: string | null
+          session_id?: string | null
+          source_url?: string | null
+          storage_path?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "journey_products_design_id_fkey"
+            columns: ["design_id"]
+            isOneToOne: false
+            referencedRelation: "generated_designs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "journey_products_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "journey_sessions"
             referencedColumns: ["id"]
           },
         ]
@@ -476,6 +595,75 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      moodboard_assets: {
+        Row: {
+          created_at: string
+          design_id: string | null
+          id: string
+          image_url: string
+          is_pinned: boolean
+          kind: string
+          label: string | null
+          metadata: Json
+          position: number
+          prompt: string | null
+          section: string
+          session_id: string | null
+          storage_path: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          design_id?: string | null
+          id?: string
+          image_url: string
+          is_pinned?: boolean
+          kind?: string
+          label?: string | null
+          metadata?: Json
+          position?: number
+          prompt?: string | null
+          section: string
+          session_id?: string | null
+          storage_path?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          design_id?: string | null
+          id?: string
+          image_url?: string
+          is_pinned?: boolean
+          kind?: string
+          label?: string | null
+          metadata?: Json
+          position?: number
+          prompt?: string | null
+          section?: string
+          session_id?: string | null
+          storage_path?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "moodboard_assets_design_id_fkey"
+            columns: ["design_id"]
+            isOneToOne: false
+            referencedRelation: "generated_designs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "moodboard_assets_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "journey_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       notification_settings: {
         Row: {
@@ -971,6 +1159,53 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      style_prompts: {
+        Row: {
+          created_at: string
+          generated_image_url: string | null
+          id: string
+          input_kind: string
+          metadata: Json
+          prompt: string
+          session_id: string | null
+          storage_path: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          generated_image_url?: string | null
+          id?: string
+          input_kind?: string
+          metadata?: Json
+          prompt: string
+          session_id?: string | null
+          storage_path?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          generated_image_url?: string | null
+          id?: string
+          input_kind?: string
+          metadata?: Json
+          prompt?: string
+          session_id?: string | null
+          storage_path?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "style_prompts_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "journey_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {
