@@ -126,6 +126,37 @@ type GenerateMoodboard = {
   mustInclude?: { label: string; imageUrl?: string }[];
 };
 
+// Rebuild the analyze-room persisted cache from a saved moodboard so the
+// "Back to Moodboard" flow from an existing design reopens the exact
+// curated inspiration (colors, materials, furniture, decor, must-includes)
+// instead of restarting from scratch.
+const hydrateAnalyzeRoomCacheFromMoodboard = (mb: GenerateMoodboard) => {
+  try {
+    const existing = (() => {
+      try {
+        const raw = sessionStorage.getItem("analyze_room_cache");
+        return raw ? JSON.parse(raw) : {};
+      } catch { return {}; }
+    })();
+    const moodboard = {
+      materials: mb.materials || [],
+      references: mb.references || [],
+      furnitureReferences: mb.furnitureReferences || [],
+      decorReferences: mb.decorReferences || [],
+      architectureReferences: mb.architectureReferences || [],
+      mustInclude: mb.mustInclude || [],
+    };
+    const snapshot = {
+      ...existing,
+      moodboard,
+      moodboardReady: true,
+      moodboardStep: 5,
+      editableColors: mb.colors || existing.editableColors || [],
+    };
+    sessionStorage.setItem("analyze_room_cache", JSON.stringify(snapshot));
+  } catch { /* ignore quota */ }
+};
+
 // Generate a suggested design name from style & room type
 const generateDesignTitle = (style?: string, roomType?: string): string => {
   const styleTitles: Record<string, string[]> = {
