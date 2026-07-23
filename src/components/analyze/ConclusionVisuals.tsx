@@ -646,6 +646,7 @@ const ConclusionVisuals = ({
         const { data, error } = await supabase.functions.invoke("generate-highlight-visuals", { body });
         if (!error && data?.imageUrl) {
           setter((prev) => prev.map((m) => (m.label === label ? { ...m, imageUrl: data.imageUrl } : m)));
+          void saveMoodboardAsset({ section: kind, label, imageUrl: data.imageUrl, prompt: descByKind[kind], kind: "ai" });
           return;
         }
         // Edge fn returns { error: "Rate limits exceeded", retryable: true } with status 200
@@ -784,6 +785,7 @@ const ConclusionVisuals = ({
         const { data, error } = await supabase.functions.invoke("generate-highlight-visuals", { body });
         if (!error && data?.imageUrl) {
           setter((prev) => [...prev, { label, imageUrl: data.imageUrl }]);
+          void saveMoodboardAsset({ section: kind, label, imageUrl: data.imageUrl, prompt: descByKind[kind], kind: "ai" });
           break;
         }
         if (attempt < MAX) await new Promise((r) => setTimeout(r, 1500 * attempt + Math.random() * 500));
