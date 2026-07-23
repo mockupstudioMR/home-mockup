@@ -280,6 +280,7 @@ export type Database = {
           is_locked: boolean | null
           locked_at: string | null
           modification_history: Json | null
+          moodboard: Json | null
           parent_design_id: string | null
           prompt: string
           quiz_response_id: string | null
@@ -298,6 +299,7 @@ export type Database = {
           is_locked?: boolean | null
           locked_at?: string | null
           modification_history?: Json | null
+          moodboard?: Json | null
           parent_design_id?: string | null
           prompt: string
           quiz_response_id?: string | null
@@ -316,6 +318,7 @@ export type Database = {
           is_locked?: boolean | null
           locked_at?: string | null
           modification_history?: Json | null
+          moodboard?: Json | null
           parent_design_id?: string | null
           prompt?: string
           quiz_response_id?: string | null

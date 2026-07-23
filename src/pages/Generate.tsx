@@ -126,6 +126,37 @@ type GenerateMoodboard = {
   mustInclude?: { label: string; imageUrl?: string }[];
 };
 
+// Rebuild the analyze-room persisted cache from a saved moodboard so the
+// "Back to Moodboard" flow from an existing design reopens the exact
+// curated inspiration (colors, materials, furniture, decor, must-includes)
+// instead of restarting from scratch.
+const hydrateAnalyzeRoomCacheFromMoodboard = (mb: GenerateMoodboard) => {
+  try {
+    const existing = (() => {
+      try {
+        const raw = sessionStorage.getItem("analyze_room_cache");
+        return raw ? JSON.parse(raw) : {};
+      } catch { return {}; }
+    })();
+    const moodboard = {
+      materials: mb.materials || [],
+      references: mb.references || [],
+      furnitureReferences: mb.furnitureReferences || [],
+      decorReferences: mb.decorReferences || [],
+      architectureReferences: mb.architectureReferences || [],
+      mustInclude: mb.mustInclude || [],
+    };
+    const snapshot = {
+      ...existing,
+      moodboard,
+      moodboardReady: true,
+      moodboardStep: 5,
+      editableColors: mb.colors || existing.editableColors || [],
+    };
+    sessionStorage.setItem("analyze_room_cache", JSON.stringify(snapshot));
+  } catch { /* ignore quota */ }
+};
+
 // Generate a suggested design name from style & room type
 const generateDesignTitle = (style?: string, roomType?: string): string => {
   const styleTitles: Record<string, string[]> = {
@@ -520,6 +551,24 @@ const Generate = () => {
     safeSessionStorage("generate_moodboard_cache", JSON.stringify(routeMoodboard));
   }, [routeMoodboard, safeSessionStorage]);
 
+  // Persist the moodboard onto the design row so it can be restored when the
+  // user re-opens the design later. Runs once per (designId, moodboard) pair.
+  const persistedMoodboardKeyRef = useRef<string | null>(null);
+  useEffect(() => {
+    const designId = design?.id;
+    if (!designId || !currentMoodboard) return;
+    const key = `${designId}:${JSON.stringify(currentMoodboard).length}`;
+    if (persistedMoodboardKeyRef.current === key) return;
+    persistedMoodboardKeyRef.current = key;
+    supabase
+      .from("generated_designs")
+      .update({ moodboard: currentMoodboard } as any)
+      .eq("id", designId)
+      .then(({ error }) => {
+        if (error) console.warn("[Generate] failed to persist moodboard", error);
+      });
+  }, [design?.id, currentMoodboard]);
+
   // Track the quiz data to detect new quizzes
   const lastQuizDataRef = useRef<string | null>(sessionStorage.getItem('generate_quiz_hash'));
 
@@ -663,6 +712,16 @@ const Generate = () => {
         return;
       }
 
+      // Restore saved moodboard so "Back to Moodboard" opens the exact
+      // curated inspiration this design was generated from.
+      const savedMoodboard = (existingDesign as any).moodboard as GenerateMoodboard | null | undefined;
+      if (savedMoodboard && typeof savedMoodboard === "object") {
+        try {
+          sessionStorage.setItem("generate_moodboard_cache", JSON.stringify(savedMoodboard));
+          hydrateAnalyzeRoomCacheFromMoodboard(savedMoodboard);
+        } catch { /* ignore quota */ }
+      }
+
       // Generate and persist a title if missing
       const quizResp = existingDesign.quiz_responses as any;
       let designTitle = (existingDesign as any).title as string | null;
@@ -754,6 +813,15 @@ const Generate = () => {
         setGenerating(false);
         generateDesign(currentQuizId || undefined);
         return;
+      }
+
+      // Restore saved moodboard for this existing design so Back-to-Moodboard works.
+      const savedMoodboard = (existingDesign as any).moodboard as GenerateMoodboard | null | undefined;
+      if (savedMoodboard && typeof savedMoodboard === "object") {
+        try {
+          sessionStorage.setItem("generate_moodboard_cache", JSON.stringify(savedMoodboard));
+          hydrateAnalyzeRoomCacheFromMoodboard(savedMoodboard);
+        } catch { /* ignore */ }
       }
 
       // Load existing design (same quiz session, returning user)
