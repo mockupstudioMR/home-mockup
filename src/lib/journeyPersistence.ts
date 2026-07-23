@@ -10,18 +10,18 @@ import { supabase } from "@/integrations/supabase/client";
 
 const BUCKET = "moodboard-assets";
 
-async function getUserId(): Promise<string | null> {
+async function getUserId(): Promise<string | undefined> {
   const { data } = await supabase.auth.getUser();
-  return data?.user?.id ?? null;
+  return data?.user?.id ?? undefined;
 }
 
-async function getSessionId(userId: string): Promise<string | null> {
+async function getSessionId(userId: string): Promise<string | undefined> {
   const { data } = await supabase
     .from("journey_sessions")
     .select("id")
     .eq("user_id", userId)
     .maybeSingle();
-  return data?.id ?? null;
+  return (data?.id as string | undefined) ?? undefined;
 }
 
 /** Download a remote image and re-upload to our private bucket. */
@@ -113,8 +113,8 @@ export async function saveJourneyProduct(input: SaveJourneyProductInput): Promis
     const userId = await getUserId();
     if (!userId) return;
     const sessionId = await getSessionId(userId);
-    let storagePath: string | null = null;
-    let finalImage = input.imageUrl || null;
+    let storagePath: string | undefined;
+    let finalImage: string | undefined = input.imageUrl || undefined;
     if (input.imageUrl) {
       const mirrored = await mirrorToStorage(input.imageUrl, userId, "products");
       if (mirrored) {
@@ -152,8 +152,8 @@ export async function saveStylePrompt(input: SaveStylePromptInput): Promise<void
     const userId = await getUserId();
     if (!userId) return;
     const sessionId = await getSessionId(userId);
-    let storagePath: string | null = null;
-    let finalImage = input.generatedImageUrl || null;
+    let storagePath: string | undefined;
+    let finalImage: string | undefined = input.generatedImageUrl || undefined;
     if (input.generatedImageUrl) {
       const mirrored = await mirrorToStorage(input.generatedImageUrl, userId, "style-prompts");
       if (mirrored) {
