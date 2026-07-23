@@ -609,7 +609,6 @@ const Generate = () => {
         decorReferences: [],
         architectureReferences: [],
         mustInclude: [],
-        description: analysisResult?.moodboardDescription,
       };
 
       try { sessionStorage.setItem("generate_moodboard_cache", JSON.stringify(synthesized)); } catch { /* ignore */ }
