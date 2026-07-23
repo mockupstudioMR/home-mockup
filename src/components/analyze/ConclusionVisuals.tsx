@@ -198,7 +198,7 @@ const VisualChip = ({
           {loading ? (
             <Skeleton className="w-full h-full" />
           ) : imageUrl ? (
-            <img src={imageUrl} alt={label} className="w-full h-full object-cover" />
+            <ImageWithLoader src={imageUrl} alt={label} />
           ) : (
             <button
               type="button"
