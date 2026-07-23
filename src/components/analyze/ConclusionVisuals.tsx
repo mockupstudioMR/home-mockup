@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import ImageWithLoader from "./ImageWithLoader";
 import { X, Plus, Check, Pencil, Sparkles, Image as ImageIcon, Blend, Upload, Loader2, Pin, Mic, MicOff, Send } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
