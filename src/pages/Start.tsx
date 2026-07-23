@@ -48,6 +48,22 @@ const Start = () => {
     try { sessionStorage.setItem(FRESH_STAGE_KEY, s); } catch { /* ignore */ }
   };
 
+  // Hydrate wizard drafts so Continue never restarts the journey.
+  const groundDraft = useMemo(() => {
+    try {
+      const raw = sessionStorage.getItem("ground_your_space_draft");
+      if (raw) return JSON.parse(raw) as { data?: Partial<GroundData>; step?: string };
+    } catch { /* ignore */ }
+    return null;
+  }, []);
+  const visionDraft = useMemo(() => {
+    try {
+      const raw = sessionStorage.getItem("capture_vision_draft");
+      if (raw) return JSON.parse(raw) as { mode?: "choose" | "describe"; prompt?: string };
+    } catch { /* ignore */ }
+    return null;
+  }, []);
+
   const intro = useMemo(() => {
     const fromState = (location.state as { intro?: { name?: string; roomType?: string; vision?: string } } | null)?.intro;
     if (fromState) return fromState;
