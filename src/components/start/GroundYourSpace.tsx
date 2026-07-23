@@ -119,6 +119,17 @@ const GroundYourSpace = ({ onBack, onComplete, onStepChange, initialData, initia
     onStepChange?.(step);
   }, [step, onStepChange]);
 
+  // Persist in-progress data + current step so navigating away and coming
+  // back (or refreshing the page) never restarts this wizard.
+  useEffect(() => {
+    try {
+      sessionStorage.setItem(
+        "ground_your_space_draft",
+        JSON.stringify({ data, step }),
+      );
+    } catch { /* ignore */ }
+  }, [data, step]);
+
   const steps: Step[] = ["property", "rooms", "state", "start-room"];
   const stepIndex = steps.indexOf(step);
 
