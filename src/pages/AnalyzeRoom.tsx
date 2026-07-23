@@ -969,6 +969,7 @@ const AnalyzeRoom = () => {
                     onClick={() => {
                       setMoodboardReady(false);
                       setIsCreatingMoodboard(true);
+                      setMoodboardStep(0);
                     }}
                   >
                     <Sparkles className="w-5 h-5 mr-2" />
