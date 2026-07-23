@@ -33,6 +33,13 @@ interface Design {
   room_id: string | null;
 }
 
+type DiagEntry = {
+  ts: string;
+  level: "info" | "warn" | "error";
+  message: string;
+  detail?: string;
+};
+
 const Gallery = () => {
   const navigate = useNavigate();
   const { user, loading } = useAuth();
@@ -44,7 +51,18 @@ const Gallery = () => {
   const [filter, setFilter] = useState<"all" | "favorites">("all");
   const [resumingId, setResumingId] = useState<string | null>(null);
   const [retryTick, setRetryTick] = useState(0);
-  
+  const [diag, setDiag] = useState<DiagEntry[]>([]);
+  const [showDiag, setShowDiag] = useState(false);
+
+  const log = (level: DiagEntry["level"], message: string, detail?: string) => {
+    const entry: DiagEntry = { ts: new Date().toISOString(), level, message, detail };
+    // eslint-disable-next-line no-console
+    console[level === "error" ? "error" : level === "warn" ? "warn" : "log"](
+      `[Gallery] ${message}`,
+      detail ?? ""
+    );
+    setDiag((prev) => [...prev, entry].slice(-100));
+  };
 
   useEffect(() => {
     if (!user) return;
@@ -54,13 +72,19 @@ const Gallery = () => {
     const fetchDesigns = async () => {
       setLoadingDesigns(true);
       setLoadError(null);
+      setDiag([]);
+      const url = (import.meta.env.VITE_SUPABASE_URL as string) || "(unset)";
+      log("info", "Starting fetch", `user=${user.id}  online=${navigator.onLine}  supabase=${url}`);
       const maxAttempts = 3;
       let delayMs = 600;
       let lastError: unknown = null;
 
       for (let attempt = 1; attempt <= maxAttempts; attempt++) {
         const controller = new AbortController();
-        const timeoutId = window.setTimeout(() => controller.abort(), 10000);
+        const timeoutMs = 10000;
+        const timeoutId = window.setTimeout(() => controller.abort(), timeoutMs);
+        const t0 = performance.now();
+        log("info", `Attempt ${attempt}/${maxAttempts}`, `timeout=${timeoutMs}ms`);
 
         try {
           const { data, error } = await supabase
@@ -72,16 +96,29 @@ const Gallery = () => {
             .abortSignal(controller.signal);
 
           window.clearTimeout(timeoutId);
+          const ms = Math.round(performance.now() - t0);
           if (cancelled) return;
-          if (error) throw error;
+          if (error) {
+            log("error", `Query error (${ms}ms)`, JSON.stringify(error));
+            throw error;
+          }
+          log("info", `Success (${ms}ms)`, `rows=${data?.length ?? 0}`);
           setDesigns(data || []);
           if (!cancelled) setLoadingDesigns(false);
           return;
         } catch (err) {
           window.clearTimeout(timeoutId);
+          const ms = Math.round(performance.now() - t0);
           lastError = err;
+          const isAbort = err instanceof DOMException && err.name === "AbortError";
+          log(
+            "warn",
+            `Attempt ${attempt} failed (${ms}ms)${isAbort ? " — timeout/abort" : ""}`,
+            err instanceof Error ? `${err.name}: ${err.message}` : JSON.stringify(err)
+          );
           if (cancelled) return;
           if (attempt < maxAttempts) {
+            log("info", `Retrying in ${delayMs}ms`);
             await new Promise((r) => setTimeout(r, delayMs));
             delayMs *= 2;
           }
@@ -89,13 +126,20 @@ const Gallery = () => {
       }
 
       if (cancelled) return;
-      console.error("Failed to load designs:", lastError);
       const isTimeout = lastError instanceof DOMException && lastError.name === "AbortError";
+      log(
+        "error",
+        "All attempts failed",
+        lastError instanceof Error
+          ? `${lastError.name}: ${lastError.message}`
+          : JSON.stringify(lastError)
+      );
       setLoadError(
         isTimeout
           ? "The gallery request is timing out before the backend responds."
           : "The gallery could not load your saved designs."
       );
+      setShowDiag(true);
       setLoadingDesigns(false);
     };
 
@@ -384,7 +428,47 @@ const Gallery = () => {
                 <p className="font-medium">Couldn't load your designs</p>
                 <p className="text-muted-foreground">{loadError}</p>
               </div>
-              <Button onClick={() => setRetryTick((t) => t + 1)}>Retry</Button>
+              <div className="flex items-center justify-center gap-2">
+                <Button onClick={() => setRetryTick((t) => t + 1)}>Retry</Button>
+                <Button variant="outline" onClick={() => setShowDiag((s) => !s)}>
+                  {showDiag ? "Hide" : "Show"} diagnostics
+                </Button>
+                <Button
+                  variant="ghost"
+                  onClick={() => {
+                    const text = diag
+                      .map((d) => `[${d.ts}] ${d.level.toUpperCase()} ${d.message}${d.detail ? " — " + d.detail : ""}`)
+                      .join("\n");
+                    navigator.clipboard.writeText(text);
+                    toast({ title: "Log copied" });
+                  }}
+                >
+                  Copy log
+                </Button>
+              </div>
+              {showDiag && (
+                <div className="text-left mx-auto max-w-2xl bg-muted/40 border border-border/50 rounded-md p-3 max-h-80 overflow-auto font-mono text-xs space-y-1">
+                  <div className="text-muted-foreground">
+                    online={String(navigator.onLine)} · url={String(import.meta.env.VITE_SUPABASE_URL || "(unset)")}
+                  </div>
+                  {diag.map((d, i) => (
+                    <div
+                      key={i}
+                      className={
+                        d.level === "error"
+                          ? "text-destructive"
+                          : d.level === "warn"
+                          ? "text-amber-600 dark:text-amber-400"
+                          : "text-foreground/80"
+                      }
+                    >
+                      <span className="text-muted-foreground">{d.ts.slice(11, 23)}</span>{" "}
+                      <span className="uppercase">[{d.level}]</span> {d.message}
+                      {d.detail && <div className="pl-6 text-muted-foreground whitespace-pre-wrap break-all">{d.detail}</div>}
+                    </div>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
         ) : filteredDesigns.length === 0 ? (
