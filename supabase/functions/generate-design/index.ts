@@ -416,7 +416,19 @@ serve(async (req) => {
         addDebug("Modification mode", "Sending ONLY source image — feedback applied verbatim, no extra context");
       }
     } else {
-      // Normal mode: existing room images first, then products
+      // Normal mode: MUST-INCLUDE images go FIRST so the prompt's
+      // "the FIRST N attached images" directive is literally true and the model
+      // copies those exact items instead of look-alikes.
+      const mustFirst = validProductImageUrls.filter((u) => mustIncludeUrls.includes(u));
+      const otherProducts = validProductImageUrls.filter((u) => !mustIncludeUrls.includes(u));
+
+      for (const imageUrl of mustFirst) {
+        contentParts.push({ type: "image_url", image_url: { url: imageUrl } });
+      }
+      if (mustFirst.length > 0) {
+        addDebug("Must-include images", `Attached ${mustFirst.length} pinned item image(s) FIRST as locked anchors`);
+      }
+
       if (enrichedRequestData.existingRoomImages && enrichedRequestData.existingRoomImages.length > 0) {
         for (const imgUrl of enrichedRequestData.existingRoomImages.slice(0, 4)) {
           contentParts.push({ type: "image_url", image_url: { url: imgUrl } });
@@ -429,18 +441,13 @@ serve(async (req) => {
         addDebug("Source image", "Added source image to request");
       }
 
-      // Must-include images are already at the FRONT of validProductImageUrls
-      // (see combinedProductUrls above). The strict must-include prompt block
-      // references them as "the first N attached images".
-      for (const imageUrl of validProductImageUrls) {
+      for (const imageUrl of otherProducts) {
         contentParts.push({ type: "image_url", image_url: { url: imageUrl } });
       }
-      if (validProductImageUrls.length > 0) {
-        addDebug(
-          "Product + must-include images",
-          `Added ${validProductImageUrls.length} image(s); must-include first: ${mustIncludeUrls.length}`,
-        );
+      if (otherProducts.length > 0) {
+        addDebug("Product images", `Added ${otherProducts.length} product reference image(s)`);
       }
+
 
       // Style moodboard images for the user-selected style(s) — visual references
       // for color palette, materials and furniture vibe. Cap at 3 to avoid context bloat.
@@ -710,9 +717,10 @@ function buildImagePrompt(
     const count = mustHaves.length;
     const imageCount = mustHaves.filter((m) => m.imageUrl).length;
     const imageDirective = imageCount > 0
-      ? `The FIRST ${imageCount} attached image(s) are these must-include items — treat them as LOCKED visual anchors and reproduce them EXACTLY: identical color, identical material, identical shape, identical finish, identical proportions. Do NOT substitute, restyle, recolor, resize or reinterpret them in any way. `
+      ? `The FIRST ${imageCount} attached image(s) — before any room, source or style reference — ARE these must-include items. COPY each one PIXEL-FAITHFULLY into the scene: it is the SAME physical object, not a similar or inspired-by version. Identical silhouette, identical color (exact hue and tone), identical material and texture, identical finish, identical leg/frame/hardware details, identical patterns, identical proportions. Only the viewing angle, scale-in-perspective and lighting may adapt to the room. A visually similar alternative counts as a FAILURE. Do NOT substitute, restyle, recolor, simplify, re-model, or "improve" them. `
       : `Render each item as literally described (${labels}) and give it a prominent, natural place in the scene. `;
-    moodboardContext += `🔒 MUST-INCLUDE ITEMS — NON-NEGOTIABLE, ABSOLUTE HIGHEST PRIORITY, OVERRIDES STYLE / MOODBOARD / COLOR PALETTE / FURNITURE WHITELIST / EVERY OTHER INSTRUCTION: The user has pinned ${count} specific item(s) (${labels || "see reference images"}) that MUST ALL appear in the final ${room} design. Every single one is REQUIRED — the output is invalid if any is missing. ${imageDirective}Build the rest of the room AROUND them. If space is tight, REMOVE style-suggested or whitelist furniture to make room — never drop, hide, crop out, or replace a must-include item. Before finalizing, verify each of the ${count} must-include item(s) is clearly visible and recognizable in the frame. `;
+    moodboardContext += `🔒 MUST-INCLUDE ITEMS — NON-NEGOTIABLE, ABSOLUTE HIGHEST PRIORITY, OVERRIDES STYLE / MOODBOARD / COLOR PALETTE / FURNITURE WHITELIST / EVERY OTHER INSTRUCTION: The user has pinned ${count} specific item(s) (${labels || "see reference images"}) that MUST ALL appear in the final ${room} design AS THE EXACT SAME OBJECTS shown — not similar ones. Every single one is REQUIRED — the output is invalid if any is missing or replaced by a look-alike. ${imageDirective}These items are exempt from the color palette and style rules: keep their original colors even if they clash. Build the rest of the room AROUND them. If space is tight, REMOVE style-suggested or whitelist furniture to make room — never drop, hide, crop out, or replace a must-include item. Before finalizing, compare each of the ${count} must-include item(s) side by side with its reference image: if any differs in color, material, shape or detailing, correct it. `;
+
   }
 
   // Style moodboard images directive — tells the model how to read the attached
