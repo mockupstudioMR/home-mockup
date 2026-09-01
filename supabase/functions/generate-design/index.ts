@@ -416,7 +416,19 @@ serve(async (req) => {
         addDebug("Modification mode", "Sending ONLY source image — feedback applied verbatim, no extra context");
       }
     } else {
-      // Normal mode: existing room images first, then products
+      // Normal mode: MUST-INCLUDE images go FIRST so the prompt's
+      // "the FIRST N attached images" directive is literally true and the model
+      // copies those exact items instead of look-alikes.
+      const mustFirst = validProductImageUrls.filter((u) => mustIncludeUrls.includes(u));
+      const otherProducts = validProductImageUrls.filter((u) => !mustIncludeUrls.includes(u));
+
+      for (const imageUrl of mustFirst) {
+        contentParts.push({ type: "image_url", image_url: { url: imageUrl } });
+      }
+      if (mustFirst.length > 0) {
+        addDebug("Must-include images", `Attached ${mustFirst.length} pinned item image(s) FIRST as locked anchors`);
+      }
+
       if (enrichedRequestData.existingRoomImages && enrichedRequestData.existingRoomImages.length > 0) {
         for (const imgUrl of enrichedRequestData.existingRoomImages.slice(0, 4)) {
           contentParts.push({ type: "image_url", image_url: { url: imgUrl } });
@@ -429,18 +441,13 @@ serve(async (req) => {
         addDebug("Source image", "Added source image to request");
       }
 
-      // Must-include images are already at the FRONT of validProductImageUrls
-      // (see combinedProductUrls above). The strict must-include prompt block
-      // references them as "the first N attached images".
-      for (const imageUrl of validProductImageUrls) {
+      for (const imageUrl of otherProducts) {
         contentParts.push({ type: "image_url", image_url: { url: imageUrl } });
       }
-      if (validProductImageUrls.length > 0) {
-        addDebug(
-          "Product + must-include images",
-          `Added ${validProductImageUrls.length} image(s); must-include first: ${mustIncludeUrls.length}`,
-        );
+      if (otherProducts.length > 0) {
+        addDebug("Product images", `Added ${otherProducts.length} product reference image(s)`);
       }
+
 
       // Style moodboard images for the user-selected style(s) — visual references
       // for color palette, materials and furniture vibe. Cap at 3 to avoid context bloat.
