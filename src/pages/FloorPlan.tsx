@@ -1945,19 +1945,13 @@ const FloorPlan = () => {
                         <RotateCcw className="w-4 h-4 mr-2 -scale-x-100" /> Undo
                       </Button>
                     )}
-                    {selectedStyle || referenceImageUrl ? (
-                      <Button onClick={saveFeedbackAndProceed} disabled={!layout || savingFeedback}>
-                        {savingFeedback ? (
-                          <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Saving...</>
-                        ) : (
-                          <><ShoppingBasket className="w-4 h-4 mr-2" /> Build shopping list</>
-                        )}
-                      </Button>
-                    ) : (
-                      <Button onClick={() => setStep(5)} disabled={!layout}>
-                        Next: Style <ArrowRight className="w-4 h-4 ml-2" />
-                      </Button>
-                    )}
+                    <Button onClick={saveFeedbackAndProceed} disabled={!layout || savingFeedback}>
+                      {savingFeedback ? (
+                        <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Saving...</>
+                      ) : (
+                        <><ShoppingBasket className="w-4 h-4 mr-2" /> Build shopping list</>
+                      )}
+                    </Button>
                   </div>
                 </>
               )}
