@@ -837,20 +837,58 @@ const Generate = () => {
     try {
       // Check if we have a cached quiz response ID from this session
       let currentQuizId = sessionStorage.getItem('generate_quiz_response_id');
-      
+
+      const answers = {
+        room_type: quizData.roomType || "living_room",
+        style_preference: quizData.stylePreference || "modern-minimal",
+        color_palette: quizData.colorPalette || "neutral",
+        budget_feel: quizData.budgetFeel || "mid_range",
+        must_have_elements: quizData.mustHaveElements || [],
+        furniture_source: quizData.furnitureSource || "open",
+      };
+
+      // The session cache is lost on reload / in a new tab. Before creating a new
+      // quiz row (which would look like "no design yet" and trigger a costly
+      // re-generation), look the answers up in the database and reuse the row
+      // that already has a stored design.
       if (!currentQuizId) {
-        // First time in this session - save the quiz response
+        const { data: priorQuizzes } = await supabase
+          .from("quiz_responses")
+          .select("id, must_have_elements")
+          .eq("user_id", user.id)
+          .eq("room_type", answers.room_type)
+          .eq("style_preference", answers.style_preference)
+          .eq("color_palette", answers.color_palette)
+          .eq("budget_feel", answers.budget_feel)
+          .order("created_at", { ascending: false })
+          .limit(20);
+
+        const wanted = [...answers.must_have_elements].sort().join("|");
+        const candidateIds = (priorQuizzes || [])
+          .filter((q) => [...((q.must_have_elements as string[]) || [])].sort().join("|") === wanted)
+          .map((q) => q.id);
+
+        if (candidateIds.length > 0) {
+          const { data: priorDesign } = await supabase
+            .from("generated_designs")
+            .select("quiz_response_id")
+            .eq("user_id", user.id)
+            .in("quiz_response_id", candidateIds)
+            .order("created_at", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          if (priorDesign?.quiz_response_id) {
+            currentQuizId = priorDesign.quiz_response_id;
+            sessionStorage.setItem('generate_quiz_response_id', currentQuizId);
+          }
+        }
+      }
+
+      if (!currentQuizId) {
+        // Genuinely new answers - save the quiz response
         const { data: quizResponse } = await supabase
           .from("quiz_responses")
-          .insert({
-            user_id: user.id,
-            room_type: quizData.roomType || "living_room",
-            style_preference: quizData.stylePreference || "modern-minimal",
-            color_palette: quizData.colorPalette || "neutral",
-            budget_feel: quizData.budgetFeel || "mid_range",
-            must_have_elements: quizData.mustHaveElements || [],
-            furniture_source: quizData.furnitureSource || "open",
-          })
+          .insert({ user_id: user.id, ...answers })
           .select()
           .single();
 
@@ -859,6 +897,7 @@ const Generate = () => {
           sessionStorage.setItem('generate_quiz_response_id', currentQuizId);
         }
       }
+
 
       // Check if there's an existing design for THIS quiz response
       const { data: existingDesign, error } = await supabase
