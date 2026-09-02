@@ -50,11 +50,37 @@ export const optimizeImageFile = async (
   { maxDimension, quality = 0.82, mimeType = "image/webp" }: ImageResizeOptions,
 ): Promise<File> => {
   const canvas = await resizeToCanvas(file, maxDimension);
-  const blob = await canvasToBlob(canvas, mimeType, quality);
+  let blob: Blob;
+  let outputType: string = mimeType;
+  try {
+    blob = await canvasToBlob(canvas, mimeType, quality);
+  } catch {
+    // Some browsers (older Safari) cannot encode webp — fall back to JPEG.
+    outputType = "image/jpeg";
+    blob = await canvasToBlob(canvas, outputType, quality);
+  }
   const baseName = file.name.replace(/\.[^.]+$/, "") || "image";
-  const ext = mimeType === "image/webp" ? "webp" : "jpg";
-  return new File([blob], `${baseName}.${ext}`, { type: mimeType, lastModified: Date.now() });
+  const ext = outputType === "image/webp" ? "webp" : "jpg";
+  return new File([blob], `${baseName}.${ext}`, { type: outputType, lastModified: Date.now() });
 };
+
+/**
+ * Never throws: if the browser can't decode/encode the image (HEIC from iPhone,
+ * unusual formats, canvas limits) the original file is returned untouched so the
+ * upload still succeeds.
+ */
+export const optimizeImageFileSafe = async (
+  file: File,
+  options: ImageResizeOptions,
+): Promise<File> => {
+  try {
+    return await optimizeImageFile(file, options);
+  } catch (error) {
+    console.warn("[imageOptimization] falling back to original file:", error);
+    return file;
+  }
+};
+
 
 export const optimizeImageSourceToDataUrl = async (
   source: Blob | string,
