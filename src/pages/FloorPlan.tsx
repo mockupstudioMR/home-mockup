@@ -635,32 +635,6 @@ const FloorPlan = () => {
     }
   }, [roomConfigs, quizData.roomType, selectedRoomType]);
 
-  // Fetch CMS styles (optional override)
-  const { data: cmsStyles } = useQuery({
-    queryKey: ["cms-quiz-styles"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("cms_content")
-        .select("key, value, metadata")
-        .like("key", "quiz_style_%")
-        .eq("content_type", "image_url");
-      if (error) throw error;
-      return data;
-    },
-  });
-
-  const styleOptions = cmsStyles?.length
-    ? cmsStyles.map((item) => {
-        const styleKey = item.key.replace("quiz_style_", "");
-        const meta = item.metadata as { label?: string; title?: string; description?: string } | null;
-        return {
-          value: styleKey,
-          label: meta?.label || meta?.title || styleKey.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()),
-          description: meta?.description || "",
-          imageUrl: item.value,
-        };
-      })
-    : STYLE_OPTIONS;
 
   const ROOM_ICONS: Record<string, React.ReactNode> = {
     "living-room": <Sofa className="w-6 h-6" />,
