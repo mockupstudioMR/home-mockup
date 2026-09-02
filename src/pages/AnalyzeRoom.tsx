@@ -228,7 +228,7 @@ const AnalyzeRoom = () => {
     try {
       const remainingSlots = Math.max(0, 6 - uploadedImages.length);
       const uploads = files
-        .filter((file) => file.type.startsWith("image/"))
+        .filter((file) => file.type.startsWith("image/") || /\.(heic|heif|jpe?g|png|webp|avif)$/i.test(file.name))
         .slice(0, remainingSlots)
         .map((file) => uploadToStorage(file));
       const results = await Promise.all(uploads);
