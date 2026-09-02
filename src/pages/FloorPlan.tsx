@@ -673,6 +673,47 @@ const FloorPlan = () => {
     if (!authLoading && !user) navigate("/auth");
   }, [user, authLoading, navigate]);
 
+  // Prefill from a scanned multi-room plan (/plan-rooms → pick one room)
+  const [prefillRoomName, setPrefillRoomName] = useState<string>("");
+  useEffect(() => {
+    const raw = sessionStorage.getItem("floor_plan_prefill");
+    if (!raw) return;
+    sessionStorage.removeItem("floor_plan_prefill");
+    try {
+      const p = JSON.parse(raw);
+      const rect = ROOM_SHAPES.find((s) => s.id === "rectangle")!;
+      setSelectedShape(rect);
+      setDimensions({
+        width: Number(p?.dimensions?.width) || rect.defaultDimensions.width,
+        height: Number(p?.dimensions?.height) || rect.defaultDimensions.height,
+      });
+      if (p?.roomType) setSelectedRoomType(String(p.roomType));
+      if (p?.roomName) setPrefillRoomName(String(p.roomName));
+      if (Array.isArray(p?.openings) && p.openings.length > 0) {
+        const wallLabels: WallSide[] = ["top", "right", "bottom", "left"];
+        setOpenings(
+          p.openings
+            .filter((o: any) => o && typeof o.wall_index === "number")
+            .map((o: any) => ({
+              id: crypto.randomUUID(),
+              type: (["door", "window", "balcony"].includes(o.type) ? o.type : "door") as OpeningType,
+              wall: wallLabels[Math.abs(Math.round(o.wall_index)) % wallLabels.length],
+              position: Math.min(100, Math.max(0, Math.round(Number(o.position_pct) || 50))),
+            })),
+        );
+      }
+      setStep(1);
+      toast({
+        title: `${p?.roomName || "Room"} loaded from your plan`,
+        description: `${p?.dimensions?.width ?? "?"} × ${p?.dimensions?.height ?? "?"} m — scaled with a 1 m door reference`,
+      });
+    } catch {
+      /* ignore malformed prefill */
+    }
+  }, []);
+
+
+
   const selectShape = useCallback((shape: RoomShape) => {
     setSelectedShape(shape);
     if (shape.id !== "custom") {
