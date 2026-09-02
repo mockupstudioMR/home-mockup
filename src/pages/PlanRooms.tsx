@@ -101,10 +101,53 @@ const PlanRooms = () => {
   const [plan, setPlan] = useState<PlanResult | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
+  const [restoring, setRestoring] = useState(true);
+
   const selectedRoom = useMemo(
     () => plan?.rooms.find((r) => r.id === selectedId) ?? null,
     [plan, selectedId],
   );
+
+  const normalize = (raw: PlanResult): PlanResult => ({
+    ...raw,
+    rooms: (raw.rooms || []).map((r, i) => ({ ...r, name: `Room ${i + 1}` })),
+  });
+
+  const hashFile = async (file: File) => {
+    const buf = await file.arrayBuffer();
+    const digest = await crypto.subtle.digest("SHA-256", buf);
+    return Array.from(new Uint8Array(digest))
+      .map((b) => b.toString(16).padStart(2, "0"))
+      .join("");
+  };
+
+  // Restore the last analysed plan from the database so returning to this page
+  // never re-runs the AI on a plan we already read.
+  useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const { data } = await supabase
+          .from("floor_plan_analyses")
+          .select("image_url, plan")
+          .eq("user_id", user.id)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        const stored = data?.plan as unknown as PlanResult | undefined;
+        if (!cancelled && stored?.rooms?.length && data?.image_url) {
+          setImageUrl(data.image_url);
+          setPlan(normalize(stored));
+        }
+      } catch (e) {
+        console.warn("[plan-rooms] restore failed", e);
+      } finally {
+        if (!cancelled) setRestoring(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [user?.id]);
 
   const handleUpload = useCallback(
     async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -114,6 +157,27 @@ const PlanRooms = () => {
       setPlan(null);
       setSelectedId(null);
       try {
+        const hash = await hashFile(file);
+
+        // Already analysed this exact plan? Reuse the stored result.
+        const { data: cached } = await supabase
+          .from("floor_plan_analyses")
+          .select("image_url, plan")
+          .eq("user_id", user.id)
+          .eq("image_hash", hash)
+          .maybeSingle();
+        const cachedPlan = cached?.plan as unknown as PlanResult | undefined;
+        if (cachedPlan?.rooms?.length && cached?.image_url) {
+          setImageUrl(cached.image_url);
+          setPlan(normalize(cachedPlan));
+          setUploading(false);
+          toast({
+            title: "Loaded your saved plan",
+            description: "We already measured this floor plan, so nothing was regenerated.",
+          });
+          return;
+        }
+
         const ext = file.name.split(".").pop() || "png";
         const path = `${user.id}/multiroom_${Date.now()}.${ext}`;
         const { error: upErr } = await supabase.storage.from("room-uploads").upload(path, file);
@@ -130,14 +194,26 @@ const PlanRooms = () => {
         if (error) throw error;
         if (!data?.plan?.rooms?.length) throw new Error("No rooms could be detected in this plan");
 
-        const normalized: PlanResult = {
-          ...(data.plan as PlanResult),
-          rooms: (data.plan.rooms as PlanRoom[]).map((r, i) => ({ ...r, name: `Room ${i + 1}` })),
-        };
+        const normalized = normalize(data.plan as PlanResult);
         setPlan(normalized);
+
+        // Persist so this plan is never generated from scratch again.
+        const { error: saveErr } = await supabase.from("floor_plan_analyses").upsert(
+          {
+            user_id: user.id,
+            image_hash: hash,
+            image_url: urlData.publicUrl,
+            storage_path: path,
+            plan: normalized as any,
+            metadata: { file_name: file.name, size: file.size } as any,
+          },
+          { onConflict: "user_id,image_hash" },
+        );
+        if (saveErr) console.warn("[plan-rooms] save failed", saveErr);
+
         toast({
-          title: `${data.plan.rooms.length} rooms detected`,
-          description: "Sizes were scaled using a 1 m door reference.",
+          title: `${normalized.rooms.length} rooms detected`,
+          description: "Sizes were scaled using a 1 m door reference — saved for next time.",
         });
       } catch (err: any) {
         toast({ title: "Analysis failed", description: getAiErrorMessage(err), variant: "destructive" });
@@ -149,6 +225,7 @@ const PlanRooms = () => {
     },
     [user],
   );
+
 
   const continueWithRoom = useCallback(() => {
     if (!selectedRoom) return;
