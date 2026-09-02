@@ -514,13 +514,26 @@ serve(async (req) => {
             { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
           );
         }
-        if (response.status === 402) {
-          addDebug("Payment required", "402 Payment Required");
+        if (response.status === 402 || response.status === 403) {
+          const bodyText = await response.text();
+          let gatewayMessage = "";
+          let requires = "";
+          try {
+            const parsed = JSON.parse(bodyText);
+            gatewayMessage = parsed?.error?.message || parsed?.message || "";
+            requires = parsed?.error?.props?.requires || parsed?.props?.requires || "";
+          } catch { /* non-JSON body */ }
+          const fallback =
+            response.status === 402
+              ? "AI credits are exhausted for this workspace. Add credits, then try again."
+              : "AI access is blocked by a workspace policy or credit limit. An admin needs to unblock it.";
+          addDebug("AI access blocked", `${response.status} ${requires || ""}`.trim(), { gatewayMessage });
           return new Response(
-            JSON.stringify({ error: "Payment required, please add funds.", debugSteps }),
-            { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            JSON.stringify({ error: gatewayMessage || fallback, requires, retryable: false, debugSteps }),
+            { status: response.status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
           );
         }
+
         const errorText = await response.text();
         addDebug("AI gateway error", `Status ${response.status}`, { errorText: errorText.slice(0, 1000) });
         console.error(`AI gateway error body: ${errorText.slice(0, 1000)}`);
