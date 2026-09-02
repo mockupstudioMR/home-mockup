@@ -1114,6 +1114,7 @@ const FloorPlan = () => {
         moodboard: (row.moodboard as Record<string, unknown> | null) ?? null,
         roomId: row.room_id ?? null,
       });
+      if (row.room_id) setSavedRoomId((prev) => prev ?? row.room_id);
     };
 
     run().catch((e) => console.warn("[floor-plan] design lookup failed", e));
