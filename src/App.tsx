@@ -78,6 +78,7 @@ class AppErrorBoundary extends Component<
 const Start = lazyWithReload(() => import("./pages/Start"), "start");
 const ChoosePath = lazyWithReload(() => import("./pages/ChoosePath"), "choose-path");
 const FloorPlan = lazyWithReload(() => import("./pages/FloorPlan"), "floor-plan");
+const PlanRooms = lazyWithReload(() => import("./pages/PlanRooms"), "plan-rooms");
 const StyleTree = lazyWithReload(() => import("./pages/StyleTree"), "style-tree");
 const AnalyzeRoom = lazyWithReload(() => import("./pages/AnalyzeRoom"), "analyze-room");
 const ExistingRoomFlow = lazyWithReload(() => import("./pages/ExistingRoomFlow"), "existing-room");
