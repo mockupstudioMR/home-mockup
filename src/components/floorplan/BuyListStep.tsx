@@ -66,6 +66,7 @@ const BuyListStep = ({ measurements, payload, roomLabel, design, roomId, designI
   const [loading, setLoading] = useState(false);
   const [savedAt, setSavedAt] = useState<string | null>(null);
   const [images, setImages] = useState<Record<string, string>>({});
+  const [exportingPdf, setExportingPdf] = useState(false);
   const requested = useRef(false);
 
   const scopeKey = `${roomId || "no-room"}:${designId || "no-design"}`;
