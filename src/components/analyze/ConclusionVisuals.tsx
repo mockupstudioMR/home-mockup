@@ -10,7 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { saveMoodboardAsset, saveJourneyProduct } from "@/lib/journeyPersistence";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { getThumbnailImageUrl, optimizeImageFile } from "@/lib/imageOptimization";
+import { getThumbnailImageUrl, optimizeImageFileSafe } from "@/lib/imageOptimization";
 import { MOODBOARD_DRAG_MIME } from "./TagVisual";
 
 interface DraggedItem { label: string; imageUrl?: string | null; source?: string }
@@ -342,7 +342,7 @@ const ConclusionVisuals = ({
       if (!user) { setAddProductError("Please sign in first"); return; }
       for (const file of files) {
         if (!file.type.startsWith("image/")) continue;
-        const optimizedFile = await optimizeImageFile(file, { maxDimension: 2048 });
+        const optimizedFile = await optimizeImageFileSafe(file, { maxDimension: 2048 });
         const path = `${user.id}/must-include/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.webp`;
         const { error: upErr } = await supabase.storage.from("room-photos").upload(path, optimizedFile, { contentType: optimizedFile.type });
         if (upErr) { setAddProductError(upErr.message); continue; }
@@ -376,7 +376,7 @@ const ConclusionVisuals = ({
       if (!user) return;
       await Promise.all(files.map(async (file) => {
         if (!file.type.startsWith("image/")) return;
-        const optimizedFile = await optimizeImageFile(file, { maxDimension: 2048 });
+        const optimizedFile = await optimizeImageFileSafe(file, { maxDimension: 2048 });
         const path = `${user.id}/must-include/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.webp`;
         const { error: upErr } = await supabase.storage
           .from("room-photos")
@@ -849,7 +849,7 @@ const ConclusionVisuals = ({
     if (!user) return;
     await Promise.all(files.map(async (file) => {
       if (!file.type.startsWith("image/")) return;
-      const optimizedFile = await optimizeImageFile(file, { maxDimension: 2048 });
+      const optimizedFile = await optimizeImageFileSafe(file, { maxDimension: 2048 });
       const path = `${user.id}/${bucketFolder}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.webp`;
       const { error: upErr } = await supabase.storage
         .from("room-photos")
