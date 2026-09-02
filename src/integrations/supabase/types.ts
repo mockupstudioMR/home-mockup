@@ -277,6 +277,42 @@ export type Database = {
           },
         ]
       }
+      floor_plan_analyses: {
+        Row: {
+          created_at: string
+          id: string
+          image_hash: string
+          image_url: string
+          metadata: Json
+          plan: Json
+          storage_path: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          image_hash: string
+          image_url: string
+          metadata?: Json
+          plan?: Json
+          storage_path?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          image_hash?: string
+          image_url?: string
+          metadata?: Json
+          plan?: Json
+          storage_path?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       furniture_specs: {
         Row: {
           companion_of: string | null
