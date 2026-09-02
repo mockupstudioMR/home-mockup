@@ -79,21 +79,56 @@ const Gallery = () => {
       let delayMs = 600;
       let lastError: unknown = null;
 
+      // Direct REST read — bypasses the supabase-js auth/lock layer, which can
+      // hang forever in a preview tab (every attempt aborts at the timeout even
+      // though the API itself answers in milliseconds).
+      const restFetch = async (signal: AbortSignal) => {
+        const baseUrl = import.meta.env.VITE_SUPABASE_URL as string;
+        const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string;
+        let token = anonKey;
+        try {
+          const { data } = await supabase.auth.getSession();
+          if (data.session?.access_token) token = data.session.access_token;
+        } catch { /* fall back to anon key */ }
+        const query = new URLSearchParams({
+          select: "id, image_url, prompt, is_favorite, created_at, quiz_response_id, room_id",
+          user_id: `eq.${user.id}`,
+          order: "created_at.desc",
+          limit: "120",
+        });
+        const res = await fetch(`${baseUrl}/rest/v1/generated_designs?${query}`, {
+          headers: { apikey: anonKey, Authorization: `Bearer ${token}` },
+          signal,
+        });
+        if (!res.ok) throw new Error(`REST ${res.status}: ${await res.text()}`);
+        return (await res.json()) as Design[];
+      };
+
       for (let attempt = 1; attempt <= maxAttempts; attempt++) {
         const controller = new AbortController();
         const timeoutMs = 20000;
         const timeoutId = window.setTimeout(() => controller.abort(), timeoutMs);
         const t0 = performance.now();
-        log("info", `Attempt ${attempt}/${maxAttempts}`, `timeout=${timeoutMs}ms`);
+        const useRest = attempt > 1;
+        log("info", `Attempt ${attempt}/${maxAttempts}`, `timeout=${timeoutMs}ms  transport=${useRest ? "rest" : "client"}`);
 
         try {
-          const { data, error } = await supabase
-            .from("generated_designs")
-            .select("id, image_url, prompt, is_favorite, created_at, quiz_response_id, room_id")
-            .eq("user_id", user.id)
-            .order("created_at", { ascending: false })
-            .limit(120)
-            .abortSignal(controller.signal);
+          let data: Design[] | null = null;
+          let error: unknown = null;
+          if (useRest) {
+            data = await restFetch(controller.signal);
+          } else {
+            const r = await supabase
+              .from("generated_designs")
+              .select("id, image_url, prompt, is_favorite, created_at, quiz_response_id, room_id")
+              .eq("user_id", user.id)
+              .order("created_at", { ascending: false })
+              .limit(120)
+              .abortSignal(controller.signal);
+            data = r.data as Design[] | null;
+            error = r.error;
+          }
+
 
           window.clearTimeout(timeoutId);
           const ms = Math.round(performance.now() - t0);
