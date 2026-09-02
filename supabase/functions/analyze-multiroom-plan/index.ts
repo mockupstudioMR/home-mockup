@@ -207,8 +207,8 @@ Be precise and consistent: rooms must not overlap, and the sum of room areas mus
     const maxY = allPts.reduce((m, p) => Math.max(m, p.y), 0);
     // If the model already answered in percent (all coords <= 100), treat the canvas as 100x100.
     const looksPercent = maxX <= 100 && maxY <= 100;
-    const canvasW = looksPercent ? 100 : Math.max(num(parsed.image_width_px) || 0, maxX) || 100;
-    const canvasH = looksPercent ? 100 : Math.max(num(parsed.image_height_px) || 0, maxY) || 100;
+    const canvasW = looksPercent ? 100 : Math.max(num(raw.image_width_px) || 0, maxX) || 100;
+    const canvasH = looksPercent ? 100 : Math.max(num(raw.image_height_px) || 0, maxY) || 100;
     const toPct = (p: Pt) => ({
       x: Math.min(100, Math.max(0, (p.x / canvasW) * 100)),
       y: Math.min(100, Math.max(0, (p.y / canvasH) * 100)),
@@ -271,7 +271,7 @@ Be precise and consistent: rooms must not overlap, and the sum of room areas mus
       return Math.abs(a) / 2; // in percent²
     };
 
-    const mpp = num(parsed.metres_per_pixel);
+    const mpp = num(raw.metres_per_pixel);
     const rooms = rawRooms.map((r: any, i: number) => {
       const polygon = polys[i] || [];
       const xs = polygon.map((p) => p.x);
