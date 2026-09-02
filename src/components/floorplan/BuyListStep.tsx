@@ -61,21 +61,74 @@ const fmt = (n: number) => (Number.isInteger(n) ? String(n) : n.toFixed(2));
 const euro = (n: number) =>
   new Intl.NumberFormat("de-DE", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(n);
 
-const BuyListStep = ({ measurements, payload, roomLabel, design }: Props) => {
+const BuyListStep = ({ measurements, payload, roomLabel, design, roomId, designId }: Props) => {
   const [list, setList] = useState<BuyList | null>(null);
   const [loading, setLoading] = useState(false);
+  const [savedAt, setSavedAt] = useState<string | null>(null);
   const requested = useRef(false);
 
-  const build = useCallback(async () => {
+  const scopeKey = `${roomId || "no-room"}:${designId || "no-design"}`;
+
+  const persist = useCallback(
+    async (built: BuyList) => {
+      try {
+        const { data: auth } = await supabase.auth.getUser();
+        const userId = auth?.user?.id;
+        if (!userId) return;
+        const { error } = await supabase.from("shopping_lists").upsert(
+          {
+            user_id: userId,
+            scope_key: scopeKey,
+            room_id: roomId ?? null,
+            design_id: designId ?? null,
+            room_label: roomLabel ?? null,
+            measurements: measurements as any,
+            list: built as any,
+            metadata: { payload } as any,
+          },
+          { onConflict: "user_id,scope_key" },
+        );
+        if (error) throw error;
+        setSavedAt(new Date().toISOString());
+      } catch (e) {
+        console.warn("[buy-list] save failed", e);
+      }
+    },
+    [scopeKey, roomId, designId, roomLabel, measurements, payload],
+  );
+
+  const build = useCallback(async (force = false) => {
     setLoading(true);
     try {
+      if (!force) {
+        // Reuse the stored list for this room/design instead of regenerating.
+        const { data: auth } = await supabase.auth.getUser();
+        const userId = auth?.user?.id;
+        if (userId) {
+          const { data: saved } = await supabase
+            .from("shopping_lists")
+            .select("list, updated_at")
+            .eq("user_id", userId)
+            .eq("scope_key", scopeKey)
+            .maybeSingle();
+          const stored = saved?.list as BuyList | undefined;
+          if (stored?.items?.length) {
+            setList(stored);
+            setSavedAt(saved?.updated_at ?? null);
+            return;
+          }
+        }
+      }
+
       const { data, error } = await supabase.functions.invoke("generate-buy-list", {
         body: { ...payload, measurements },
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
       if (!data?.list?.items?.length) throw new Error("Empty shopping list");
-      setList(data.list as BuyList);
+      const built = data.list as BuyList;
+      setList(built);
+      void persist(built);
     } catch (e) {
       toast({
         title: "Could not build the list",
@@ -85,7 +138,7 @@ const BuyListStep = ({ measurements, payload, roomLabel, design }: Props) => {
     } finally {
       setLoading(false);
     }
-  }, [payload, measurements]);
+  }, [payload, measurements, scopeKey, persist]);
 
   useEffect(() => {
     if (requested.current) return;
