@@ -303,6 +303,32 @@ const PlanRooms = () => {
               </CardContent>
             </Card>
 
+            {/* Room colour key — colours replace labels on the plan */}
+            <div className="flex flex-wrap items-center justify-center gap-2">
+              {plan.rooms.map((room, ri) => {
+                const isSelected = room.id === selectedId;
+                return (
+                  <button
+                    key={`key-${room.id}`}
+                    type="button"
+                    onClick={() => setSelectedId(isSelected ? null : room.id)}
+                    className={`flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs transition ${
+                      isSelected ? "border-primary bg-primary/10 font-medium" : "border-border hover:border-primary/40"
+                    }`}
+                  >
+                    <span
+                      className="inline-block w-3 h-3 rounded-sm"
+                      style={{ backgroundColor: roomColor(ri) }}
+                    />
+                    {room.name}
+                    <span className="text-muted-foreground">
+                      {room.width_m.toFixed(1)}×{room.length_m.toFixed(1)} m
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+
             {/* Legend */}
             <div className="flex flex-wrap items-center justify-center gap-4 text-xs text-muted-foreground">
               {(["door", "window", "balcony"] as const).map((t) => (
@@ -314,8 +340,9 @@ const PlanRooms = () => {
                   {t}
                 </span>
               ))}
-              <span>Tap a room on the plan to isolate it</span>
+              <span>Tap a room on the plan or a colour chip to isolate it</span>
             </div>
+
 
             {selectedRoom && (
               <Card>
