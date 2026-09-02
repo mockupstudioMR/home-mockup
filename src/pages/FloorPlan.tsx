@@ -805,25 +805,6 @@ const FloorPlan = () => {
     setOpenings(prev => prev.filter(o => o.id !== id));
   }, []);
 
-  const handleReferenceUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !user) return;
-    setUploadingRef(true);
-    try {
-      const ext = file.name.split(".").pop();
-      const path = `${user.id}/ref_${Date.now()}.${ext}`;
-      const { error } = await supabase.storage.from("room-uploads").upload(path, file);
-      if (error) throw error;
-      const { data: urlData } = supabase.storage.from("room-uploads").getPublicUrl(path);
-      setReferenceImageUrl(urlData.publicUrl);
-      toast({ title: "Reference uploaded", description: "Your style reference has been saved." });
-    } catch (err: any) {
-      toast({ title: "Upload failed", description: err.message, variant: "destructive" });
-    } finally {
-      setUploadingRef(false);
-    }
-  }, [user]);
-
   // Build clockwise walls data for the prompt
   const buildWallsClockwise = useCallback(() => {
     return WALLS_CLOCKWISE.map((wall) => {
