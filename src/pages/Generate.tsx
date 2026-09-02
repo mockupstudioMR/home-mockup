@@ -1123,8 +1123,7 @@ const Generate = () => {
       const existingRoomRef = existingRoomImagesFromState;
 
       trackEvent("ai_call", "generate", { fn: "generate-design" });
-      const response = await supabase.functions.invoke("generate-design", {
-        body: {
+      const generateBody = {
           ...quizData,
           sourceImageUrl: quizData.sourceImageUrl,
           selectedProducts: shouldIncludeProducts ? productAnalysis?.products : undefined,
@@ -1151,12 +1150,24 @@ const Generate = () => {
             ...getStyleMoodboardUrls(quizData.stylePreference),
           ],
           floorPlanContext,
-        },
-      });
+      };
+
+      // Retry transient failures (cold-start boot errors, 5xx, rate limits).
+      let response = await supabase.functions.invoke("generate-design", { body: generateBody });
+      for (let attempt = 1; attempt <= 2 && (response.error || !response.data?.imageUrl); attempt++) {
+        const msg = getAiErrorMessage(response.error ?? response.data);
+        if (/402|403|credits|blocked/i.test(msg)) break;
+        await new Promise((r) => setTimeout(r, attempt * 2500));
+        response = await supabase.functions.invoke("generate-design", { body: generateBody });
+      }
 
       if (response.error) {
-        throw new Error(response.error.message);
+        throw new Error(getAiErrorMessage(response.error));
       }
+      if (!response.data?.imageUrl) {
+        throw new Error(getAiErrorMessage(response.data, "The image model returned no image. Please try again."));
+      }
+
 
       const { imageUrl, prompt: usedPrompt, debugSteps: steps } = response.data;
       if (steps) setDebugSteps(steps);
