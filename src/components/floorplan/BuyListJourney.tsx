@@ -401,14 +401,20 @@ const BuyListJourney = ({
                           {checked ? "✓" : ""}
                         </button>
 
-                        {images[it.name] && (
+                        {images[it.name] ? (
                           <img
                             src={images[it.name]}
                             alt={it.name}
                             loading="lazy"
                             style={{ width: 56, height: 56, borderRadius: 10, objectFit: "cover", flex: "none", border: `1px solid ${C.line}` }}
                           />
-                        )}
+                        ) : crops[it.name] ? (
+                          <div
+                            aria-label={it.name}
+                            style={{ width: 56, height: 56, borderRadius: 10, flex: "none", border: `1px solid ${C.line}`, ...crops[it.name] }}
+                          />
+                        ) : null}
+
 
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ fontSize: 17, fontWeight: 600, color: C.ink, textDecoration: checked ? "line-through" : "none" }}>{it.name}</div>
