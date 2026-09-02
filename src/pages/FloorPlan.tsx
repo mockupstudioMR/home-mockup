@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import Logo from "@/components/Logo";
-import { ArrowLeft, ArrowRight, Loader2, RotateCcw, X, Sofa, Bed, UtensilsCrossed, Monitor, Bath, ThumbsUp, ThumbsDown, Save, ShoppingBasket, Upload, Image as ImageIcon } from "lucide-react";
+import { ArrowLeft, ArrowRight, Loader2, RotateCcw, X, Sofa, Bed, UtensilsCrossed, Monitor, Bath, ThumbsUp, ThumbsDown, Save, ShoppingBasket, Upload } from "lucide-react";
 import { trackEvent } from "@/lib/analytics";
 import { Textarea } from "@/components/ui/textarea";
 import { IllustratedFurniture, IllustratedLegend } from "@/components/floorplan/IllustratedFurniture";
