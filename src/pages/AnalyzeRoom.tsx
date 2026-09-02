@@ -13,7 +13,7 @@ import MoodboardCollage from "@/components/analyze/MoodboardCollage";
 import TagVisual from "@/components/analyze/TagVisual";
 import { RefreshCw as RefreshIcon } from "lucide-react";
 import { trackEvent } from "@/lib/analytics";
-import { getAiOptimizedImageUrl, getThumbnailImageUrl, optimizeImageFile } from "@/lib/imageOptimization";
+import { getAiOptimizedImageUrl, getThumbnailImageUrl, optimizeImageFile, optimizeImageFileSafe } from "@/lib/imageOptimization";
 import { getAiErrorMessage } from "@/lib/aiErrorMessage";
 import { cn } from "@/lib/utils";
 import { useJourneySession } from "@/hooks/useJourneySession";
