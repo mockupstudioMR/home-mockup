@@ -320,25 +320,81 @@ Be precise and consistent: rooms must not overlap, and the sum of room areas mus
       // A room needs a usable outline.
       .filter((r: any) => r.polygon.length >= 3);
 
+      return { rooms, canvasW, canvasH, mpp, door_width_px: num(raw.door_width_px), notes: raw.notes };
+    };
+
+    // Overlapping outlines mean walls were misread — measure it so we can ask for a correction.
+    const overlapScore = (rooms: any[]) => {
+      const bbox = (poly: Pt[]) => ({
+        x0: Math.min(...poly.map((p) => p.x)),
+        x1: Math.max(...poly.map((p) => p.x)),
+        y0: Math.min(...poly.map((p) => p.y)),
+        y1: Math.max(...poly.map((p) => p.y)),
+      });
+      let worst = 0;
+      for (let i = 0; i < rooms.length; i++) {
+        for (let j = i + 1; j < rooms.length; j++) {
+          const a = bbox(rooms[i].polygon);
+          const b = bbox(rooms[j].polygon);
+          const w = Math.min(a.x1, b.x1) - Math.max(a.x0, b.x0);
+          const h = Math.min(a.y1, b.y1) - Math.max(a.y0, b.y0);
+          if (w <= 0 || h <= 0) continue;
+          const inter = w * h;
+          const areaA = (a.x1 - a.x0) * (a.y1 - a.y0);
+          const areaB = (b.x1 - b.x0) * (b.y1 - b.y0);
+          worst = Math.max(worst, inter / Math.max(1e-6, Math.min(areaA, areaB)));
+        }
+      }
+      return worst;
+    };
+
+    let plan = buildPlan(parsed);
+
+    // One self-correction pass when rooms visibly overlap (i.e. a wall was crossed).
+    if (plan.rooms.length > 1 && overlapScore(plan.rooms) > 0.15) {
+      console.log("overlapping outlines detected, requesting correction", overlapScore(plan.rooms));
+      try {
+        const corrected = await askAI([
+          ...baseMessages,
+          {
+            role: "assistant",
+            content: `My first reading was:\n${JSON.stringify(
+              (parsed.rooms || []).map((r: any) => ({ name: r.name, polygon_px: r.polygon_px })),
+            )}`,
+          },
+          {
+            role: "user",
+            content:
+              "Some of those outlines overlap each other, which means a wall was crossed or two rooms were merged. Look at the walls again and return the corrected result: every room's polygon must stay inside its own walls, must not overlap any other room, and must follow the true shape (extra vertices for L-shapes and niches). Return all rooms and openings again.",
+          },
+        ]);
+        const retry = buildPlan(corrected);
+        if (retry.rooms.length && overlapScore(retry.rooms) < overlapScore(plan.rooms)) {
+          plan = retry;
+          parsed = corrected;
+        }
+      } catch (e) {
+        console.error("correction pass failed", e);
+      }
+    }
+
     return new Response(
       JSON.stringify({
         plan: {
-          door_width_px: num(parsed.door_width_px) || undefined,
-          metres_per_pixel: mpp || undefined,
-          image_width_px: canvasW,
-          image_height_px: canvasH,
-          notes: parsed.notes,
-          rooms,
+          door_width_px: plan.door_width_px || undefined,
+          metres_per_pixel: plan.mpp || undefined,
+          image_width_px: plan.canvasW,
+          image_height_px: plan.canvasH,
+          notes: plan.notes,
+          rooms: plan.rooms,
           total_area_sqm:
-            Math.round(rooms.reduce((s: number, r: any) => s + (r.area_sqm || 0), 0) * 100) / 100 ||
-            num(parsed.total_area_sqm) ||
-            undefined,
+            Math.round(plan.rooms.reduce((s: number, r: any) => s + (r.area_sqm || 0), 0) * 100) / 100 || undefined,
         },
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
-
   } catch (e) {
+
     console.error("analyze-multiroom-plan error:", e);
     return new Response(JSON.stringify({ error: (e as Error).message || "Plan analysis failed" }), {
       status: 500,
