@@ -182,17 +182,22 @@ const AnalyzeRoom = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isPromptMode]);
 
-  // Upload optimized image to storage and return public URL (with retry on transient errors)
-  const uploadToStorage = async (file: File): Promise<string | null> => {
-    if (!user) return null;
+  // Upload optimized image to storage. Returns the public URL, or a reason we
+  // can show the user (auth expired, file too large, offline, rate limited...).
+  const uploadToStorage = async (file: File): Promise<{ url?: string; reason?: string }> => {
+    if (!user) return { reason: "You need to be signed in to upload photos." };
+    if (!navigator.onLine) return { reason: "You appear to be offline. Reconnect and try again." };
 
     // Never let optimization failures (HEIC, odd formats) kill the upload.
     const optimizedFile = await optimizeImageFileSafe(file, { maxDimension: 2048 });
+    if (optimizedFile.size > 25 * 1024 * 1024) {
+      return { reason: `"${file.name}" is too large (over 25 MB). Try a smaller photo.` };
+    }
     const ext = (optimizedFile.name.split(".").pop() || "jpg").toLowerCase().replace(/[^a-z0-9]/g, "") || "jpg";
-    const fileName = `${user.id}/${Date.now()}-${Math.random().toString(36).substring(7)}.${ext}`;
 
     let lastError: unknown = null;
-    for (let attempt = 1; attempt <= 3; attempt++) {
+    for (let attempt = 1; attempt <= 4; attempt++) {
+      const fileName = `${user.id}/${Date.now()}-${Math.random().toString(36).substring(7)}.${ext}`;
       const { error } = await supabase.storage
         .from('room-photos')
         .upload(fileName, optimizedFile, {
@@ -202,19 +207,39 @@ const AnalyzeRoom = () => {
 
       if (!error) {
         const { data: urlData } = supabase.storage.from('room-photos').getPublicUrl(fileName);
-        return urlData.publicUrl;
+        return { url: urlData.publicUrl };
       }
 
       lastError = error;
-      const status = (error as { statusCode?: string | number; status?: number }).statusCode;
-      const code = String(status ?? '');
-      const isTransient = code.startsWith('5') || code === '408' || code === '429' || code === '';
-      if (!isTransient || attempt === 3) break;
-      await new Promise((r) => setTimeout(r, 600 * attempt));
+      const raw = error as { statusCode?: string | number; status?: number; message?: string };
+      const code = String(raw.statusCode ?? raw.status ?? '');
+      const message = raw.message || '';
+
+      // Expired / missing token: refresh once and retry immediately.
+      if (code === '401' || code === '403' || /jwt|token|unauthor/i.test(message)) {
+        const { data: refreshed } = await supabase.auth.refreshSession();
+        if (!refreshed?.session) {
+          return { reason: "Your session expired. Please sign in again and retry." };
+        }
+        continue;
+      }
+
+      if (code === '413') return { reason: `"${file.name}" is too large for upload.` };
+
+      const isTransient =
+        code.startsWith('5') || code === '408' || code === '429' || code === '' ||
+        /fetch|network|timeout/i.test(message);
+      if (!isTransient || attempt === 4) break;
+      // Longer, jittered backoff so a busy storage node has time to recover.
+      await new Promise((r) => setTimeout(r, 800 * attempt + Math.random() * 400));
     }
 
     console.error('Upload error after retries:', lastError);
-    return null;
+    return {
+      reason:
+        (lastError as { message?: string })?.message ||
+        "The upload service is busy. Please try again in a moment.",
+    };
   };
 
 
@@ -227,24 +252,34 @@ const AnalyzeRoom = () => {
 
     try {
       const remainingSlots = Math.max(0, 6 - uploadedImages.length);
-      const uploads = files
+      const candidates = files
         .filter((file) => file.type.startsWith("image/") || /\.(heic|heif|jpe?g|png|webp|avif)$/i.test(file.name))
-        .slice(0, remainingSlots)
-        .map((file) => uploadToStorage(file));
-      const results = await Promise.all(uploads);
-      const newUrls = results.filter(Boolean) as string[];
-      const failedCount = results.length - newUrls.length;
+        .slice(0, remainingSlots);
+
+      // Upload one at a time — parallel uploads are what trigger the storage
+      // rate limit that surfaced as "server busy".
+      const newUrls: string[] = [];
+      const reasons: string[] = [];
+      for (const file of candidates) {
+        const { url, reason } = await uploadToStorage(file);
+        if (url) {
+          newUrls.push(url);
+          // Show each photo as soon as it lands instead of waiting for the batch.
+          setUploadedImages(prev => [...prev, url].slice(0, 6));
+        } else if (reason) {
+          reasons.push(reason);
+        }
+      }
 
       if (newUrls.length > 0) {
-        setUploadedImages(prev => [...prev, ...newUrls].slice(0, 6));
         setAnalysisResult(null);
         setSelectedStyleIndex(null);
       }
 
-      if (failedCount > 0) {
+      if (reasons.length > 0) {
         toast({
-          title: newUrls.length > 0 ? "Some uploads failed" : "Upload failed",
-          description: "Server was busy. Please try the failed photo(s) again in a moment.",
+          title: newUrls.length > 0 ? "Some photos didn't upload" : "Upload failed",
+          description: reasons[0],
           variant: "destructive",
         });
       }
@@ -252,13 +287,15 @@ const AnalyzeRoom = () => {
       console.error('Upload failed:', error);
       toast({
         title: "Upload failed",
-        description: "Please try again in a moment",
+        description: (error as Error)?.message || "Please try again in a moment",
         variant: "destructive",
       });
     } finally {
       setIsUploading(false);
     }
   }, [user, uploadedImages.length, toast]);
+
+
 
   const removeImage = async (index: number) => {
     const imageUrl = uploadedImages[index];
