@@ -106,10 +106,12 @@ const Gallery = () => {
 
       for (let attempt = 1; attempt <= maxAttempts; attempt++) {
         const controller = new AbortController();
-        const timeoutMs = 20000;
+        const useRest = attempt > 1;
+        // Short first attempt: if the client layer is stuck, fail fast and use REST.
+        const timeoutMs = useRest ? 20000 : 8000;
         const timeoutId = window.setTimeout(() => controller.abort(), timeoutMs);
         const t0 = performance.now();
-        const useRest = attempt > 1;
+
         log("info", `Attempt ${attempt}/${maxAttempts}`, `timeout=${timeoutMs}ms  transport=${useRest ? "rest" : "client"}`);
 
         try {
