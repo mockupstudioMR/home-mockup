@@ -1019,9 +1019,74 @@ const FloorPlan = () => {
     } catch { /* non-critical */ }
 
     setSavingFeedback(false);
-    sessionStorage.setItem('generate_quiz_nonce', crypto.randomUUID());
-    navigate("/generate", { state: { quizData: { roomType, stylePreference, colorPalette: "neutral", budgetFeel: "mid-range", mustHaveElements: selectedFurniture } } });
-  }, [layout, selectedShape, dimensions, selectedRoomType, selectedFurniture, openings, navigate, updateQuizData, user, itemScores, itemNotes, buildWallsClockwise, selectedStyle, referenceImageUrl]);
+    setStep(6);
+  }, [layout, selectedShape, dimensions, selectedRoomType, selectedFurniture, openings, updateQuizData, user, itemScores, itemNotes, buildWallsClockwise, selectedStyle, referenceImageUrl]);
+
+  // Deterministic measurements used as the basis of the shopping list
+  const buyListMeasurements = useMemo(() => {
+    const CEILING = 2.6;
+    const verts = selectedShape ? getShapeVertices(selectedShape.id, dimensions, 30, customWalls) : [];
+    let areaPx2 = 0;
+    let perimPx = 0;
+    for (let i = 0; i < verts.length; i++) {
+      const a = verts[i];
+      const b = verts[(i + 1) % verts.length];
+      areaPx2 += a.x * b.y - b.x * a.y;
+      perimPx += Math.hypot(b.x - a.x, b.y - a.y);
+    }
+    const floorArea = Math.abs(areaPx2 / 2) / (30 * 30);
+    const perimeter = perimPx / 30;
+    const openingArea = openings.reduce(
+      (sum, o) => sum + (o.type === "window" ? 1.5 : o.type === "balcony" ? 4.2 : 1.9),
+      0,
+    );
+    const skirting = Math.max(0, perimeter - openings.filter((o) => o.type !== "window").length * 0.9);
+    return {
+      roomWidthM: Number(dimensions.width || dimensions.mainW || dimensions.totalW || 0) || undefined,
+      roomLengthM: Number(dimensions.height || dimensions.mainH || dimensions.totalH || 0) || undefined,
+      ceilingHeightM: CEILING,
+      floorAreaSqm: Math.round(floorArea * 10) / 10,
+      perimeterM: Math.round(perimeter * 10) / 10,
+      netWallAreaSqm: Math.max(0, Math.round((perimeter * CEILING - openingArea) * 10) / 10),
+      skirtingM: Math.round(skirting * 10) / 10,
+    };
+  }, [selectedShape, dimensions, customWalls, openings]);
+
+  const buyListPayload = useMemo(() => {
+    let designDescription = "";
+    let moodboard: Record<string, unknown> | undefined;
+    try {
+      const raw = sessionStorage.getItem("analyze_room_cache");
+      if (raw) {
+        const c = JSON.parse(raw);
+        designDescription = c?.analysis?.description || c?.moodboardDescription || c?.description || "";
+        moodboard = {
+          colors: c?.editableColors || [],
+          materials: (c?.moodboard?.materials || []).map((m: any) => m?.label).filter(Boolean),
+          mustInclude: (c?.moodboard?.mustInclude || []).map((m: any) => m?.label).filter(Boolean),
+        };
+      }
+    } catch { /* ignore */ }
+    let houseState = "";
+    try {
+      const raw = sessionStorage.getItem("ground_your_space_draft");
+      if (raw) houseState = JSON.parse(raw)?.houseState || "";
+    } catch { /* ignore */ }
+
+    return {
+      roomType: selectedRoomType || "living_room",
+      shape: selectedShape?.id,
+      dimensions,
+      openings: openings.map((o) => ({ type: o.type, wall: o.wall, position: o.position })),
+      walls: buildWallsClockwise(),
+      style: selectedStyle || quizData.stylePreference,
+      houseState,
+      layout,
+      designDescription,
+      moodboard,
+    };
+  }, [selectedRoomType, selectedShape, dimensions, openings, buildWallsClockwise, selectedStyle, quizData.stylePreference, layout]);
+
 
   if (authLoading) {
     return (
