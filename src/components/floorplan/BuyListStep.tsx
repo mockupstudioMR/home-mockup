@@ -337,6 +337,11 @@ const BuyListStep = ({ measurements, payload, roomLabel, design, roomId, designI
               <div>
                 <p className="text-xs text-muted-foreground uppercase tracking-wide">Estimated total</p>
                 <p className="text-2xl font-bold">{euro(total)}</p>
+                {savedAt && (
+                  <p className="text-xs text-muted-foreground">
+                    Saved · {new Date(savedAt).toLocaleString("de-DE")}
+                  </p>
+                )}
               </div>
               <div className="flex gap-2 flex-wrap">
                 <Button variant="outline" onClick={exportCsv}>
@@ -345,7 +350,7 @@ const BuyListStep = ({ measurements, payload, roomLabel, design, roomId, designI
                 <Button variant="outline" onClick={exportTxt}>
                   <FileText className="w-4 h-4 mr-2" /> Export text
                 </Button>
-                <Button variant="secondary" onClick={build} disabled={loading}>
+                <Button variant="secondary" onClick={() => build(true)} disabled={loading}>
                   {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <RotateCcw className="w-4 h-4 mr-2" />}
                   Recalculate
                 </Button>
