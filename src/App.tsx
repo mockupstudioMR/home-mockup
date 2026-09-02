@@ -131,6 +131,11 @@ const App = () => (
                   <FloorPlan />
                 </ProtectedRoute>
               } />
+              <Route path="/plan-rooms" element={
+                <ProtectedRoute allowedRoles={["user"]}>
+                  <PlanRooms />
+                </ProtectedRoute>
+              } />
               <Route path="/existing-room" element={
                 <ProtectedRoute allowedRoles={["user"]}>
                   <ExistingRoomFlow />
