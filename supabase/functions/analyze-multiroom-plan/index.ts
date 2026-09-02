@@ -189,13 +189,15 @@ Be precise and consistent: rooms must not overlap, and the sum of room areas mus
       throw e;
     }
 
-    const rawRooms: any[] = Array.isArray(parsed.rooms) ? parsed.rooms : [];
-
     type Pt = { x: number; y: number };
     const num = (v: any) => (typeof v === "number" && isFinite(v) ? v : NaN);
 
+    const buildPlan = (raw: any) => {
+    const rawRooms: any[] = Array.isArray(raw.rooms) ? raw.rooms : [];
+
     // --- 1. Work out the pixel canvas so pixel outlines can become percentages.
     const pxPolys: Pt[][] = rawRooms.map((r) =>
+
       (Array.isArray(r.polygon_px) ? r.polygon_px : Array.isArray(r.polygon) ? r.polygon : [])
         .map((p: any) => ({ x: num(p?.x), y: num(p?.y) }))
         .filter((p: Pt) => !isNaN(p.x) && !isNaN(p.y)),
