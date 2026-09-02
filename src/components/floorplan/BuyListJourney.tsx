@@ -121,6 +121,8 @@ const BuyListJourney = ({
   palette = [],
   paletteNote,
   images,
+  crops = {},
+
   total,
   savedAt,
   actions,
