@@ -2263,6 +2263,25 @@ RULES:
           </div>
         )}
 
+        {/* Continue with the floor plan */}
+        {design && !generating && (
+          <div className="max-w-3xl mx-auto">
+            <div className="rounded-2xl border bg-card p-6 flex flex-col sm:flex-row items-start sm:items-center gap-4 justify-between">
+              <div>
+                <h3 className="font-semibold">Next: ground it in your floor plan</h3>
+                <p className="text-sm text-muted-foreground">
+                  Upload your plan — we read a standard door as 1 m, measure every room, and you pick one room at a time.
+                </p>
+              </div>
+              <Button onClick={() => navigate("/plan-rooms")} className="shrink-0">
+                Continue with floor plan
+              </Button>
+            </div>
+          </div>
+        )}
+
+
+
         {/* Unified Moodboard + Refine — only visible after the user opts into refinement */}
         {design?.isLocked && (
         <div className="max-w-3xl mx-auto">
