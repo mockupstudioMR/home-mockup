@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { getAiErrorMessage } from "@/lib/aiErrorMessage";
 import BuyListJourney from "./BuyListJourney";
+import LayerFilm from "@/components/journey/LayerFilm";
 
 export interface BuyListMeasurements {
   roomWidthM?: number;
@@ -502,6 +503,13 @@ const BuyListStep = ({ measurements, payload, roomLabel, design, roomId, designI
           </CardContent>
         </Card>
       )}
+
+      {/* The build order your shopping list follows, one layer at a time. */}
+      <Card className="overflow-hidden border-0">
+        <LayerFilm />
+      </Card>
+
+
 
       {loading && !list && (
         <Card>
