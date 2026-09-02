@@ -164,22 +164,31 @@ const BuyListStep = ({ measurements, payload, roomLabel, design, roomId, designI
             .split(/\s+/)
             .filter((t) => t.length > 2);
 
-        // 1) Photos of the items detected in this design.
-        const designPhotos: { label: string; url: string }[] = [];
+        type Cand = { label: string; url?: string; bbox?: { x: number; y: number; width: number; height: number } };
+
+        // 1) The items detected in this design: isolated product photo first,
+        //    then a crop of the design image itself (same as the refinement list).
+        const designPhotos: Cand[] = [];
         if (designId) {
           const { data: di } = await supabase
             .from("design_items")
-            .select("item_name, item_type, item_description, product_photo_url, shop_products(image_urls)")
+            .select("item_name, item_type, item_description, product_photo_url, bounding_box, shop_products(image_urls)")
             .eq("design_id", designId)
             .limit(200);
           (di || []).forEach((row: any) => {
             const url =
               row.product_photo_url ||
               (Array.isArray(row.shop_products?.image_urls) ? row.shop_products.image_urls[0] : undefined);
-            if (!url) return;
+            const bb = row.bounding_box;
+            const bbox =
+              bb && typeof bb.x === "number" && typeof bb.width === "number"
+                ? { x: bb.x, y: bb.y, width: bb.width, height: bb.height }
+                : undefined;
+            if (!url && !bbox) return;
             designPhotos.push({
               label: [row.item_name, row.item_type, row.item_description].filter(Boolean).join(" "),
               url,
+              bbox,
             });
           });
         }
@@ -192,29 +201,45 @@ const BuyListStep = ({ measurements, payload, roomLabel, design, roomId, designI
           .not("image_urls", "is", null)
           .limit(500);
 
-        const bestMatch = (want: Set<string>, pool: { label: string; url: string }[], min = 1) => {
-          let best: { score: number; url?: string } = { score: 0 };
+        const bestMatch = (want: Set<string>, pool: Cand[], min = 1): Cand | undefined => {
+          let best: { score: number; cand?: Cand } = { score: 0 };
           pool.forEach((p) => {
             const score = tokens(p.label).reduce((s, t) => s + (want.has(t) ? 1 : 0), 0);
-            if (score > best.score) best = { score, url: p.url };
+            if (score > best.score) best = { score, cand: p };
           });
-          return best.score >= min ? best.url : undefined;
+          return best.score >= min ? best.cand : undefined;
         };
 
-        const catalogPool = (products || [])
+        const catalogPool: Cand[] = (products || [])
           .map((p: any) => ({
             label: [p.name, p.type, p.style].filter(Boolean).join(" "),
             url: Array.isArray(p.image_urls) ? p.image_urls[0] : undefined,
           }))
-          .filter((p): p is { label: string; url: string } => Boolean(p.url));
+          .filter((p) => Boolean(p.url));
 
         const map: Record<string, string> = {};
+        const cropMap: Record<string, React.CSSProperties> = {};
         list.items.forEach((it) => {
           const want = new Set([...tokens(it.name), ...tokens(it.spec || "")]);
-          const url = bestMatch(want, designPhotos) || bestMatch(want, catalogPool);
-          if (url) map[it.name] = url;
+          const hit = bestMatch(want, designPhotos) || bestMatch(want, catalogPool);
+          if (!hit) return;
+          if (hit.url) {
+            map[it.name] = hit.url;
+          } else if (hit.bbox && design?.imageUrl) {
+            const { x, y, width, height } = hit.bbox;
+            const scale = Math.min(100 / width, 100 / height, 4);
+            cropMap[it.name] = {
+              backgroundImage: `url(${design.imageUrl})`,
+              backgroundSize: `${scale * 100}%`,
+              backgroundPosition: `${x + width / 2}% ${y + height / 2}%`,
+              backgroundRepeat: "no-repeat",
+            };
+          }
         });
-        if (!cancelled) setImages(map);
+        if (!cancelled) {
+          setImages(map);
+          setCrops(cropMap);
+        }
       } catch (e) {
         console.warn("[buy-list] image match failed", e);
       }
@@ -222,7 +247,8 @@ const BuyListStep = ({ measurements, payload, roomLabel, design, roomId, designI
     return () => {
       cancelled = true;
     };
-  }, [list, designId]);
+  }, [list, designId, design?.imageUrl]);
+
 
 
   const grouped = useMemo(() => {
