@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Download, FileText, ImageIcon, Loader2, Printer, RotateCcw, Ruler, ShoppingBasket } from "lucide-react";
+import { Download, FileText, ImageIcon, Loader2, RotateCcw, Ruler, ShoppingBasket } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { getAiErrorMessage } from "@/lib/aiErrorMessage";
@@ -66,6 +66,7 @@ const BuyListStep = ({ measurements, payload, roomLabel, design, roomId, designI
   const [loading, setLoading] = useState(false);
   const [savedAt, setSavedAt] = useState<string | null>(null);
   const [images, setImages] = useState<Record<string, string>>({});
+  const [exportingPdf, setExportingPdf] = useState(false);
   const requested = useRef(false);
 
   const scopeKey = `${roomId || "no-room"}:${designId || "no-design"}`;
@@ -260,94 +261,174 @@ const BuyListStep = ({ measurements, payload, roomLabel, design, roomId, designI
     download(lines.join("\n"), `shopping-list-${Date.now()}.txt`, "text/plain");
   };
 
-  const exportPdf = () => {
+  const toDataUrl = (src: string): Promise<string | null> =>
+    new Promise((resolve) => {
+      if (src.startsWith("data:")) return resolve(src);
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+      img.onload = () => {
+        try {
+          const canvas = document.createElement("canvas");
+          canvas.width = 256;
+          canvas.height = 256;
+          const ctx = canvas.getContext("2d");
+          if (!ctx) return resolve(null);
+          const side = Math.min(img.width, img.height);
+          ctx.drawImage(img, (img.width - side) / 2, (img.height - side) / 2, side, side, 0, 0, 256, 256);
+          resolve(canvas.toDataURL("image/jpeg", 0.82));
+        } catch {
+          resolve(null);
+        }
+      };
+      img.onerror = () => resolve(null);
+      img.src = src;
+    });
+
+  const exportPdf = async () => {
     if (!list) return;
-    const esc = (v: unknown) =>
-      String(v ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-    const rowsHtml = grouped
-      .map(
-        ([cat, items]) => `
-        <h2>${esc(CATEGORY_LABELS[cat] || cat)}</h2>
-        <table>
-          ${items
-            .map(
-              (it) => `
-            <tr>
-              <td class="thumb">${
-                images[it.name]
-                  ? `<img src="${esc(images[it.name])}" alt="${esc(it.name)}" />`
-                  : `<div class="ph"></div>`
-              }</td>
-              <td>
-                <div class="name">${esc(it.name)}</div>
-                ${it.spec ? `<div class="muted">${esc(it.spec)}</div>` : ""}
-                ${it.size_constraint ? `<div class="constraint">Max size: ${esc(it.size_constraint)}</div>` : ""}
-                <div class="muted">Basis: ${esc(it.basis)}</div>
-                ${it.notes ? `<div class="muted">${esc(it.notes)}</div>` : ""}
-              </td>
-              <td class="qty">
-                <div class="name">${fmt(it.quantity)} ${esc(it.unit)}</div>
-                ${
-                  it.unit_price_eur
-                    ? `<div class="muted">${euro(it.unit_price_eur)} / ${esc(it.unit)}</div><div class="name">${euro(
-                        it.unit_price_eur * it.quantity,
-                      )}</div>`
-                    : ""
-                }
-              </td>
-            </tr>`,
-            )
-            .join("")}
-        </table>`,
-      )
-      .join("");
+    setExportingPdf(true);
+    try {
+      const { default: jsPDF } = await import("jspdf");
+      const doc = new jsPDF({ unit: "mm", format: "a4" });
+      const pageW = 210;
+      const pageH = 297;
+      const margin = 14;
+      let y = margin;
 
-    const html = `<!doctype html><html><head><meta charset="utf-8" />
-<title>Shopping list — ${esc(roomLabel || "Room")}</title>
-<style>
-  * { box-sizing: border-box; }
-  body { font-family: -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; color: #2b2430; margin: 32px; }
-  h1 { font-size: 22px; margin: 0 0 4px; }
-  h2 { font-size: 14px; text-transform: uppercase; letter-spacing: .06em; color: #7a5c86; margin: 22px 0 6px; page-break-after: avoid; }
-  .sub { color: #6b6472; font-size: 12px; margin: 0 0 16px; }
-  .basis { background: #f6f1f7; border-radius: 8px; padding: 10px 12px; font-size: 11px; color: #4b4453; margin-bottom: 8px; }
-  table { width: 100%; border-collapse: collapse; }
-  tr { page-break-inside: avoid; border-bottom: 1px solid #ece7ef; }
-  td { padding: 8px 6px; vertical-align: top; font-size: 11px; }
-  td.thumb { width: 74px; }
-  td.thumb img { width: 64px; height: 64px; object-fit: cover; border-radius: 6px; border: 1px solid #ece7ef; }
-  .ph { width: 64px; height: 64px; border-radius: 6px; background: #f3eef5; }
-  td.qty { width: 130px; text-align: right; }
-  .name { font-weight: 600; font-size: 12px; }
-  .muted { color: #6b6472; }
-  .constraint { color: #8a5a72; font-weight: 600; }
-  .total { margin-top: 20px; border-top: 2px solid #7a5c86; padding-top: 10px; display: flex; justify-content: space-between; font-size: 16px; font-weight: 700; }
-  @page { margin: 14mm; }
-</style></head><body>
-  <h1>Shopping list — ${esc(roomLabel || "Room")}</h1>
-  <p class="sub">${esc(list.summary || "")}</p>
-  <div class="basis">Floor ${measurements.floorAreaSqm} m² · Perimeter ${measurements.perimeterM} m · Wall area ${
-      measurements.netWallAreaSqm
-    } m² · Skirting ${measurements.skirtingM} m · Ceiling ${measurements.ceilingHeightM} m</div>
-  ${rowsHtml}
-  <div class="total"><span>Estimated total</span><span>${euro(total)}</span></div>
-</body></html>`;
+      const ensure = (needed: number) => {
+        if (y + needed > pageH - margin) {
+          doc.addPage();
+          y = margin;
+        }
+      };
 
-    const w = window.open("", "_blank");
-    if (!w) {
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(16);
+      doc.text(`Shopping list — ${roomLabel || "Room"}`, margin, y + 4);
+      y += 10;
+
+      if (list.summary) {
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(9);
+        doc.setTextColor(107, 100, 114);
+        const sum = doc.splitTextToSize(list.summary, pageW - margin * 2);
+        doc.text(sum, margin, y);
+        y += sum.length * 4 + 2;
+      }
+
+      doc.setFontSize(8);
+      doc.setTextColor(75, 68, 83);
+      doc.text(
+        `Floor ${measurements.floorAreaSqm} m²  ·  Perimeter ${measurements.perimeterM} m  ·  Wall area ${measurements.netWallAreaSqm} m²  ·  Skirting ${measurements.skirtingM} m  ·  Ceiling ${measurements.ceilingHeightM} m`,
+        margin,
+        y,
+      );
+      y += 8;
+
+      // Pre-resolve images for the items we will print.
+      const entries = grouped.flatMap(([, items]) => items);
+      const resolved: Record<string, string> = {};
+      await Promise.all(
+        entries.map(async (it) => {
+          const src = images[it.name];
+          if (!src) return;
+          const data = await toDataUrl(src);
+          if (data) resolved[it.name] = data;
+        }),
+      );
+
+      for (const [cat, items] of grouped) {
+        ensure(14);
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(10);
+        doc.setTextColor(122, 92, 134);
+        doc.text((CATEGORY_LABELS[cat] || cat).toUpperCase(), margin, y);
+        y += 5;
+
+        for (const it of items) {
+          const textX = margin + 20;
+          const textW = pageW - margin * 2 - 20 - 34;
+          const detail: string[] = [];
+          if (it.spec) detail.push(it.spec);
+          if (it.size_constraint) detail.push(`Max size: ${it.size_constraint}`);
+          detail.push(`Basis: ${it.basis}`);
+          if (it.notes) detail.push(it.notes);
+          const detailLines = detail.flatMap((d) => doc.splitTextToSize(d, textW) as string[]);
+          const rowH = Math.max(18, 6 + detailLines.length * 3.6);
+          ensure(rowH + 2);
+
+          const img = resolved[it.name];
+          if (img) {
+            try {
+              doc.addImage(img, "JPEG", margin, y, 16, 16);
+            } catch {
+              /* ignore bad image */
+            }
+          } else {
+            doc.setFillColor(243, 238, 245);
+            doc.roundedRect(margin, y, 16, 16, 1.5, 1.5, "F");
+          }
+
+          doc.setFont("helvetica", "bold");
+          doc.setFontSize(9.5);
+          doc.setTextColor(43, 36, 48);
+          doc.text(doc.splitTextToSize(it.name, textW)[0], textX, y + 4);
+
+          doc.setFont("helvetica", "normal");
+          doc.setFontSize(7.5);
+          doc.setTextColor(107, 100, 114);
+          doc.text(detailLines, textX, y + 8.5);
+
+          const qtyX = pageW - margin;
+          doc.setFont("helvetica", "bold");
+          doc.setFontSize(9.5);
+          doc.setTextColor(43, 36, 48);
+          doc.text(`${fmt(it.quantity)} ${it.unit}`, qtyX, y + 4, { align: "right" });
+          if (it.unit_price_eur) {
+            doc.setFont("helvetica", "normal");
+            doc.setFontSize(7.5);
+            doc.setTextColor(107, 100, 114);
+            doc.text(`${euro(it.unit_price_eur)} / ${it.unit}`, qtyX, y + 8, { align: "right" });
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(9);
+            doc.setTextColor(43, 36, 48);
+            doc.text(euro(it.unit_price_eur * it.quantity), qtyX, y + 12.5, { align: "right" });
+          }
+
+          y += rowH;
+          doc.setDrawColor(236, 231, 239);
+          doc.line(margin, y, pageW - margin, y);
+          y += 3;
+        }
+        y += 3;
+      }
+
+      ensure(16);
+      doc.setDrawColor(122, 92, 134);
+      doc.setLineWidth(0.6);
+      doc.line(margin, y, pageW - margin, y);
+      doc.setLineWidth(0.2);
+      y += 7;
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(13);
+      doc.setTextColor(43, 36, 48);
+      doc.text("Estimated total", margin, y);
+      doc.text(euro(total), pageW - margin, y, { align: "right" });
+
+      const safe = (roomLabel || "room").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+      doc.save(`shopping-list-${safe || "room"}.pdf`);
+    } catch (e) {
+      console.error("PDF export failed", e);
       toast({
-        title: "Popup blocked",
-        description: "Allow popups to export the PDF.",
+        title: "PDF export failed",
+        description: "Could not build the PDF. Please try again.",
         variant: "destructive",
       });
-      return;
+    } finally {
+      setExportingPdf(false);
     }
-    w.document.write(html);
-    w.document.close();
-    w.focus();
-    // Give images a moment to load before opening the print/save-as-PDF dialog.
-    setTimeout(() => w.print(), 800);
   };
+
 
   return (
     <div className="space-y-6">
@@ -504,8 +585,13 @@ const BuyListStep = ({ measurements, payload, roomLabel, design, roomId, designI
                 <Button variant="outline" onClick={exportTxt}>
                   <FileText className="w-4 h-4 mr-2" /> Export text
                 </Button>
-                <Button onClick={exportPdf}>
-                  <Printer className="w-4 h-4 mr-2" /> Export PDF
+                <Button onClick={exportPdf} disabled={exportingPdf}>
+                  {exportingPdf ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <Download className="w-4 h-4 mr-2" />
+                  )}
+                  {exportingPdf ? "Building PDF…" : "Download PDF"}
                 </Button>
                 <Button variant="secondary" onClick={() => build(true)} disabled={loading}>
                   {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <RotateCcw className="w-4 h-4 mr-2" />}
