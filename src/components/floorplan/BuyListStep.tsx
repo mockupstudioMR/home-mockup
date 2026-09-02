@@ -504,6 +504,9 @@ const BuyListStep = ({ measurements, payload, roomLabel, design, roomId, designI
                 <Button variant="outline" onClick={exportTxt}>
                   <FileText className="w-4 h-4 mr-2" /> Export text
                 </Button>
+                <Button onClick={exportPdf}>
+                  <Printer className="w-4 h-4 mr-2" /> Export PDF
+                </Button>
                 <Button variant="secondary" onClick={() => build(true)} disabled={loading}>
                   {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <RotateCcw className="w-4 h-4 mr-2" />}
                   Recalculate
