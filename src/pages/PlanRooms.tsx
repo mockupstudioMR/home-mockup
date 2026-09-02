@@ -114,7 +114,11 @@ const PlanRooms = () => {
         if (error) throw error;
         if (!data?.plan?.rooms?.length) throw new Error("No rooms could be detected in this plan");
 
-        setPlan(data.plan as PlanResult);
+        const normalized: PlanResult = {
+          ...(data.plan as PlanResult),
+          rooms: (data.plan.rooms as PlanRoom[]).map((r, i) => ({ ...r, name: `Room ${i + 1}` })),
+        };
+        setPlan(normalized);
         toast({
           title: `${data.plan.rooms.length} rooms detected`,
           description: "Sizes were scaled using a 1 m door reference.",
