@@ -16,6 +16,10 @@ interface PlanOpening {
   type: "door" | "window" | "balcony";
   wall_index: number;
   position_pct: number;
+  width_m?: number;
+  /** centre of the opening in % of the image, when the AI provided it */
+  x?: number;
+  y?: number;
 }
 
 interface PlanRoom {
@@ -44,6 +48,30 @@ const centroid = (poly: { x: number; y: number }[]) => {
   const y = poly.reduce((s, p) => s + p.y, 0) / poly.length;
   return { x, y };
 };
+
+const OPENING_COLORS: Record<PlanOpening["type"], string> = {
+  door: "hsl(25 70% 45%)",
+  window: "hsl(205 85% 50%)",
+  balcony: "hsl(150 55% 40%)",
+};
+
+/** Resolve an opening's position on the plan: use AI coords, else interpolate along the polygon edge. */
+const openingPoint = (room: PlanRoom, o: PlanOpening) => {
+  if (typeof o.x === "number" && typeof o.y === "number") return { x: o.x, y: o.y };
+  const poly = room.polygon;
+  if (poly.length < 2) return centroid(poly);
+  const i = Math.min(Math.max(0, Math.round(o.wall_index || 0)), poly.length - 1);
+  const a = poly[i];
+  const b = poly[(i + 1) % poly.length];
+  const t = Math.min(1, Math.max(0, (o.position_pct ?? 50) / 100));
+  return { x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t };
+};
+
+const countByType = (openings: PlanOpening[] = []) =>
+  openings.reduce<Record<string, number>>((acc, o) => {
+    acc[o.type] = (acc[o.type] || 0) + 1;
+    return acc;
+  }, {});
 
 const PlanRooms = () => {
   const navigate = useNavigate();
@@ -236,12 +264,82 @@ const PlanRooms = () => {
                         >
                           {room.width_m.toFixed(2)} × {room.length_m.toFixed(2)} m
                         </text>
+
+                        {/* Detected openings — doors, windows, balconies */}
+                        {(selectedId === null || isSelected) &&
+                          room.openings?.map((o, oi) => {
+                            const p = openingPoint(room, o);
+                            const color = OPENING_COLORS[o.type] ?? OPENING_COLORS.door;
+                            return (
+                              <g key={`${room.id}-op-${oi}`}>
+                                <circle cx={p.x} cy={p.y} r={1.5} fill="hsl(var(--card))" stroke={color} strokeWidth={0.5} vectorEffect="non-scaling-stroke" />
+                                {o.type === "window" ? (
+                                  <line
+                                    x1={p.x - 1}
+                                    y1={p.y}
+                                    x2={p.x + 1}
+                                    y2={p.y}
+                                    stroke={color}
+                                    strokeWidth={0.6}
+                                    vectorEffect="non-scaling-stroke"
+                                  />
+                                ) : (
+                                  <circle cx={p.x} cy={p.y} r={0.55} fill={color} />
+                                )}
+                              </g>
+                            );
+                          })}
                       </g>
                     );
                   })}
                 </svg>
               </CardContent>
             </Card>
+
+            {/* Legend */}
+            <div className="flex flex-wrap items-center justify-center gap-4 text-xs text-muted-foreground">
+              {(["door", "window", "balcony"] as const).map((t) => (
+                <span key={t} className="flex items-center gap-1.5 capitalize">
+                  <span
+                    className="inline-block w-2.5 h-2.5 rounded-full"
+                    style={{ backgroundColor: OPENING_COLORS[t] }}
+                  />
+                  {t}
+                </span>
+              ))}
+              <span>Tap a room on the plan to isolate it</span>
+            </div>
+
+            {selectedRoom && (
+              <Card>
+                <CardContent className="p-4 flex flex-wrap items-center gap-3">
+                  <span className="font-semibold">{selectedRoom.name} openings:</span>
+                  {selectedRoom.openings?.length ? (
+                    Object.entries(countByType(selectedRoom.openings)).map(([type, n]) => (
+                      <Badge key={type} variant="outline" className="capitalize gap-1">
+                        <span
+                          className="inline-block w-2 h-2 rounded-full"
+                          style={{ backgroundColor: OPENING_COLORS[type as PlanOpening["type"]] }}
+                        />
+                        {n} {type}
+                        {n > 1 ? "s" : ""}
+                      </Badge>
+                    ))
+                  ) : (
+                    <span className="text-sm text-muted-foreground">none detected</span>
+                  )}
+                  {selectedRoom.openings?.some((o) => o.width_m) && (
+                    <span className="text-xs text-muted-foreground">
+                      widths:{" "}
+                      {selectedRoom.openings
+                        .filter((o) => o.width_m)
+                        .map((o) => `${o.type} ${o.width_m!.toFixed(2)} m`)
+                        .join(" · ")}
+                    </span>
+                  )}
+                </CardContent>
+              </Card>
+            )}
 
             {/* Room list — single select */}
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -267,7 +365,11 @@ const PlanRooms = () => {
                     </p>
                     <p className="text-xs text-muted-foreground mt-1 capitalize">
                       {room.room_type.replace(/[-_]/g, " ")}
-                      {room.openings?.length ? ` · ${room.openings.length} openings` : ""}
+                      {room.openings?.length
+                        ? ` · ${Object.entries(countByType(room.openings))
+                            .map(([t, n]) => `${n} ${t}${n > 1 ? "s" : ""}`)
+                            .join(", ")}`
+                        : ""}
                     </p>
                   </button>
                 );
