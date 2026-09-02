@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
@@ -12,11 +12,12 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import Logo from "@/components/Logo";
-import { ArrowLeft, ArrowRight, Loader2, RotateCcw, X, Sofa, Bed, UtensilsCrossed, Monitor, Bath, ThumbsUp, ThumbsDown, Save, Upload, Image as ImageIcon } from "lucide-react";
+import { ArrowLeft, ArrowRight, Loader2, RotateCcw, X, Sofa, Bed, UtensilsCrossed, Monitor, Bath, ThumbsUp, ThumbsDown, Save, ShoppingBasket, Upload, Image as ImageIcon } from "lucide-react";
 import { trackEvent } from "@/lib/analytics";
 import { Textarea } from "@/components/ui/textarea";
 import { IllustratedFurniture, IllustratedLegend } from "@/components/floorplan/IllustratedFurniture";
 import RoomOpenings from "@/components/floorplan/RoomOpenings";
+import BuyListStep from "@/components/floorplan/BuyListStep";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 
@@ -565,7 +566,7 @@ const FloorPlan = () => {
   const { user, loading: authLoading } = useAuth();
   const { quizData, updateQuizData } = useQuiz();
 
-  // Steps: 0=shape, 1=dimensions, 2=room type & furniture, 3=openings, 4=layout, 5=style
+  // Steps: 0=shape, 1=dimensions, 2=room type & furniture, 3=openings, 4=layout, 5=style, 6=shopping list
   const [step, setStep] = useState(0);
   const [selectedShape, setSelectedShape] = useState<RoomShape | null>(null);
   const [dimensions, setDimensions] = useState<Record<string, number>>({});
@@ -1096,7 +1097,7 @@ const FloorPlan = () => {
     );
   }
 
-  const STEP_LABELS = ["Shape", "Dimensions", "Room & Furniture", "Openings", "Layout", "Style"];
+  const STEP_LABELS = ["Shape", "Dimensions", "Room & Furniture", "Openings", "Layout", "Style", "Shopping List"];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-secondary/20 to-primary/10">
@@ -1676,7 +1677,7 @@ const FloorPlan = () => {
                   {savingFeedback ? (
                     <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Saving...</>
                   ) : (
-                    <><Save className="w-4 h-4 mr-2" /> Generate Design</>
+                    <><ShoppingBasket className="w-4 h-4 mr-2" /> Build shopping list</>
                   )}
                 </Button>
               </div>
@@ -1837,7 +1838,7 @@ const FloorPlan = () => {
                         {savingFeedback ? (
                           <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Saving...</>
                         ) : (
-                          <><Save className="w-4 h-4 mr-2" /> Generate Design</>
+                          <><ShoppingBasket className="w-4 h-4 mr-2" /> Build shopping list</>
                         )}
                       </Button>
                     ) : (
@@ -1848,6 +1849,22 @@ const FloorPlan = () => {
                   </div>
                 </>
               )}
+            </div>
+          )}
+
+          {/* Step 6: Shopping list (no design regeneration) */}
+          {step === 6 && (
+            <div className="space-y-6">
+              <BuyListStep
+                measurements={buyListMeasurements}
+                payload={buyListPayload}
+                roomLabel={selectedRoomType || "Room"}
+              />
+              <div className="flex justify-center">
+                <Button variant="outline" onClick={() => setStep(4)}>
+                  <ArrowLeft className="w-4 h-4 mr-2" /> Back to Layout
+                </Button>
+              </div>
             </div>
           )}
         </div>
