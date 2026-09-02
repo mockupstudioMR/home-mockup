@@ -125,63 +125,70 @@ Be precise and consistent: rooms must not overlap, and the sum of room areas mus
 
     // Geometry reading needs the strongest available vision model; fall back if unavailable.
     const MODELS = ["google/gemini-2.5-pro", "google/gemini-2.5-flash"];
-    let response: Response | null = null;
-    let lastStatus = 0;
-    let lastErr = "";
 
-    for (const model of MODELS) {
-      response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${LOVABLE_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model,
-          messages: [
-            { role: "system", content: systemPrompt },
-            {
-              role: "user",
-              content: [
-                { type: "text", text: userText },
-                { type: "image_url", image_url: { url: imageUrl } },
-              ],
-            },
-          ],
-          tools,
-          tool_choice: { type: "function", function: { name: "extract_rooms" } },
-        }),
-      });
-      if (response.ok) break;
-      lastStatus = response.status;
-      lastErr = await response.text();
-      console.error("AI gateway error:", model, lastStatus, lastErr);
-      // Only a bad/unavailable model id is worth trying the next model for.
-      if (lastStatus !== 400 && lastStatus !== 404) break;
-      response = null;
-    }
+    const askAI = async (messages: unknown[]) => {
+      let lastStatus = 0;
+      for (const model of MODELS) {
+        const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${LOVABLE_API_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model,
+            messages,
+            tools,
+            tool_choice: { type: "function", function: { name: "extract_rooms" } },
+          }),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          const args = data.choices?.[0]?.message?.tool_calls?.[0]?.function?.arguments;
+          if (!args) throw new Error("No tool call in response");
+          return JSON.parse(args);
+        }
+        lastStatus = res.status;
+        console.error("AI gateway error:", model, lastStatus, await res.text());
+        // Only a bad/unavailable model id is worth trying the next model for.
+        if (lastStatus !== 400 && lastStatus !== 404) break;
+      }
+      const err = new Error(`AI error: ${lastStatus}`);
+      (err as Error & { status?: number }).status = lastStatus;
+      throw err;
+    };
 
-    if (!response || !response.ok) {
-      if (lastStatus === 429) {
+    const baseMessages = [
+      { role: "system", content: systemPrompt },
+      {
+        role: "user",
+        content: [
+          { type: "text", text: userText },
+          { type: "image_url", image_url: { url: imageUrl } },
+        ],
+      },
+    ];
+
+    let parsed: any;
+    try {
+      parsed = await askAI(baseMessages);
+    } catch (e) {
+      const status = (e as Error & { status?: number }).status;
+      if (status === 429) {
         return new Response(JSON.stringify({ error: "Rate limited, please try again shortly." }), {
           status: 429,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      if (lastStatus === 402 || lastStatus === 403) {
+      if (status === 402 || status === 403) {
         return new Response(JSON.stringify({ error: "AI credits exhausted or blocked for this workspace." }), {
-          status: lastStatus,
+          status,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      throw new Error(`AI error: ${lastStatus}`);
+      throw e;
     }
 
-    const aiData = await response.json();
-    const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
-    if (!toolCall?.function?.arguments) throw new Error("No tool call in response");
-
-    const parsed = JSON.parse(toolCall.function.arguments);
     const rawRooms: any[] = Array.isArray(parsed.rooms) ? parsed.rooms : [];
 
     type Pt = { x: number; y: number };
