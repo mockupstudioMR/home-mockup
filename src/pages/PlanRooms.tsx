@@ -233,41 +233,28 @@ const PlanRooms = () => {
                   preserveAspectRatio="none"
                   className="absolute inset-0 w-full h-full"
                 >
-                  {plan.rooms.map((room) => {
+                  {plan.rooms.map((room, ri) => {
                     const isSelected = room.id === selectedId;
+                    const dimmed = selectedId !== null && !isSelected;
                     const pts = room.polygon.map((p) => `${p.x},${p.y}`).join(" ");
-                    const c = centroid(room.polygon);
+                    const color = roomColor(ri);
                     return (
                       <g
                         key={room.id}
                         className="cursor-pointer"
                         onClick={() => setSelectedId(isSelected ? null : room.id)}
+                        opacity={dimmed ? 0.25 : 1}
                       >
                         <polygon
                           points={pts}
-                          fill={isSelected ? "hsl(var(--primary) / 0.35)" : "hsl(var(--primary) / 0.08)"}
-                          stroke={isSelected ? "hsl(var(--primary))" : "hsl(var(--primary) / 0.5)"}
-                          strokeWidth={isSelected ? 0.9 : 0.4}
+                          fill={color}
+                          fillOpacity={isSelected ? 0.55 : 0.3}
+                          stroke={color}
+                          strokeWidth={isSelected ? 2.5 : 1.5}
+                          strokeLinejoin="round"
                           vectorEffect="non-scaling-stroke"
                         />
-                        <text
-                          x={c.x}
-                          y={c.y}
-                          textAnchor="middle"
-                          style={{ fontSize: 2.6, fontWeight: 600 }}
-                          fill="hsl(var(--foreground))"
-                        >
-                          {room.name}
-                        </text>
-                        <text
-                          x={c.x}
-                          y={c.y + 3}
-                          textAnchor="middle"
-                          style={{ fontSize: 2.2 }}
-                          fill="hsl(var(--muted-foreground))"
-                        >
-                          {room.width_m.toFixed(2)} × {room.length_m.toFixed(2)} m
-                        </text>
+
 
                         {/* Detected openings — doors, windows, balconies */}
                         {(selectedId === null || isSelected) &&
