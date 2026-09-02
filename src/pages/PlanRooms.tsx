@@ -55,6 +55,22 @@ const OPENING_COLORS: Record<PlanOpening["type"], string> = {
   balcony: "hsl(150 55% 40%)",
 };
 
+/** Distinct colour per room — used instead of labels drawn on the plan. */
+const ROOM_COLORS = [
+  "hsl(265 60% 58%)",
+  "hsl(15 80% 60%)",
+  "hsl(150 50% 42%)",
+  "hsl(205 80% 52%)",
+  "hsl(45 85% 52%)",
+  "hsl(330 65% 58%)",
+  "hsl(185 60% 42%)",
+  "hsl(95 45% 45%)",
+  "hsl(240 55% 62%)",
+  "hsl(0 65% 55%)",
+];
+const roomColor = (i: number) => ROOM_COLORS[i % ROOM_COLORS.length];
+
+
 /** Resolve an opening's position on the plan: use AI coords, else interpolate along the polygon edge. */
 const openingPoint = (room: PlanRoom, o: PlanOpening) => {
   if (typeof o.x === "number" && typeof o.y === "number") return { x: o.x, y: o.y };
