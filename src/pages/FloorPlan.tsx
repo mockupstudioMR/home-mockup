@@ -674,6 +674,19 @@ const FloorPlan = () => {
     if (!authLoading && !user) navigate("/auth");
   }, [user, authLoading, navigate]);
 
+  // The design this floor plan belongs to (source of truth for the shopping list)
+  interface LinkedDesign {
+    id: string;
+    title: string | null;
+    imageUrl: string | null;
+    description: string;
+    prompt: string;
+    items: { name: string; type?: string; color?: string; material?: string; style?: string }[];
+    moodboard: Record<string, unknown> | null;
+    roomId: string | null;
+  }
+  const [linkedDesign, setLinkedDesign] = useState<LinkedDesign | null>(null);
+
   // Prefill from a scanned multi-room plan (/plan-rooms → pick one room)
   const [prefillRoomName, setPrefillRoomName] = useState<string>("");
   useEffect(() => {
@@ -690,6 +703,9 @@ const FloorPlan = () => {
       });
       if (p?.roomType) setSelectedRoomType(String(p.roomType));
       if (p?.roomName) setPrefillRoomName(String(p.roomName));
+      if (p?.designId) {
+        try { sessionStorage.setItem("floor_plan_design_id", String(p.designId)); } catch { /* ignore */ }
+      }
       if (Array.isArray(p?.openings) && p.openings.length > 0) {
         const wallLabels: WallSide[] = ["top", "right", "bottom", "left"];
         setOpenings(
@@ -1004,7 +1020,18 @@ const FloorPlan = () => {
           })),
         },
       };
-      await saveRoomSpec(spec as any);
+      const saved = await saveRoomSpec(spec as any);
+
+      // Fix the relation: attach this room to the design the list is built from.
+      if (saved?.id && linkedDesign?.id && linkedDesign.roomId !== saved.id) {
+        const { error } = await supabase
+          .from("generated_designs")
+          .update({ room_id: saved.id })
+          .eq("id", linkedDesign.id)
+          .eq("user_id", user.id);
+        if (error) console.warn("[floor-plan] could not link design to room", error);
+        else setLinkedDesign((prev) => (prev ? { ...prev, roomId: saved.id! } : prev));
+      }
     } catch (e) { console.warn("[roomSpec] save failed", e); }
 
     try {
@@ -1021,7 +1048,72 @@ const FloorPlan = () => {
 
     setSavingFeedback(false);
     setStep(6);
-  }, [layout, selectedShape, dimensions, selectedRoomType, selectedFurniture, openings, updateQuizData, user, itemScores, itemNotes, buildWallsClockwise, selectedStyle, referenceImageUrl]);
+  }, [layout, selectedShape, dimensions, selectedRoomType, selectedFurniture, openings, updateQuizData, user, itemScores, itemNotes, buildWallsClockwise, selectedStyle, referenceImageUrl, linkedDesign]);
+
+  // Load the generated design tied to this floor plan. Falls back to the user's
+  // latest design for the same room type, so the list is never built blind.
+  useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+
+    const run = async () => {
+      let designId: string | null = null;
+      try { designId = sessionStorage.getItem("floor_plan_design_id"); } catch { /* ignore */ }
+
+      const columns = "id, title, image_url, full_description, prompt, extracted_items, moodboard, room_id, created_at";
+      let row: any = null;
+
+      if (designId) {
+        const { data } = await supabase
+          .from("generated_designs")
+          .select(columns)
+          .eq("id", designId)
+          .eq("user_id", user.id)
+          .maybeSingle();
+        row = data;
+      }
+
+      if (!row) {
+        // No explicit link yet — take the most recent design of this room type.
+        let q = supabase
+          .from("generated_designs")
+          .select(columns)
+          .eq("user_id", user.id)
+          .order("created_at", { ascending: false })
+          .limit(1);
+        const { data } = await q;
+        row = data?.[0] ?? null;
+        if (row?.id) {
+          try { sessionStorage.setItem("floor_plan_design_id", row.id); } catch { /* ignore */ }
+        }
+      }
+
+      if (cancelled || !row) return;
+
+      const rawItems = Array.isArray(row.extracted_items) ? row.extracted_items : [];
+      setLinkedDesign({
+        id: row.id,
+        title: row.title ?? null,
+        imageUrl: row.image_url ?? null,
+        description: row.full_description || "",
+        prompt: row.prompt || "",
+        items: rawItems
+          .map((it: any) => ({
+            name: it?.item_name || it?.name || it?.label || "",
+            type: it?.item_type || it?.type,
+            color: it?.color,
+            material: it?.material,
+            style: it?.style,
+          }))
+          .filter((it: any) => it.name),
+        moodboard: (row.moodboard as Record<string, unknown> | null) ?? null,
+        roomId: row.room_id ?? null,
+      });
+    };
+
+    run().catch((e) => console.warn("[floor-plan] design lookup failed", e));
+    return () => { cancelled = true; };
+  }, [user]);
 
   // Deterministic measurements used as the basis of the shopping list
   const buyListMeasurements = useMemo(() => {
@@ -1054,13 +1146,15 @@ const FloorPlan = () => {
   }, [selectedShape, dimensions, customWalls, openings]);
 
   const buyListPayload = useMemo(() => {
-    let designDescription = "";
+    let designDescription = linkedDesign?.description || linkedDesign?.prompt || "";
     let moodboard: Record<string, unknown> | undefined;
     try {
       const raw = sessionStorage.getItem("analyze_room_cache");
       if (raw) {
         const c = JSON.parse(raw);
-        designDescription = c?.analysis?.description || c?.moodboardDescription || c?.description || "";
+        if (!designDescription) {
+          designDescription = c?.analysis?.description || c?.moodboardDescription || c?.description || "";
+        }
         moodboard = {
           colors: c?.editableColors || [],
           materials: (c?.moodboard?.materials || []).map((m: any) => m?.label).filter(Boolean),
@@ -1074,7 +1168,19 @@ const FloorPlan = () => {
       if (raw) houseState = JSON.parse(raw)?.houseState || "";
     } catch { /* ignore */ }
 
+    const dbMb = linkedDesign?.moodboard as any;
+    if (dbMb) {
+      moodboard = {
+        colors: dbMb.editableColors || dbMb.colors || (moodboard as any)?.colors || [],
+        materials: (dbMb.materials || []).map((m: any) => m?.label || m).filter(Boolean),
+        mustInclude: (dbMb.mustInclude || []).map((m: any) => m?.label || m).filter(Boolean),
+      };
+    }
+
     return {
+      designId: linkedDesign?.id,
+      designTitle: linkedDesign?.title,
+      designItems: linkedDesign?.items || [],
       roomType: selectedRoomType || "living_room",
       shape: selectedShape?.id,
       dimensions,
@@ -1086,7 +1192,7 @@ const FloorPlan = () => {
       designDescription,
       moodboard,
     };
-  }, [selectedRoomType, selectedShape, dimensions, openings, buildWallsClockwise, selectedStyle, quizData.stylePreference, layout]);
+  }, [selectedRoomType, selectedShape, dimensions, openings, buildWallsClockwise, selectedStyle, quizData.stylePreference, layout, linkedDesign]);
 
 
   if (authLoading) {
@@ -1858,6 +1964,7 @@ const FloorPlan = () => {
               <BuyListStep
                 measurements={buyListMeasurements}
                 payload={buyListPayload}
+                design={linkedDesign ? { title: linkedDesign.title, imageUrl: linkedDesign.imageUrl, itemCount: linkedDesign.items.length } : undefined}
                 roomLabel={selectedRoomType || "Room"}
               />
               <div className="flex justify-center">
