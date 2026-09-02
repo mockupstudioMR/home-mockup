@@ -29,23 +29,25 @@ SCALE RULE (non-negotiable):
 - Report door_width_px and metres_per_pixel so the client can verify.
 - If several doors exist, use the median width of the normal interior doors (exclude wide sliding/double doors and balcony doors).
 
-For EVERY enclosed room in the plan return:
+STEP 1 — find the walls first. Before naming any room, trace the wall network: exterior walls (thickest), interior partitions (thinner), and every corner where walls meet. A room is the empty area fully enclosed by those wall lines. Never guess a room from furniture or text placement.
+
+STEP 2 — for EVERY enclosed room return:
 - "name": the label printed on the plan, or a sensible name ("Living Room", "Bedroom 1", "Kitchen", "Bathroom", "Hallway")
 - "room_type": one of living-room, bedroom, kitchen, bathroom, office, hallway, dining-room, other
-- "width_m", "length_m": rectangular footprint in metres, derived from the door scale, rounded to 2 decimals
+- "polygon_px": the room outline in IMAGE PIXELS ({"x","y"} points, clockwise). Also report image_width_px / image_height_px so the pixels can be converted. Use pixels, not percentages, so you can read the drawing precisely.
+- "width_m", "length_m": the room's bounding footprint in metres, derived from the door scale, rounded to 2 decimals
 - "area_sqm": floor area in m² (rounded to 2 decimals)
-- "polygon": the room outline as points in PERCENT of the image (x and y each 0-100), in clockwise order, minimum 4 points. Trace the INNER face of the walls that enclose this room, following every jog and niche (use more than 4 points for L-shaped rooms). Stop at every wall: a wall (a solid/hatched thick line) always separates two rooms, so two polygons must NEVER cross a wall, overlap each other, or cover the wall thickness itself. Leave a visible gap between neighbouring room polygons where the wall sits. Do not merge a room with an adjoining hallway, closet, or balcony — each enclosed area gets its own polygon.
 - "confidence": 0-1
 - "openings": EVERY door AND window (and balcony/terrace door) on that room's walls.
 
-OPENING DETECTION RULES (be thorough — windows are frequently missed):
-- WINDOWS look like a break in the wall hatch drawn as two or three thin parallel lines spanning the gap, usually on exterior walls, with no swing arc. Include every one of them, even small ones.
-- DOORS have a gap in the wall plus a quarter-circle swing arc (or a sliding-door rail).
-- BALCONY / terrace doors are wide openings leading to an outdoor slab, often with dashed railing lines.
-- For each opening return: { "type": "door"|"window"|"balcony", "wall_index": 0-based index of the polygon edge it sits on, "position_pct": 0-100 along that edge (measured in the polygon's clockwise direction), "width_m": clear width in metres from the 1 m door scale, "x" and "y": the CENTRE of the opening in PERCENT of the image (0-100), so it can be drawn directly on the plan.
-- Never invent openings that are not visibly drawn, and never merge two adjacent windows into one.
+POLYGON ACCURACY RULES (this is the most important part — crude rectangles are wrong):
+- Put a vertex at EVERY corner of the room, exactly where the two wall inner faces intersect. Follow the real outline: L-shapes, U-shapes, niches, chimney breasts, sloped/angled walls, columns and closets that bite into the room all need their own vertices. A 4-point rectangle is only acceptable when the room truly is a rectangle.
+- Trace the INNER face of each wall, so the polygon covers the usable floor only and never the wall thickness.
+- Walls are hard boundaries: a polygon may never cross a wall line, never overlap another room, and never merge a room with an adjoining hallway, closet, bathroom or balcony. Each enclosed area is its own room.
+- Rooms that share a wall must have parallel edges along that wall, separated only by the wall thickness — do not let one room's edge land in the middle of another room.
+- Keep edges axis-aligned (horizontal or vertical) unless the drawing clearly shows a slanted wall; then follow the slant exactly.
+- Re-check each polygon against the image before answering: every vertex must sit on a drawn wall line, and the shape must visually match that room's floor area.
 
-Be precise and consistent: rooms must not overlap, and the sum of room areas must be plausible for the whole plan.`;
 
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
