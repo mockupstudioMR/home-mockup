@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import Logo from "@/components/Logo";
-import { ArrowLeft, ArrowRight, Loader2, RotateCcw, X, Sofa, Bed, UtensilsCrossed, Monitor, Bath, ThumbsUp, ThumbsDown, Save, ShoppingBasket, Upload, Image as ImageIcon } from "lucide-react";
+import { ArrowLeft, ArrowRight, Loader2, RotateCcw, X, Sofa, Bed, UtensilsCrossed, Monitor, Bath, ThumbsUp, ThumbsDown, Save, ShoppingBasket, Upload } from "lucide-react";
 import { trackEvent } from "@/lib/analytics";
 import { Textarea } from "@/components/ui/textarea";
 import { IllustratedFurniture, IllustratedLegend } from "@/components/floorplan/IllustratedFurniture";
@@ -20,23 +20,6 @@ import RoomOpenings from "@/components/floorplan/RoomOpenings";
 import BuyListStep from "@/components/floorplan/BuyListStep";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
-
-// Style images
-import modernMinimalImg from "@/assets/styles/modern-minimal.png";
-import bohemianEclecticImg from "@/assets/styles/bohemian-eclectic.png";
-import classicHistoricalImg from "@/assets/styles/classic-historical.png";
-import glamLuxeImg from "@/assets/styles/glam-luxe.png";
-import mediterraneanImg from "@/assets/styles/mediterranean.png";
-import rusticNatureImg from "@/assets/styles/rustic-nature.png";
-
-const STYLE_OPTIONS = [
-  { value: "modern_minimal", label: "Modern Minimal", description: "Clean lines, neutral tones, minimalist furniture", imageUrl: modernMinimalImg },
-  { value: "classic_historical", label: "Classic Historical", description: "Timeless elegance with rich textures", imageUrl: classicHistoricalImg },
-  { value: "rustic_nature", label: "Rustic Nature", description: "Warm wood tones, natural materials", imageUrl: rusticNatureImg },
-  { value: "mediterranean", label: "Mediterranean", description: "Sun-kissed colors, terracotta, coastal vibes", imageUrl: mediterraneanImg },
-  { value: "bohemian_eclectic", label: "Bohemian Eclectic", description: "Eclectic patterns, vibrant colors", imageUrl: bohemianEclecticImg },
-  { value: "glam_luxe", label: "Glam Luxe", description: "Luxurious finishes, bold accents", imageUrl: glamLuxeImg },
-];
 
 // Room shape definitions
 type ShapeId = "rectangle" | "l-shape" | "u-shape" | "open-plan" | "custom";
@@ -595,10 +578,8 @@ const FloorPlan = () => {
   const [floorPlanAnalyzing, setFloorPlanAnalyzing] = useState(false);
   const [floorPlanImageUrl, setFloorPlanImageUrl] = useState<string>("");
 
-  // Style step
-  const [selectedStyle, setSelectedStyle] = useState<string>(quizData.stylePreference || "");
-  const [referenceImageUrl, setReferenceImageUrl] = useState<string>("");
-  const [uploadingRef, setUploadingRef] = useState(false);
+  // Style preference carried from the quiz (no separate style step)
+  const selectedStyle = quizData.stylePreference || "modern_minimal";
 
   // Layout step
   const [layout, setLayout] = useState<LayoutSuggestion | null>(null);
@@ -637,32 +618,6 @@ const FloorPlan = () => {
     }
   }, [roomConfigs, quizData.roomType, selectedRoomType]);
 
-  // Fetch CMS styles (optional override)
-  const { data: cmsStyles } = useQuery({
-    queryKey: ["cms-quiz-styles"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("cms_content")
-        .select("key, value, metadata")
-        .like("key", "quiz_style_%")
-        .eq("content_type", "image_url");
-      if (error) throw error;
-      return data;
-    },
-  });
-
-  const styleOptions = cmsStyles?.length
-    ? cmsStyles.map((item) => {
-        const styleKey = item.key.replace("quiz_style_", "");
-        const meta = item.metadata as { label?: string; title?: string; description?: string } | null;
-        return {
-          value: styleKey,
-          label: meta?.label || meta?.title || styleKey.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()),
-          description: meta?.description || "",
-          imageUrl: item.value,
-        };
-      })
-    : STYLE_OPTIONS;
 
   const ROOM_ICONS: Record<string, React.ReactNode> = {
     "living-room": <Sofa className="w-6 h-6" />,
@@ -833,25 +788,6 @@ const FloorPlan = () => {
     setOpenings(prev => prev.filter(o => o.id !== id));
   }, []);
 
-  const handleReferenceUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !user) return;
-    setUploadingRef(true);
-    try {
-      const ext = file.name.split(".").pop();
-      const path = `${user.id}/ref_${Date.now()}.${ext}`;
-      const { error } = await supabase.storage.from("room-uploads").upload(path, file);
-      if (error) throw error;
-      const { data: urlData } = supabase.storage.from("room-uploads").getPublicUrl(path);
-      setReferenceImageUrl(urlData.publicUrl);
-      toast({ title: "Reference uploaded", description: "Your style reference has been saved." });
-    } catch (err: any) {
-      toast({ title: "Upload failed", description: err.message, variant: "destructive" });
-    } finally {
-      setUploadingRef(false);
-    }
-  }, [user]);
-
   // Build clockwise walls data for the prompt
   const buildWallsClockwise = useCallback(() => {
     return WALLS_CLOCKWISE.map((wall) => {
@@ -888,7 +824,6 @@ const FloorPlan = () => {
         openings: openings.map(o => ({ type: o.type, wall: o.wall, position: o.position })),
         walls: wallsData,
         style: selectedStyle || undefined,
-        referenceImageUrl: referenceImageUrl || undefined,
       };
       if (selectedShape.id === "custom") {
         body.customWalls = customWalls;
@@ -910,9 +845,9 @@ const FloorPlan = () => {
       console.error("Layout generation error:", e);
       toast({ title: "Layout Generation Failed", description: e.message || "Please try again.", variant: "destructive" });
     } finally {
-      setGenerating(false);
-    }
-  }, [selectedShape, dimensions, selectedRoomType, selectedFurniture, openings, buildWallsClockwise, customWalls, layout, itemScores, itemNotes, selectedStyle, referenceImageUrl]);
+    setGenerating(false);
+  }
+  }, [selectedShape, dimensions, selectedRoomType, selectedFurniture, openings, buildWallsClockwise, customWalls, layout, itemScores, itemNotes, selectedStyle]);
 
   const undoLayout = useCallback(() => {
     if (!previousLayout) return;
@@ -967,7 +902,6 @@ const FloorPlan = () => {
       openings: openings.map((o) => ({ type: o.type, wall: o.wall, position: o.position })),
       walls: buildWallsClockwise(),
       style: selectedStyle,
-      referenceImageUrl: referenceImageUrl || undefined,
       layout,
       feedback: layout.items.map((item, i) => ({
         item: item.label,
@@ -1010,7 +944,6 @@ const FloorPlan = () => {
           colorPalette: "neutral",
           budgetFeel: "mid-range",
           mustHaveElements: selectedFurniture,
-          referenceImageUrl: referenceImageUrl || undefined,
         },
         furniture: { selectedItems: selectedFurniture },
         layout: {
@@ -1052,8 +985,8 @@ const FloorPlan = () => {
     } catch { /* non-critical */ }
 
     setSavingFeedback(false);
-    setStep(6);
-  }, [layout, selectedShape, dimensions, selectedRoomType, selectedFurniture, openings, updateQuizData, user, itemScores, itemNotes, buildWallsClockwise, selectedStyle, referenceImageUrl, linkedDesign]);
+    setStep(5);
+  }, [layout, selectedShape, dimensions, selectedRoomType, selectedFurniture, openings, updateQuizData, user, itemScores, itemNotes, buildWallsClockwise, selectedStyle, linkedDesign]);
 
   // Load the generated design tied to this floor plan. Falls back to the user's
   // latest design for the same room type, so the list is never built blind.
@@ -1209,7 +1142,7 @@ const FloorPlan = () => {
     );
   }
 
-  const STEP_LABELS = ["Shape", "Dimensions", "Room & Furniture", "Openings", "Layout", "Style", "Shopping List"];
+  const STEP_LABELS = ["Shape", "Dimensions", "Room & Furniture", "Openings", "Layout", "Shopping List"];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-secondary/20 to-primary/10">
@@ -1700,101 +1633,6 @@ const FloorPlan = () => {
             </div>
           )}
 
-          {/* Step 5: Style Selection */}
-          {step === 5 && (
-            <div className="space-y-6">
-              <div className="text-center space-y-2">
-                <h1 className="text-2xl md:text-3xl font-bold">What's Your Design Style?</h1>
-                <p className="text-muted-foreground">Pick a style or upload a reference image for inspiration</p>
-              </div>
-
-              {/* Reference image upload */}
-              <div className="max-w-md mx-auto">
-                <div className="rounded-xl border-2 border-dashed border-border/50 p-4 text-center space-y-2">
-                  {referenceImageUrl ? (
-                    <div className="relative">
-                      <img src={referenceImageUrl} alt="Reference" className="w-full h-32 object-cover rounded-lg" />
-                      <button
-                        onClick={() => setReferenceImageUrl("")}
-                        className="absolute top-1 right-1 bg-background/80 rounded-full p-1"
-                      >
-                        <X className="w-3 h-3" />
-                      </button>
-                      <p className="text-xs text-muted-foreground mt-2">Reference image uploaded — style will be matched to this</p>
-                    </div>
-                  ) : (
-                    <label className="cursor-pointer flex flex-col items-center gap-2 py-2">
-                      {uploadingRef ? (
-                        <Loader2 className="w-6 h-6 animate-spin text-primary" />
-                      ) : (
-                        <Upload className="w-6 h-6 text-muted-foreground" />
-                      )}
-                      <span className="text-sm text-muted-foreground">Upload a reference image (optional)</span>
-                      <input type="file" accept="image/*" className="hidden" onChange={handleReferenceUpload} disabled={uploadingRef} />
-                    </label>
-                  )}
-                </div>
-              </div>
-
-              <div className="text-center text-sm text-muted-foreground">— or pick a style —</div>
-
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                {styleOptions.map((style) => (
-                  <button
-                    key={style.value}
-                    onClick={() => setSelectedStyle(style.value)}
-                    className={`relative group overflow-hidden rounded-xl border-2 transition-all ${
-                      selectedStyle === style.value
-                        ? "border-primary ring-2 ring-primary/20"
-                        : "border-border hover:border-primary/50"
-                    }`}
-                  >
-                    {style.imageUrl ? (
-                      <img
-                        src={style.imageUrl}
-                        alt={style.label}
-                        className="w-full aspect-[4/3] object-cover"
-                      />
-                    ) : (
-                      <div className="w-full aspect-[4/3] bg-muted flex items-center justify-center">
-                        <ImageIcon className="w-8 h-8 text-muted-foreground" />
-                      </div>
-                    )}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
-                    <div className="absolute bottom-0 left-0 right-0 p-3 text-left">
-                      <p className="text-white font-semibold text-sm">{style.label}</p>
-                      {style.description && (
-                        <p className="text-white/70 text-xs line-clamp-2">{style.description}</p>
-                      )}
-                    </div>
-                    {selectedStyle === style.value && (
-                      <div className="absolute top-2 right-2 bg-primary text-primary-foreground rounded-full p-1">
-                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                        </svg>
-                      </div>
-                    )}
-                  </button>
-                ))}
-              </div>
-
-              <div className="flex justify-center gap-3 pt-2">
-                <Button variant="outline" onClick={() => setStep(4)}>
-                  <ArrowLeft className="w-4 h-4 mr-2" /> Back to Layout
-                </Button>
-                <Button
-                  onClick={saveFeedbackAndProceed}
-                  disabled={savingFeedback || (!selectedStyle && !referenceImageUrl)}
-                >
-                  {savingFeedback ? (
-                    <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Saving...</>
-                  ) : (
-                    <><ShoppingBasket className="w-4 h-4 mr-2" /> Build shopping list</>
-                  )}
-                </Button>
-              </div>
-            </div>
-          )}
 
           {/* Step 4: Layout Result */}
           {step === 4 && (
@@ -1945,27 +1783,21 @@ const FloorPlan = () => {
                         <RotateCcw className="w-4 h-4 mr-2 -scale-x-100" /> Undo
                       </Button>
                     )}
-                    {selectedStyle || referenceImageUrl ? (
-                      <Button onClick={saveFeedbackAndProceed} disabled={!layout || savingFeedback}>
-                        {savingFeedback ? (
-                          <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Saving...</>
-                        ) : (
-                          <><ShoppingBasket className="w-4 h-4 mr-2" /> Build shopping list</>
-                        )}
-                      </Button>
-                    ) : (
-                      <Button onClick={() => setStep(5)} disabled={!layout}>
-                        Next: Style <ArrowRight className="w-4 h-4 ml-2" />
-                      </Button>
-                    )}
+                    <Button onClick={saveFeedbackAndProceed} disabled={!layout || savingFeedback}>
+                      {savingFeedback ? (
+                        <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Saving...</>
+                      ) : (
+                        <><ShoppingBasket className="w-4 h-4 mr-2" /> Build shopping list</>
+                      )}
+                    </Button>
                   </div>
                 </>
               )}
             </div>
           )}
 
-          {/* Step 6: Shopping list (no design regeneration) */}
-          {step === 6 && (
+          {/* Step 5: Shopping list (no design regeneration) */}
+          {step === 5 && (
             <div className="space-y-6">
               <BuyListStep
                 measurements={buyListMeasurements}
