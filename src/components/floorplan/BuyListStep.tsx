@@ -41,6 +41,9 @@ interface Props {
   payload: Record<string, unknown>;
   roomLabel?: string;
   design?: { title: string | null; imageUrl: string | null; itemCount: number };
+  /** Persistence keys — the list is stored once per room/design and reloaded instead of regenerated. */
+  roomId?: string | null;
+  designId?: string | null;
 }
 
 const CATEGORY_LABELS: Record<string, string> = {
