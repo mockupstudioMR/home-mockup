@@ -1052,7 +1052,7 @@ const FloorPlan = () => {
     } catch { /* non-critical */ }
 
     setSavingFeedback(false);
-    setStep(6);
+    setStep(5);
   }, [layout, selectedShape, dimensions, selectedRoomType, selectedFurniture, openings, updateQuizData, user, itemScores, itemNotes, buildWallsClockwise, selectedStyle, referenceImageUrl, linkedDesign]);
 
   // Load the generated design tied to this floor plan. Falls back to the user's
@@ -1209,7 +1209,7 @@ const FloorPlan = () => {
     );
   }
 
-  const STEP_LABELS = ["Shape", "Dimensions", "Room & Furniture", "Openings", "Layout", "Style", "Shopping List"];
+  const STEP_LABELS = ["Shape", "Dimensions", "Room & Furniture", "Openings", "Layout", "Shopping List"];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-secondary/20 to-primary/10">
