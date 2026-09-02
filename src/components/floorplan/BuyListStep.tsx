@@ -345,30 +345,52 @@ const BuyListStep = ({ measurements, payload, roomLabel, design, roomId, designI
               </CardHeader>
               <CardContent className="space-y-2">
                 {items.map((it, i) => (
-                  <div key={`${cat}-${i}`} className="rounded-lg border border-border/50 bg-background/60 p-3 space-y-1">
-                    <div className="flex items-start justify-between gap-3 flex-wrap">
-                      <div className="min-w-0">
-                        <p className="font-medium text-sm">{it.name}</p>
-                        {it.spec && <p className="text-xs text-muted-foreground">{it.spec}</p>}
-                      </div>
-                      <div className="text-right shrink-0">
-                        <p className="font-semibold text-sm">
-                          {fmt(it.quantity)} {it.unit}
-                        </p>
-                        {it.unit_price_eur ? (
-                          <p className="text-xs text-muted-foreground">
-                            {euro(it.unit_price_eur)} / {it.unit} · {euro(it.unit_price_eur * it.quantity)}
-                          </p>
-                        ) : null}
-                      </div>
+                  <div key={`${cat}-${i}`} className="rounded-lg border border-border/50 bg-background/60 p-3 flex gap-3">
+                    <div className="w-16 h-16 shrink-0 rounded-md overflow-hidden bg-secondary/50 border border-border/50 flex items-center justify-center">
+                      {images[it.name] ? (
+                        <img
+                          src={images[it.name]}
+                          alt={it.name}
+                          loading="lazy"
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <a
+                          href={`https://www.bing.com/images/search?q=${encodeURIComponent(`${it.name} ${it.spec || ""} buy`)}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          title="Find images"
+                          className="text-muted-foreground hover:text-primary"
+                        >
+                          <ImageIcon className="w-5 h-5" />
+                        </a>
+                      )}
                     </div>
-                    {it.size_constraint && (
-                      <p className="text-xs">
-                        <span className="font-medium text-primary">Max size:</span> {it.size_constraint}
-                      </p>
-                    )}
-                    <p className="text-xs text-muted-foreground">📐 {it.basis}</p>
-                    {it.notes && <p className="text-xs text-muted-foreground">{it.notes}</p>}
+                    <div className="flex-1 min-w-0 space-y-1">
+                      <div className="flex items-start justify-between gap-3 flex-wrap">
+                        <div className="min-w-0">
+                          <p className="font-medium text-sm">{it.name}</p>
+                          {it.spec && <p className="text-xs text-muted-foreground">{it.spec}</p>}
+                        </div>
+                        <div className="text-right shrink-0">
+                          <p className="font-semibold text-sm">
+                            {fmt(it.quantity)} {it.unit}
+                          </p>
+                          {it.unit_price_eur ? (
+                            <p className="text-xs text-muted-foreground">
+                              {euro(it.unit_price_eur)} / {it.unit} · {euro(it.unit_price_eur * it.quantity)}
+                            </p>
+                          ) : null}
+                        </div>
+                      </div>
+                      {it.size_constraint && (
+                        <p className="text-xs">
+                          <span className="font-medium text-primary">Max size:</span> {it.size_constraint}
+                        </p>
+                      )}
+                      <p className="text-xs text-muted-foreground">📐 {it.basis}</p>
+                      {it.notes && <p className="text-xs text-muted-foreground">{it.notes}</p>}
+                    </div>
                   </div>
                 ))}
               </CardContent>
