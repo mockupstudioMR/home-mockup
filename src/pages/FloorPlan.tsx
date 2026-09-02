@@ -1958,8 +1958,8 @@ const FloorPlan = () => {
             </div>
           )}
 
-          {/* Step 6: Shopping list (no design regeneration) */}
-          {step === 6 && (
+          {/* Step 5: Shopping list (no design regeneration) */}
+          {step === 5 && (
             <div className="space-y-6">
               <BuyListStep
                 measurements={buyListMeasurements}
