@@ -55,6 +55,22 @@ const OPENING_COLORS: Record<PlanOpening["type"], string> = {
   balcony: "hsl(150 55% 40%)",
 };
 
+/** Distinct colour per room — used instead of labels drawn on the plan. */
+const ROOM_COLORS = [
+  "hsl(265 60% 58%)",
+  "hsl(15 80% 60%)",
+  "hsl(150 50% 42%)",
+  "hsl(205 80% 52%)",
+  "hsl(45 85% 52%)",
+  "hsl(330 65% 58%)",
+  "hsl(185 60% 42%)",
+  "hsl(95 45% 45%)",
+  "hsl(240 55% 62%)",
+  "hsl(0 65% 55%)",
+];
+const roomColor = (i: number) => ROOM_COLORS[i % ROOM_COLORS.length];
+
+
 /** Resolve an opening's position on the plan: use AI coords, else interpolate along the polygon edge. */
 const openingPoint = (room: PlanRoom, o: PlanOpening) => {
   if (typeof o.x === "number" && typeof o.y === "number") return { x: o.x, y: o.y };
@@ -233,41 +249,28 @@ const PlanRooms = () => {
                   preserveAspectRatio="none"
                   className="absolute inset-0 w-full h-full"
                 >
-                  {plan.rooms.map((room) => {
+                  {plan.rooms.map((room, ri) => {
                     const isSelected = room.id === selectedId;
+                    const dimmed = selectedId !== null && !isSelected;
                     const pts = room.polygon.map((p) => `${p.x},${p.y}`).join(" ");
-                    const c = centroid(room.polygon);
+                    const color = roomColor(ri);
                     return (
                       <g
                         key={room.id}
                         className="cursor-pointer"
                         onClick={() => setSelectedId(isSelected ? null : room.id)}
+                        opacity={dimmed ? 0.25 : 1}
                       >
                         <polygon
                           points={pts}
-                          fill={isSelected ? "hsl(var(--primary) / 0.35)" : "hsl(var(--primary) / 0.08)"}
-                          stroke={isSelected ? "hsl(var(--primary))" : "hsl(var(--primary) / 0.5)"}
-                          strokeWidth={isSelected ? 0.9 : 0.4}
+                          fill={color}
+                          fillOpacity={isSelected ? 0.55 : 0.3}
+                          stroke={color}
+                          strokeWidth={isSelected ? 2.5 : 1.5}
+                          strokeLinejoin="round"
                           vectorEffect="non-scaling-stroke"
                         />
-                        <text
-                          x={c.x}
-                          y={c.y}
-                          textAnchor="middle"
-                          style={{ fontSize: 2.6, fontWeight: 600 }}
-                          fill="hsl(var(--foreground))"
-                        >
-                          {room.name}
-                        </text>
-                        <text
-                          x={c.x}
-                          y={c.y + 3}
-                          textAnchor="middle"
-                          style={{ fontSize: 2.2 }}
-                          fill="hsl(var(--muted-foreground))"
-                        >
-                          {room.width_m.toFixed(2)} × {room.length_m.toFixed(2)} m
-                        </text>
+
 
                         {/* Detected openings — doors, windows, balconies */}
                         {(selectedId === null || isSelected) &&
@@ -300,6 +303,32 @@ const PlanRooms = () => {
               </CardContent>
             </Card>
 
+            {/* Room colour key — colours replace labels on the plan */}
+            <div className="flex flex-wrap items-center justify-center gap-2">
+              {plan.rooms.map((room, ri) => {
+                const isSelected = room.id === selectedId;
+                return (
+                  <button
+                    key={`key-${room.id}`}
+                    type="button"
+                    onClick={() => setSelectedId(isSelected ? null : room.id)}
+                    className={`flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs transition ${
+                      isSelected ? "border-primary bg-primary/10 font-medium" : "border-border hover:border-primary/40"
+                    }`}
+                  >
+                    <span
+                      className="inline-block w-3 h-3 rounded-sm"
+                      style={{ backgroundColor: roomColor(ri) }}
+                    />
+                    {room.name}
+                    <span className="text-muted-foreground">
+                      {room.width_m.toFixed(1)}×{room.length_m.toFixed(1)} m
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+
             {/* Legend */}
             <div className="flex flex-wrap items-center justify-center gap-4 text-xs text-muted-foreground">
               {(["door", "window", "balcony"] as const).map((t) => (
@@ -311,8 +340,9 @@ const PlanRooms = () => {
                   {t}
                 </span>
               ))}
-              <span>Tap a room on the plan to isolate it</span>
+              <span>Tap a room on the plan or a colour chip to isolate it</span>
             </div>
+
 
             {selectedRoom && (
               <Card>
@@ -347,7 +377,7 @@ const PlanRooms = () => {
 
             {/* Room list — single select */}
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              {plan.rooms.map((room) => {
+              {plan.rooms.map((room, ri) => {
                 const isSelected = room.id === selectedId;
                 return (
                   <button
@@ -361,7 +391,13 @@ const PlanRooms = () => {
                     }`}
                   >
                     <div className="flex items-center justify-between gap-2">
-                      <span className="font-semibold">{room.name}</span>
+                      <span className="font-semibold flex items-center gap-2">
+                        <span
+                          className="inline-block w-3 h-3 rounded-sm"
+                          style={{ backgroundColor: roomColor(ri) }}
+                        />
+                        {room.name}
+                      </span>
                       {isSelected && <Badge>Selected</Badge>}
                     </div>
                     <p className="text-sm text-muted-foreground mt-1">

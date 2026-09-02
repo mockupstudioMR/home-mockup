@@ -34,7 +34,7 @@ For EVERY enclosed room in the plan return:
 - "room_type": one of living-room, bedroom, kitchen, bathroom, office, hallway, dining-room, other
 - "width_m", "length_m": rectangular footprint in metres, derived from the door scale, rounded to 2 decimals
 - "area_sqm": floor area in m² (rounded to 2 decimals)
-- "polygon": the room outline as points in PERCENT of the image (x and y each 0-100), in clockwise order, minimum 4 points. This must trace the actual room walls in the image so it can be drawn as an overlay.
+- "polygon": the room outline as points in PERCENT of the image (x and y each 0-100), in clockwise order, minimum 4 points. Trace the INNER face of the walls that enclose this room, following every jog and niche (use more than 4 points for L-shaped rooms). Stop at every wall: a wall (a solid/hatched thick line) always separates two rooms, so two polygons must NEVER cross a wall, overlap each other, or cover the wall thickness itself. Leave a visible gap between neighbouring room polygons where the wall sits. Do not merge a room with an adjoining hallway, closet, or balcony — each enclosed area gets its own polygon.
 - "confidence": 0-1
 - "openings": EVERY door AND window (and balcony/terrace door) on that room's walls.
 
