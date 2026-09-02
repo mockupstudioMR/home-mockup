@@ -63,7 +63,7 @@ Be precise and consistent: rooms must not overlap, and the sum of room areas mus
             content: [
               {
                 type: "text",
-                text: "Read this floor plan. Use a standard interior door opening as exactly 1.0 m to scale everything, then return every room with its outline (in % of the image) and its real-world sizes.",
+                text: "Read this floor plan. Use a standard interior door opening as exactly 1.0 m to scale everything, then return every room with its outline (in % of the image), its real-world sizes, and EVERY door and window you can see (windows are thin parallel lines in the wall with no swing arc — do not miss any).",
               },
               { type: "image_url", image_url: { url: imageUrl } },
             ],
@@ -111,6 +111,9 @@ Be precise and consistent: rooms must not overlap, and the sum of room areas mus
                               type: { type: "string", enum: ["door", "window", "balcony"] },
                               wall_index: { type: "number" },
                               position_pct: { type: "number" },
+                              width_m: { type: "number" },
+                              x: { type: "number" },
+                              y: { type: "number" },
                             },
                             required: ["type", "wall_index", "position_pct"],
                           },
