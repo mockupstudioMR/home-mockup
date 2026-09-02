@@ -46,7 +46,7 @@ import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import {
   getThumbnailImageUrl,
-  optimizeImageFile,
+  optimizeImageFileSafe,
 } from "@/lib/imageOptimization";
 import { cn } from "@/lib/utils";
 import type {
@@ -543,7 +543,7 @@ const MoodboardRefinePanel = ({
       data: { user },
     } = await supabase.auth.getUser();
     if (!user) return null;
-    const optimized = await optimizeImageFile(file, { maxDimension: 2048 });
+    const optimized = await optimizeImageFileSafe(file, { maxDimension: 2048 });
     const path = `${user.id}/${folder}/${Date.now()}-${Math.random()
       .toString(36)
       .slice(2, 8)}.webp`;

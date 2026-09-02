@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
-import { getThumbnailImageUrl, optimizeImageFile } from "@/lib/imageOptimization";
+import { getThumbnailImageUrl, optimizeImageFileSafe } from "@/lib/imageOptimization";
 import { cn } from "@/lib/utils";
 
 export type MoodboardItemKind = "furniture" | "decor" | "must-include" | "material";
@@ -106,7 +106,7 @@ const MoodboardElementsPanel = ({ items, onAction, disabled }: MoodboardElements
   const uploadOne = async (file: File, folder: string): Promise<string | null> => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return null;
-    const optimized = await optimizeImageFile(file, { maxDimension: 2048 });
+    const optimized = await optimizeImageFileSafe(file, { maxDimension: 2048 });
     const path = `${user.id}/${folder}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.webp`;
     const { error } = await supabase.storage.from("room-photos").upload(path, optimized, { contentType: optimized.type });
     if (error) return null;

@@ -13,7 +13,7 @@ import MoodboardCollage from "@/components/analyze/MoodboardCollage";
 import TagVisual from "@/components/analyze/TagVisual";
 import { RefreshCw as RefreshIcon } from "lucide-react";
 import { trackEvent } from "@/lib/analytics";
-import { getAiOptimizedImageUrl, getThumbnailImageUrl, optimizeImageFile } from "@/lib/imageOptimization";
+import { getAiOptimizedImageUrl, getThumbnailImageUrl, optimizeImageFileSafe } from "@/lib/imageOptimization";
 import { getAiErrorMessage } from "@/lib/aiErrorMessage";
 import { cn } from "@/lib/utils";
 import { useJourneySession } from "@/hooks/useJourneySession";
@@ -186,14 +186,19 @@ const AnalyzeRoom = () => {
   const uploadToStorage = async (file: File): Promise<string | null> => {
     if (!user) return null;
 
-    const optimizedFile = await optimizeImageFile(file, { maxDimension: 2048 });
-    const fileName = `${user.id}/${Date.now()}-${Math.random().toString(36).substring(7)}.webp`;
+    // Never let optimization failures (HEIC, odd formats) kill the upload.
+    const optimizedFile = await optimizeImageFileSafe(file, { maxDimension: 2048 });
+    const ext = (optimizedFile.name.split(".").pop() || "jpg").toLowerCase().replace(/[^a-z0-9]/g, "") || "jpg";
+    const fileName = `${user.id}/${Date.now()}-${Math.random().toString(36).substring(7)}.${ext}`;
 
     let lastError: unknown = null;
     for (let attempt = 1; attempt <= 3; attempt++) {
       const { error } = await supabase.storage
         .from('room-photos')
-        .upload(fileName, optimizedFile, { contentType: optimizedFile.type });
+        .upload(fileName, optimizedFile, {
+          contentType: optimizedFile.type || "application/octet-stream",
+          upsert: true,
+        });
 
       if (!error) {
         const { data: urlData } = supabase.storage.from('room-photos').getPublicUrl(fileName);
@@ -203,7 +208,7 @@ const AnalyzeRoom = () => {
       lastError = error;
       const status = (error as { statusCode?: string | number; status?: number }).statusCode;
       const code = String(status ?? '');
-      const isTransient = code.startsWith('5') || code === '408' || code === '429';
+      const isTransient = code.startsWith('5') || code === '408' || code === '429' || code === '';
       if (!isTransient || attempt === 3) break;
       await new Promise((r) => setTimeout(r, 600 * attempt));
     }
@@ -211,6 +216,7 @@ const AnalyzeRoom = () => {
     console.error('Upload error after retries:', lastError);
     return null;
   };
+
 
   const handleFileUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
@@ -222,7 +228,7 @@ const AnalyzeRoom = () => {
     try {
       const remainingSlots = Math.max(0, 6 - uploadedImages.length);
       const uploads = files
-        .filter((file) => file.type.startsWith("image/"))
+        .filter((file) => file.type.startsWith("image/") || /\.(heic|heif|jpe?g|png|webp|avif)$/i.test(file.name))
         .slice(0, remainingSlots)
         .map((file) => uploadToStorage(file));
       const results = await Promise.all(uploads);
