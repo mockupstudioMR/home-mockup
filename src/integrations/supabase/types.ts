@@ -1160,6 +1160,63 @@ export type Database = {
         }
         Relationships: []
       }
+      shopping_lists: {
+        Row: {
+          created_at: string
+          design_id: string | null
+          id: string
+          list: Json
+          measurements: Json
+          metadata: Json
+          room_id: string | null
+          room_label: string | null
+          scope_key: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          design_id?: string | null
+          id?: string
+          list?: Json
+          measurements?: Json
+          metadata?: Json
+          room_id?: string | null
+          room_label?: string | null
+          scope_key: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          design_id?: string | null
+          id?: string
+          list?: Json
+          measurements?: Json
+          metadata?: Json
+          room_id?: string | null
+          room_label?: string | null
+          scope_key?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shopping_lists_design_id_fkey"
+            columns: ["design_id"]
+            isOneToOne: false
+            referencedRelation: "generated_designs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shopping_lists_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       style_prompts: {
         Row: {
           created_at: string
