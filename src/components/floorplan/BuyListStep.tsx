@@ -68,6 +68,7 @@ const BuyListStep = ({ measurements, payload, roomLabel, design, roomId, designI
   const [savedAt, setSavedAt] = useState<string | null>(null);
   const [images, setImages] = useState<Record<string, string>>({});
   const [crops, setCrops] = useState<Record<string, React.CSSProperties>>({});
+  const [cropBoxes, setCropBoxes] = useState<Record<string, { x: number; y: number; width: number; height: number }>>({});
 
   const [exportingPdf, setExportingPdf] = useState(false);
   const requested = useRef(false);
@@ -221,6 +222,7 @@ const BuyListStep = ({ measurements, payload, roomLabel, design, roomId, designI
 
         const map: Record<string, string> = {};
         const cropMap: Record<string, React.CSSProperties> = {};
+        const boxMap: Record<string, { x: number; y: number; width: number; height: number }> = {};
         list.items.forEach((it) => {
           const want = new Set([...tokens(it.name), ...tokens(it.spec || "")]);
           const hit = bestMatch(want, designPhotos) || bestMatch(want, catalogPool);
@@ -236,11 +238,13 @@ const BuyListStep = ({ measurements, payload, roomLabel, design, roomId, designI
               backgroundPosition: `${x + width / 2}% ${y + height / 2}%`,
               backgroundRepeat: "no-repeat",
             };
+            boxMap[it.name] = hit.bbox;
           }
         });
         if (!cancelled) {
           setImages(map);
           setCrops(cropMap);
+          setCropBoxes(boxMap);
         }
       } catch (e) {
         console.warn("[buy-list] image match failed", e);
@@ -433,8 +437,12 @@ const BuyListStep = ({ measurements, payload, roomLabel, design, roomId, designI
       await Promise.all(
         entries.map(async (it) => {
           const src = images[it.name];
-          if (!src) return;
-          const data = await toDataUrl(src);
+          const box = cropBoxes[it.name];
+          const data = src
+            ? await toDataUrl(src)
+            : box && design?.imageUrl
+              ? await cropDataUrl(design.imageUrl, box)
+              : null;
           if (data) resolved[it.name] = data;
         }),
       );
