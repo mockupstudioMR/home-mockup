@@ -269,7 +269,7 @@ const PlanRooms = () => {
         </div>
 
         {/* Upload */}
-        {!plan && (
+        {!plan && !restoring && (
           <Card className="border-dashed">
             <CardContent className="p-10">
               <label className="flex flex-col items-center gap-4 cursor-pointer text-center">
