@@ -260,6 +260,95 @@ const BuyListStep = ({ measurements, payload, roomLabel, design, roomId, designI
     download(lines.join("\n"), `shopping-list-${Date.now()}.txt`, "text/plain");
   };
 
+  const exportPdf = () => {
+    if (!list) return;
+    const esc = (v: unknown) =>
+      String(v ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    const rowsHtml = grouped
+      .map(
+        ([cat, items]) => `
+        <h2>${esc(CATEGORY_LABELS[cat] || cat)}</h2>
+        <table>
+          ${items
+            .map(
+              (it) => `
+            <tr>
+              <td class="thumb">${
+                images[it.name]
+                  ? `<img src="${esc(images[it.name])}" alt="${esc(it.name)}" />`
+                  : `<div class="ph"></div>`
+              }</td>
+              <td>
+                <div class="name">${esc(it.name)}</div>
+                ${it.spec ? `<div class="muted">${esc(it.spec)}</div>` : ""}
+                ${it.size_constraint ? `<div class="constraint">Max size: ${esc(it.size_constraint)}</div>` : ""}
+                <div class="muted">Basis: ${esc(it.basis)}</div>
+                ${it.notes ? `<div class="muted">${esc(it.notes)}</div>` : ""}
+              </td>
+              <td class="qty">
+                <div class="name">${fmt(it.quantity)} ${esc(it.unit)}</div>
+                ${
+                  it.unit_price_eur
+                    ? `<div class="muted">${euro(it.unit_price_eur)} / ${esc(it.unit)}</div><div class="name">${euro(
+                        it.unit_price_eur * it.quantity,
+                      )}</div>`
+                    : ""
+                }
+              </td>
+            </tr>`,
+            )
+            .join("")}
+        </table>`,
+      )
+      .join("");
+
+    const html = `<!doctype html><html><head><meta charset="utf-8" />
+<title>Shopping list — ${esc(roomLabel || "Room")}</title>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; color: #2b2430; margin: 32px; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  h2 { font-size: 14px; text-transform: uppercase; letter-spacing: .06em; color: #7a5c86; margin: 22px 0 6px; page-break-after: avoid; }
+  .sub { color: #6b6472; font-size: 12px; margin: 0 0 16px; }
+  .basis { background: #f6f1f7; border-radius: 8px; padding: 10px 12px; font-size: 11px; color: #4b4453; margin-bottom: 8px; }
+  table { width: 100%; border-collapse: collapse; }
+  tr { page-break-inside: avoid; border-bottom: 1px solid #ece7ef; }
+  td { padding: 8px 6px; vertical-align: top; font-size: 11px; }
+  td.thumb { width: 74px; }
+  td.thumb img { width: 64px; height: 64px; object-fit: cover; border-radius: 6px; border: 1px solid #ece7ef; }
+  .ph { width: 64px; height: 64px; border-radius: 6px; background: #f3eef5; }
+  td.qty { width: 130px; text-align: right; }
+  .name { font-weight: 600; font-size: 12px; }
+  .muted { color: #6b6472; }
+  .constraint { color: #8a5a72; font-weight: 600; }
+  .total { margin-top: 20px; border-top: 2px solid #7a5c86; padding-top: 10px; display: flex; justify-content: space-between; font-size: 16px; font-weight: 700; }
+  @page { margin: 14mm; }
+</style></head><body>
+  <h1>Shopping list — ${esc(roomLabel || "Room")}</h1>
+  <p class="sub">${esc(list.summary || "")}</p>
+  <div class="basis">Floor ${measurements.floorAreaSqm} m² · Perimeter ${measurements.perimeterM} m · Wall area ${
+      measurements.netWallAreaSqm
+    } m² · Skirting ${measurements.skirtingM} m · Ceiling ${measurements.ceilingHeightM} m</div>
+  ${rowsHtml}
+  <div class="total"><span>Estimated total</span><span>${euro(total)}</span></div>
+</body></html>`;
+
+    const w = window.open("", "_blank");
+    if (!w) {
+      toast({
+        title: "Popup blocked",
+        description: "Allow popups to export the PDF.",
+        variant: "destructive",
+      });
+      return;
+    }
+    w.document.write(html);
+    w.document.close();
+    w.focus();
+    // Give images a moment to load before opening the print/save-as-PDF dialog.
+    setTimeout(() => w.print(), 800);
+  };
+
   return (
     <div className="space-y-6">
       <div className="text-center space-y-2">
