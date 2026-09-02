@@ -2312,7 +2312,18 @@ RULES:
                   Upload your plan — we read a standard door as 1 m, measure every room, and you pick one room at a time.
                 </p>
               </div>
-              <Button onClick={() => navigate("/plan-rooms")} className="shrink-0">
+              <Button
+                onClick={() => {
+                  // Carry the generated design forward so the shopping list can read it back
+                  try {
+                    if (design?.id && !design.id.startsWith("design-")) {
+                      sessionStorage.setItem("floor_plan_design_id", design.id);
+                    }
+                  } catch { /* ignore quota */ }
+                  navigate("/plan-rooms");
+                }}
+                className="shrink-0"
+              >
                 Continue with floor plan
               </Button>
             </div>

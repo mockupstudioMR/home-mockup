@@ -163,6 +163,9 @@ const PlanRooms = () => {
       openings: selectedRoom.openings,
       planImageUrl: imageUrl,
       scale: { door_m: 1, metres_per_pixel: plan?.metres_per_pixel ?? null },
+      designId: (() => {
+        try { return sessionStorage.getItem("floor_plan_design_id") || null; } catch { return null; }
+      })(),
     };
     sessionStorage.setItem("floor_plan_prefill", JSON.stringify(prefill));
     updateQuizData({ roomType: selectedRoom.room_type });
