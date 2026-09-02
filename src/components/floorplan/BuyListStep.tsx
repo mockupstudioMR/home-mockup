@@ -221,8 +221,8 @@ const BuyListStep = ({ measurements, payload, roomLabel, design, roomId, designI
     return () => {
       cancelled = true;
     };
+  }, [list, designId]);
 
-  }, [list]);
 
   const grouped = useMemo(() => {
     const map: Record<string, BuyListItem[]> = {};
