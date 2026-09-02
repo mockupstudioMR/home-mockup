@@ -146,6 +146,48 @@ const BuyListStep = ({ measurements, payload, roomLabel, design, roomId, designI
     build();
   }, [build]);
 
+  // Match each line item to a catalog product photo (best token overlap on name/type).
+  useEffect(() => {
+    if (!list?.items?.length) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const { data } = await supabase
+          .from("shop_products")
+          .select("name, type, style, image_urls")
+          .eq("is_active", true)
+          .not("image_urls", "is", null)
+          .limit(500);
+        if (cancelled || !data?.length) return;
+        const tokens = (s: string) =>
+          (s || "")
+            .toLowerCase()
+            .replace(/[^a-z0-9\s]/g, " ")
+            .split(/\s+/)
+            .filter((t) => t.length > 2);
+        const map: Record<string, string> = {};
+        list.items.forEach((it, idx) => {
+          const want = new Set([...tokens(it.name), ...tokens(it.spec || "")]);
+          let best: { score: number; url?: string } = { score: 0 };
+          data.forEach((p: any) => {
+            const url = Array.isArray(p.image_urls) ? p.image_urls[0] : undefined;
+            if (!url) return;
+            const have = [...tokens(p.name), ...tokens(p.type || ""), ...tokens(p.style || "")];
+            const score = have.reduce((s, t) => s + (want.has(t) ? 1 : 0), 0);
+            if (score > best.score) best = { score, url };
+          });
+          if (best.score >= 1 && best.url) map[`${idx}`] = best.url;
+        });
+        if (!cancelled) setImages(map);
+      } catch (e) {
+        console.warn("[buy-list] image match failed", e);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [list]);
+
   const grouped = useMemo(() => {
     const map: Record<string, BuyListItem[]> = {};
     (list?.items || []).forEach((it) => {
