@@ -503,6 +503,13 @@ const BuyListStep = ({ measurements, payload, roomLabel, design, roomId, designI
         </Card>
       )}
 
+      {/* The build order your shopping list follows, one layer at a time. */}
+      <Card className="overflow-hidden border-0">
+        <LayerFilm />
+      </Card>
+
+
+
       {loading && !list && (
         <Card>
           <CardContent className="p-6 space-y-3">
