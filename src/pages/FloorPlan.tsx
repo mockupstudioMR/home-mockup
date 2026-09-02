@@ -568,6 +568,10 @@ const FloorPlan = () => {
 
   // Steps: 0=shape, 1=dimensions, 2=room type & furniture, 3=openings, 4=layout, 5=style, 6=shopping list
   const [step, setStep] = useState(0);
+  // Room row id of the saved floor plan — scopes the persisted shopping list.
+  const [savedRoomId, setSavedRoomId] = useState<string | null>(() => {
+    try { return sessionStorage.getItem("room_spec_active_id"); } catch { return null; }
+  });
   const [selectedShape, setSelectedShape] = useState<RoomShape | null>(null);
   const [dimensions, setDimensions] = useState<Record<string, number>>({});
   const [selectedRoomType, setSelectedRoomType] = useState<string>(quizData.roomType || "");
