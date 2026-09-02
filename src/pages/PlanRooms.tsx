@@ -391,7 +391,13 @@ const PlanRooms = () => {
                     }`}
                   >
                     <div className="flex items-center justify-between gap-2">
-                      <span className="font-semibold">{room.name}</span>
+                      <span className="font-semibold flex items-center gap-2">
+                        <span
+                          className="inline-block w-3 h-3 rounded-sm"
+                          style={{ backgroundColor: roomColor(ri) }}
+                        />
+                        {room.name}
+                      </span>
                       {isSelected && <Badge>Selected</Badge>}
                     </div>
                     <p className="text-sm text-muted-foreground mt-1">
