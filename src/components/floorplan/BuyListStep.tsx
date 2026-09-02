@@ -111,7 +111,7 @@ const BuyListStep = ({ measurements, payload, roomLabel, design, roomId, designI
             .eq("user_id", userId)
             .eq("scope_key", scopeKey)
             .maybeSingle();
-          const stored = saved?.list as BuyList | undefined;
+          const stored = saved?.list as unknown as BuyList | undefined;
           if (stored?.items?.length) {
             setList(stored);
             setSavedAt(saved?.updated_at ?? null);
