@@ -84,12 +84,26 @@ Deno.serve(async (req) => {
             { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
           );
         }
-        if (response.status === 402) {
+        if (response.status === 402 || response.status === 403) {
+          const bodyText = await response.text();
+          let gatewayMessage = "";
+          let requires = "";
+          try {
+            const parsed = JSON.parse(bodyText);
+            gatewayMessage = parsed?.error?.message || parsed?.message || "";
+            requires = parsed?.error?.props?.requires || parsed?.props?.requires || "";
+          } catch { /* non-JSON body */ }
+          const fallback =
+            response.status === 402
+              ? "AI credits are exhausted for this workspace. Add credits, then try again."
+              : "AI access is blocked by a workspace policy or credit limit. An admin needs to unblock it.";
+          console.error(`AI access blocked: ${response.status} ${requires}`);
           return new Response(
-            JSON.stringify({ error: "Payment required" }),
-            { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            JSON.stringify({ error: gatewayMessage || fallback, requires, retryable: false }),
+            { status: response.status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
           );
         }
+
         if (response.status >= 500 && attempt < maxRetries) {
           await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
           continue;
