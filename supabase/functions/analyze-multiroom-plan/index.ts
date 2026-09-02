@@ -48,6 +48,14 @@ POLYGON ACCURACY RULES (this is the most important part — crude rectangles are
 - Keep edges axis-aligned (horizontal or vertical) unless the drawing clearly shows a slanted wall; then follow the slant exactly.
 - Re-check each polygon against the image before answering: every vertex must sit on a drawn wall line, and the shape must visually match that room's floor area.
 
+OPENING DETECTION RULES (be thorough — windows are frequently missed):
+- WINDOWS look like a break in the wall hatch drawn as two or three thin parallel lines spanning the gap, usually on exterior walls, with no swing arc. Include every one of them, even small ones.
+- DOORS have a gap in the wall plus a quarter-circle swing arc (or a sliding-door rail).
+- BALCONY / terrace doors are wide openings leading to an outdoor slab, often with dashed railing lines.
+- For each opening return: { "type": "door"|"window"|"balcony", "wall_index": 0-based index of the polygon edge it sits on, "position_pct": 0-100 along that edge (measured in the polygon's clockwise direction), "width_m": clear width in metres from the 1 m door scale, "x_px" and "y_px": the CENTRE of the opening in IMAGE PIXELS.
+- Never invent openings that are not visibly drawn, and never merge two adjacent windows into one.
+
+Be precise and consistent: rooms must not overlap, and the sum of room areas must be plausible for the whole plan.`;
 
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
