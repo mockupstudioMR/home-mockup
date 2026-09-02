@@ -1966,6 +1966,8 @@ const FloorPlan = () => {
                 payload={buyListPayload}
                 design={linkedDesign ? { title: linkedDesign.title, imageUrl: linkedDesign.imageUrl, itemCount: linkedDesign.items.length } : undefined}
                 roomLabel={selectedRoomType || "Room"}
+                roomId={savedRoomId}
+                designId={linkedDesign?.id ?? null}
               />
               <div className="flex justify-center">
                 <Button variant="outline" onClick={() => setStep(4)}>
