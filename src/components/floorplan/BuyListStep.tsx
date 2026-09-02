@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Download, FileText, Loader2, RotateCcw, Ruler, ShoppingBasket } from "lucide-react";
+import { Download, FileText, ImageIcon, Loader2, Printer, RotateCcw, Ruler, ShoppingBasket } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { getAiErrorMessage } from "@/lib/aiErrorMessage";
@@ -65,6 +65,7 @@ const BuyListStep = ({ measurements, payload, roomLabel, design, roomId, designI
   const [list, setList] = useState<BuyList | null>(null);
   const [loading, setLoading] = useState(false);
   const [savedAt, setSavedAt] = useState<string | null>(null);
+  const [images, setImages] = useState<Record<string, string>>({});
   const requested = useRef(false);
 
   const scopeKey = `${roomId || "no-room"}:${designId || "no-design"}`;
@@ -146,6 +147,48 @@ const BuyListStep = ({ measurements, payload, roomLabel, design, roomId, designI
     build();
   }, [build]);
 
+  // Match each line item to a catalog product photo (best token overlap on name/type).
+  useEffect(() => {
+    if (!list?.items?.length) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const { data } = await supabase
+          .from("shop_products")
+          .select("name, type, style, image_urls")
+          .eq("is_active", true)
+          .not("image_urls", "is", null)
+          .limit(500);
+        if (cancelled || !data?.length) return;
+        const tokens = (s: string) =>
+          (s || "")
+            .toLowerCase()
+            .replace(/[^a-z0-9\s]/g, " ")
+            .split(/\s+/)
+            .filter((t) => t.length > 2);
+        const map: Record<string, string> = {};
+        list.items.forEach((it) => {
+          const want = new Set([...tokens(it.name), ...tokens(it.spec || "")]);
+          let best: { score: number; url?: string } = { score: 0 };
+          data.forEach((p: any) => {
+            const url = Array.isArray(p.image_urls) ? p.image_urls[0] : undefined;
+            if (!url) return;
+            const have = [...tokens(p.name), ...tokens(p.type || ""), ...tokens(p.style || "")];
+            const score = have.reduce((s, t) => s + (want.has(t) ? 1 : 0), 0);
+            if (score > best.score) best = { score, url };
+          });
+          if (best.score >= 1 && best.url) map[it.name] = best.url;
+        });
+        if (!cancelled) setImages(map);
+      } catch (e) {
+        console.warn("[buy-list] image match failed", e);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [list]);
+
   const grouped = useMemo(() => {
     const map: Record<string, BuyListItem[]> = {};
     (list?.items || []).forEach((it) => {
@@ -215,6 +258,95 @@ const BuyListStep = ({ measurements, payload, roomLabel, design, roomId, designI
       `Estimated total: ${euro(total)}`,
     ];
     download(lines.join("\n"), `shopping-list-${Date.now()}.txt`, "text/plain");
+  };
+
+  const exportPdf = () => {
+    if (!list) return;
+    const esc = (v: unknown) =>
+      String(v ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    const rowsHtml = grouped
+      .map(
+        ([cat, items]) => `
+        <h2>${esc(CATEGORY_LABELS[cat] || cat)}</h2>
+        <table>
+          ${items
+            .map(
+              (it) => `
+            <tr>
+              <td class="thumb">${
+                images[it.name]
+                  ? `<img src="${esc(images[it.name])}" alt="${esc(it.name)}" />`
+                  : `<div class="ph"></div>`
+              }</td>
+              <td>
+                <div class="name">${esc(it.name)}</div>
+                ${it.spec ? `<div class="muted">${esc(it.spec)}</div>` : ""}
+                ${it.size_constraint ? `<div class="constraint">Max size: ${esc(it.size_constraint)}</div>` : ""}
+                <div class="muted">Basis: ${esc(it.basis)}</div>
+                ${it.notes ? `<div class="muted">${esc(it.notes)}</div>` : ""}
+              </td>
+              <td class="qty">
+                <div class="name">${fmt(it.quantity)} ${esc(it.unit)}</div>
+                ${
+                  it.unit_price_eur
+                    ? `<div class="muted">${euro(it.unit_price_eur)} / ${esc(it.unit)}</div><div class="name">${euro(
+                        it.unit_price_eur * it.quantity,
+                      )}</div>`
+                    : ""
+                }
+              </td>
+            </tr>`,
+            )
+            .join("")}
+        </table>`,
+      )
+      .join("");
+
+    const html = `<!doctype html><html><head><meta charset="utf-8" />
+<title>Shopping list — ${esc(roomLabel || "Room")}</title>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; color: #2b2430; margin: 32px; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  h2 { font-size: 14px; text-transform: uppercase; letter-spacing: .06em; color: #7a5c86; margin: 22px 0 6px; page-break-after: avoid; }
+  .sub { color: #6b6472; font-size: 12px; margin: 0 0 16px; }
+  .basis { background: #f6f1f7; border-radius: 8px; padding: 10px 12px; font-size: 11px; color: #4b4453; margin-bottom: 8px; }
+  table { width: 100%; border-collapse: collapse; }
+  tr { page-break-inside: avoid; border-bottom: 1px solid #ece7ef; }
+  td { padding: 8px 6px; vertical-align: top; font-size: 11px; }
+  td.thumb { width: 74px; }
+  td.thumb img { width: 64px; height: 64px; object-fit: cover; border-radius: 6px; border: 1px solid #ece7ef; }
+  .ph { width: 64px; height: 64px; border-radius: 6px; background: #f3eef5; }
+  td.qty { width: 130px; text-align: right; }
+  .name { font-weight: 600; font-size: 12px; }
+  .muted { color: #6b6472; }
+  .constraint { color: #8a5a72; font-weight: 600; }
+  .total { margin-top: 20px; border-top: 2px solid #7a5c86; padding-top: 10px; display: flex; justify-content: space-between; font-size: 16px; font-weight: 700; }
+  @page { margin: 14mm; }
+</style></head><body>
+  <h1>Shopping list — ${esc(roomLabel || "Room")}</h1>
+  <p class="sub">${esc(list.summary || "")}</p>
+  <div class="basis">Floor ${measurements.floorAreaSqm} m² · Perimeter ${measurements.perimeterM} m · Wall area ${
+      measurements.netWallAreaSqm
+    } m² · Skirting ${measurements.skirtingM} m · Ceiling ${measurements.ceilingHeightM} m</div>
+  ${rowsHtml}
+  <div class="total"><span>Estimated total</span><span>${euro(total)}</span></div>
+</body></html>`;
+
+    const w = window.open("", "_blank");
+    if (!w) {
+      toast({
+        title: "Popup blocked",
+        description: "Allow popups to export the PDF.",
+        variant: "destructive",
+      });
+      return;
+    }
+    w.document.write(html);
+    w.document.close();
+    w.focus();
+    // Give images a moment to load before opening the print/save-as-PDF dialog.
+    setTimeout(() => w.print(), 800);
   };
 
   return (
@@ -302,30 +434,52 @@ const BuyListStep = ({ measurements, payload, roomLabel, design, roomId, designI
               </CardHeader>
               <CardContent className="space-y-2">
                 {items.map((it, i) => (
-                  <div key={`${cat}-${i}`} className="rounded-lg border border-border/50 bg-background/60 p-3 space-y-1">
-                    <div className="flex items-start justify-between gap-3 flex-wrap">
-                      <div className="min-w-0">
-                        <p className="font-medium text-sm">{it.name}</p>
-                        {it.spec && <p className="text-xs text-muted-foreground">{it.spec}</p>}
-                      </div>
-                      <div className="text-right shrink-0">
-                        <p className="font-semibold text-sm">
-                          {fmt(it.quantity)} {it.unit}
-                        </p>
-                        {it.unit_price_eur ? (
-                          <p className="text-xs text-muted-foreground">
-                            {euro(it.unit_price_eur)} / {it.unit} · {euro(it.unit_price_eur * it.quantity)}
-                          </p>
-                        ) : null}
-                      </div>
+                  <div key={`${cat}-${i}`} className="rounded-lg border border-border/50 bg-background/60 p-3 flex gap-3">
+                    <div className="w-16 h-16 shrink-0 rounded-md overflow-hidden bg-secondary/50 border border-border/50 flex items-center justify-center">
+                      {images[it.name] ? (
+                        <img
+                          src={images[it.name]}
+                          alt={it.name}
+                          loading="lazy"
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <a
+                          href={`https://www.bing.com/images/search?q=${encodeURIComponent(`${it.name} ${it.spec || ""} buy`)}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          title="Find images"
+                          className="text-muted-foreground hover:text-primary"
+                        >
+                          <ImageIcon className="w-5 h-5" />
+                        </a>
+                      )}
                     </div>
-                    {it.size_constraint && (
-                      <p className="text-xs">
-                        <span className="font-medium text-primary">Max size:</span> {it.size_constraint}
-                      </p>
-                    )}
-                    <p className="text-xs text-muted-foreground">📐 {it.basis}</p>
-                    {it.notes && <p className="text-xs text-muted-foreground">{it.notes}</p>}
+                    <div className="flex-1 min-w-0 space-y-1">
+                      <div className="flex items-start justify-between gap-3 flex-wrap">
+                        <div className="min-w-0">
+                          <p className="font-medium text-sm">{it.name}</p>
+                          {it.spec && <p className="text-xs text-muted-foreground">{it.spec}</p>}
+                        </div>
+                        <div className="text-right shrink-0">
+                          <p className="font-semibold text-sm">
+                            {fmt(it.quantity)} {it.unit}
+                          </p>
+                          {it.unit_price_eur ? (
+                            <p className="text-xs text-muted-foreground">
+                              {euro(it.unit_price_eur)} / {it.unit} · {euro(it.unit_price_eur * it.quantity)}
+                            </p>
+                          ) : null}
+                        </div>
+                      </div>
+                      {it.size_constraint && (
+                        <p className="text-xs">
+                          <span className="font-medium text-primary">Max size:</span> {it.size_constraint}
+                        </p>
+                      )}
+                      <p className="text-xs text-muted-foreground">📐 {it.basis}</p>
+                      {it.notes && <p className="text-xs text-muted-foreground">{it.notes}</p>}
+                    </div>
                   </div>
                 ))}
               </CardContent>
@@ -349,6 +503,9 @@ const BuyListStep = ({ measurements, payload, roomLabel, design, roomId, designI
                 </Button>
                 <Button variant="outline" onClick={exportTxt}>
                   <FileText className="w-4 h-4 mr-2" /> Export text
+                </Button>
+                <Button onClick={exportPdf}>
+                  <Printer className="w-4 h-4 mr-2" /> Export PDF
                 </Button>
                 <Button variant="secondary" onClick={() => build(true)} disabled={loading}>
                   {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <RotateCcw className="w-4 h-4 mr-2" />}
