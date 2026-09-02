@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { Upload, Image, Check, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { getThumbnailImageUrl, optimizeImageFile } from "@/lib/imageOptimization";
+import { getThumbnailImageUrl, optimizeImageFileSafe } from "@/lib/imageOptimization";
 
 const inspirationImages = [
   {
@@ -56,7 +56,7 @@ const ImageStep = () => {
 
       setUploading(true);
       try {
-        const optimizedFile = await optimizeImageFile(file, { maxDimension: 2048 });
+        const optimizedFile = await optimizeImageFileSafe(file, { maxDimension: 2048 });
         const fileName = `${user.id}/${Date.now()}.webp`;
 
         const { error: uploadError } = await supabase.storage

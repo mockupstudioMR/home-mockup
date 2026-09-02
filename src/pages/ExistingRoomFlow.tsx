@@ -14,7 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { trackEvent } from "@/lib/analytics";
-import { getAiOptimizedImageUrl, getThumbnailImageUrl, optimizeImageFile } from "@/lib/imageOptimization";
+import { getAiOptimizedImageUrl, getThumbnailImageUrl, optimizeImageFileSafe } from "@/lib/imageOptimization";
 import { getAiErrorMessage } from "@/lib/aiErrorMessage";
 
 // Style images
@@ -111,7 +111,7 @@ const ExistingRoomFlow = () => {
     setUploading(true);
     try {
       const uploads = imageFiles.slice(0, 4 - images.length).map(async (file) => {
-        const optimizedFile = await optimizeImageFile(file, { maxDimension: 2048 });
+        const optimizedFile = await optimizeImageFileSafe(file, { maxDimension: 2048 });
         const fileName = `${user.id}/existing-${Date.now()}-${Math.random().toString(36).slice(2, 6)}.webp`;
         const { error } = await supabase.storage
           .from("room-photos")
