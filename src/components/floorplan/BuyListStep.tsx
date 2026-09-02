@@ -347,6 +347,45 @@ const BuyListStep = ({ measurements, payload, roomLabel, design, roomId, designI
       img.src = src;
     });
 
+  /** Crop a region (percentages) out of the design image for the PDF thumbnails. */
+  const cropDataUrl = (src: string, box: { x: number; y: number; width: number; height: number }): Promise<string | null> =>
+    new Promise((resolve) => {
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+      img.onload = () => {
+        try {
+          const sx = (box.x / 100) * img.width;
+          const sy = (box.y / 100) * img.height;
+          const sw = Math.max(8, (box.width / 100) * img.width);
+          const sh = Math.max(8, (box.height / 100) * img.height);
+          const side = Math.max(sw, sh);
+          const canvas = document.createElement("canvas");
+          canvas.width = 256;
+          canvas.height = 256;
+          const ctx = canvas.getContext("2d");
+          if (!ctx) return resolve(null);
+          ctx.fillStyle = "#f3eef5";
+          ctx.fillRect(0, 0, 256, 256);
+          ctx.drawImage(
+            img,
+            Math.max(0, sx + sw / 2 - side / 2),
+            Math.max(0, sy + sh / 2 - side / 2),
+            side,
+            side,
+            0,
+            0,
+            256,
+            256,
+          );
+          resolve(canvas.toDataURL("image/jpeg", 0.82));
+        } catch {
+          resolve(null);
+        }
+      };
+      img.onerror = () => resolve(null);
+      img.src = src;
+    });
+
   const exportPdf = async () => {
     if (!list) return;
     setExportingPdf(true);
