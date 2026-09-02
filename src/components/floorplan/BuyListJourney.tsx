@@ -105,6 +105,9 @@ interface Props {
   palette?: string[];
   paletteNote?: string;
   images: Record<string, string>;
+  /** CSS background styles that crop the item straight out of the design image. */
+  crops?: Record<string, React.CSSProperties>;
+
   total: number;
   savedAt?: string | null;
   actions?: React.ReactNode;
