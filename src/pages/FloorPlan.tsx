@@ -841,7 +841,6 @@ const FloorPlan = () => {
         openings: openings.map(o => ({ type: o.type, wall: o.wall, position: o.position })),
         walls: wallsData,
         style: selectedStyle || undefined,
-        referenceImageUrl: referenceImageUrl || undefined,
       };
       if (selectedShape.id === "custom") {
         body.customWalls = customWalls;
@@ -863,9 +862,9 @@ const FloorPlan = () => {
       console.error("Layout generation error:", e);
       toast({ title: "Layout Generation Failed", description: e.message || "Please try again.", variant: "destructive" });
     } finally {
-      setGenerating(false);
-    }
-  }, [selectedShape, dimensions, selectedRoomType, selectedFurniture, openings, buildWallsClockwise, customWalls, layout, itemScores, itemNotes, selectedStyle, referenceImageUrl]);
+    setGenerating(false);
+  }
+  }, [selectedShape, dimensions, selectedRoomType, selectedFurniture, openings, buildWallsClockwise, customWalls, layout, itemScores, itemNotes, selectedStyle]);
 
   const undoLayout = useCallback(() => {
     if (!previousLayout) return;
@@ -920,7 +919,6 @@ const FloorPlan = () => {
       openings: openings.map((o) => ({ type: o.type, wall: o.wall, position: o.position })),
       walls: buildWallsClockwise(),
       style: selectedStyle,
-      referenceImageUrl: referenceImageUrl || undefined,
       layout,
       feedback: layout.items.map((item, i) => ({
         item: item.label,
@@ -963,7 +961,6 @@ const FloorPlan = () => {
           colorPalette: "neutral",
           budgetFeel: "mid-range",
           mustHaveElements: selectedFurniture,
-          referenceImageUrl: referenceImageUrl || undefined,
         },
         furniture: { selectedItems: selectedFurniture },
         layout: {
@@ -1006,7 +1003,7 @@ const FloorPlan = () => {
 
     setSavingFeedback(false);
     setStep(5);
-  }, [layout, selectedShape, dimensions, selectedRoomType, selectedFurniture, openings, updateQuizData, user, itemScores, itemNotes, buildWallsClockwise, selectedStyle, referenceImageUrl, linkedDesign]);
+  }, [layout, selectedShape, dimensions, selectedRoomType, selectedFurniture, openings, updateQuizData, user, itemScores, itemNotes, buildWallsClockwise, selectedStyle, linkedDesign]);
 
   // Load the generated design tied to this floor plan. Falls back to the user's
   // latest design for the same room type, so the list is never built blind.
