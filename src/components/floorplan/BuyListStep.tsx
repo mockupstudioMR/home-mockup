@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Download, FileText, ImageIcon, Loader2, RotateCcw, Ruler, ShoppingBasket } from "lucide-react";
+import { Download, FileText, Loader2, RotateCcw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { getAiErrorMessage } from "@/lib/aiErrorMessage";
+import BuyListJourney from "./BuyListJourney";
 
 export interface BuyListMeasurements {
   roomWidthM?: number;
@@ -429,16 +429,22 @@ const BuyListStep = ({ measurements, payload, roomLabel, design, roomId, designI
     }
   };
 
+  const palette = useMemo(() => {
+    const raw =
+      (payload as any)?.color_palette ??
+      (payload as any)?.colors ??
+      (payload as any)?.moodboard?.colors ??
+      [];
+    const list = Array.isArray(raw) ? raw : typeof raw === "string" ? raw.split(/[,;]/) : [];
+    return list
+      .map((c: any) => (typeof c === "string" ? c : c?.hex))
+      .filter((c: any): c is string => typeof c === "string" && /^#?[0-9a-f]{6}$/i.test(c.trim()))
+      .map((c: string) => (c.trim().startsWith("#") ? c.trim() : `#${c.trim()}`))
+      .slice(0, 6);
+  }, [payload]);
 
   return (
     <div className="space-y-6">
-      <div className="text-center space-y-2">
-        <h1 className="text-2xl md:text-3xl font-bold">What to buy</h1>
-        <p className="text-muted-foreground">
-          Quantified from your room measurements and the layout you picked — no new design is generated.
-        </p>
-      </div>
-
       {design && (
         <Card className="border-primary/30 bg-primary/5">
           <CardContent className="p-4 flex items-center gap-4">
@@ -463,28 +469,6 @@ const BuyListStep = ({ measurements, payload, roomLabel, design, roomId, designI
         </Card>
       )}
 
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-base">
-            <Ruler className="w-4 h-4 text-primary" /> Measured basis
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="grid grid-cols-2 md:grid-cols-5 gap-3 text-sm">
-          {[
-            ["Floor", `${measurements.floorAreaSqm} m²`],
-            ["Perimeter", `${measurements.perimeterM} m`],
-            ["Wall area", `${measurements.netWallAreaSqm} m²`],
-            ["Skirting", `${measurements.skirtingM} m`],
-            ["Ceiling", `${measurements.ceilingHeightM} m`],
-          ].map(([label, value]) => (
-            <div key={label} className="rounded-lg bg-secondary/40 p-3">
-              <p className="text-xs text-muted-foreground">{label}</p>
-              <p className="font-semibold">{value}</p>
-            </div>
-          ))}
-        </CardContent>
-      </Card>
-
       {loading && !list && (
         <Card>
           <CardContent className="p-6 space-y-3">
@@ -499,108 +483,35 @@ const BuyListStep = ({ measurements, payload, roomLabel, design, roomId, designI
       )}
 
       {list && (
-        <>
-          {list.summary && (
-            <p className="text-sm text-muted-foreground text-center max-w-2xl mx-auto">{list.summary}</p>
-          )}
-
-          {grouped.map(([cat, items]) => (
-            <Card key={cat}>
-              <CardHeader className="pb-2">
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <ShoppingBasket className="w-4 h-4 text-primary" />
-                  {CATEGORY_LABELS[cat] || cat}
-                  <Badge variant="outline" className="text-xs">{items.length}</Badge>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                {items.map((it, i) => (
-                  <div key={`${cat}-${i}`} className="rounded-lg border border-border/50 bg-background/60 p-3 flex gap-3">
-                    <div className="w-16 h-16 shrink-0 rounded-md overflow-hidden bg-secondary/50 border border-border/50 flex items-center justify-center">
-                      {images[it.name] ? (
-                        <img
-                          src={images[it.name]}
-                          alt={it.name}
-                          loading="lazy"
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <a
-                          href={`https://www.bing.com/images/search?q=${encodeURIComponent(`${it.name} ${it.spec || ""} buy`)}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          title="Find images"
-                          className="text-muted-foreground hover:text-primary"
-                        >
-                          <ImageIcon className="w-5 h-5" />
-                        </a>
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0 space-y-1">
-                      <div className="flex items-start justify-between gap-3 flex-wrap">
-                        <div className="min-w-0">
-                          <p className="font-medium text-sm">{it.name}</p>
-                          {it.spec && <p className="text-xs text-muted-foreground">{it.spec}</p>}
-                        </div>
-                        <div className="text-right shrink-0">
-                          <p className="font-semibold text-sm">
-                            {fmt(it.quantity)} {it.unit}
-                          </p>
-                          {it.unit_price_eur ? (
-                            <p className="text-xs text-muted-foreground">
-                              {euro(it.unit_price_eur)} / {it.unit} · {euro(it.unit_price_eur * it.quantity)}
-                            </p>
-                          ) : null}
-                        </div>
-                      </div>
-                      {it.size_constraint && (
-                        <p className="text-xs">
-                          <span className="font-medium text-primary">Max size:</span> {it.size_constraint}
-                        </p>
-                      )}
-                      <p className="text-xs text-muted-foreground">📐 {it.basis}</p>
-                      {it.notes && <p className="text-xs text-muted-foreground">{it.notes}</p>}
-                    </div>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-          ))}
-
-          <Card className="border-primary/30 bg-primary/5">
-            <CardContent className="p-4 flex items-center justify-between flex-wrap gap-3">
-              <div>
-                <p className="text-xs text-muted-foreground uppercase tracking-wide">Estimated total</p>
-                <p className="text-2xl font-bold">{euro(total)}</p>
-                {savedAt && (
-                  <p className="text-xs text-muted-foreground">
-                    Saved · {new Date(savedAt).toLocaleString("de-DE")}
-                  </p>
-                )}
-              </div>
-              <div className="flex gap-2 flex-wrap">
-                <Button variant="outline" onClick={exportCsv}>
-                  <Download className="w-4 h-4 mr-2" /> Export CSV
-                </Button>
-                <Button variant="outline" onClick={exportTxt}>
-                  <FileText className="w-4 h-4 mr-2" /> Export text
-                </Button>
-                <Button onClick={exportPdf} disabled={exportingPdf}>
-                  {exportingPdf ? (
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  ) : (
-                    <Download className="w-4 h-4 mr-2" />
-                  )}
-                  {exportingPdf ? "Building PDF…" : "Download PDF"}
-                </Button>
-                <Button variant="secondary" onClick={() => build(true)} disabled={loading}>
-                  {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <RotateCcw className="w-4 h-4 mr-2" />}
-                  Recalculate
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </>
+        <BuyListJourney
+          summary={list.summary}
+          items={list.items}
+          measurements={measurements}
+          roomLabel={roomLabel}
+          palette={palette}
+          paletteNote={palette.length ? "Pulled from your moodboard — every finish below is matched to it." : undefined}
+          images={images}
+          total={total}
+          savedAt={savedAt}
+          actions={
+            <div className="flex gap-2 flex-wrap">
+              <Button variant="outline" onClick={exportCsv}>
+                <Download className="w-4 h-4 mr-2" /> CSV
+              </Button>
+              <Button variant="outline" onClick={exportTxt}>
+                <FileText className="w-4 h-4 mr-2" /> Text
+              </Button>
+              <Button onClick={exportPdf} disabled={exportingPdf}>
+                {exportingPdf ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Download className="w-4 h-4 mr-2" />}
+                {exportingPdf ? "Building PDF…" : "Download PDF"}
+              </Button>
+              <Button variant="secondary" onClick={() => build(true)} disabled={loading}>
+                {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <RotateCcw className="w-4 h-4 mr-2" />}
+                Recalculate
+              </Button>
+            </div>
+          }
+        />
       )}
     </div>
   );
