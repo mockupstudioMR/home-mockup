@@ -10,7 +10,7 @@ import { ArrowLeft, ArrowRight, DoorOpen, Loader2, Ruler, Upload } from "lucide-
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { trackEvent } from "@/lib/analytics";
-import { aiErrorMessage } from "@/lib/aiErrorMessage";
+import { getAiErrorMessage } from "@/lib/aiErrorMessage";
 
 interface PlanOpening {
   type: "door" | "window" | "balcony";
@@ -92,7 +92,7 @@ const PlanRooms = () => {
           description: "Sizes were scaled using a 1 m door reference.",
         });
       } catch (err: any) {
-        toast({ title: "Analysis failed", description: aiErrorMessage(err), variant: "destructive" });
+        toast({ title: "Analysis failed", description: getAiErrorMessage(err), variant: "destructive" });
       } finally {
         setUploading(false);
         setAnalyzing(false);
