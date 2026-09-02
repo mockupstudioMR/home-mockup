@@ -167,7 +167,7 @@ const BuyListStep = ({ measurements, payload, roomLabel, design, roomId, designI
             .split(/\s+/)
             .filter((t) => t.length > 2);
         const map: Record<string, string> = {};
-        list.items.forEach((it, idx) => {
+        list.items.forEach((it) => {
           const want = new Set([...tokens(it.name), ...tokens(it.spec || "")]);
           let best: { score: number; url?: string } = { score: 0 };
           data.forEach((p: any) => {
@@ -177,7 +177,7 @@ const BuyListStep = ({ measurements, payload, roomLabel, design, roomId, designI
             const score = have.reduce((s, t) => s + (want.has(t) ? 1 : 0), 0);
             if (score > best.score) best = { score, url };
           });
-          if (best.score >= 1 && best.url) map[`${idx}`] = best.url;
+          if (best.score >= 1 && best.url) map[it.name] = best.url;
         });
         if (!cancelled) setImages(map);
       } catch (e) {
