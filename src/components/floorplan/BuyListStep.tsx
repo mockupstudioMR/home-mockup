@@ -40,6 +40,7 @@ interface Props {
   measurements: BuyListMeasurements;
   payload: Record<string, unknown>;
   roomLabel?: string;
+  design?: { title: string | null; imageUrl: string | null; itemCount: number };
 }
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -57,7 +58,7 @@ const fmt = (n: number) => (Number.isInteger(n) ? String(n) : n.toFixed(2));
 const euro = (n: number) =>
   new Intl.NumberFormat("de-DE", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(n);
 
-const BuyListStep = ({ measurements, payload, roomLabel }: Props) => {
+const BuyListStep = ({ measurements, payload, roomLabel, design }: Props) => {
   const [list, setList] = useState<BuyList | null>(null);
   const [loading, setLoading] = useState(false);
   const requested = useRef(false);
@@ -168,6 +169,30 @@ const BuyListStep = ({ measurements, payload, roomLabel }: Props) => {
           Quantified from your room measurements and the layout you picked — no new design is generated.
         </p>
       </div>
+
+      {design && (
+        <Card className="border-primary/30 bg-primary/5">
+          <CardContent className="p-4 flex items-center gap-4">
+            {design.imageUrl && (
+              <img
+                src={design.imageUrl}
+                alt={design.title || "Your generated design"}
+                loading="lazy"
+                className="w-20 h-20 rounded-lg object-cover shrink-0"
+              />
+            )}
+            <div className="min-w-0">
+              <p className="text-xs uppercase tracking-wide text-muted-foreground">Built from your design</p>
+              <p className="font-semibold truncate">{design.title || "Your generated design"}</p>
+              <p className="text-xs text-muted-foreground">
+                {design.itemCount > 0
+                  ? `${design.itemCount} detected items carried into this list`
+                  : "Description and moodboard carried into this list"}
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardHeader className="pb-3">

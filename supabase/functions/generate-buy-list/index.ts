@@ -23,6 +23,8 @@ Deno.serve(async (req) => {
       layout,
       designDescription,
       moodboard,
+      designTitle,
+      designItems,
     } = body || {};
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
@@ -60,6 +62,18 @@ Deno.serve(async (req) => {
         ].filter(Boolean).join("\n")
       : "";
 
+    const designItemsDesc = Array.isArray(designItems) && designItems.length
+      ? designItems
+          .map((it: any) =>
+            `- ${it.name}${it.type ? ` (${it.type})` : ""}${
+              [it.material, it.color, it.style].filter(Boolean).length
+                ? ` — ${[it.material, it.color, it.style].filter(Boolean).join(", ")}`
+                : ""
+            }`,
+          )
+          .join("\n")
+      : "";
+
     const systemPrompt = `You are a quantity surveyor and interior fit-out estimator. You produce a precise, buildable SHOPPING LIST for one room. You NEVER generate images or new design ideas — you only quantify what is already designed.
 
 Rules:
@@ -71,6 +85,7 @@ Rules:
 - Quantities must be numbers with a unit ("m²", "m", "L", "pcs", "rolls").
 - Prices in EUR only, realistic mid-market retail unit prices.
 - Categories: "materials", "furniture", "lighting", "textiles", "decor", "labour".
+- When items detected in the generated design are supplied, EVERY one of them must appear as a line item with its exact material/colour/style — never substitute a look-alike and never drop one. Add other items only if the layout or build-out requires them.
 - 12-30 line items. No duplicates, no filler.`;
 
     const userPrompt = `Room type: ${roomType || "living room"}
@@ -91,8 +106,11 @@ ${JSON.stringify(walls || [])}
 CHOSEN LAYOUT: ${layout?.name || "n/a"} — ${layout?.description || ""}
 ${layoutDesc}
 
-DESIGN DESCRIPTION (already generated — quantify it, do not redesign)
+GENERATED DESIGN${designTitle ? `: ${designTitle}` : ""} (already generated — quantify it, do not redesign)
 ${designDescription || "n/a"}
+
+ITEMS DETECTED IN THAT DESIGN (each one must appear in the list)
+${designItemsDesc || "none recorded"}
 
 ${mbDesc}
 
