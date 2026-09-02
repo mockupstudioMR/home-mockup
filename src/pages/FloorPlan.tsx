@@ -21,22 +21,7 @@ import BuyListStep from "@/components/floorplan/BuyListStep";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 
-// Style images
-import modernMinimalImg from "@/assets/styles/modern-minimal.png";
-import bohemianEclecticImg from "@/assets/styles/bohemian-eclectic.png";
-import classicHistoricalImg from "@/assets/styles/classic-historical.png";
-import glamLuxeImg from "@/assets/styles/glam-luxe.png";
-import mediterraneanImg from "@/assets/styles/mediterranean.png";
-import rusticNatureImg from "@/assets/styles/rustic-nature.png";
-
-const STYLE_OPTIONS = [
-  { value: "modern_minimal", label: "Modern Minimal", description: "Clean lines, neutral tones, minimalist furniture", imageUrl: modernMinimalImg },
-  { value: "classic_historical", label: "Classic Historical", description: "Timeless elegance with rich textures", imageUrl: classicHistoricalImg },
-  { value: "rustic_nature", label: "Rustic Nature", description: "Warm wood tones, natural materials", imageUrl: rusticNatureImg },
-  { value: "mediterranean", label: "Mediterranean", description: "Sun-kissed colors, terracotta, coastal vibes", imageUrl: mediterraneanImg },
-  { value: "bohemian_eclectic", label: "Bohemian Eclectic", description: "Eclectic patterns, vibrant colors", imageUrl: bohemianEclecticImg },
-  { value: "glam_luxe", label: "Glam Luxe", description: "Luxurious finishes, bold accents", imageUrl: glamLuxeImg },
-];
+import { toast } from "@/hooks/use-toast";
 
 // Room shape definitions
 type ShapeId = "rectangle" | "l-shape" | "u-shape" | "open-plan" | "custom";
