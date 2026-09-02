@@ -148,37 +148,70 @@ const BuyListStep = ({ measurements, payload, roomLabel, design, roomId, designI
     build();
   }, [build]);
 
-  // Match each line item to a catalog product photo (best token overlap on name/type).
+  // Attach a photo to every line item. Priority: the item as it appears in the
+  // design (design_items photos, same source as the design refinement list),
+  // then a catalog product photo matched on name/type.
   useEffect(() => {
     if (!list?.items?.length) return;
     let cancelled = false;
     (async () => {
       try {
-        const { data } = await supabase
-          .from("shop_products")
-          .select("name, type, style, image_urls")
-          .eq("is_active", true)
-          .not("image_urls", "is", null)
-          .limit(500);
-        if (cancelled || !data?.length) return;
         const tokens = (s: string) =>
           (s || "")
             .toLowerCase()
             .replace(/[^a-z0-9\s]/g, " ")
             .split(/\s+/)
             .filter((t) => t.length > 2);
+
+        // 1) Photos of the items detected in this design.
+        const designPhotos: { label: string; url: string }[] = [];
+        if (designId) {
+          const { data: di } = await supabase
+            .from("design_items")
+            .select("item_name, item_type, item_description, product_photo_url, shop_products(image_urls)")
+            .eq("design_id", designId)
+            .limit(200);
+          (di || []).forEach((row: any) => {
+            const url =
+              row.product_photo_url ||
+              (Array.isArray(row.shop_products?.image_urls) ? row.shop_products.image_urls[0] : undefined);
+            if (!url) return;
+            designPhotos.push({
+              label: [row.item_name, row.item_type, row.item_description].filter(Boolean).join(" "),
+              url,
+            });
+          });
+        }
+
+        // 2) Catalog fallback.
+        const { data: products } = await supabase
+          .from("shop_products")
+          .select("name, type, style, image_urls")
+          .eq("is_active", true)
+          .not("image_urls", "is", null)
+          .limit(500);
+
+        const bestMatch = (want: Set<string>, pool: { label: string; url: string }[], min = 1) => {
+          let best: { score: number; url?: string } = { score: 0 };
+          pool.forEach((p) => {
+            const score = tokens(p.label).reduce((s, t) => s + (want.has(t) ? 1 : 0), 0);
+            if (score > best.score) best = { score, url: p.url };
+          });
+          return best.score >= min ? best.url : undefined;
+        };
+
+        const catalogPool = (products || [])
+          .map((p: any) => ({
+            label: [p.name, p.type, p.style].filter(Boolean).join(" "),
+            url: Array.isArray(p.image_urls) ? p.image_urls[0] : undefined,
+          }))
+          .filter((p): p is { label: string; url: string } => Boolean(p.url));
+
         const map: Record<string, string> = {};
         list.items.forEach((it) => {
           const want = new Set([...tokens(it.name), ...tokens(it.spec || "")]);
-          let best: { score: number; url?: string } = { score: 0 };
-          data.forEach((p: any) => {
-            const url = Array.isArray(p.image_urls) ? p.image_urls[0] : undefined;
-            if (!url) return;
-            const have = [...tokens(p.name), ...tokens(p.type || ""), ...tokens(p.style || "")];
-            const score = have.reduce((s, t) => s + (want.has(t) ? 1 : 0), 0);
-            if (score > best.score) best = { score, url };
-          });
-          if (best.score >= 1 && best.url) map[it.name] = best.url;
+          const url = bestMatch(want, designPhotos) || bestMatch(want, catalogPool);
+          if (url) map[it.name] = url;
         });
         if (!cancelled) setImages(map);
       } catch (e) {
@@ -188,6 +221,7 @@ const BuyListStep = ({ measurements, payload, roomLabel, design, roomId, designI
     return () => {
       cancelled = true;
     };
+
   }, [list]);
 
   const grouped = useMemo(() => {
