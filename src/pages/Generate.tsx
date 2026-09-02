@@ -226,11 +226,25 @@ const Generate = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [waSessionId]);
   const routeQuizData = location.state?.quizData as QuizData | undefined;
+  // Persist the quiz payload so a reload, chunk-recovery refresh, or a lost
+  // history state never bounces the user back to the quiz upload screen.
+  const cachedQuizData = (() => {
+    if (routeQuizData) {
+      try { sessionStorage.setItem("generate_quiz_data_cache", JSON.stringify(routeQuizData)); } catch { /* ignore quota */ }
+      return routeQuizData;
+    }
+    try {
+      const cached = sessionStorage.getItem("generate_quiz_data_cache");
+      const parsed = cached ? (JSON.parse(cached) as QuizData) : undefined;
+      return parsed?.roomType ? parsed : undefined;
+    } catch { return undefined; }
+  })();
   // Fallback: if user arrived without route state but already has a chosen
   // roomType in the quiz context (e.g. from Start → moodboard flow), use that
   // instead of bouncing back to /quiz.
   const quizData: QuizData | undefined =
-    routeQuizData || (contextQuizData?.roomType ? contextQuizData : undefined);
+    routeQuizData || cachedQuizData || (contextQuizData?.roomType ? contextQuizData : undefined);
+
   const resumeDesignId = location.state?.resumeDesignId as string | undefined;
   const existingRoomImagesFromState = (location.state?.quizData?.existingRoomImages || location.state?.existingRoomImages) as string[] | undefined;
   const keepElementsFromState = location.state?.keepElements as string[] | undefined;
