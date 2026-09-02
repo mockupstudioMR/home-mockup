@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
@@ -12,11 +12,12 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import Logo from "@/components/Logo";
-import { ArrowLeft, ArrowRight, Loader2, RotateCcw, X, Sofa, Bed, UtensilsCrossed, Monitor, Bath, ThumbsUp, ThumbsDown, Save, Upload, Image as ImageIcon } from "lucide-react";
+import { ArrowLeft, ArrowRight, Loader2, RotateCcw, X, Sofa, Bed, UtensilsCrossed, Monitor, Bath, ThumbsUp, ThumbsDown, Save, ShoppingBasket, Upload, Image as ImageIcon } from "lucide-react";
 import { trackEvent } from "@/lib/analytics";
 import { Textarea } from "@/components/ui/textarea";
 import { IllustratedFurniture, IllustratedLegend } from "@/components/floorplan/IllustratedFurniture";
 import RoomOpenings from "@/components/floorplan/RoomOpenings";
+import BuyListStep from "@/components/floorplan/BuyListStep";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 
@@ -565,7 +566,7 @@ const FloorPlan = () => {
   const { user, loading: authLoading } = useAuth();
   const { quizData, updateQuizData } = useQuiz();
 
-  // Steps: 0=shape, 1=dimensions, 2=room type & furniture, 3=openings, 4=layout, 5=style
+  // Steps: 0=shape, 1=dimensions, 2=room type & furniture, 3=openings, 4=layout, 5=style, 6=shopping list
   const [step, setStep] = useState(0);
   const [selectedShape, setSelectedShape] = useState<RoomShape | null>(null);
   const [dimensions, setDimensions] = useState<Record<string, number>>({});
@@ -1019,9 +1020,74 @@ const FloorPlan = () => {
     } catch { /* non-critical */ }
 
     setSavingFeedback(false);
-    sessionStorage.setItem('generate_quiz_nonce', crypto.randomUUID());
-    navigate("/generate", { state: { quizData: { roomType, stylePreference, colorPalette: "neutral", budgetFeel: "mid-range", mustHaveElements: selectedFurniture } } });
-  }, [layout, selectedShape, dimensions, selectedRoomType, selectedFurniture, openings, navigate, updateQuizData, user, itemScores, itemNotes, buildWallsClockwise, selectedStyle, referenceImageUrl]);
+    setStep(6);
+  }, [layout, selectedShape, dimensions, selectedRoomType, selectedFurniture, openings, updateQuizData, user, itemScores, itemNotes, buildWallsClockwise, selectedStyle, referenceImageUrl]);
+
+  // Deterministic measurements used as the basis of the shopping list
+  const buyListMeasurements = useMemo(() => {
+    const CEILING = 2.6;
+    const verts = selectedShape ? getShapeVertices(selectedShape.id, dimensions, 30, customWalls) : [];
+    let areaPx2 = 0;
+    let perimPx = 0;
+    for (let i = 0; i < verts.length; i++) {
+      const a = verts[i];
+      const b = verts[(i + 1) % verts.length];
+      areaPx2 += a.x * b.y - b.x * a.y;
+      perimPx += Math.hypot(b.x - a.x, b.y - a.y);
+    }
+    const floorArea = Math.abs(areaPx2 / 2) / (30 * 30);
+    const perimeter = perimPx / 30;
+    const openingArea = openings.reduce(
+      (sum, o) => sum + (o.type === "window" ? 1.5 : o.type === "balcony" ? 4.2 : 1.9),
+      0,
+    );
+    const skirting = Math.max(0, perimeter - openings.filter((o) => o.type !== "window").length * 0.9);
+    return {
+      roomWidthM: Number(dimensions.width || dimensions.mainW || dimensions.totalW || 0) || undefined,
+      roomLengthM: Number(dimensions.height || dimensions.mainH || dimensions.totalH || 0) || undefined,
+      ceilingHeightM: CEILING,
+      floorAreaSqm: Math.round(floorArea * 10) / 10,
+      perimeterM: Math.round(perimeter * 10) / 10,
+      netWallAreaSqm: Math.max(0, Math.round((perimeter * CEILING - openingArea) * 10) / 10),
+      skirtingM: Math.round(skirting * 10) / 10,
+    };
+  }, [selectedShape, dimensions, customWalls, openings]);
+
+  const buyListPayload = useMemo(() => {
+    let designDescription = "";
+    let moodboard: Record<string, unknown> | undefined;
+    try {
+      const raw = sessionStorage.getItem("analyze_room_cache");
+      if (raw) {
+        const c = JSON.parse(raw);
+        designDescription = c?.analysis?.description || c?.moodboardDescription || c?.description || "";
+        moodboard = {
+          colors: c?.editableColors || [],
+          materials: (c?.moodboard?.materials || []).map((m: any) => m?.label).filter(Boolean),
+          mustInclude: (c?.moodboard?.mustInclude || []).map((m: any) => m?.label).filter(Boolean),
+        };
+      }
+    } catch { /* ignore */ }
+    let houseState = "";
+    try {
+      const raw = sessionStorage.getItem("ground_your_space_draft");
+      if (raw) houseState = JSON.parse(raw)?.houseState || "";
+    } catch { /* ignore */ }
+
+    return {
+      roomType: selectedRoomType || "living_room",
+      shape: selectedShape?.id,
+      dimensions,
+      openings: openings.map((o) => ({ type: o.type, wall: o.wall, position: o.position })),
+      walls: buildWallsClockwise(),
+      style: selectedStyle || quizData.stylePreference,
+      houseState,
+      layout,
+      designDescription,
+      moodboard,
+    };
+  }, [selectedRoomType, selectedShape, dimensions, openings, buildWallsClockwise, selectedStyle, quizData.stylePreference, layout]);
+
 
   if (authLoading) {
     return (
@@ -1031,7 +1097,7 @@ const FloorPlan = () => {
     );
   }
 
-  const STEP_LABELS = ["Shape", "Dimensions", "Room & Furniture", "Openings", "Layout", "Style"];
+  const STEP_LABELS = ["Shape", "Dimensions", "Room & Furniture", "Openings", "Layout", "Style", "Shopping List"];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-secondary/20 to-primary/10">
@@ -1611,7 +1677,7 @@ const FloorPlan = () => {
                   {savingFeedback ? (
                     <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Saving...</>
                   ) : (
-                    <><Save className="w-4 h-4 mr-2" /> Generate Design</>
+                    <><ShoppingBasket className="w-4 h-4 mr-2" /> Build shopping list</>
                   )}
                 </Button>
               </div>
@@ -1772,7 +1838,7 @@ const FloorPlan = () => {
                         {savingFeedback ? (
                           <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Saving...</>
                         ) : (
-                          <><Save className="w-4 h-4 mr-2" /> Generate Design</>
+                          <><ShoppingBasket className="w-4 h-4 mr-2" /> Build shopping list</>
                         )}
                       </Button>
                     ) : (
@@ -1783,6 +1849,22 @@ const FloorPlan = () => {
                   </div>
                 </>
               )}
+            </div>
+          )}
+
+          {/* Step 6: Shopping list (no design regeneration) */}
+          {step === 6 && (
+            <div className="space-y-6">
+              <BuyListStep
+                measurements={buyListMeasurements}
+                payload={buyListPayload}
+                roomLabel={selectedRoomType || "Room"}
+              />
+              <div className="flex justify-center">
+                <Button variant="outline" onClick={() => setStep(4)}>
+                  <ArrowLeft className="w-4 h-4 mr-2" /> Back to Layout
+                </Button>
+              </div>
             </div>
           )}
         </div>
