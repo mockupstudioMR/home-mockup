@@ -21,8 +21,6 @@ import BuyListStep from "@/components/floorplan/BuyListStep";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 
-import { toast } from "@/hooks/use-toast";
-
 // Room shape definitions
 type ShapeId = "rectangle" | "l-shape" | "u-shape" | "open-plan" | "custom";
 
