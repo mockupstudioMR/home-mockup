@@ -35,10 +35,17 @@ For EVERY enclosed room in the plan return:
 - "width_m", "length_m": rectangular footprint in metres, derived from the door scale, rounded to 2 decimals
 - "area_sqm": floor area in m² (rounded to 2 decimals)
 - "polygon": the room outline as points in PERCENT of the image (x and y each 0-100), in clockwise order, minimum 4 points. This must trace the actual room walls in the image so it can be drawn as an overlay.
-- "openings": doors/windows on that room: { "type": "door"|"window"|"balcony", "wall_index": number (0-based index of the polygon edge), "position_pct": 0-100 along that edge }
-- "confidence": 0-1
+- "openings": EVERY door AND window (and balcony/terrace door) on that room's walls.
+
+OPENING DETECTION RULES (be thorough — windows are frequently missed):
+- WINDOWS look like a break in the wall hatch drawn as two or three thin parallel lines spanning the gap, usually on exterior walls, with no swing arc. Include every one of them, even small ones.
+- DOORS have a gap in the wall plus a quarter-circle swing arc (or a sliding-door rail).
+- BALCONY / terrace doors are wide openings leading to an outdoor slab, often with dashed railing lines.
+- For each opening return: { "type": "door"|"window"|"balcony", "wall_index": 0-based index of the polygon edge it sits on, "position_pct": 0-100 along that edge (measured in the polygon's clockwise direction), "width_m": clear width in metres from the 1 m door scale, "x" and "y": the CENTRE of the opening in PERCENT of the image (0-100), so it can be drawn directly on the plan.
+- Never invent openings that are not visibly drawn, and never merge two adjacent windows into one.
 
 Be precise and consistent: rooms must not overlap, and the sum of room areas must be plausible for the whole plan.`;
+
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
