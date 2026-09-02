@@ -1025,6 +1025,7 @@ const FloorPlan = () => {
         },
       };
       const saved = await saveRoomSpec(spec as any);
+      if (saved?.id) setSavedRoomId(saved.id);
 
       // Fix the relation: attach this room to the design the list is built from.
       if (saved?.id && linkedDesign?.id && linkedDesign.roomId !== saved.id) {
