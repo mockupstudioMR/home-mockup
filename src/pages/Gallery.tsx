@@ -81,7 +81,7 @@ const Gallery = () => {
 
       for (let attempt = 1; attempt <= maxAttempts; attempt++) {
         const controller = new AbortController();
-        const timeoutMs = 10000;
+        const timeoutMs = 20000;
         const timeoutId = window.setTimeout(() => controller.abort(), timeoutMs);
         const t0 = performance.now();
         log("info", `Attempt ${attempt}/${maxAttempts}`, `timeout=${timeoutMs}ms`);
@@ -92,7 +92,7 @@ const Gallery = () => {
             .select("id, image_url, prompt, is_favorite, created_at, quiz_response_id, room_id")
             .eq("user_id", user.id)
             .order("created_at", { ascending: false })
-            .limit(500)
+            .limit(120)
             .abortSignal(controller.signal);
 
           window.clearTimeout(timeoutId);
