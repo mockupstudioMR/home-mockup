@@ -595,10 +595,8 @@ const FloorPlan = () => {
   const [floorPlanAnalyzing, setFloorPlanAnalyzing] = useState(false);
   const [floorPlanImageUrl, setFloorPlanImageUrl] = useState<string>("");
 
-  // Style step
-  const [selectedStyle, setSelectedStyle] = useState<string>(quizData.stylePreference || "");
-  const [referenceImageUrl, setReferenceImageUrl] = useState<string>("");
-  const [uploadingRef, setUploadingRef] = useState(false);
+  // Style preference carried from the quiz (no separate style step)
+  const selectedStyle = quizData.stylePreference || "modern_minimal";
 
   // Layout step
   const [layout, setLayout] = useState<LayoutSuggestion | null>(null);
