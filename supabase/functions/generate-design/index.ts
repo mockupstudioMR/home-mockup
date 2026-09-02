@@ -481,8 +481,8 @@ serve(async (req) => {
 
     // Use the dedicated image-edit model for modifications (better preservation of unchanged areas)
     const modelToUse = enrichedRequestData.modificationPrompt
-      ? "google/gemini-3.1-flash-image-preview"
-      : "google/gemini-3-pro-image-preview";
+      ? "google/gemini-3.1-flash-image"
+      : "google/gemini-3-pro-image";
     addDebug("AI request prepared", `Model: ${modelToUse}, ${contentParts.length} content parts`);
 
     // Retry logic for image generation
