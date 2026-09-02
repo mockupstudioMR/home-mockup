@@ -35,6 +35,7 @@ For EVERY enclosed room in the plan return:
 - "width_m", "length_m": rectangular footprint in metres, derived from the door scale, rounded to 2 decimals
 - "area_sqm": floor area in m² (rounded to 2 decimals)
 - "polygon": the room outline as points in PERCENT of the image (x and y each 0-100), in clockwise order, minimum 4 points. This must trace the actual room walls in the image so it can be drawn as an overlay.
+- "confidence": 0-1
 - "openings": EVERY door AND window (and balcony/terrace door) on that room's walls.
 
 OPENING DETECTION RULES (be thorough — windows are frequently missed):
