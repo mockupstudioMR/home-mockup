@@ -568,6 +568,10 @@ const FloorPlan = () => {
 
   // Steps: 0=shape, 1=dimensions, 2=room type & furniture, 3=openings, 4=layout, 5=style, 6=shopping list
   const [step, setStep] = useState(0);
+  // Room row id of the saved floor plan — scopes the persisted shopping list.
+  const [savedRoomId, setSavedRoomId] = useState<string | null>(() => {
+    try { return sessionStorage.getItem("room_spec_active_id"); } catch { return null; }
+  });
   const [selectedShape, setSelectedShape] = useState<RoomShape | null>(null);
   const [dimensions, setDimensions] = useState<Record<string, number>>({});
   const [selectedRoomType, setSelectedRoomType] = useState<string>(quizData.roomType || "");
@@ -1021,6 +1025,7 @@ const FloorPlan = () => {
         },
       };
       const saved = await saveRoomSpec(spec as any);
+      if (saved?.id) setSavedRoomId(saved.id);
 
       // Fix the relation: attach this room to the design the list is built from.
       if (saved?.id && linkedDesign?.id && linkedDesign.roomId !== saved.id) {
@@ -1109,6 +1114,7 @@ const FloorPlan = () => {
         moodboard: (row.moodboard as Record<string, unknown> | null) ?? null,
         roomId: row.room_id ?? null,
       });
+      if (row.room_id) setSavedRoomId((prev) => prev ?? row.room_id);
     };
 
     run().catch((e) => console.warn("[floor-plan] design lookup failed", e));
@@ -1966,6 +1972,8 @@ const FloorPlan = () => {
                 payload={buyListPayload}
                 design={linkedDesign ? { title: linkedDesign.title, imageUrl: linkedDesign.imageUrl, itemCount: linkedDesign.items.length } : undefined}
                 roomLabel={selectedRoomType || "Room"}
+                roomId={savedRoomId}
+                designId={linkedDesign?.id ?? null}
               />
               <div className="flex justify-center">
                 <Button variant="outline" onClick={() => setStep(4)}>
