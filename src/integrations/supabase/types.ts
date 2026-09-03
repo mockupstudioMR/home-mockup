@@ -869,6 +869,90 @@ export type Database = {
           },
         ]
       }
+      products: {
+        Row: {
+          color: string | null
+          created_at: string
+          created_by: string | null
+          currency: string
+          description: string | null
+          design_id: string | null
+          design_item_id: string | null
+          id: string
+          image_url: string | null
+          is_active: boolean
+          material: string | null
+          metadata: Json
+          name: string
+          price: number | null
+          shop_id: string | null
+          shop_name: string
+          source_url: string | null
+          style: string | null
+          type: string | null
+          updated_at: string
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          description?: string | null
+          design_id?: string | null
+          design_item_id?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          material?: string | null
+          metadata?: Json
+          name: string
+          price?: number | null
+          shop_id?: string | null
+          shop_name?: string
+          source_url?: string | null
+          style?: string | null
+          type?: string | null
+          updated_at?: string
+        }
+        Update: {
+          color?: string | null
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          description?: string | null
+          design_id?: string | null
+          design_item_id?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          material?: string | null
+          metadata?: Json
+          name?: string
+          price?: number | null
+          shop_id?: string | null
+          shop_name?: string
+          source_url?: string | null
+          style?: string | null
+          type?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "products_design_id_fkey"
+            columns: ["design_id"]
+            isOneToOne: false
+            referencedRelation: "generated_designs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "products_design_item_id_fkey"
+            columns: ["design_item_id"]
+            isOneToOne: false
+            referencedRelation: "design_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
