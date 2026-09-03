@@ -172,7 +172,15 @@ const BuyListStep = ({ measurements, payload, roomLabel, design, roomId, designI
             .split(/\s+/)
             .filter((t) => t.length > 2);
 
-        type Cand = { label: string; url?: string; bbox?: { x: number; y: number; width: number; height: number } };
+        type Cand = {
+          label: string;
+          url?: string;
+          bbox?: { x: number; y: number; width: number; height: number };
+          id?: string;
+          itemName?: string;
+          itemType?: string;
+          itemDescription?: string;
+        };
 
         // 1) The items detected in this design.
         const designPhotos: Cand[] = [];
@@ -184,27 +192,29 @@ const BuyListStep = ({ measurements, payload, roomLabel, design, roomId, designI
               : undefined;
           const url = row?.product_photo_url || row?.productPhotoUrl || undefined;
           if (!url && !bbox) return;
+          const itemName = row.item_name || row.itemName || row.name;
+          const itemType = row.item_type || row.itemType || row.type;
+          const itemDescription = row.item_description || row.itemDescription;
           designPhotos.push({
-            label: [
-              row.item_name || row.itemName || row.name,
-              row.item_type || row.itemType || row.type,
-              row.item_description || row.itemDescription,
-            ]
-              .filter(Boolean)
-              .join(" "),
+            label: [itemName, itemType, itemDescription].filter(Boolean).join(" "),
             url,
             bbox,
+            id: row.id,
+            itemName,
+            itemType,
+            itemDescription,
           });
         };
 
         if (designId) {
           const { data: di, error: itemsError } = await supabase
             .from("design_items")
-            .select("item_name, item_type, item_description, product_photo_url, bounding_box")
+            .select("id, item_name, item_type, item_description, product_photo_url, bounding_box")
             .eq("design_id", designId)
             .limit(200);
           if (itemsError) throw itemsError;
           (di || []).forEach(pushRow);
+
 
           // Older generated designs can have an image but no extraction rows.
           // Run the same extraction used by design refinement, then consume its
