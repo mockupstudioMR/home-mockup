@@ -67,8 +67,9 @@ const BuyListStep = ({ measurements, payload, roomLabel, design, roomId, designI
   const [loading, setLoading] = useState(false);
   const [savedAt, setSavedAt] = useState<string | null>(null);
   const [images, setImages] = useState<Record<string, string>>({});
-  const [crops, setCrops] = useState<Record<string, React.CSSProperties>>({});
+  const [thumbsReady, setThumbsReady] = useState(false);
   const [cropBoxes, setCropBoxes] = useState<Record<string, { x: number; y: number; width: number; height: number }>>({});
+
 
   const [exportingPdf, setExportingPdf] = useState(false);
   const requested = useRef(false);
