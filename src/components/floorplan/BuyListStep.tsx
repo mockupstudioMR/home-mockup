@@ -332,7 +332,17 @@ const BuyListStep = ({ measurements, payload, roomLabel, design, roomId, designI
     download(lines.join("\n"), `shopping-list-${Date.now()}.txt`, "text/plain");
   };
 
+  /** Resolve only once the bitmap is actually decoded, so nothing pops in later. */
+  const preload = (src: string): Promise<boolean> =>
+    new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => resolve(true);
+      img.onerror = () => resolve(false);
+      img.src = src;
+    });
+
   const toDataUrl = (src: string): Promise<string | null> =>
+
     new Promise((resolve) => {
       if (src.startsWith("data:")) return resolve(src);
       const img = new Image();
