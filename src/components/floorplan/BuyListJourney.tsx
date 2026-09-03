@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import type { BuyListItem, BuyListMeasurements } from "./BuyListStep";
+import GenericItemThumb from "./GenericItemThumb";
 
 /**
  * Editorial "furnishing journey" presentation of the shopping list:
@@ -413,7 +414,9 @@ const BuyListJourney = ({
                             aria-label={it.name}
                             style={{ width: 56, height: 56, borderRadius: 10, flex: "none", border: `1px solid ${C.line}`, ...crops[it.name] }}
                           />
-                        ) : null}
+                        ) : (
+                          <GenericItemThumb label={`${it.name} ${it.spec || ""}`} border={C.line} />
+                        )}
 
 
                         <div style={{ flex: 1, minWidth: 0 }}>
