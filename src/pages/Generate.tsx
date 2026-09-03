@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import { invokeQueued } from "@/lib/aiQueue";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Pencil, Check } from "lucide-react";
@@ -1406,33 +1407,27 @@ const Generate = () => {
     const style = quiz.stylePreference || "modern-minimal";
     const room = quiz.roomType || "living room";
 
-    // Generate all three visuals in parallel
+    // Queued so the edge runtime never has to cold-boot all three at once
     const [colorResult, furnitureResult, moodboardResult] = await Promise.allSettled([
-      supabase.functions.invoke("generate-highlight-visuals", {
-        body: {
-          type: "colorPalette",
-          style,
-          room,
-          colors: highlights.colorScheme.colors,
-          materials: highlights.colorScheme.materials,
-        },
+      invokeQueued<{ imageUrl?: string }>("generate-highlight-visuals", {
+        type: "colorPalette",
+        style,
+        room,
+        colors: highlights.colorScheme.colors,
+        materials: highlights.colorScheme.materials,
       }),
-      supabase.functions.invoke("generate-highlight-visuals", {
-        body: {
-          type: "accentFurniture",
-          style,
-          room,
-          furnitureName: highlights.accentFurniture.name,
-          furnitureDescription: highlights.accentFurniture.description,
-        },
+      invokeQueued<{ imageUrl?: string }>("generate-highlight-visuals", {
+        type: "accentFurniture",
+        style,
+        room,
+        furnitureName: highlights.accentFurniture.name,
+        furnitureDescription: highlights.accentFurniture.description,
       }),
-      supabase.functions.invoke("generate-highlight-visuals", {
-        body: {
-          type: "moodboard",
-          style,
-          room,
-          elements: highlights.moodboard.elements,
-        },
+      invokeQueued<{ imageUrl?: string }>("generate-highlight-visuals", {
+        type: "moodboard",
+        style,
+        room,
+        elements: highlights.moodboard.elements,
       }),
     ]);
 

@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Check, Armchair, LayoutGrid } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { invokeQueued } from "@/lib/aiQueue";
 import { cn } from "@/lib/utils";
 
 interface InspirationItem {
@@ -129,8 +129,7 @@ const StyleInspirationCards = ({
               elements: keywords.slice(0, 5),
             };
 
-      supabase.functions
-        .invoke("generate-highlight-visuals", { body })
+      invokeQueued<{ imageUrl?: string }>("generate-highlight-visuals", body)
         .then(({ data, error }) => {
           if (!error && data?.imageUrl) {
             setItems((prev) =>
