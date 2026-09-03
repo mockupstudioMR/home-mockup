@@ -30,10 +30,9 @@ const TagVisual = ({ tag, styleName, roomType = "living room", selected, onToggl
     setOpen(true);
     try {
       const styleSlug = styleName.toLowerCase().replace(/\s+/g, "-");
-      const { data, error } = await supabase.functions.invoke(
+      const { data, error } = await invokeQueued<{ imageUrl?: string }>(
         "generate-highlight-visuals",
         {
-          body: {
             type: "accentFurniture",
             style: styleSlug,
             room: roomType,
