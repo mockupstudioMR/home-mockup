@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import type { BuyListItem, BuyListMeasurements } from "./BuyListStep";
+import GenericItemThumb from "./GenericItemThumb";
 
 /**
  * Editorial "furnishing journey" presentation of the shopping list:
