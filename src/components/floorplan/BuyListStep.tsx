@@ -662,6 +662,8 @@ const BuyListStep = ({ measurements, payload, roomLabel, design, roomId, designI
           palette={palette}
           paletteNote={palette.length ? "Pulled from your moodboard — every finish below is matched to it." : undefined}
           images={images}
+          crops={crops}
+
 
 
           total={total}
