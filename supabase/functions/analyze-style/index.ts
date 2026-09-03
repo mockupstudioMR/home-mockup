@@ -14,6 +14,36 @@ interface AnalyzeRequest {
   onlyOneStyle?: boolean;
 }
 
+/**
+ * Providers cannot always crawl remote URLs (robots.txt / throttling), which
+ * surfaces as a 400 "Cannot fetch content from the provided URL". Download the
+ * image here and inline it as a base64 data URL instead.
+ */
+async function toDataUrl(url: string): Promise<string | null> {
+  if (!url) return null;
+  if (url.startsWith("data:")) return url;
+  try {
+    const res = await fetch(url);
+    if (!res.ok) {
+      console.error("Image fetch failed", res.status, url.slice(0, 120));
+      return null;
+    }
+    const buf = new Uint8Array(await res.arrayBuffer());
+    if (!buf.length) return null;
+    const mime = res.headers.get("content-type")?.split(";")[0] || "image/jpeg";
+    let bin = "";
+    for (let i = 0; i < buf.length; i += 8192) {
+      bin += String.fromCharCode(...buf.subarray(i, i + 8192));
+    }
+    return `data:${mime};base64,${btoa(bin)}`;
+  } catch (e) {
+    console.error("Image inline error", e);
+    return null;
+  }
+}
+
+
+
 // Default prompts (fallbacks if DB templates not found)
 const DEFAULT_ROOM_PROMPT = `Analyze these interior design images. The images are provided in the same order as in the "perImage" array you must return.
 
