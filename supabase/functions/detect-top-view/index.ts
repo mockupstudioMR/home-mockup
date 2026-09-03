@@ -7,6 +7,36 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
+/**
+ * Providers cannot always crawl remote URLs (robots.txt / throttling), which
+ * surfaces as a 400 "Cannot fetch content from the provided URL". Download the
+ * image here and inline it as a base64 data URL instead.
+ */
+async function toDataUrl(url: string): Promise<string | null> {
+  if (!url) return null;
+  if (url.startsWith("data:")) return url;
+  try {
+    const res = await fetch(url);
+    if (!res.ok) {
+      console.error("Image fetch failed", res.status, url.slice(0, 120));
+      return null;
+    }
+    const buf = new Uint8Array(await res.arrayBuffer());
+    if (!buf.length) return null;
+    const mime = res.headers.get("content-type")?.split(";")[0] || "image/jpeg";
+    let bin = "";
+    for (let i = 0; i < buf.length; i += 8192) {
+      bin += String.fromCharCode(...buf.subarray(i, i + 8192));
+    }
+    return `data:${mime};base64,${btoa(bin)}`;
+  } catch (e) {
+    console.error("Image inline error", e);
+    return null;
+  }
+}
+
+
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -21,6 +51,14 @@ Deno.serve(async (req) => {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
+    }
+
+    const inlineImage = await toDataUrl(imageUrl);
+    if (!inlineImage) {
+      return new Response(
+        JSON.stringify({ error: "Could not load the design image." }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
     }
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
@@ -69,7 +107,7 @@ STYLE:
               role: "user",
               content: [
                 { type: "text", text: prompt },
-                { type: "image_url", image_url: { url: imageUrl } },
+                { type: "image_url", image_url: { url: inlineImage } },
               ],
             },
           ],
