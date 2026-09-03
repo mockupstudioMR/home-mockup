@@ -412,8 +412,15 @@ const BuyListStep = ({ measurements, payload, roomLabel, design, roomId, designI
     const a = document.createElement("a");
     a.href = url;
     a.download = filename;
+    a.rel = "noopener";
+    // The anchor must be in the document for the click to be honoured, and the
+    // object URL must outlive the click.
+    document.body.appendChild(a);
     a.click();
-    URL.revokeObjectURL(url);
+    setTimeout(() => {
+      a.remove();
+      URL.revokeObjectURL(url);
+    }, 1000);
   };
 
   const exportCsv = () => {
@@ -539,7 +546,11 @@ const BuyListStep = ({ measurements, payload, roomLabel, design, roomId, designI
     if (!list) return;
     setExportingPdf(true);
     try {
-      const { default: jsPDF } = await import("jspdf");
+      // jsPDF ships both a named and a default export depending on the bundle
+      // interop; pick whichever is the actual constructor.
+      const mod: any = await import("jspdf");
+      const jsPDF: any = typeof mod?.jsPDF === "function" ? mod.jsPDF : typeof mod?.default === "function" ? mod.default : mod?.default?.jsPDF;
+      if (typeof jsPDF !== "function") throw new Error("jsPDF failed to load");
       const doc = new jsPDF({ unit: "mm", format: "a4" });
       const pageW = 210;
       const pageH = 297;
@@ -671,7 +682,21 @@ const BuyListStep = ({ measurements, payload, roomLabel, design, roomId, designI
       doc.text(euro(total), pageW - margin, y, { align: "right" });
 
       const safe = (roomLabel || "room").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
-      doc.save(`shopping-list-${safe || "room"}.pdf`);
+      const filename = `shopping-list-${safe || "room"}.pdf`;
+      // doc.save() silently no-ops in some embedded/iframe contexts (the preview
+      // included), so drive the download through a real anchor ourselves.
+      const blob: Blob = doc.output("blob");
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      a.rel = "noopener";
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => {
+        a.remove();
+        URL.revokeObjectURL(url);
+      }, 1000);
     } catch (e) {
       console.error("PDF export failed", e);
       toast({
