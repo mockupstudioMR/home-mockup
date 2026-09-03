@@ -53,6 +53,14 @@ Deno.serve(async (req) => {
       });
     }
 
+    const inlineImage = await toDataUrl(imageUrl);
+    if (!inlineImage) {
+      return new Response(
+        JSON.stringify({ error: "Could not load the design image." }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY missing");
 
@@ -99,7 +107,7 @@ STYLE:
               role: "user",
               content: [
                 { type: "text", text: prompt },
-                { type: "image_url", image_url: { url: imageUrl } },
+                { type: "image_url", image_url: { url: inlineImage } },
               ],
             },
           ],
