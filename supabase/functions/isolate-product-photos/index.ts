@@ -162,6 +162,41 @@ Produce a clean e-commerce product photo of that ONE object only, cut out of the
         .eq("id", update.itemId);
     }
 
+    // Register every isolated item in the shared products catalog. Items we
+    // create ourselves belong to the "MockUp Studio" shop; real shops added
+    // later land in the same table under their own shop name.
+    if (updates.length) {
+      const { data: designRow } = await supabase
+        .from("generated_designs")
+        .select("user_id")
+        .eq("id", designId)
+        .maybeSingle();
+
+      const byId = new Map(productItems.map((i) => [i.id, i]));
+      const rows = updates.map((u) => {
+        const item = byId.get(u.itemId);
+        return {
+          shop_name: "MockUp Studio",
+          name: item?.item_name || "Product",
+          description: item?.item_description || null,
+          type: item?.item_type || null,
+          color: item?.color || null,
+          material: item?.material || null,
+          image_url: u.photoUrl,
+          design_id: designId,
+          design_item_id: u.itemId,
+          created_by: (designRow as { user_id?: string } | null)?.user_id ?? null,
+        };
+      });
+
+      const { error: productsError } = await supabase
+        .from("products")
+        .upsert(rows, { onConflict: "design_item_id" });
+      if (productsError) console.error("Products upsert error:", productsError);
+      else console.log(`Catalogued ${rows.length} products`);
+    }
+
+
     console.log(
       `Completed: ${updates.length}/${productItems.length} product photos generated`
     );

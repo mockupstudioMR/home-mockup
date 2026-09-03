@@ -15,6 +15,13 @@
       "when": 1788376028533,
       "tag": "0001_create_floor_plan_analyses",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1788442027187,
+      "tag": "0002_create_products_catalog",
+      "breakpoints": true
     }
   ]
 }
