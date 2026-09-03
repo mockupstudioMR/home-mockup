@@ -412,8 +412,15 @@ const BuyListStep = ({ measurements, payload, roomLabel, design, roomId, designI
     const a = document.createElement("a");
     a.href = url;
     a.download = filename;
+    a.rel = "noopener";
+    // The anchor must be in the document for the click to be honoured, and the
+    // object URL must outlive the click.
+    document.body.appendChild(a);
     a.click();
-    URL.revokeObjectURL(url);
+    setTimeout(() => {
+      a.remove();
+      URL.revokeObjectURL(url);
+    }, 1000);
   };
 
   const exportCsv = () => {
