@@ -223,10 +223,46 @@ const BuyListStep = ({ measurements, payload, roomLabel, design, roomId, designI
           .not("image_urls", "is", null)
           .limit(500);
 
-        const bestMatch = (want: Set<string>, pool: Cand[], min = 1): Cand | undefined => {
+        // Synonym families so "Sectional sofa" matches a design item called
+        // "Couch" and "Floor lamp" matches "Lighting".
+        const FAMILIES: string[][] = [
+          ["sofa", "couch", "sectional", "settee", "loveseat"],
+          ["chair", "armchair", "accent", "seat", "stool", "bench"],
+          ["rug", "carpet", "mat"],
+          ["lamp", "light", "lighting", "pendant", "sconce", "chandelier"],
+          ["table", "coffee", "side", "console", "desk", "nightstand"],
+          ["bed", "headboard", "mattress"],
+          ["wardrobe", "closet", "storage", "cabinet", "sideboard", "dresser", "shelf", "shelving", "bookcase"],
+          ["curtain", "drape", "blind", "shade"],
+          ["art", "artwork", "print", "painting", "poster", "frame", "mirror"],
+          ["plant", "planter", "greenery", "tree"],
+          ["cushion", "pillow", "throw", "blanket", "textile"],
+          ["vase", "bowl", "decor", "object", "sculpture", "candle"],
+          ["paint", "wall", "colour", "color"],
+          ["floor", "flooring", "wood", "tile", "parquet", "laminate"],
+        ];
+        const familyOf = (t: string) => FAMILIES.findIndex((f) => f.some((w) => t.startsWith(w) || w.startsWith(t)));
+
+        const scoreCand = (want: Set<string>, cand: Cand) => {
+          const have = tokens(cand.label);
+          const wantArr = [...want];
+          let score = 0;
+          have.forEach((h) => {
+            if (want.has(h)) score += 3;
+            else if (wantArr.some((w) => w.startsWith(h) || h.startsWith(w))) score += 2;
+            else {
+              const fh = familyOf(h);
+              if (fh >= 0 && wantArr.some((w) => familyOf(w) === fh)) score += 1;
+            }
+          });
+          return score;
+        };
+
+        const bestMatch = (want: Set<string>, pool: Cand[], min = 1, used?: Set<Cand>): Cand | undefined => {
           let best: { score: number; cand?: Cand } = { score: 0 };
           pool.forEach((p) => {
-            const score = tokens(p.label).reduce((s, t) => s + (want.has(t) ? 1 : 0), 0);
+            if (used?.has(p)) return;
+            const score = scoreCand(want, p);
             if (score > best.score) best = { score, cand: p };
           });
           return best.score >= min ? best.cand : undefined;
@@ -243,42 +279,53 @@ const BuyListStep = ({ measurements, payload, roomLabel, design, roomId, designI
         const boxMap: Record<string, { x: number; y: number; width: number; height: number }> = {};
         const cropMap: Record<string, React.CSSProperties> = {};
 
-        await Promise.all(
-          list.items.map(async (it) => {
-            const want = new Set([...tokens(it.name), ...tokens(it.spec || "")]);
-            const fromDesign = bestMatch(want, designPhotos);
+        const cssCrop = (box: { x: number; y: number; width: number; height: number }, src: string) => {
+          const { x, y, width, height } = box;
+          const scale = Math.min(100 / Math.max(width, 1), 100 / Math.max(height, 1), 4);
+          return {
+            backgroundImage: `url(${src})`,
+            backgroundSize: `${scale * 100}%`,
+            backgroundPosition: `${x + width / 2}% ${y + height / 2}%`,
+            backgroundRepeat: "no-repeat",
+          } as React.CSSProperties;
+        };
 
-            // 1) Isolated product photo extracted from the design.
-            if (fromDesign?.url) {
-              const ready = await preload(fromDesign.url);
-              if (ready) {
-                map[it.name] = fromDesign.url;
-                return;
-              }
+        // Each design item is consumed at most once so distinct rows never share
+        // the same crop.
+        const usedDesign = new Set<Cand>();
+
+        // Resolve sequentially: strongest matches first would need a full
+        // assignment pass, and rows are few, so a single ordered pass is enough.
+        for (const it of list.items) {
+          const want = new Set([...tokens(it.name), ...tokens(it.spec || "")]);
+          const fromDesign = bestMatch(want, designPhotos, 1, usedDesign);
+
+          if (fromDesign) usedDesign.add(fromDesign);
+
+          // 1) A crop of the design image at the item's bounding box — the item
+          // exactly as it appears in the design (no CORS dependency).
+          if (fromDesign?.bbox && design?.imageUrl) {
+            boxMap[it.name] = fromDesign.bbox;
+            cropMap[it.name] = cssCrop(fromDesign.bbox, design.imageUrl);
+            continue;
+          }
+
+          // 2) The isolated product photo extracted from the design.
+          if (fromDesign?.url) {
+            const ready = await preload(fromDesign.url);
+            if (ready) {
+              map[it.name] = fromDesign.url;
+              continue;
             }
+          }
 
-            // 2) A CSS crop of the design image at the item's bounding box — same
-            // technique as the design refinement list, so it never depends on CORS.
-            if (fromDesign?.bbox && design?.imageUrl) {
-              const { x, y, width, height } = fromDesign.bbox;
-              boxMap[it.name] = fromDesign.bbox;
-              const scale = Math.min(100 / Math.max(width, 1), 100 / Math.max(height, 1), 4);
-              cropMap[it.name] = {
-                backgroundImage: `url(${design.imageUrl})`,
-                backgroundSize: `${scale * 100}%`,
-                backgroundPosition: `${x + width / 2}% ${y + height / 2}%`,
-                backgroundRepeat: "no-repeat",
-              };
-              return;
-            }
+          // 3) Catalog photo only when the design has nothing matching.
+          const url = bestMatch(want, catalogPool, 3)?.url;
+          if (!url) continue;
+          const ready = await preload(url);
+          if (ready) map[it.name] = url;
+        }
 
-            // 3) Catalog photo only when the design has nothing matching.
-            const url = bestMatch(want, catalogPool)?.url;
-            if (!url) return;
-            const ready = await preload(url);
-            if (ready) map[it.name] = url;
-          }),
-        );
 
         if (!cancelled) {
           setImages(map);
