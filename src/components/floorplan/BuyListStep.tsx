@@ -682,7 +682,21 @@ const BuyListStep = ({ measurements, payload, roomLabel, design, roomId, designI
       doc.text(euro(total), pageW - margin, y, { align: "right" });
 
       const safe = (roomLabel || "room").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
-      doc.save(`shopping-list-${safe || "room"}.pdf`);
+      const filename = `shopping-list-${safe || "room"}.pdf`;
+      // doc.save() silently no-ops in some embedded/iframe contexts (the preview
+      // included), so drive the download through a real anchor ourselves.
+      const blob: Blob = doc.output("blob");
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      a.rel = "noopener";
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => {
+        a.remove();
+        URL.revokeObjectURL(url);
+      }, 1000);
     } catch (e) {
       console.error("PDF export failed", e);
       toast({
