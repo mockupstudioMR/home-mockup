@@ -544,45 +544,76 @@ interface LayoutSuggestion {
   items: LayoutItem[];
 }
 
+/** Wizard state kept across reloads so refreshing never throws you back to step 0. */
+const WIZARD_KEY = "floor_plan_wizard_state";
+type WizardSnapshot = {
+  step?: number;
+  shapeId?: string | null;
+  dimensions?: Record<string, number>;
+  roomType?: string;
+  furniture?: string[];
+  openings?: RoomOpening[];
+  wallSurfaces?: Record<WallSide, string>;
+  customWalls?: WallSegment[];
+  floorPlanImageUrl?: string;
+  layout?: LayoutSuggestion | null;
+  prefillRoomName?: string;
+};
+const loadWizard = (): WizardSnapshot => {
+  try {
+    const raw = sessionStorage.getItem(WIZARD_KEY);
+    return raw ? (JSON.parse(raw) as WizardSnapshot) : {};
+  } catch {
+    return {};
+  }
+};
+
 const FloorPlan = () => {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
   const { quizData, updateQuizData } = useQuiz();
 
-  // Steps: 0=shape, 1=dimensions, 2=room type & furniture, 3=openings, 4=layout, 5=style, 6=shopping list
-  const [step, setStep] = useState(0);
+  const restored = useMemo(loadWizard, []);
+
+  // Steps: 0=shape, 1=dimensions, 2=room type & furniture, 3=openings, 4=layout, 5=shopping list
+  const [step, setStep] = useState(() => restored.step ?? 0);
   // Room row id of the saved floor plan — scopes the persisted shopping list.
   const [savedRoomId, setSavedRoomId] = useState<string | null>(() => {
     try { return sessionStorage.getItem("room_spec_active_id"); } catch { return null; }
   });
-  const [selectedShape, setSelectedShape] = useState<RoomShape | null>(null);
-  const [dimensions, setDimensions] = useState<Record<string, number>>({});
-  const [selectedRoomType, setSelectedRoomType] = useState<string>(quizData.roomType || "");
-  const [selectedFurniture, setSelectedFurniture] = useState<string[]>([]);
-  const [openings, setOpenings] = useState<RoomOpening[]>([]);
+  const [selectedShape, setSelectedShape] = useState<RoomShape | null>(
+    () => ROOM_SHAPES.find((s) => s.id === restored.shapeId) ?? null,
+  );
+  const [dimensions, setDimensions] = useState<Record<string, number>>(() => restored.dimensions ?? {});
+  const [selectedRoomType, setSelectedRoomType] = useState<string>(restored.roomType || quizData.roomType || "");
+  const [selectedFurniture, setSelectedFurniture] = useState<string[]>(() => restored.furniture ?? []);
+  const [openings, setOpenings] = useState<RoomOpening[]>(() => restored.openings ?? []);
   const [activeOpeningType, setActiveOpeningType] = useState<OpeningType>("door");
-  const [wallSurfaces, setWallSurfaces] = useState<Record<WallSide, string>>({
-    top: "flat", right: "flat", bottom: "flat", left: "flat",
-  });
+  const [wallSurfaces, setWallSurfaces] = useState<Record<WallSide, string>>(
+    () => restored.wallSurfaces ?? { top: "flat", right: "flat", bottom: "flat", left: "flat" },
+  );
 
   // Custom shape
-  const [customWalls, setCustomWalls] = useState<WallSegment[]>([
-    { length_m: 5, angle_deg: 90 },
-    { length_m: 4, angle_deg: 90 },
-    { length_m: 5, angle_deg: 90 },
-    { length_m: 4, angle_deg: 90 },
-  ]);
+  const [customWalls, setCustomWalls] = useState<WallSegment[]>(
+    () =>
+      restored.customWalls ?? [
+        { length_m: 5, angle_deg: 90 },
+        { length_m: 4, angle_deg: 90 },
+        { length_m: 5, angle_deg: 90 },
+        { length_m: 4, angle_deg: 90 },
+      ],
+  );
 
   // Floor plan upload
   const [floorPlanUploading, setFloorPlanUploading] = useState(false);
   const [floorPlanAnalyzing, setFloorPlanAnalyzing] = useState(false);
-  const [floorPlanImageUrl, setFloorPlanImageUrl] = useState<string>("");
+  const [floorPlanImageUrl, setFloorPlanImageUrl] = useState<string>(restored.floorPlanImageUrl || "");
 
   // Style preference carried from the quiz (no separate style step)
   const selectedStyle = quizData.stylePreference || "modern_minimal";
 
   // Layout step
-  const [layout, setLayout] = useState<LayoutSuggestion | null>(null);
+  const [layout, setLayout] = useState<LayoutSuggestion | null>(() => restored.layout ?? null);
   const [previousLayout, setPreviousLayout] = useState<LayoutSuggestion | null>(null);
   const [previousScores, setPreviousScores] = useState<Record<number, boolean | null>>({});
   const [previousNotes, setPreviousNotes] = useState<Record<number, string>>({});
@@ -590,6 +621,7 @@ const FloorPlan = () => {
   const [itemScores, setItemScores] = useState<Record<number, boolean | null>>({});
   const [itemNotes, setItemNotes] = useState<Record<number, string>>({});
   const [savingFeedback, setSavingFeedback] = useState(false);
+
 
   // Fetch room furniture configs from DB
   const { data: roomConfigs } = useQuery({
