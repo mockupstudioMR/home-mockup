@@ -69,6 +69,8 @@ const BuyListStep = ({ measurements, payload, roomLabel, design, roomId, designI
   const [images, setImages] = useState<Record<string, string>>({});
   const [thumbsReady, setThumbsReady] = useState(false);
   const [cropBoxes, setCropBoxes] = useState<Record<string, { x: number; y: number; width: number; height: number }>>({});
+  const [crops, setCrops] = useState<Record<string, React.CSSProperties>>({});
+
 
 
   const [exportingPdf, setExportingPdf] = useState(false);
