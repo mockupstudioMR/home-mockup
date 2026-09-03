@@ -167,13 +167,16 @@ serve(async (req) => {
     }
     const content: any[] = [{ type: "text", text: effectivePrompt }];
     if (hasImages) {
-      for (const imageUrl of images) {
+      const inlined = await Promise.all(images.map((u) => toDataUrl(u)));
+      for (const imageUrl of inlined) {
+        if (!imageUrl) continue;
         content.push({
           type: "image_url",
           image_url: { url: imageUrl }
         });
       }
     }
+
 
     console.log(`Analyzing ${hasImages ? images.length : 0} images${hasPrompt ? " + prompt" : ""} in ${mode} mode`);
 
