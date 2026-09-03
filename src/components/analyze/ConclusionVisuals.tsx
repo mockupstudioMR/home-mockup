@@ -7,6 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
+import { invokeQueued } from "@/lib/aiQueue";
 import { saveMoodboardAsset, saveJourneyProduct } from "@/lib/journeyPersistence";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -137,9 +138,9 @@ const VisualChip = ({
               furnitureName: itemForStyle,
               furnitureDescription: `A single iconic ${label} furniture or decor piece — "${itemForStyle}" — shown alone as a hero product shot on a clean neutral background. ONE item only, no full room, no collage.`,
             };
-      const { data, error } = await supabase.functions.invoke(
+      const { data, error } = await invokeQueued<{ imageUrl?: string }>(
         "generate-highlight-visuals",
-        { body },
+        body,
       );
       if (!error && data?.imageUrl) {
         onImageReady(data.imageUrl);
@@ -645,7 +646,7 @@ const ConclusionVisuals = ({
     const MAX = 4;
     for (let attempt = 1; attempt <= MAX; attempt++) {
       try {
-        const { data, error } = await supabase.functions.invoke("generate-highlight-visuals", { body });
+        const { data, error } = await invokeQueued<{ imageUrl?: string }>("generate-highlight-visuals", body);
         if (!error && data?.imageUrl) {
           setter((prev) => prev.map((m) => (m.label === label ? { ...m, imageUrl: data.imageUrl } : m)));
           void saveMoodboardAsset({ section: kind, label, imageUrl: data.imageUrl, prompt: descByKind[kind], kind: "ai" });
@@ -784,7 +785,7 @@ const ConclusionVisuals = ({
       };
       const MAX = 4;
       for (let attempt = 1; attempt <= MAX; attempt++) {
-        const { data, error } = await supabase.functions.invoke("generate-highlight-visuals", { body });
+        const { data, error } = await invokeQueued<{ imageUrl?: string }>("generate-highlight-visuals", body);
         if (!error && data?.imageUrl) {
           setter((prev) => [...prev, { label, imageUrl: data.imageUrl }]);
           void saveMoodboardAsset({ section: kind, label, imageUrl: data.imageUrl, prompt: descByKind[kind], kind: "ai" });
