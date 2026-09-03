@@ -600,11 +600,12 @@ const BuyListStep = ({ measurements, payload, roomLabel, design, roomId, designI
 
 
 
-      {loading && !list && (
+      {((loading && !list) || (list && !thumbsReady)) && (
         <Card>
           <CardContent className="p-6 space-y-3">
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Loader2 className="w-4 h-4 animate-spin" /> Calculating quantities and size constraints…
+              <Loader2 className="w-4 h-4 animate-spin" />
+              {list ? "Extracting each piece from your design…" : "Calculating quantities and size constraints…"}
             </div>
             {[...Array(6)].map((_, i) => (
               <Skeleton key={i} className="h-14 w-full" />
@@ -613,7 +614,7 @@ const BuyListStep = ({ measurements, payload, roomLabel, design, roomId, designI
         </Card>
       )}
 
-      {list && (
+      {list && thumbsReady && (
         <BuyListJourney
           summary={list.summary}
           items={list.items}
@@ -622,7 +623,7 @@ const BuyListStep = ({ measurements, payload, roomLabel, design, roomId, designI
           palette={palette}
           paletteNote={palette.length ? "Pulled from your moodboard — every finish below is matched to it." : undefined}
           images={images}
-          crops={crops}
+
 
           total={total}
           savedAt={savedAt}
