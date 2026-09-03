@@ -6,6 +6,7 @@ import { Download, FileText, Loader2, RotateCcw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { getAiErrorMessage } from "@/lib/aiErrorMessage";
+import { invokeQueued } from "@/lib/aiQueue";
 import BuyListJourney from "./BuyListJourney";
 import LayerFilm from "@/components/journey/LayerFilm";
 
@@ -219,9 +220,11 @@ const BuyListStep = ({ measurements, payload, roomLabel, design, roomId, designI
           }
 
           if (!designPhotos.length && design?.imageUrl) {
-            const { data: extracted, error: extractionError } = await supabase.functions.invoke("extract-room-items", {
-              body: { imageUrl: design.imageUrl, designId },
-            });
+            const { data: extracted, error: extractionError } = await invokeQueued<{
+              success?: boolean;
+              error?: string;
+              items?: unknown[];
+            }>("extract-room-items", { imageUrl: design.imageUrl, designId });
             if (extractionError) throw extractionError;
             if (extracted?.success === false) throw new Error(extracted.error || "Item extraction failed");
             const extractedRows = Array.isArray(extracted?.items) ? extracted.items : [];
