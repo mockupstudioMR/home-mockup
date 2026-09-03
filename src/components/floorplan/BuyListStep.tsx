@@ -152,12 +152,15 @@ const BuyListStep = ({ measurements, payload, roomLabel, design, roomId, designI
     build();
   }, [build]);
 
-  // Attach a photo to every line item. Priority: the item as it appears in the
-  // design (design_items photos, same source as the design refinement list),
-  // then a catalog product photo matched on name/type.
+  // Attach a photo to every line item, extracted from the design itself (same
+  // source as the design refinement list): the isolated product photo when it
+  // exists, otherwise a real crop of the design image at the item's bounding
+  // box. A catalog photo is only used when the design has no matching item.
+  // Everything is resolved and preloaded before any thumbnail is shown.
   useEffect(() => {
     if (!list?.items?.length) return;
     let cancelled = false;
+    setThumbsReady(false);
     (async () => {
       try {
         const tokens = (s: string) =>
@@ -169,34 +172,30 @@ const BuyListStep = ({ measurements, payload, roomLabel, design, roomId, designI
 
         type Cand = { label: string; url?: string; bbox?: { x: number; y: number; width: number; height: number } };
 
-        // 1) The items detected in this design: isolated product photo first,
-        //    then a crop of the design image itself (same as the refinement list).
+        // 1) The items detected in this design.
         const designPhotos: Cand[] = [];
         if (designId) {
           const { data: di } = await supabase
             .from("design_items")
-            .select("item_name, item_type, item_description, product_photo_url, bounding_box, shop_products(image_urls)")
+            .select("item_name, item_type, item_description, product_photo_url, bounding_box")
             .eq("design_id", designId)
             .limit(200);
           (di || []).forEach((row: any) => {
-            const url =
-              row.product_photo_url ||
-              (Array.isArray(row.shop_products?.image_urls) ? row.shop_products.image_urls[0] : undefined);
             const bb = row.bounding_box;
             const bbox =
               bb && typeof bb.x === "number" && typeof bb.width === "number"
                 ? { x: bb.x, y: bb.y, width: bb.width, height: bb.height }
                 : undefined;
-            if (!url && !bbox) return;
+            if (!row.product_photo_url && !bbox) return;
             designPhotos.push({
               label: [row.item_name, row.item_type, row.item_description].filter(Boolean).join(" "),
-              url,
+              url: row.product_photo_url || undefined,
               bbox,
             });
           });
         }
 
-        // 2) Catalog fallback.
+        // 2) Catalog fallback (only when the design has nothing matching).
         const { data: products } = await supabase
           .from("shop_products")
           .select("name, type, style, image_urls")
@@ -221,39 +220,43 @@ const BuyListStep = ({ measurements, payload, roomLabel, design, roomId, designI
           .filter((p) => Boolean(p.url));
 
         const map: Record<string, string> = {};
-        const cropMap: Record<string, React.CSSProperties> = {};
         const boxMap: Record<string, { x: number; y: number; width: number; height: number }> = {};
-        list.items.forEach((it) => {
-          const want = new Set([...tokens(it.name), ...tokens(it.spec || "")]);
-          const hit = bestMatch(want, designPhotos) || bestMatch(want, catalogPool);
-          if (!hit) return;
-          if (hit.url) {
-            map[it.name] = hit.url;
-          } else if (hit.bbox && design?.imageUrl) {
-            const { x, y, width, height } = hit.bbox;
-            const scale = Math.min(100 / width, 100 / height, 4);
-            cropMap[it.name] = {
-              backgroundImage: `url(${design.imageUrl})`,
-              backgroundSize: `${scale * 100}%`,
-              backgroundPosition: `${x + width / 2}% ${y + height / 2}%`,
-              backgroundRepeat: "no-repeat",
-            };
-            boxMap[it.name] = hit.bbox;
-          }
-        });
+
+        await Promise.all(
+          list.items.map(async (it) => {
+            const want = new Set([...tokens(it.name), ...tokens(it.spec || "")]);
+            const fromDesign = bestMatch(want, designPhotos);
+
+            if (fromDesign?.bbox && design?.imageUrl) {
+              boxMap[it.name] = fromDesign.bbox;
+              const cropped = await cropDataUrl(design.imageUrl, fromDesign.bbox);
+              if (cropped) {
+                map[it.name] = cropped;
+                return;
+              }
+            }
+            const url = fromDesign?.url || bestMatch(want, catalogPool)?.url;
+            if (!url) return;
+            const ready = await preload(url);
+            if (ready) map[it.name] = url;
+          }),
+        );
+
         if (!cancelled) {
           setImages(map);
-          setCrops(cropMap);
           setCropBoxes(boxMap);
         }
       } catch (e) {
         console.warn("[buy-list] image match failed", e);
+      } finally {
+        if (!cancelled) setThumbsReady(true);
       }
     })();
     return () => {
       cancelled = true;
     };
   }, [list, designId, design?.imageUrl]);
+
 
 
 
