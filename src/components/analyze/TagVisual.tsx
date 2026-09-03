@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { X, Plus, Check, ChevronDown, ChevronUp } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { invokeQueued } from "@/lib/aiQueue";
 import { cn } from "@/lib/utils";
 
 interface TagVisualProps {
@@ -33,12 +33,11 @@ const TagVisual = ({ tag, styleName, roomType = "living room", selected, onToggl
       const { data, error } = await invokeQueued<{ imageUrl?: string }>(
         "generate-highlight-visuals",
         {
-            type: "accentFurniture",
-            style: styleSlug,
-            room: roomType,
-            furnitureName: tag,
-            furnitureDescription: `A ${styleName} interpretation of "${tag}" — captured as a clear, photographic detail shot showing the material, texture and color story.`,
-          },
+          type: "accentFurniture",
+          style: styleSlug,
+          room: roomType,
+          furnitureName: tag,
+          furnitureDescription: `A ${styleName} interpretation of "${tag}" — captured as a clear, photographic detail shot showing the material, texture and color story.`,
         },
       );
       if (!error && data?.imageUrl) setImageUrl(data.imageUrl);
