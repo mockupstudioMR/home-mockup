@@ -406,21 +406,37 @@ const BuyListStep = ({ measurements, payload, roomLabel, design, roomId, designI
     [list],
   );
 
-  const download = (content: string, filename: string, mime: string) => {
-    const blob = new Blob([content], { type: `${mime};charset=utf-8;` });
+  const saveBlob = (blob: Blob, filename: string, preparedWindow?: Window | null) => {
     const url = URL.createObjectURL(blob);
+
+    // Chrome blocks `download` inside Lovable's sandboxed preview iframe. A
+    // real top-level document can download normally; in preview, open the file
+    // in a user-created tab so it can be saved from the browser viewer.
+    const embedded = window.self !== window.top;
+    if (embedded) {
+      const target = preparedWindow && !preparedWindow.closed ? preparedWindow : window.open("", "_blank");
+      if (target) {
+        target.location.replace(url);
+        window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
+        toast({ title: "File opened", description: "Use your browser’s save button to keep it." });
+        return;
+      }
+    }
+
     const a = document.createElement("a");
     a.href = url;
     a.download = filename;
     a.rel = "noopener";
-    // The anchor must be in the document for the click to be honoured, and the
-    // object URL must outlive the click.
     document.body.appendChild(a);
     a.click();
     setTimeout(() => {
       a.remove();
       URL.revokeObjectURL(url);
     }, 1000);
+  };
+
+  const download = (content: string, filename: string, mime: string) => {
+    saveBlob(new Blob([content], { type: `${mime};charset=utf-8;` }), filename);
   };
 
   const exportCsv = () => {
@@ -480,9 +496,16 @@ const BuyListStep = ({ measurements, payload, roomLabel, design, roomId, designI
     });
 
   const toDataUrl = (src: string): Promise<string | null> =>
-
     new Promise((resolve) => {
       if (src.startsWith("data:")) return resolve(src);
+      let settled = false;
+      const finish = (value: string | null) => {
+        if (settled) return;
+        settled = true;
+        window.clearTimeout(timeout);
+        resolve(value);
+      };
+      const timeout = window.setTimeout(() => finish(null), 5000);
       const img = new Image();
       img.crossOrigin = "anonymous";
       img.onload = () => {
@@ -491,21 +514,29 @@ const BuyListStep = ({ measurements, payload, roomLabel, design, roomId, designI
           canvas.width = 256;
           canvas.height = 256;
           const ctx = canvas.getContext("2d");
-          if (!ctx) return resolve(null);
+          if (!ctx) return finish(null);
           const side = Math.min(img.width, img.height);
           ctx.drawImage(img, (img.width - side) / 2, (img.height - side) / 2, side, side, 0, 0, 256, 256);
-          resolve(canvas.toDataURL("image/jpeg", 0.82));
+          finish(canvas.toDataURL("image/jpeg", 0.82));
         } catch {
-          resolve(null);
+          finish(null);
         }
       };
-      img.onerror = () => resolve(null);
+      img.onerror = () => finish(null);
       img.src = src;
     });
 
   /** Crop a region (percentages) out of the design image for the PDF thumbnails. */
   const cropDataUrl = (src: string, box: { x: number; y: number; width: number; height: number }): Promise<string | null> =>
     new Promise((resolve) => {
+      let settled = false;
+      const finish = (value: string | null) => {
+        if (settled) return;
+        settled = true;
+        window.clearTimeout(timeout);
+        resolve(value);
+      };
+      const timeout = window.setTimeout(() => finish(null), 5000);
       const img = new Image();
       img.crossOrigin = "anonymous";
       img.onload = () => {
@@ -519,7 +550,7 @@ const BuyListStep = ({ measurements, payload, roomLabel, design, roomId, designI
           canvas.width = 256;
           canvas.height = 256;
           const ctx = canvas.getContext("2d");
-          if (!ctx) return resolve(null);
+          if (!ctx) return finish(null);
           ctx.fillStyle = "#f3eef5";
           ctx.fillRect(0, 0, 256, 256);
           ctx.drawImage(
@@ -533,17 +564,24 @@ const BuyListStep = ({ measurements, payload, roomLabel, design, roomId, designI
             256,
             256,
           );
-          resolve(canvas.toDataURL("image/jpeg", 0.82));
+          finish(canvas.toDataURL("image/jpeg", 0.82));
         } catch {
-          resolve(null);
+          finish(null);
         }
       };
-      img.onerror = () => resolve(null);
+      img.onerror = () => finish(null);
       img.src = src;
     });
 
   const exportPdf = async () => {
     if (!list) return;
+    // Open synchronously while the click still has user activation. Waiting
+    // for jsPDF and remote thumbnails before opening would trigger popup blocks.
+    const exportWindow = window.self !== window.top ? window.open("", "_blank") : null;
+    if (exportWindow) {
+      exportWindow.document.title = "Preparing shopping list";
+      exportWindow.document.body.textContent = "Preparing your shopping list PDF…";
+    }
     setExportingPdf(true);
     try {
       // jsPDF ships both a named and a default export depending on the bundle
@@ -683,21 +721,10 @@ const BuyListStep = ({ measurements, payload, roomLabel, design, roomId, designI
 
       const safe = (roomLabel || "room").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
       const filename = `shopping-list-${safe || "room"}.pdf`;
-      // doc.save() silently no-ops in some embedded/iframe contexts (the preview
-      // included), so drive the download through a real anchor ourselves.
       const blob: Blob = doc.output("blob");
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = filename;
-      a.rel = "noopener";
-      document.body.appendChild(a);
-      a.click();
-      setTimeout(() => {
-        a.remove();
-        URL.revokeObjectURL(url);
-      }, 1000);
+      saveBlob(blob, filename, exportWindow);
     } catch (e) {
+      exportWindow?.close();
       console.error("PDF export failed", e);
       toast({
         title: "PDF export failed",
