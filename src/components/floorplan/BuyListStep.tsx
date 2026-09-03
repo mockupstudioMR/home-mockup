@@ -308,22 +308,18 @@ const BuyListStep = ({ measurements, payload, roomLabel, design, roomId, designI
 
         // Resolve sequentially: strongest matches first would need a full
         // assignment pass, and rows are few, so a single ordered pass is enough.
+        const pending: Array<{ rowName: string; cand: Cand }> = [];
+
         for (const it of list.items) {
           const want = new Set([...tokens(it.name), ...tokens(it.spec || "")]);
           const fromDesign = bestMatch(want, designPhotos, 1, usedDesign);
 
           if (fromDesign) usedDesign.add(fromDesign);
+          if (!fromDesign) continue;
 
-          // 1) A crop of the design image at the item's bounding box — the item
-          // exactly as it appears in the design (no CORS dependency).
-          if (fromDesign?.bbox && design?.imageUrl) {
-            boxMap[it.name] = fromDesign.bbox;
-            cropMap[it.name] = cssCrop(fromDesign.bbox, design.imageUrl);
-            continue;
-          }
-
-          // 2) The isolated product photo extracted from the design.
-          if (fromDesign?.url) {
+          // 1) The isolated single-item photo on a white background — the
+          // cleanest possible thumbnail.
+          if (fromDesign.url) {
             const ready = await preload(fromDesign.url);
             if (ready) {
               map[it.name] = fromDesign.url;
@@ -331,16 +327,56 @@ const BuyListStep = ({ measurements, payload, roomLabel, design, roomId, designI
             }
           }
 
-          // No fallback: an unmatched construction/material row intentionally
-          // has no thumbnail rather than displaying a different generic item.
-        }
+          // 2) Fall back to a crop of the design image while the isolated photo
+          // is being generated.
+          if (fromDesign.bbox && design?.imageUrl) {
+            boxMap[it.name] = fromDesign.bbox;
+            cropMap[it.name] = cssCrop(fromDesign.bbox, design.imageUrl);
+          }
 
+          if (fromDesign.id) pending.push({ rowName: it.name, cand: fromDesign });
+
+          // No generic fallback: an unmatched construction/material row
+          // intentionally has no thumbnail.
+        }
 
         if (!cancelled) {
           setImages(map);
           setCropBoxes(boxMap);
           setCrops(cropMap);
+          setThumbsReady(true);
         }
+
+        // Generate the white-background, single-item photos for anything that
+        // only has a crop so far, then swap them in as they arrive.
+        if (pending.length && designId && design?.imageUrl) {
+          const { data: iso } = await invokeQueued<{
+            success?: boolean;
+            results?: Array<{ itemId: string; photoUrl: string | null }>;
+          }>("isolate-product-photos", {
+            designId,
+            designImageUrl: design.imageUrl,
+            items: pending.map(({ cand }) => ({
+              id: cand.id,
+              item_name: cand.itemName || cand.label,
+              item_description: cand.itemDescription || cand.label,
+              item_type: cand.itemType || "furniture",
+              bounding_box: cand.bbox,
+            })),
+          });
+
+          const byId = new Map((iso?.results || []).map((r) => [r.itemId, r.photoUrl]));
+          const fresh: Record<string, string> = {};
+          for (const { rowName, cand } of pending) {
+            const url = cand.id ? byId.get(cand.id) : null;
+            if (!url) continue;
+            if (await preload(url)) fresh[rowName] = url;
+          }
+          if (!cancelled && Object.keys(fresh).length) {
+            setImages((prev) => ({ ...prev, ...fresh }));
+          }
+        }
+
 
       } catch (e) {
         console.warn("[buy-list] image match failed", e);
