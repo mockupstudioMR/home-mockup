@@ -155,11 +155,9 @@ const BuyListStep = ({ measurements, payload, roomLabel, design, roomId, designI
     build();
   }, [build]);
 
-  // Attach a photo to every line item, extracted from the design itself (same
-  // source as the design refinement list): the isolated product photo when it
-  // exists, otherwise a real crop of the design image at the item's bounding
-  // box. A catalog photo is only used when the design has no matching item.
-  // Everything is resolved and preloaded before any thumbnail is shown.
+  // Attach photos extracted from this exact design. When an older design has
+  // never been analysed, analyse it here first and wait for the bounding boxes
+  // before revealing the list. Never substitute catalog/generic imagery.
   useEffect(() => {
     if (!list?.items?.length) return;
     let cancelled = false;
@@ -178,15 +176,19 @@ const BuyListStep = ({ measurements, payload, roomLabel, design, roomId, designI
         // 1) The items detected in this design.
         const designPhotos: Cand[] = [];
         const pushRow = (row: any) => {
-          const bb = row?.bounding_box;
+          const bb = row?.bounding_box ?? row?.boundingBox;
           const bbox =
             bb && typeof bb.x === "number" && typeof bb.width === "number"
               ? { x: bb.x, y: bb.y, width: bb.width, height: bb.height }
               : undefined;
-          const url = row?.product_photo_url || undefined;
+          const url = row?.product_photo_url || row?.productPhotoUrl || undefined;
           if (!url && !bbox) return;
           designPhotos.push({
-            label: [row.item_name || row.name, row.item_type || row.type, row.item_description]
+            label: [
+              row.item_name || row.itemName || row.name,
+              row.item_type || row.itemType || row.type,
+              row.item_description || row.itemDescription,
+            ]
               .filter(Boolean)
               .join(" "),
             url,
@@ -195,14 +197,17 @@ const BuyListStep = ({ measurements, payload, roomLabel, design, roomId, designI
         };
 
         if (designId) {
-          const { data: di } = await supabase
+          const { data: di, error: itemsError } = await supabase
             .from("design_items")
             .select("item_name, item_type, item_description, product_photo_url, bounding_box")
             .eq("design_id", designId)
             .limit(200);
+          if (itemsError) throw itemsError;
           (di || []).forEach(pushRow);
 
-          // Fall back to the design's stored extracted_items when no rows exist.
+          // Older generated designs can have an image but no extraction rows.
+          // Run the same extraction used by design refinement, then consume its
+          // exact bounding boxes immediately rather than showing placeholders.
           if (!designPhotos.length) {
             const { data: gd } = await supabase
               .from("generated_designs")
@@ -212,16 +217,17 @@ const BuyListStep = ({ measurements, payload, roomLabel, design, roomId, designI
             const raw = Array.isArray((gd as any)?.extracted_items) ? (gd as any).extracted_items : [];
             raw.forEach(pushRow);
           }
+
+          if (!designPhotos.length && design?.imageUrl) {
+            const { data: extracted, error: extractionError } = await supabase.functions.invoke("extract-room-items", {
+              body: { imageUrl: design.imageUrl, designId },
+            });
+            if (extractionError) throw extractionError;
+            if (extracted?.success === false) throw new Error(extracted.error || "Item extraction failed");
+            const extractedRows = Array.isArray(extracted?.items) ? extracted.items : [];
+            extractedRows.forEach(pushRow);
+          }
         }
-
-
-        // 2) Catalog fallback (only when the design has nothing matching).
-        const { data: products } = await supabase
-          .from("shop_products")
-          .select("name, type, style, image_urls")
-          .eq("is_active", true)
-          .not("image_urls", "is", null)
-          .limit(500);
 
         // Synonym families so "Sectional sofa" matches a design item called
         // "Couch" and "Floor lamp" matches "Lighting".
@@ -268,13 +274,6 @@ const BuyListStep = ({ measurements, payload, roomLabel, design, roomId, designI
           return best.score >= min ? best.cand : undefined;
         };
 
-        const catalogPool: Cand[] = (products || [])
-          .map((p: any) => ({
-            label: [p.name, p.type, p.style].filter(Boolean).join(" "),
-            url: Array.isArray(p.image_urls) ? p.image_urls[0] : undefined,
-          }))
-          .filter((p) => Boolean(p.url));
-
         const map: Record<string, string> = {};
         const boxMap: Record<string, { x: number; y: number; width: number; height: number }> = {};
         const cropMap: Record<string, React.CSSProperties> = {};
@@ -319,11 +318,8 @@ const BuyListStep = ({ measurements, payload, roomLabel, design, roomId, designI
             }
           }
 
-          // 3) Catalog photo only when the design has nothing matching.
-          const url = bestMatch(want, catalogPool, 3)?.url;
-          if (!url) continue;
-          const ready = await preload(url);
-          if (ready) map[it.name] = url;
+          // No fallback: an unmatched construction/material row intentionally
+          // has no thumbnail rather than displaying a different generic item.
         }
 
 
