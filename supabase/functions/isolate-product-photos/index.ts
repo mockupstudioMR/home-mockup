@@ -62,9 +62,16 @@ Deno.serve(async (req) => {
               ? ` It is located at approximately ${item.bounding_box.x}% from left, ${item.bounding_box.y}% from top of the image.`
               : "";
 
-            const prompt = `Look at this interior design image. Find the "${item.item_name}" (${item.item_description}).${locationHint}
+            const traits = [item.color, item.material].filter(Boolean).join(", ");
+            const prompt = `Look at this interior design photo. Find the "${item.item_name}" (${item.item_description}).${locationHint}${traits ? ` Its colour/material: ${traits}.` : ""}
 
-Generate a NEW image showing ONLY this single item isolated on a pure white background (#FFFFFF). The item should be shown from a similar angle as in the original image, filling about 80% of the frame. No shadows, no other objects, just the item on white.`;
+Produce a clean e-commerce product photo of that ONE object only, cut out of the room:
+- Pure white background (#FFFFFF), edge to edge, completely empty.
+- EXACTLY ONE object in the frame. No second item, no partial objects, no walls, floor, ceiling, windows, rugs, plants, cushions or decor unless the item itself IS that thing.
+- If the object is partially hidden in the photo, complete it plausibly so the whole item is visible.
+- Keep the object's exact shape, colour, material and finish from the photo; same viewing angle.
+- Centre it, filling roughly 80% of a square frame, fully inside the frame.
+- No text, watermarks, labels, props, people, reflections or drop shadows.`;
 
             const response = await fetch(
               "https://ai.gateway.lovable.dev/v1/chat/completions",
