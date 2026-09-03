@@ -239,21 +239,39 @@ const BuyListStep = ({ measurements, payload, roomLabel, design, roomId, designI
 
         const map: Record<string, string> = {};
         const boxMap: Record<string, { x: number; y: number; width: number; height: number }> = {};
+        const cropMap: Record<string, React.CSSProperties> = {};
 
         await Promise.all(
           list.items.map(async (it) => {
             const want = new Set([...tokens(it.name), ...tokens(it.spec || "")]);
             const fromDesign = bestMatch(want, designPhotos);
 
-            if (fromDesign?.bbox && design?.imageUrl) {
-              boxMap[it.name] = fromDesign.bbox;
-              const cropped = await cropDataUrl(design.imageUrl, fromDesign.bbox);
-              if (cropped) {
-                map[it.name] = cropped;
+            // 1) Isolated product photo extracted from the design.
+            if (fromDesign?.url) {
+              const ready = await preload(fromDesign.url);
+              if (ready) {
+                map[it.name] = fromDesign.url;
                 return;
               }
             }
-            const url = fromDesign?.url || bestMatch(want, catalogPool)?.url;
+
+            // 2) A CSS crop of the design image at the item's bounding box — same
+            // technique as the design refinement list, so it never depends on CORS.
+            if (fromDesign?.bbox && design?.imageUrl) {
+              const { x, y, width, height } = fromDesign.bbox;
+              boxMap[it.name] = fromDesign.bbox;
+              const scale = Math.min(100 / Math.max(width, 1), 100 / Math.max(height, 1), 4);
+              cropMap[it.name] = {
+                backgroundImage: `url(${design.imageUrl})`,
+                backgroundSize: `${scale * 100}%`,
+                backgroundPosition: `${x + width / 2}% ${y + height / 2}%`,
+                backgroundRepeat: "no-repeat",
+              };
+              return;
+            }
+
+            // 3) Catalog photo only when the design has nothing matching.
+            const url = bestMatch(want, catalogPool)?.url;
             if (!url) return;
             const ready = await preload(url);
             if (ready) map[it.name] = url;
@@ -263,7 +281,9 @@ const BuyListStep = ({ measurements, payload, roomLabel, design, roomId, designI
         if (!cancelled) {
           setImages(map);
           setCropBoxes(boxMap);
+          setCrops(cropMap);
         }
+
       } catch (e) {
         console.warn("[buy-list] image match failed", e);
       } finally {
