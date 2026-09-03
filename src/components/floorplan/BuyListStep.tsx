@@ -175,26 +175,43 @@ const BuyListStep = ({ measurements, payload, roomLabel, design, roomId, designI
 
         // 1) The items detected in this design.
         const designPhotos: Cand[] = [];
+        const pushRow = (row: any) => {
+          const bb = row?.bounding_box;
+          const bbox =
+            bb && typeof bb.x === "number" && typeof bb.width === "number"
+              ? { x: bb.x, y: bb.y, width: bb.width, height: bb.height }
+              : undefined;
+          const url = row?.product_photo_url || undefined;
+          if (!url && !bbox) return;
+          designPhotos.push({
+            label: [row.item_name || row.name, row.item_type || row.type, row.item_description]
+              .filter(Boolean)
+              .join(" "),
+            url,
+            bbox,
+          });
+        };
+
         if (designId) {
           const { data: di } = await supabase
             .from("design_items")
             .select("item_name, item_type, item_description, product_photo_url, bounding_box")
             .eq("design_id", designId)
             .limit(200);
-          (di || []).forEach((row: any) => {
-            const bb = row.bounding_box;
-            const bbox =
-              bb && typeof bb.x === "number" && typeof bb.width === "number"
-                ? { x: bb.x, y: bb.y, width: bb.width, height: bb.height }
-                : undefined;
-            if (!row.product_photo_url && !bbox) return;
-            designPhotos.push({
-              label: [row.item_name, row.item_type, row.item_description].filter(Boolean).join(" "),
-              url: row.product_photo_url || undefined,
-              bbox,
-            });
-          });
+          (di || []).forEach(pushRow);
+
+          // Fall back to the design's stored extracted_items when no rows exist.
+          if (!designPhotos.length) {
+            const { data: gd } = await supabase
+              .from("generated_designs")
+              .select("extracted_items")
+              .eq("id", designId)
+              .maybeSingle();
+            const raw = Array.isArray((gd as any)?.extracted_items) ? (gd as any).extracted_items : [];
+            raw.forEach(pushRow);
+          }
         }
+
 
         // 2) Catalog fallback (only when the design has nothing matching).
         const { data: products } = await supabase
