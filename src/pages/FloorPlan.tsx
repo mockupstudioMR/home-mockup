@@ -679,7 +679,42 @@ const FloorPlan = () => {
   const [linkedDesign, setLinkedDesign] = useState<LinkedDesign | null>(null);
 
   // Prefill from a scanned multi-room plan (/plan-rooms → pick one room)
-  const [prefillRoomName, setPrefillRoomName] = useState<string>("");
+  const [prefillRoomName, setPrefillRoomName] = useState<string>(restored.prefillRoomName || "");
+
+  // Keep the wizard restorable after a refresh.
+  useEffect(() => {
+    try {
+      sessionStorage.setItem(
+        WIZARD_KEY,
+        JSON.stringify({
+          step,
+          shapeId: selectedShape?.id ?? null,
+          dimensions,
+          roomType: selectedRoomType,
+          furniture: selectedFurniture,
+          openings,
+          wallSurfaces,
+          customWalls,
+          floorPlanImageUrl,
+          layout,
+          prefillRoomName,
+        } satisfies WizardSnapshot),
+      );
+    } catch { /* ignore quota errors */ }
+  }, [
+    step,
+    selectedShape,
+    dimensions,
+    selectedRoomType,
+    selectedFurniture,
+    openings,
+    wallSurfaces,
+    customWalls,
+    floorPlanImageUrl,
+    layout,
+    prefillRoomName,
+  ]);
+
   useEffect(() => {
     const raw = sessionStorage.getItem("floor_plan_prefill");
     if (!raw) return;
