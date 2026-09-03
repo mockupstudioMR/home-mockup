@@ -546,7 +546,11 @@ const BuyListStep = ({ measurements, payload, roomLabel, design, roomId, designI
     if (!list) return;
     setExportingPdf(true);
     try {
-      const { default: jsPDF } = await import("jspdf");
+      // jsPDF ships both a named and a default export depending on the bundle
+      // interop; pick whichever is the actual constructor.
+      const mod: any = await import("jspdf");
+      const jsPDF: any = typeof mod?.jsPDF === "function" ? mod.jsPDF : typeof mod?.default === "function" ? mod.default : mod?.default?.jsPDF;
+      if (typeof jsPDF !== "function") throw new Error("jsPDF failed to load");
       const doc = new jsPDF({ unit: "mm", format: "a4" });
       const pageW = 210;
       const pageH = 297;
