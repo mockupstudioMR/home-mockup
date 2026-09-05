@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Download, FileText, Loader2, RotateCcw } from "lucide-react";
+import { Download, FileText, Loader2, Printer, RotateCcw, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { getAiErrorMessage } from "@/lib/aiErrorMessage";
@@ -90,8 +90,14 @@ const BuyListStep = ({ measurements, payload, roomLabel, design, roomId, designI
 
   const [exportingPdf, setExportingPdf] = useState(false);
   const [pdfDownload, setPdfDownload] = useState<{ blob: Blob; url: string; filename: string } | null>(null);
-  const [savingPdf, setSavingPdf] = useState(false);
+  const pdfFrameRef = useRef<HTMLIFrameElement>(null);
   const requested = useRef(false);
+
+  useEffect(() => {
+    return () => {
+      if (pdfDownload?.url.startsWith("blob:")) URL.revokeObjectURL(pdfDownload.url);
+    };
+  }, [pdfDownload]);
 
   const scopeKey = `${roomId || "no-room"}:${designId || "no-design"}`;
 
@@ -483,35 +489,14 @@ const BuyListStep = ({ measurements, payload, roomLabel, design, roomId, designI
     }
   };
 
-  const savePreparedPdf = async (event: React.MouseEvent<HTMLAnchorElement>) => {
-    if (!pdfDownload) return;
-    const picker = (window as SaveFilePickerWindow).showSaveFilePicker;
-    // Browsers without the native save dialog follow the real attachment URL
-    // directly from this user click. Its Content-Disposition keeps this page.
-    if (!picker) {
-      toast({ title: "Download started", description: pdfDownload.filename });
+  const printPreparedPdf = () => {
+    const frameWindow = pdfFrameRef.current?.contentWindow;
+    if (!frameWindow) {
+      toast({ title: "PDF is still loading", description: "Please try again in a moment." });
       return;
     }
-
-    event.preventDefault();
-    setSavingPdf(true);
-    try {
-      const handle = await requestSaveHandle(pdfDownload.filename, "application/pdf");
-      if (handle) {
-        const writable = await handle.createWritable();
-        await writable.write(pdfDownload.blob);
-        await writable.close();
-        toast({ title: "PDF saved", description: pdfDownload.filename });
-        return;
-      }
-
-    } catch (error) {
-      if (error instanceof DOMException && error.name === "AbortError") return;
-      console.error("PDF save failed", error);
-      toast({ title: "Save failed", description: "The browser could not save the PDF.", variant: "destructive" });
-    } finally {
-      setSavingPdf(false);
-    }
+    frameWindow.focus();
+    frameWindow.print();
   };
 
   const exportCsv = () => {
@@ -791,13 +776,9 @@ const BuyListStep = ({ measurements, payload, roomLabel, design, roomId, designI
       doc.text(euro(total), pageW - margin, y, { align: "right" });
 
       const blob: Blob = doc.output("blob");
-      // A real hosted attachment URL works inside the embedded preview where
-      // blob downloads and the native file picker can be blocked. The next
-      // click remains a direct browser navigation to an attachment response,
-      // so the browser saves it without replacing this page.
-      const url = await createHostedDownload(blob, filename);
+      const url = URL.createObjectURL(blob);
       setPdfDownload({ blob, url, filename });
-      toast({ title: "PDF ready", description: "Select Save PDF to download it." });
+      toast({ title: "PDF ready", description: "Use Print / Save as PDF below." });
     } catch (e) {
       console.error("PDF export failed", e);
       toast({
@@ -895,16 +876,8 @@ const BuyListStep = ({ measurements, payload, roomLabel, design, roomId, designI
                 <FileText className="w-4 h-4 mr-2" /> Text
               </Button>
               {pdfDownload ? (
-                <Button asChild>
-                  <a
-                    href={pdfDownload.url}
-                    download={pdfDownload.filename}
-                    onClick={savePreparedPdf}
-                    aria-disabled={savingPdf}
-                  >
-                    {savingPdf ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Download className="w-4 h-4 mr-2" />}
-                    {savingPdf ? "Saving…" : "Save PDF"}
-                  </a>
+                <Button type="button" onClick={printPreparedPdf}>
+                  <Printer className="w-4 h-4 mr-2" /> Print / Save as PDF
                 </Button>
               ) : (
                 <Button onClick={exportPdf} disabled={exportingPdf}>
@@ -919,6 +892,29 @@ const BuyListStep = ({ measurements, payload, roomLabel, design, roomId, designI
             </div>
           }
         />
+      )}
+
+      {pdfDownload && (
+        <section className="space-y-3" aria-label="PDF preview">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <h2 className="font-semibold">PDF preview</h2>
+              <p className="text-sm text-muted-foreground">{pdfDownload.filename}</p>
+            </div>
+            <Button type="button" variant="ghost" size="icon" onClick={() => setPdfDownload(null)} aria-label="Close PDF preview">
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+          <iframe
+            ref={pdfFrameRef}
+            src={pdfDownload.url}
+            title={`Preview of ${pdfDownload.filename}`}
+            className="h-[70vh] min-h-[520px] w-full border bg-background"
+          />
+          <Button type="button" onClick={printPreparedPdf} className="w-full sm:w-auto">
+            <Printer className="w-4 h-4 mr-2" /> Print / Save as PDF
+          </Button>
+        </section>
       )}
     </div>
   );
