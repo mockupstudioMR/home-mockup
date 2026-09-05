@@ -459,13 +459,11 @@ const BuyListStep = ({ measurements, payload, roomLabel, design, roomId, designI
       .createSignedUrl(path, 300, { download: filename });
     if (signedError || !signed?.signedUrl) throw signedError || new Error("Could not prepare download");
 
-    const a = document.createElement("a");
-    a.href = signed.signedUrl;
-    a.target = "_blank";
-    a.rel = "noopener";
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
+    const frame = document.createElement("iframe");
+    frame.hidden = true;
+    frame.src = signed.signedUrl;
+    document.body.appendChild(frame);
+    window.setTimeout(() => frame.remove(), 60_000);
     toast({ title: "Download ready", description: `${filename} is being saved.` });
   };
 
