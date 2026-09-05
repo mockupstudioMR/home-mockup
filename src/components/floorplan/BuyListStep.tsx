@@ -89,6 +89,7 @@ const BuyListStep = ({ measurements, payload, roomLabel, design, roomId, designI
 
 
   const [exportingPdf, setExportingPdf] = useState(false);
+  const [pdfDownload, setPdfDownload] = useState<{ url: string; filename: string } | null>(null);
   const requested = useRef(false);
 
   const scopeKey = `${roomId || "no-room"}:${designId || "no-design"}`;
@@ -430,18 +431,7 @@ const BuyListStep = ({ measurements, payload, roomLabel, design, roomId, designI
     });
   };
 
-  const saveBlob = async (blob: Blob, filename: string, handle?: WritableFileHandle | null) => {
-    if (handle) {
-      const writable = await handle.createWritable();
-      await writable.write(blob);
-      await writable.close();
-      toast({ title: "Download complete", description: `${filename} was saved.` });
-      return;
-    }
-
-    // Sandboxed previews block blob: downloads. Upload the finished document
-    // and use a short-lived HTTPS attachment URL instead; this preserves the
-    // current page and gives the browser a normal downloadable response.
+  const createHostedDownload = async (blob: Blob, filename: string) => {
     const { data: auth, error: authError } = await supabase.auth.getUser();
     const userId = auth?.user?.id;
     if (authError || !userId) throw authError || new Error("Sign in is required to download files");
@@ -459,9 +449,23 @@ const BuyListStep = ({ measurements, payload, roomLabel, design, roomId, designI
       .createSignedUrl(path, 300, { download: filename });
     if (signedError || !signed?.signedUrl) throw signedError || new Error("Could not prepare download");
 
+    return signed.signedUrl;
+  };
+
+  const saveBlob = async (blob: Blob, filename: string, handle?: WritableFileHandle | null) => {
+    if (handle) {
+      const writable = await handle.createWritable();
+      await writable.write(blob);
+      await writable.close();
+      toast({ title: "Download complete", description: `${filename} was saved.` });
+      return;
+    }
+
+    const signedUrl = await createHostedDownload(blob, filename);
+
     const frame = document.createElement("iframe");
     frame.hidden = true;
-    frame.src = signed.signedUrl;
+    frame.src = signedUrl;
     document.body.appendChild(frame);
     window.setTimeout(() => frame.remove(), 60_000);
     toast({ title: "Download ready", description: `${filename} is being saved.` });
@@ -614,6 +618,7 @@ const BuyListStep = ({ measurements, payload, roomLabel, design, roomId, designI
 
   const exportPdf = async () => {
     if (!list) return;
+    setPdfDownload(null);
     const safe = (roomLabel || "room").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
     const filename = `shopping-list-${safe || "room"}.pdf`;
     let saveHandle: WritableFileHandle | null = null;
@@ -761,7 +766,13 @@ const BuyListStep = ({ measurements, payload, roomLabel, design, roomId, designI
       doc.text(euro(total), pageW - margin, y, { align: "right" });
 
       const blob: Blob = doc.output("blob");
-      await saveBlob(blob, filename, saveHandle);
+      if (saveHandle) {
+        await saveBlob(blob, filename, saveHandle);
+      } else {
+        const url = await createHostedDownload(blob, filename);
+        setPdfDownload({ url, filename });
+        toast({ title: "PDF ready", description: "Select Save PDF to download it." });
+      }
     } catch (e) {
       console.error("PDF export failed", e);
       toast({
@@ -858,10 +869,18 @@ const BuyListStep = ({ measurements, payload, roomLabel, design, roomId, designI
               <Button variant="outline" onClick={exportTxt}>
                 <FileText className="w-4 h-4 mr-2" /> Text
               </Button>
-              <Button onClick={exportPdf} disabled={exportingPdf}>
-                {exportingPdf ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Download className="w-4 h-4 mr-2" />}
-                {exportingPdf ? "Building PDF…" : "Download PDF"}
-              </Button>
+              {pdfDownload ? (
+                <Button asChild>
+                  <a href={pdfDownload.url} download={pdfDownload.filename}>
+                    <Download className="w-4 h-4 mr-2" /> Save PDF
+                  </a>
+                </Button>
+              ) : (
+                <Button onClick={exportPdf} disabled={exportingPdf}>
+                  {exportingPdf ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Download className="w-4 h-4 mr-2" />}
+                  {exportingPdf ? "Building PDF…" : "Download PDF"}
+                </Button>
+              )}
               <Button variant="secondary" onClick={() => build(true)} disabled={loading}>
                 {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <RotateCcw className="w-4 h-4 mr-2" />}
                 Recalculate
