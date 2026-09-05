@@ -89,14 +89,8 @@ const BuyListStep = ({ measurements, payload, roomLabel, design, roomId, designI
 
 
   const [exportingPdf, setExportingPdf] = useState(false);
-  const [pdfDownload, setPdfDownload] = useState<{ url: string; filename: string } | null>(null);
+  const [pdfDownload, setPdfDownload] = useState<{ blob: Blob; filename: string } | null>(null);
   const requested = useRef(false);
-
-  useEffect(() => {
-    return () => {
-      if (pdfDownload?.url.startsWith("blob:")) URL.revokeObjectURL(pdfDownload.url);
-    };
-  }, [pdfDownload]);
 
   const scopeKey = `${roomId || "no-room"}:${designId || "no-design"}`;
 
@@ -488,6 +482,33 @@ const BuyListStep = ({ measurements, payload, roomLabel, design, roomId, designI
     }
   };
 
+  const savePreparedPdf = async () => {
+    if (!pdfDownload) return;
+    try {
+      const handle = await requestSaveHandle(pdfDownload.filename, "application/pdf");
+      if (handle) {
+        const writable = await handle.createWritable();
+        await writable.write(pdfDownload.blob);
+        await writable.close();
+      } else {
+        const url = URL.createObjectURL(pdfDownload.blob);
+        const anchor = document.createElement("a");
+        anchor.href = url;
+        anchor.download = pdfDownload.filename;
+        anchor.style.display = "none";
+        document.body.appendChild(anchor);
+        anchor.click();
+        anchor.remove();
+        window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
+      }
+      toast({ title: "PDF saved", description: pdfDownload.filename });
+    } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") return;
+      console.error("PDF save failed", error);
+      toast({ title: "Save failed", description: "Your browser blocked the file. Please try again.", variant: "destructive" });
+    }
+  };
+
   const exportCsv = () => {
     if (!list) return;
     const esc = (v: unknown) => `"${String(v ?? "").replace(/"/g, '""')}"`;
@@ -624,10 +645,7 @@ const BuyListStep = ({ measurements, payload, roomLabel, design, roomId, designI
 
   const exportPdf = async () => {
     if (!list) return;
-    setPdfDownload((previous) => {
-      if (previous?.url.startsWith("blob:")) URL.revokeObjectURL(previous.url);
-      return null;
-    });
+    setPdfDownload(null);
     const safe = (roomLabel || "room").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
     const filename = `shopping-list-${safe || "room"}.pdf`;
     let saveHandle: WritableFileHandle | null = null;
@@ -778,11 +796,9 @@ const BuyListStep = ({ measurements, payload, roomLabel, design, roomId, designI
       if (saveHandle) {
         await saveBlob(blob, filename, saveHandle);
       } else {
-        // Build the file completely before presenting the link. The following
-        // click is then a direct user gesture on a local URL, which remains
-        // downloadable inside embedded previews without opening another page.
-        const url = URL.createObjectURL(blob);
-        setPdfDownload({ url, filename });
+        // Keep the finished file in memory so the next explicit user click can
+        // invoke the browser's native save flow without leaving this page.
+        setPdfDownload({ blob, filename });
         toast({ title: "PDF ready", description: "Select Save PDF to download it." });
       }
     } catch (e) {
@@ -882,10 +898,8 @@ const BuyListStep = ({ measurements, payload, roomLabel, design, roomId, designI
                 <FileText className="w-4 h-4 mr-2" /> Text
               </Button>
               {pdfDownload ? (
-                <Button asChild>
-                  <a href={pdfDownload.url} download={pdfDownload.filename} target="_self">
-                    <Download className="w-4 h-4 mr-2" /> Save PDF
-                  </a>
+                <Button type="button" onClick={savePreparedPdf}>
+                  <Download className="w-4 h-4 mr-2" /> Save PDF
                 </Button>
               ) : (
                 <Button onClick={exportPdf} disabled={exportingPdf}>
