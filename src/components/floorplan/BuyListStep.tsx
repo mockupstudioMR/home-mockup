@@ -409,17 +409,17 @@ const BuyListStep = ({ measurements, payload, roomLabel, design, roomId, designI
   const saveBlob = (blob: Blob, filename: string, preparedWindow?: Window | null) => {
     const url = URL.createObjectURL(blob);
 
-    // Chrome blocks `download` inside Lovable's sandboxed preview iframe. A
-    // real top-level document can download normally; in preview, open the file
-    // in a user-created tab so it can be saved from the browser viewer.
-    const embedded = window.self !== window.top;
-    if (embedded) {
-      const target = preparedWindow && !preparedWindow.closed ? preparedWindow : window.open("", "_blank");
-      if (target) {
-        target.location.replace(url);
-        window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
-        toast({ title: "File opened", description: "Use your browser’s save button to keep it." });
+    // PDF generation is asynchronous, so its tab is opened during the original
+    // click and handed in here. Assignment is accepted by sandboxed previews;
+    // location.replace() is not and was causing otherwise valid exports to fail.
+    if (preparedWindow && !preparedWindow.closed) {
+      try {
+        preparedWindow.location.href = url;
+        window.setTimeout(() => URL.revokeObjectURL(url), 5 * 60_000);
+        toast({ title: "PDF ready", description: "The file opened in a new tab for saving." });
         return;
+      } catch {
+        preparedWindow.close();
       }
     }
 
@@ -429,10 +429,11 @@ const BuyListStep = ({ measurements, payload, roomLabel, design, roomId, designI
     a.rel = "noopener";
     document.body.appendChild(a);
     a.click();
-    setTimeout(() => {
+    window.setTimeout(() => {
       a.remove();
       URL.revokeObjectURL(url);
-    }, 1000);
+    }, 60_000);
+    toast({ title: "Download started", description: `${filename} is being saved.` });
   };
 
   const download = (content: string, filename: string, mime: string) => {
@@ -577,10 +578,13 @@ const BuyListStep = ({ measurements, payload, roomLabel, design, roomId, designI
     if (!list) return;
     // Open synchronously while the click still has user activation. Waiting
     // for jsPDF and remote thumbnails before opening would trigger popup blocks.
-    const exportWindow = window.self !== window.top ? window.open("", "_blank") : null;
-    if (exportWindow) {
-      exportWindow.document.title = "Preparing shopping list";
-      exportWindow.document.body.textContent = "Preparing your shopping list PDF…";
+    let exportWindow: Window | null = null;
+    if (window.self !== window.top) {
+      try {
+        exportWindow = window.open("about:blank", "_blank");
+      } catch {
+        exportWindow = null;
+      }
     }
     setExportingPdf(true);
     try {
