@@ -482,6 +482,19 @@ const BuyListStep = ({ measurements, payload, roomLabel, design, roomId, designI
     }
   };
 
+  const savePreparedPdf = () => {
+    if (!pdfDownload) return;
+    const anchor = document.createElement("a");
+    anchor.href = pdfDownload.url;
+    anchor.download = pdfDownload.filename;
+    anchor.target = "_blank";
+    anchor.rel = "noopener";
+    anchor.style.display = "none";
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+  };
+
   const exportCsv = () => {
     if (!list) return;
     const esc = (v: unknown) => `"${String(v ?? "").replace(/"/g, '""')}"`;
@@ -863,10 +876,8 @@ const BuyListStep = ({ measurements, payload, roomLabel, design, roomId, designI
                 <FileText className="w-4 h-4 mr-2" /> Text
               </Button>
               {pdfDownload ? (
-                <Button asChild>
-                  <a href={pdfDownload.url} target="_self">
-                    <Download className="w-4 h-4 mr-2" /> Save PDF
-                  </a>
+                <Button type="button" onClick={savePreparedPdf}>
+                  <Download className="w-4 h-4 mr-2" /> Save PDF
                 </Button>
               ) : (
                 <Button onClick={exportPdf} disabled={exportingPdf}>
