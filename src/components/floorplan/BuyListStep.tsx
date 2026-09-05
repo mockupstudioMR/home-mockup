@@ -483,8 +483,19 @@ const BuyListStep = ({ measurements, payload, roomLabel, design, roomId, designI
     }
   };
 
-  const savePreparedPdf = async () => {
+  const savePreparedPdf = async (event: React.MouseEvent<HTMLAnchorElement>) => {
     if (!pdfDownload) return;
+    const picker = (window as SaveFilePickerWindow).showSaveFilePicker;
+    const isEmbedded = window.self !== window.top;
+
+    // In the preview frame, let the browser follow the real attachment link
+    // from this user click. Script-created downloads are suppressed there.
+    if (isEmbedded || !picker) {
+      toast({ title: "Download started", description: pdfDownload.filename });
+      return;
+    }
+
+    event.preventDefault();
     setSavingPdf(true);
     try {
       const handle = await requestSaveHandle(pdfDownload.filename, "application/pdf");
@@ -496,14 +507,6 @@ const BuyListStep = ({ measurements, payload, roomLabel, design, roomId, designI
         return;
       }
 
-      // Older browsers without the native save dialog use the hosted
-      // attachment. Assigning an iframe preserves the current page.
-      const frame = document.createElement("iframe");
-      frame.hidden = true;
-      frame.src = pdfDownload.url;
-      document.body.appendChild(frame);
-      window.setTimeout(() => frame.remove(), 60_000);
-      toast({ title: "Download started", description: pdfDownload.filename });
     } catch (error) {
       if (error instanceof DOMException && error.name === "AbortError") return;
       console.error("PDF save failed", error);
@@ -894,10 +897,21 @@ const BuyListStep = ({ measurements, payload, roomLabel, design, roomId, designI
                 <FileText className="w-4 h-4 mr-2" /> Text
               </Button>
               {pdfDownload ? (
-                <Button type="button" onClick={savePreparedPdf} disabled={savingPdf}>
-                  {savingPdf ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Download className="w-4 h-4 mr-2" />}
-                  {savingPdf ? "Saving…" : "Save PDF"}
-                </Button>
+                <>
+                  <iframe name="pdf-download-target" title="PDF download" className="hidden" />
+                  <Button asChild>
+                    <a
+                      href={pdfDownload.url}
+                      target="pdf-download-target"
+                      download={pdfDownload.filename}
+                      onClick={savePreparedPdf}
+                      aria-disabled={savingPdf}
+                    >
+                      {savingPdf ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Download className="w-4 h-4 mr-2" />}
+                      {savingPdf ? "Saving…" : "Save PDF"}
+                    </a>
+                  </Button>
+                </>
               ) : (
                 <Button onClick={exportPdf} disabled={exportingPdf}>
                   {exportingPdf ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Download className="w-4 h-4 mr-2" />}
