@@ -89,7 +89,8 @@ const BuyListStep = ({ measurements, payload, roomLabel, design, roomId, designI
 
 
   const [exportingPdf, setExportingPdf] = useState(false);
-  const [pdfDownload, setPdfDownload] = useState<{ url: string; filename: string } | null>(null);
+  const [pdfDownload, setPdfDownload] = useState<{ blob: Blob; url: string; filename: string } | null>(null);
+  const [savingPdf, setSavingPdf] = useState(false);
   const requested = useRef(false);
 
   const scopeKey = `${roomId || "no-room"}:${designId || "no-design"}`;
@@ -425,7 +426,7 @@ const BuyListStep = ({ measurements, payload, roomLabel, design, roomId, designI
     const picker = (window as SaveFilePickerWindow).showSaveFilePicker;
     if (!picker) return null;
     const extension = `.${filename.split(".").pop() || "pdf"}`;
-    return picker({
+    return picker.call(window, {
       suggestedName: filename,
       types: [{ description: `${extension.slice(1).toUpperCase()} file`, accept: { [mime]: [extension] } }],
     });
@@ -482,17 +483,34 @@ const BuyListStep = ({ measurements, payload, roomLabel, design, roomId, designI
     }
   };
 
-  const savePreparedPdf = () => {
+  const savePreparedPdf = async () => {
     if (!pdfDownload) return;
-    const anchor = document.createElement("a");
-    anchor.href = pdfDownload.url;
-    anchor.download = pdfDownload.filename;
-    anchor.target = "_blank";
-    anchor.rel = "noopener";
-    anchor.style.display = "none";
-    document.body.appendChild(anchor);
-    anchor.click();
-    anchor.remove();
+    setSavingPdf(true);
+    try {
+      const handle = await requestSaveHandle(pdfDownload.filename, "application/pdf");
+      if (handle) {
+        const writable = await handle.createWritable();
+        await writable.write(pdfDownload.blob);
+        await writable.close();
+        toast({ title: "PDF saved", description: pdfDownload.filename });
+        return;
+      }
+
+      // Older browsers without the native save dialog use the hosted
+      // attachment. Assigning an iframe preserves the current page.
+      const frame = document.createElement("iframe");
+      frame.hidden = true;
+      frame.src = pdfDownload.url;
+      document.body.appendChild(frame);
+      window.setTimeout(() => frame.remove(), 60_000);
+      toast({ title: "Download started", description: pdfDownload.filename });
+    } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") return;
+      console.error("PDF save failed", error);
+      toast({ title: "Save failed", description: "The browser could not save the PDF.", variant: "destructive" });
+    } finally {
+      setSavingPdf(false);
+    }
   };
 
   const exportCsv = () => {
@@ -777,7 +795,7 @@ const BuyListStep = ({ measurements, payload, roomLabel, design, roomId, designI
       // click remains a direct browser navigation to an attachment response,
       // so the browser saves it without replacing this page.
       const url = await createHostedDownload(blob, filename);
-      setPdfDownload({ url, filename });
+      setPdfDownload({ blob, url, filename });
       toast({ title: "PDF ready", description: "Select Save PDF to download it." });
     } catch (e) {
       console.error("PDF export failed", e);
@@ -876,8 +894,9 @@ const BuyListStep = ({ measurements, payload, roomLabel, design, roomId, designI
                 <FileText className="w-4 h-4 mr-2" /> Text
               </Button>
               {pdfDownload ? (
-                <Button type="button" onClick={savePreparedPdf}>
-                  <Download className="w-4 h-4 mr-2" /> Save PDF
+                <Button type="button" onClick={savePreparedPdf} disabled={savingPdf}>
+                  {savingPdf ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Download className="w-4 h-4 mr-2" />}
+                  {savingPdf ? "Saving…" : "Save PDF"}
                 </Button>
               ) : (
                 <Button onClick={exportPdf} disabled={exportingPdf}>
