@@ -439,18 +439,34 @@ const BuyListStep = ({ measurements, payload, roomLabel, design, roomId, designI
       return;
     }
 
-    const url = URL.createObjectURL(blob);
+    // Sandboxed previews block blob: downloads. Upload the finished document
+    // and use a short-lived HTTPS attachment URL instead; this preserves the
+    // current page and gives the browser a normal downloadable response.
+    const { data: auth, error: authError } = await supabase.auth.getUser();
+    const userId = auth?.user?.id;
+    if (authError || !userId) throw authError || new Error("Sign in is required to download files");
+
+    const safeName = filename.replace(/[^a-z0-9._-]+/gi, "-");
+    const path = `${userId}/exports/${Date.now()}-${safeName}`;
+    const { error: uploadError } = await supabase.storage.from("room-uploads").upload(path, blob, {
+      contentType: blob.type || "application/octet-stream",
+      upsert: false,
+    });
+    if (uploadError) throw uploadError;
+
+    const { data: signed, error: signedError } = await supabase.storage
+      .from("room-uploads")
+      .createSignedUrl(path, 300, { download: filename });
+    if (signedError || !signed?.signedUrl) throw signedError || new Error("Could not prepare download");
+
     const a = document.createElement("a");
-    a.href = url;
-    a.download = filename;
+    a.href = signed.signedUrl;
+    a.target = "_blank";
     a.rel = "noopener";
     document.body.appendChild(a);
     a.click();
-    window.setTimeout(() => {
-      a.remove();
-      URL.revokeObjectURL(url);
-    }, 60_000);
-    toast({ title: "Download started", description: `${filename} is being saved.` });
+    a.remove();
+    toast({ title: "Download ready", description: `${filename} is being saved.` });
   };
 
   const download = async (content: string, filename: string, mime: string) => {
