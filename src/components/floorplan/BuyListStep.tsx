@@ -871,7 +871,7 @@ const BuyListStep = ({ measurements, payload, roomLabel, design, roomId, designI
               </Button>
               {pdfDownload ? (
                 <Button asChild>
-                  <a href={pdfDownload.url} target="_blank" rel="noopener" download={pdfDownload.filename}>
+                  <a href={pdfDownload.url} download={pdfDownload.filename}>
                     <Download className="w-4 h-4 mr-2" /> Save PDF
                   </a>
                 </Button>
