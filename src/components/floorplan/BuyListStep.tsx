@@ -486,11 +486,9 @@ const BuyListStep = ({ measurements, payload, roomLabel, design, roomId, designI
   const savePreparedPdf = async (event: React.MouseEvent<HTMLAnchorElement>) => {
     if (!pdfDownload) return;
     const picker = (window as SaveFilePickerWindow).showSaveFilePicker;
-    const isEmbedded = window.self !== window.top;
-
-    // In the preview frame, let the browser follow the real attachment link
-    // from this user click. Script-created downloads are suppressed there.
-    if (isEmbedded || !picker) {
+    // Browsers without the native save dialog follow the real attachment URL
+    // directly from this user click. Its Content-Disposition keeps this page.
+    if (!picker) {
       toast({ title: "Download started", description: pdfDownload.filename });
       return;
     }
@@ -897,21 +895,17 @@ const BuyListStep = ({ measurements, payload, roomLabel, design, roomId, designI
                 <FileText className="w-4 h-4 mr-2" /> Text
               </Button>
               {pdfDownload ? (
-                <>
-                  <iframe name="pdf-download-target" title="PDF download" className="hidden" />
-                  <Button asChild>
-                    <a
-                      href={pdfDownload.url}
-                      target="pdf-download-target"
-                      download={pdfDownload.filename}
-                      onClick={savePreparedPdf}
-                      aria-disabled={savingPdf}
-                    >
-                      {savingPdf ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Download className="w-4 h-4 mr-2" />}
-                      {savingPdf ? "Saving…" : "Save PDF"}
-                    </a>
-                  </Button>
-                </>
+                <Button asChild>
+                  <a
+                    href={pdfDownload.url}
+                    download={pdfDownload.filename}
+                    onClick={savePreparedPdf}
+                    aria-disabled={savingPdf}
+                  >
+                    {savingPdf ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Download className="w-4 h-4 mr-2" />}
+                    {savingPdf ? "Saving…" : "Save PDF"}
+                  </a>
+                </Button>
               ) : (
                 <Button onClick={exportPdf} disabled={exportingPdf}>
                   {exportingPdf ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Download className="w-4 h-4 mr-2" />}
