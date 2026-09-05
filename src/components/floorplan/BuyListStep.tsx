@@ -48,6 +48,20 @@ interface Props {
   designId?: string | null;
 }
 
+interface WritableFileHandle {
+  createWritable: () => Promise<{
+    write: (data: Blob) => Promise<void>;
+    close: () => Promise<void>;
+  }>;
+}
+
+type SaveFilePickerWindow = Window & {
+  showSaveFilePicker?: (options: {
+    suggestedName: string;
+    types: Array<{ description: string; accept: Record<string, string[]> }>;
+  }) => Promise<WritableFileHandle>;
+};
+
 const CATEGORY_LABELS: Record<string, string> = {
   materials: "Materials & finishes",
   furniture: "Furniture",
@@ -406,23 +420,26 @@ const BuyListStep = ({ measurements, payload, roomLabel, design, roomId, designI
     [list],
   );
 
-  const saveBlob = (blob: Blob, filename: string, preparedWindow?: Window | null) => {
-    const url = URL.createObjectURL(blob);
+  const requestSaveHandle = (filename: string, mime: string) => {
+    const picker = (window as SaveFilePickerWindow).showSaveFilePicker;
+    if (!picker) return null;
+    const extension = `.${filename.split(".").pop() || "pdf"}`;
+    return picker({
+      suggestedName: filename,
+      types: [{ description: `${extension.slice(1).toUpperCase()} file`, accept: { [mime]: [extension] } }],
+    });
+  };
 
-    // PDF generation is asynchronous, so its tab is opened during the original
-    // click and handed in here. Assignment is accepted by sandboxed previews;
-    // location.replace() is not and was causing otherwise valid exports to fail.
-    if (preparedWindow && !preparedWindow.closed) {
-      try {
-        preparedWindow.location.href = url;
-        window.setTimeout(() => URL.revokeObjectURL(url), 5 * 60_000);
-        toast({ title: "PDF ready", description: "The file opened in a new tab for saving." });
-        return;
-      } catch {
-        preparedWindow.close();
-      }
+  const saveBlob = async (blob: Blob, filename: string, handle?: WritableFileHandle | null) => {
+    if (handle) {
+      const writable = await handle.createWritable();
+      await writable.write(blob);
+      await writable.close();
+      toast({ title: "Download complete", description: `${filename} was saved.` });
+      return;
     }
 
+    const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
     a.download = filename;
@@ -436,8 +453,15 @@ const BuyListStep = ({ measurements, payload, roomLabel, design, roomId, designI
     toast({ title: "Download started", description: `${filename} is being saved.` });
   };
 
-  const download = (content: string, filename: string, mime: string) => {
-    saveBlob(new Blob([content], { type: `${mime};charset=utf-8;` }), filename);
+  const download = async (content: string, filename: string, mime: string) => {
+    try {
+      const handle = await requestSaveHandle(filename, mime);
+      await saveBlob(new Blob([content], { type: `${mime};charset=utf-8;` }), filename, handle);
+    } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") return;
+      console.error("Download failed", error);
+      toast({ title: "Download failed", description: "The file could not be saved. Please try again.", variant: "destructive" });
+    }
   };
 
   const exportCsv = () => {
@@ -460,7 +484,7 @@ const BuyListStep = ({ measurements, payload, roomLabel, design, roomId, designI
       [],
       ["", "", "", "", "", "", "Estimated total", "", fmt(total), ""],
     ];
-    download(rows.map((r) => r.map(esc).join(",")).join("\n"), `shopping-list-${Date.now()}.csv`, "text/csv");
+    void download(rows.map((r) => r.map(esc).join(",")).join("\n"), `shopping-list-${Date.now()}.csv`, "text/csv");
   };
 
   const exportTxt = () => {
@@ -484,7 +508,7 @@ const BuyListStep = ({ measurements, payload, roomLabel, design, roomId, designI
       ]),
       `Estimated total: ${euro(total)}`,
     ];
-    download(lines.join("\n"), `shopping-list-${Date.now()}.txt`, "text/plain");
+    void download(lines.join("\n"), `shopping-list-${Date.now()}.txt`, "text/plain");
   };
 
   /** Resolve only once the bitmap is actually decoded, so nothing pops in later. */
@@ -576,15 +600,14 @@ const BuyListStep = ({ measurements, payload, roomLabel, design, roomId, designI
 
   const exportPdf = async () => {
     if (!list) return;
-    // Open synchronously while the click still has user activation. Waiting
-    // for jsPDF and remote thumbnails before opening would trigger popup blocks.
-    let exportWindow: Window | null = null;
-    if (window.self !== window.top) {
-      try {
-        exportWindow = window.open("about:blank", "_blank");
-      } catch {
-        exportWindow = null;
-      }
+    const safe = (roomLabel || "room").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+    const filename = `shopping-list-${safe || "room"}.pdf`;
+    let saveHandle: WritableFileHandle | null = null;
+    try {
+      saveHandle = await requestSaveHandle(filename, "application/pdf");
+    } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") return;
+      // Continue to the direct-download fallback when the picker is unavailable.
     }
     setExportingPdf(true);
     try {
@@ -723,12 +746,9 @@ const BuyListStep = ({ measurements, payload, roomLabel, design, roomId, designI
       doc.text("Estimated total", margin, y);
       doc.text(euro(total), pageW - margin, y, { align: "right" });
 
-      const safe = (roomLabel || "room").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
-      const filename = `shopping-list-${safe || "room"}.pdf`;
       const blob: Blob = doc.output("blob");
-      saveBlob(blob, filename, exportWindow);
+      await saveBlob(blob, filename, saveHandle);
     } catch (e) {
-      exportWindow?.close();
       console.error("PDF export failed", e);
       toast({
         title: "PDF export failed",
