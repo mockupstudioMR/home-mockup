@@ -92,6 +92,12 @@ const BuyListStep = ({ measurements, payload, roomLabel, design, roomId, designI
   const [pdfDownload, setPdfDownload] = useState<{ url: string; filename: string } | null>(null);
   const requested = useRef(false);
 
+  useEffect(() => {
+    return () => {
+      if (pdfDownload?.url.startsWith("blob:")) URL.revokeObjectURL(pdfDownload.url);
+    };
+  }, [pdfDownload]);
+
   const scopeKey = `${roomId || "no-room"}:${designId || "no-design"}`;
 
   const persist = useCallback(
@@ -618,7 +624,10 @@ const BuyListStep = ({ measurements, payload, roomLabel, design, roomId, designI
 
   const exportPdf = async () => {
     if (!list) return;
-    setPdfDownload(null);
+    setPdfDownload((previous) => {
+      if (previous?.url.startsWith("blob:")) URL.revokeObjectURL(previous.url);
+      return null;
+    });
     const safe = (roomLabel || "room").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
     const filename = `shopping-list-${safe || "room"}.pdf`;
     let saveHandle: WritableFileHandle | null = null;
@@ -769,7 +778,10 @@ const BuyListStep = ({ measurements, payload, roomLabel, design, roomId, designI
       if (saveHandle) {
         await saveBlob(blob, filename, saveHandle);
       } else {
-        const url = await createHostedDownload(blob, filename);
+        // Build the file completely before presenting the link. The following
+        // click is then a direct user gesture on a local URL, which remains
+        // downloadable inside embedded previews without opening another page.
+        const url = URL.createObjectURL(blob);
         setPdfDownload({ url, filename });
         toast({ title: "PDF ready", description: "Select Save PDF to download it." });
       }
@@ -871,7 +883,7 @@ const BuyListStep = ({ measurements, payload, roomLabel, design, roomId, designI
               </Button>
               {pdfDownload ? (
                 <Button asChild>
-                  <a href={pdfDownload.url} download={pdfDownload.filename}>
+                  <a href={pdfDownload.url} download={pdfDownload.filename} target="_self">
                     <Download className="w-4 h-4 mr-2" /> Save PDF
                   </a>
                 </Button>
