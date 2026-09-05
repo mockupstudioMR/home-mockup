@@ -90,7 +90,6 @@ const BuyListStep = ({ measurements, payload, roomLabel, design, roomId, designI
 
   const [exportingPdf, setExportingPdf] = useState(false);
   const [pdfDownload, setPdfDownload] = useState<{ blob: Blob; url: string; filename: string } | null>(null);
-  const pdfFrameRef = useRef<HTMLIFrameElement>(null);
   const requested = useRef(false);
 
   useEffect(() => {
@@ -490,13 +489,11 @@ const BuyListStep = ({ measurements, payload, roomLabel, design, roomId, designI
   };
 
   const printPreparedPdf = () => {
-    const frameWindow = pdfFrameRef.current?.contentWindow;
-    if (!frameWindow) {
-      toast({ title: "PDF is still loading", description: "Please try again in a moment." });
-      return;
-    }
-    frameWindow.focus();
-    frameWindow.print();
+    document.body.classList.add("printing-shopping-list");
+    const cleanup = () => document.body.classList.remove("printing-shopping-list");
+    window.addEventListener("afterprint", cleanup, { once: true });
+    window.print();
+    window.setTimeout(cleanup, 1_000);
   };
 
   const exportCsv = () => {
@@ -895,23 +892,48 @@ const BuyListStep = ({ measurements, payload, roomLabel, design, roomId, designI
       )}
 
       {pdfDownload && (
-        <section className="space-y-3" aria-label="PDF preview">
+        <section className="shopping-print-view space-y-5 bg-card p-5 sm:p-8 border" aria-label="Printable shopping list">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <h2 className="font-semibold">PDF preview</h2>
-              <p className="text-sm text-muted-foreground">{pdfDownload.filename}</p>
+              <p className="text-xs uppercase text-muted-foreground">HomeMockUp</p>
+              <h2 className="text-2xl font-semibold">Shopping list</h2>
+              <p className="text-sm text-muted-foreground">{roomLabel || design?.title || "Your room"}</p>
             </div>
-            <Button type="button" variant="ghost" size="icon" onClick={() => setPdfDownload(null)} aria-label="Close PDF preview">
+            <Button type="button" variant="ghost" size="icon" className="print:hidden" onClick={() => setPdfDownload(null)} aria-label="Close printable view">
               <X className="h-4 w-4" />
             </Button>
           </div>
-          <iframe
-            ref={pdfFrameRef}
-            src={pdfDownload.url}
-            title={`Preview of ${pdfDownload.filename}`}
-            className="h-[70vh] min-h-[520px] w-full border bg-background"
-          />
-          <Button type="button" onClick={printPreparedPdf} className="w-full sm:w-auto">
+
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
+            <div><p className="text-muted-foreground">Floor area</p><p className="font-semibold">{fmt(measurements.floorAreaSqm)} m²</p></div>
+            <div><p className="text-muted-foreground">Wall area</p><p className="font-semibold">{fmt(measurements.netWallAreaSqm)} m²</p></div>
+            <div><p className="text-muted-foreground">Perimeter</p><p className="font-semibold">{fmt(measurements.perimeterM)} m</p></div>
+            <div><p className="text-muted-foreground">Estimated total</p><p className="font-semibold">{euro(total)}</p></div>
+          </div>
+
+          {grouped.map(([category, items]) => (
+            <div key={category} className="space-y-2 break-inside-avoid">
+              <h3 className="border-b pb-1 font-semibold">{CATEGORY_LABELS[category] || category}</h3>
+              {items.map((item, index) => (
+                <div key={`${category}-${item.name}-${index}`} className="grid grid-cols-[1fr_auto] gap-4 border-b py-2 text-sm break-inside-avoid">
+                  <div>
+                    <p className="font-medium">{item.name}</p>
+                    <p className="text-muted-foreground">{[item.spec, item.size_constraint, item.notes].filter(Boolean).join(" · ")}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-semibold">{fmt(item.quantity)} {item.unit}</p>
+                    {item.unit_price_eur ? <p className="text-muted-foreground">{euro(item.unit_price_eur * item.quantity)}</p> : null}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ))}
+
+          <div className="flex justify-between border-t-2 border-primary pt-4 text-lg font-semibold">
+            <span>Estimated total</span><span>{euro(total)}</span>
+          </div>
+
+          <Button type="button" onClick={printPreparedPdf} className="print:hidden w-full sm:w-auto">
             <Printer className="w-4 h-4 mr-2" /> Print / Save as PDF
           </Button>
         </section>

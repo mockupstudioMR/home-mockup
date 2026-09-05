@@ -174,3 +174,23 @@
     display: none;
   }
 }
+
+@media print {
+  body.printing-shopping-list * {
+    visibility: hidden;
+  }
+
+  body.printing-shopping-list .shopping-print-view,
+  body.printing-shopping-list .shopping-print-view * {
+    visibility: visible;
+  }
+
+  body.printing-shopping-list .shopping-print-view {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    border: 0;
+    background: white;
+    color: black;
+  }
+}
