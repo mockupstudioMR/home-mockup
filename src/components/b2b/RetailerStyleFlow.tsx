@@ -106,7 +106,7 @@ const RetailerStyleFlow = ({ onBack }: Props) => {
   const { toast } = useToast();
   const { user } = useAuth();
 
-  const [step, setStep] = useState<"range" | "types" | "channel" | "upload" | "website" | "result">("range");
+  const [step, setStep] = useState<"range" | "types" | "channel" | "upload" | "result">("range");
   const [productRange, setProductRange] = useState<string>("");
   const [productTypes, setProductTypes] = useState<string[]>([]);
   const [salesChannel, setSalesChannel] = useState<string>("");
