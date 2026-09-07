@@ -391,8 +391,34 @@ const Start = () => {
                 </div>
               )}
             </div>
+          ) : proStage === "role" ? (
+            <div className="max-w-4xl mx-auto space-y-4">
+              <h2 className="text-2xl md:text-3xl font-bold tracking-tight text-center mb-6">
+                What kind of professional are you?
+              </h2>
+              <div className="grid md:grid-cols-2 gap-5">
+                {PRO_ROLES.map((role) => (
+                  <button
+                    key={role.id}
+                    onClick={() => setProStage(role.id === "furniture-retailer" ? "retailer" : "generic")}
+                    className="group rounded-2xl border border-border/50 bg-card p-6 text-left shadow-sm hover:shadow-xl hover:border-primary/30 transition-all duration-300"
+                  >
+                    <div className="w-12 h-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center mb-4">
+                      {role.icon}
+                    </div>
+                    <h3 className="text-lg font-semibold tracking-tight mb-1.5 group-hover:text-primary transition-colors">
+                      {role.title}
+                    </h3>
+                    <p className="text-sm text-muted-foreground leading-relaxed">{role.description}</p>
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : proStage === "retailer" ? (
+            <RetailerStyleFlow onBack={() => setProStage("role")} />
           ) : (
             <>
+
               {/* Hero option (first) */}
               {(() => {
                 const hero = entryOptions[0];
