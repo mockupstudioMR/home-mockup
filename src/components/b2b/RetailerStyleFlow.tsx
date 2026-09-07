@@ -181,6 +181,7 @@ const RetailerStyleFlow = ({ onBack }: Props) => {
     if (images.length === 0) return;
     setIsAnalyzing(true);
     setAnalysis(null);
+    setScenes([]);
     setStep("result");
     try {
       trackEvent("ai_call", "retailer-style", { fn: "analyze-retailer-products" });
