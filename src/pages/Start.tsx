@@ -1,7 +1,8 @@
 import { useNavigate, useLocation } from "react-router-dom";
 import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { Home, Palette, Upload, Package, ArrowRight, Ruler, Sparkles, Briefcase } from "lucide-react";
+import { Home, Palette, Upload, Package, ArrowRight, Ruler, Sparkles, Briefcase, Building2, PenTool, Sofa, MoreHorizontal } from "lucide-react";
+import RetailerStyleFlow from "@/components/b2b/RetailerStyleFlow";
 import Logo from "@/components/Logo";
 
 import { useQuiz } from "@/contexts/QuizContext";
@@ -35,6 +36,35 @@ const readFreshStage = (): FreshStage => {
   return "path";
 };
 
+type ProStage = "role" | "retailer" | "generic";
+
+const PRO_ROLES: { id: string; title: string; description: string; icon: JSX.Element }[] = [
+  {
+    id: "real-estate",
+    title: "Real estate",
+    description: "Stage and present properties with AI-designed rooms.",
+    icon: <Building2 className="w-6 h-6" />,
+  },
+  {
+    id: "interior-designer",
+    title: "Interior designer",
+    description: "Concept, moodboard and present client projects faster.",
+    icon: <PenTool className="w-6 h-6" />,
+  },
+  {
+    id: "furniture-retailer",
+    title: "Furniture retailer",
+    description: "Discover your assortment style and show products in context.",
+    icon: <Sofa className="w-6 h-6" />,
+  },
+  {
+    id: "other",
+    title: "Other",
+    description: "Explore all the professional tools available.",
+    icon: <MoreHorizontal className="w-6 h-6" />,
+  },
+];
+
 const Start = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -43,6 +73,7 @@ const Start = () => {
   const isPro = new URLSearchParams(location.search).get("as") === "pro";
   const [freshStage, setFreshStageState] = useState<FreshStage>(readFreshStage);
   const [groundStep, setGroundStep] = useState<string>("property");
+  const [proStage, setProStage] = useState<ProStage>("role");
 
   const setFreshStage = (s: FreshStage) => {
     setFreshStageState(s);
@@ -391,8 +422,34 @@ const Start = () => {
                 </div>
               )}
             </div>
+          ) : proStage === "role" ? (
+            <div className="max-w-4xl mx-auto space-y-4">
+              <h2 className="text-2xl md:text-3xl font-bold tracking-tight text-center mb-6">
+                What kind of professional are you?
+              </h2>
+              <div className="grid md:grid-cols-2 gap-5">
+                {PRO_ROLES.map((role) => (
+                  <button
+                    key={role.id}
+                    onClick={() => setProStage(role.id === "furniture-retailer" ? "retailer" : "generic")}
+                    className="group rounded-2xl border border-border/50 bg-card p-6 text-left shadow-sm hover:shadow-xl hover:border-primary/30 transition-all duration-300"
+                  >
+                    <div className="w-12 h-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center mb-4">
+                      {role.icon}
+                    </div>
+                    <h3 className="text-lg font-semibold tracking-tight mb-1.5 group-hover:text-primary transition-colors">
+                      {role.title}
+                    </h3>
+                    <p className="text-sm text-muted-foreground leading-relaxed">{role.description}</p>
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : proStage === "retailer" ? (
+            <RetailerStyleFlow onBack={() => setProStage("role")} />
           ) : (
             <>
+
               {/* Hero option (first) */}
               {(() => {
                 const hero = entryOptions[0];
