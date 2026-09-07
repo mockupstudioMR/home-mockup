@@ -211,7 +211,10 @@ const RetailerStyleFlow = ({ onBack }: Props) => {
             {RANGE_OPTIONS.map((o) => (
               <button
                 key={o.id}
-                onClick={() => { setProductRange(o.label); setStep("types"); }}
+                onClick={() => {
+                  setProductRange(o.label);
+                  setStep(o.id === "full-home" ? "channel" : "types");
+                }}
                 className={`rounded-2xl border p-5 text-left transition-all hover:shadow-lg hover:border-primary/40 ${
                   productRange === o.label ? "border-primary bg-primary/5" : "border-border/50 bg-card"
                 }`}
