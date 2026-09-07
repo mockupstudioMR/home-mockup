@@ -137,8 +137,8 @@ const RetailerStyleFlow = ({ onBack }: Props) => {
       if (data?.error) throw new Error(data.error);
       if (!data?.brand) throw new Error("Nothing could be read from that website");
       setBrand(data.brand as RetailerBrand);
-      setScenes([]);
       toast({ title: "Brand style captured", description: (data.brand as RetailerBrand).styleName });
+
     } catch (err) {
       console.error("Brand website error", err);
       toast({ title: "Couldn't read that website", description: getAiErrorMessage(err), variant: "destructive" });
