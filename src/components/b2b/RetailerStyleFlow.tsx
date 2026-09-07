@@ -37,6 +37,16 @@ export interface RetailerAnalysis {
   products: RetailerProduct[];
 }
 
+export interface RetailerScene {
+  room: string;
+  style?: string;
+  isCombination: boolean;
+  productNames: string[];
+  productIndices?: number[];
+  imageUrl: string | null;
+  error?: string;
+}
+
 const RANGE_OPTIONS = [
   { id: "specialist", label: "Specialist", description: "One focused category (e.g. only sofas or only lighting)" },
   { id: "multi-category", label: "Multi-category", description: "Several categories across a few rooms" },
