@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
-  ArrowLeft, ArrowRight, Upload, Link2, X, Loader2, Sparkles, Layers, Palette,
+  ArrowLeft, ArrowRight, Upload, Link2, X, Loader2, Sparkles, Layers, Palette, Globe,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -35,6 +35,22 @@ export interface RetailerAnalysis {
     coherenceNote?: string;
   };
   products: RetailerProduct[];
+}
+
+export interface RetailerBrand {
+  url: string;
+  brandName: string;
+  styleName: string;
+  description?: string;
+  keywords?: string[];
+  palette?: string[];
+  materials?: string[];
+  tone?: string;
+  audience?: string;
+  fonts?: string[];
+  logo?: string | null;
+  screenshot?: string | null;
+  title?: string | null;
 }
 
 export interface RetailerScene {
@@ -104,6 +120,33 @@ const RetailerStyleFlow = ({ onBack }: Props) => {
   const [scenes, setScenes] = useState<RetailerScene[]>([]);
   const [isRendering, setIsRendering] = useState(false);
 
+  const [siteInput, setSiteInput] = useState("");
+  const [brand, setBrand] = useState<RetailerBrand | null>(null);
+  const [isReadingSite, setIsReadingSite] = useState(false);
+
+  const readWebsite = async () => {
+    const raw = siteInput.trim();
+    if (!raw) return;
+    setIsReadingSite(true);
+    try {
+      trackEvent("ai_call", "retailer-style", { fn: "analyze-brand-website" });
+      const { data, error } = await supabase.functions.invoke("analyze-brand-website", {
+        body: { url: raw },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      if (!data?.brand) throw new Error("Nothing could be read from that website");
+      setBrand(data.brand as RetailerBrand);
+      setScenes([]);
+      toast({ title: "Brand style captured", description: (data.brand as RetailerBrand).styleName });
+    } catch (err) {
+      console.error("Brand website error", err);
+      toast({ title: "Couldn't read that website", description: getAiErrorMessage(err), variant: "destructive" });
+    } finally {
+      setIsReadingSite(false);
+    }
+  };
+
   const generateScenes = async () => {
     if (!analysis?.products?.length) return;
     setIsRendering(true);
@@ -115,6 +158,7 @@ const RetailerStyleFlow = ({ onBack }: Props) => {
           products: analysis.products,
           overallStyle: analysis.overall?.styleName,
           palette: analysis.overall?.palette || [],
+          brand,
         },
       });
       if (error) throw error;
@@ -201,7 +245,7 @@ const RetailerStyleFlow = ({ onBack }: Props) => {
           sales_channel: salesChannel || null,
           product_links: links,
           product_images: images,
-          analysis: result as any,
+          analysis: { ...result, brand } as any,
         } as any);
       }
     } catch (err) {
@@ -358,6 +402,56 @@ const RetailerStyleFlow = ({ onBack }: Props) => {
             </Card>
           </div>
 
+          <Card className="border-border/50 bg-gradient-to-br from-accent/5 via-card to-primary/5">
+            <CardContent className="p-6 space-y-4">
+              <div className="flex items-center gap-2 text-sm font-medium">
+                <Globe className="w-4 h-4 text-primary" /> Have a website? (optional)
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Paste your shop address and we read your brand look — colours, materials and mood — then style every
+                room around it.
+              </p>
+              <div className="flex gap-2">
+                <Input
+                  value={siteInput}
+                  placeholder="yourshop.com"
+                  onChange={(e) => setSiteInput(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); void readWebsite(); } }}
+                  disabled={isReadingSite}
+                />
+                <Button variant="secondary" onClick={readWebsite} disabled={isReadingSite || !siteInput.trim()}>
+                  {isReadingSite ? <Loader2 className="w-4 h-4 animate-spin" /> : "Read my brand"}
+                </Button>
+              </div>
+
+              {isReadingSite && <Skeleton className="h-24 w-full rounded-xl" />}
+
+              {brand && !isReadingSite && (
+                <div className="rounded-2xl border border-primary/30 bg-background/70 p-4 space-y-3">
+                  <div className="flex items-center gap-3">
+                    {brand.logo ? (
+                      <img src={brand.logo} alt={`${brand.brandName} logo`} className="w-10 h-10 rounded-lg object-contain bg-card" />
+                    ) : null}
+                    <div>
+                      <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Your brand look</p>
+                      <p className="font-semibold leading-tight">{brand.brandName} · {brand.styleName}</p>
+                    </div>
+                  </div>
+                  {brand.description && <p className="text-sm text-muted-foreground">{brand.description}</p>}
+                  <div className="flex flex-wrap gap-1.5">
+                    {(brand.keywords || []).map((k) => (
+                      <Badge key={k} variant="secondary" className="text-xs">{k}</Badge>
+                    ))}
+                  </div>
+                  {brand.palette?.length ? <Swatches colors={brand.palette} size={26} /> : null}
+                  {brand.materials?.length ? (
+                    <p className="text-xs text-muted-foreground">{brand.materials.join(" · ")}</p>
+                  ) : null}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
           {images.length > 0 && (
             <div className="grid grid-cols-3 md:grid-cols-5 gap-3">
               {images.map((src, i) => (
@@ -486,7 +580,9 @@ const RetailerStyleFlow = ({ onBack }: Props) => {
                   <div>
                     <h3 className="text-xl font-semibold tracking-tight">Your products in real rooms</h3>
                     <p className="text-sm text-muted-foreground">
-                      Interior scenes built around your exact products, in different styles.
+                      {brand
+                        ? `Interior scenes built around your exact products, styled to match ${brand.brandName}.`
+                        : "Interior scenes built around your exact products, in different styles."}
                     </p>
                   </div>
                   {scenes.length === 0 && (
