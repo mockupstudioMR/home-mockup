@@ -1,7 +1,8 @@
 import { useNavigate, useLocation } from "react-router-dom";
 import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { Home, Palette, Upload, Package, ArrowRight, Ruler, Sparkles, Briefcase } from "lucide-react";
+import { Home, Palette, Upload, Package, ArrowRight, Ruler, Sparkles, Briefcase, Building2, PenTool, Sofa, MoreHorizontal } from "lucide-react";
+import RetailerStyleFlow from "@/components/b2b/RetailerStyleFlow";
 import Logo from "@/components/Logo";
 
 import { useQuiz } from "@/contexts/QuizContext";
@@ -35,6 +36,35 @@ const readFreshStage = (): FreshStage => {
   return "path";
 };
 
+type ProStage = "role" | "retailer" | "generic";
+
+const PRO_ROLES: { id: string; title: string; description: string; icon: JSX.Element }[] = [
+  {
+    id: "real-estate",
+    title: "Real estate",
+    description: "Stage and present properties with AI-designed rooms.",
+    icon: <Building2 className="w-6 h-6" />,
+  },
+  {
+    id: "interior-designer",
+    title: "Interior designer",
+    description: "Concept, moodboard and present client projects faster.",
+    icon: <PenTool className="w-6 h-6" />,
+  },
+  {
+    id: "furniture-retailer",
+    title: "Furniture retailer",
+    description: "Discover your assortment style and show products in context.",
+    icon: <Sofa className="w-6 h-6" />,
+  },
+  {
+    id: "other",
+    title: "Other",
+    description: "Explore all the professional tools available.",
+    icon: <MoreHorizontal className="w-6 h-6" />,
+  },
+];
+
 const Start = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -43,6 +73,7 @@ const Start = () => {
   const isPro = new URLSearchParams(location.search).get("as") === "pro";
   const [freshStage, setFreshStageState] = useState<FreshStage>(readFreshStage);
   const [groundStep, setGroundStep] = useState<string>("property");
+  const [proStage, setProStage] = useState<ProStage>("role");
 
   const setFreshStage = (s: FreshStage) => {
     setFreshStageState(s);
