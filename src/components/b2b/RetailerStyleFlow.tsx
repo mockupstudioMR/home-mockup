@@ -91,6 +91,35 @@ const RetailerStyleFlow = ({ onBack }: Props) => {
   const [isScraping, setIsScraping] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysis, setAnalysis] = useState<RetailerAnalysis | null>(null);
+  const [scenes, setScenes] = useState<RetailerScene[]>([]);
+  const [isRendering, setIsRendering] = useState(false);
+
+  const generateScenes = async () => {
+    if (!analysis?.products?.length) return;
+    setIsRendering(true);
+    try {
+      trackEvent("ai_call", "retailer-style", { fn: "generate-retailer-scenes" });
+      const { data, error } = await supabase.functions.invoke("generate-retailer-scenes", {
+        body: {
+          images,
+          products: analysis.products,
+          overallStyle: analysis.overall?.styleName,
+          palette: analysis.overall?.palette || [],
+        },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      const next = (data?.scenes || []) as RetailerScene[];
+      if (!next.some((s) => s.imageUrl)) throw new Error("No scenes could be created");
+      setScenes(next);
+    } catch (err) {
+      console.error("Retailer scene error", err);
+      toast({ title: "Couldn't create the scenes", description: getAiErrorMessage(err), variant: "destructive" });
+    } finally {
+      setIsRendering(false);
+    }
+  };
+
 
   const toggleType = (t: string) =>
     setProductTypes((prev) => (prev.includes(t) ? prev.filter((x) => x !== t) : [...prev, t]));
