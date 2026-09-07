@@ -1058,6 +1058,45 @@ export type Database = {
         }
         Relationships: []
       }
+      retailer_style_profiles: {
+        Row: {
+          analysis: Json | null
+          created_at: string
+          id: string
+          product_images: Json
+          product_links: Json
+          product_range: string | null
+          product_types: string[]
+          sales_channel: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          analysis?: Json | null
+          created_at?: string
+          id?: string
+          product_images?: Json
+          product_links?: Json
+          product_range?: string | null
+          product_types?: string[]
+          sales_channel?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          analysis?: Json | null
+          created_at?: string
+          id?: string
+          product_images?: Json
+          product_links?: Json
+          product_range?: string | null
+          product_types?: string[]
+          sales_channel?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       role_invites: {
         Row: {
           created_at: string
