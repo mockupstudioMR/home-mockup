@@ -185,10 +185,12 @@ const RetailerStyleFlow = ({ onBack }: Props) => {
       .filter((g) => g.items.length > 1);
   }, [analysis]);
 
+  const isFullHome = productRange === "Full home";
+
   const stepBack = () => {
     if (step === "range") onBack();
     else if (step === "types") setStep("range");
-    else if (step === "channel") setStep("types");
+    else if (step === "channel") setStep(isFullHome ? "range" : "types");
     else if (step === "upload") setStep("channel");
     else setStep("upload");
   };
@@ -209,7 +211,10 @@ const RetailerStyleFlow = ({ onBack }: Props) => {
             {RANGE_OPTIONS.map((o) => (
               <button
                 key={o.id}
-                onClick={() => { setProductRange(o.label); setStep("types"); }}
+                onClick={() => {
+                  setProductRange(o.label);
+                  setStep(o.id === "full-home" ? "channel" : "types");
+                }}
                 className={`rounded-2xl border p-5 text-left transition-all hover:shadow-lg hover:border-primary/40 ${
                   productRange === o.label ? "border-primary bg-primary/5" : "border-border/50 bg-card"
                 }`}
