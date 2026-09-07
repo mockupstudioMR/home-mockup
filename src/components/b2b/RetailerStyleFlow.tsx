@@ -106,7 +106,7 @@ const RetailerStyleFlow = ({ onBack }: Props) => {
   const { toast } = useToast();
   const { user } = useAuth();
 
-  const [step, setStep] = useState<"range" | "types" | "channel" | "upload" | "result">("range");
+  const [step, setStep] = useState<"range" | "types" | "channel" | "upload" | "website" | "result">("range");
   const [productRange, setProductRange] = useState<string>("");
   const [productTypes, setProductTypes] = useState<string[]>([]);
   const [salesChannel, setSalesChannel] = useState<string>("");
@@ -276,7 +276,8 @@ const RetailerStyleFlow = ({ onBack }: Props) => {
     else if (step === "types") setStep("range");
     else if (step === "channel") setStep(isFullHome ? "range" : "types");
     else if (step === "upload") setStep("channel");
-    else setStep("upload");
+    else if (step === "website") setStep("upload");
+    else setStep("website");
   };
 
   return (
@@ -360,8 +361,25 @@ const RetailerStyleFlow = ({ onBack }: Props) => {
       {step === "upload" && (
         <div className="space-y-6">
           <div className="text-center space-y-2">
-            <h2 className="text-2xl font-bold tracking-tight">Add 5 products</h2>
-            <p className="text-muted-foreground">Upload photos or paste product links — up to five.</p>
+            <h2 className="text-2xl font-bold tracking-tight">Add up to 5 product photos</h2>
+            <p className="text-muted-foreground">
+              Mix it up — stand-alone product shots, styled room scenes, and close-ups all help us read your style.
+            </p>
+          </div>
+
+          <div className="grid sm:grid-cols-3 gap-2 text-xs text-muted-foreground">
+            <div className="rounded-xl border border-border/50 bg-card p-3">
+              <p className="font-semibold text-foreground mb-0.5">Stand-alone</p>
+              Clean product on a plain background
+            </div>
+            <div className="rounded-xl border border-border/50 bg-card p-3">
+              <p className="font-semibold text-foreground mb-0.5">Styled scene</p>
+              The product placed in a full room shot
+            </div>
+            <div className="rounded-xl border border-border/50 bg-card p-3">
+              <p className="font-semibold text-foreground mb-0.5">Close-up</p>
+              Detail of material, texture or finish
+            </div>
           </div>
 
           <div className="grid md:grid-cols-2 gap-4">
@@ -371,9 +389,9 @@ const RetailerStyleFlow = ({ onBack }: Props) => {
                   <div className="w-12 h-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center">
                     <Upload className="w-6 h-6" />
                   </div>
-                  <span className="font-medium">Upload product photos</span>
-                  <span className="text-sm text-muted-foreground">JPG or PNG</span>
-                  <input type="file" accept="image/*" multiple className="hidden" onChange={handleFiles} />
+                  <span className="font-medium">Upload photos</span>
+                  <span className="text-sm text-muted-foreground">Pick several at once — JPG or PNG</span>
+                  <input type="file" accept="image/*" multiple className="hidden" onChange={handleFiles} disabled={images.length >= MAX_ITEMS} />
                 </label>
               </CardContent>
             </Card>
@@ -396,21 +414,52 @@ const RetailerStyleFlow = ({ onBack }: Props) => {
                   </Button>
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  {images.length}/{MAX_ITEMS} products added
+                  {images.length}/{MAX_ITEMS} photos added
                 </p>
               </CardContent>
             </Card>
           </div>
 
+          {images.length > 0 && (
+            <div className="grid grid-cols-3 md:grid-cols-5 gap-3">
+              {images.map((src, i) => (
+                <div key={i} className="relative aspect-square rounded-xl overflow-hidden border border-border/50 bg-secondary">
+                  <img src={src} alt={`Product ${i + 1}`} className="w-full h-full object-cover" />
+                  <button
+                    onClick={() => removeImage(i)}
+                    className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-background/90 flex items-center justify-center shadow"
+                    aria-label="Remove product"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div className="flex justify-center">
+            <Button size="lg" onClick={() => setStep("website")} disabled={images.length === 0}>
+              Continue <ArrowRight className="w-4 h-4 ml-2" />
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {step === "website" && (
+        <div className="space-y-6">
+          <div className="text-center space-y-2">
+            <h2 className="text-2xl font-bold tracking-tight">Have a website?</h2>
+            <p className="text-muted-foreground">
+              Paste your shop address and we read your brand look — colours, materials and mood — then style every
+              room around it. You can skip this if you'd rather not.
+            </p>
+          </div>
+
           <Card className="border-border/50 bg-gradient-to-br from-accent/5 via-card to-primary/5">
             <CardContent className="p-6 space-y-4">
               <div className="flex items-center gap-2 text-sm font-medium">
-                <Globe className="w-4 h-4 text-primary" /> Have a website? (optional)
+                <Globe className="w-4 h-4 text-primary" /> Your website
               </div>
-              <p className="text-sm text-muted-foreground">
-                Paste your shop address and we read your brand look — colours, materials and mood — then style every
-                room around it.
-              </p>
               <div className="flex gap-2">
                 <Input
                   value={siteInput}
@@ -452,25 +501,11 @@ const RetailerStyleFlow = ({ onBack }: Props) => {
             </CardContent>
           </Card>
 
-          {images.length > 0 && (
-            <div className="grid grid-cols-3 md:grid-cols-5 gap-3">
-              {images.map((src, i) => (
-                <div key={i} className="relative aspect-square rounded-xl overflow-hidden border border-border/50 bg-secondary">
-                  <img src={src} alt={`Product ${i + 1}`} className="w-full h-full object-cover" />
-                  <button
-                    onClick={() => removeImage(i)}
-                    className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-background/90 flex items-center justify-center shadow"
-                    aria-label="Remove product"
-                  >
-                    <X className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-
-          <div className="flex justify-center">
-            <Button size="lg" onClick={runAnalysis} disabled={images.length === 0}>
+          <div className="flex justify-center gap-3">
+            <Button variant="ghost" onClick={runAnalysis} disabled={isAnalyzing}>
+              Skip
+            </Button>
+            <Button size="lg" onClick={runAnalysis} disabled={isAnalyzing}>
               <Sparkles className="w-4 h-4 mr-2" /> Analyze my assortment
             </Button>
           </div>
