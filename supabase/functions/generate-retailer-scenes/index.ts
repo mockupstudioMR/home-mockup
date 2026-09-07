@@ -19,6 +19,15 @@ interface SceneRequest {
   products: ProductIn[];
   overallStyle?: string;
   palette?: string[];
+  brand?: {
+    brandName?: string;
+    styleName?: string;
+    description?: string;
+    keywords?: string[];
+    palette?: string[];
+    materials?: string[];
+    url?: string;
+  } | null;
 }
 
 const ROOM_BY_CATEGORY: Record<string, string> = {
@@ -120,8 +129,14 @@ Deno.serve(async (req) => {
           .filter((u): u is string => Boolean(u))
           .slice(0, 4);
 
-        const paletteHint = (body.palette || []).slice(0, 5).join(", ");
-        const prompt = `Photorealistic interior photography of a ${plan.room} designed in a ${plan.style} style.
+        const brand = body.brand || null;
+        const brandPalette = (brand?.palette || []).filter(Boolean).slice(0, 5);
+        const paletteHint = (brandPalette.length ? brandPalette : (body.palette || []).slice(0, 5)).join(", ");
+        const brandLine = brand
+          ? `BRAND DIRECTION: this room must look like it belongs to ${brand.brandName || "this brand"}${brand.url ? ` (${brand.url})` : ""} — a ${brand.styleName || "signature"} world. ${brand.description || ""} Style keywords: ${(brand.keywords || []).join(", ")}. Favour materials such as ${(brand.materials || []).join(", ") || "the brand's typical materials"}. Match the brand palette exactly where possible.\n`
+          : "";
+        const prompt = `Photorealistic interior photography of a ${plan.room} designed in a ${brand?.styleName ? `${brand.styleName} brand` : plan.style} style.
+${brandLine}
 CRITICAL: the reference images show real products that MUST appear in the scene as an exact pixel-faithful copy — identical shape, proportions, colour, material and detailing. Do not substitute look-alike furniture. Products to feature: ${names.join(", ")}.
 ${plan.isCombination ? "Compose these products together in one believable arrangement so they clearly work as a set." : "Make this product the hero of the room."}
 Design the rest of the room around them${paletteHint ? ` using a palette close to ${paletteHint}` : ""}${body.overallStyle ? `, consistent with a ${body.overallStyle} feel` : ""}.
