@@ -106,7 +106,7 @@ const RetailerStyleFlow = ({ onBack }: Props) => {
   const { toast } = useToast();
   const { user } = useAuth();
 
-  const [step, setStep] = useState<"range" | "types" | "channel" | "upload" | "website" | "result">("range");
+  const [step, setStep] = useState<"range" | "types" | "channel" | "upload" | "result">("range");
   const [productRange, setProductRange] = useState<string>("");
   const [productTypes, setProductTypes] = useState<string[]>([]);
   const [salesChannel, setSalesChannel] = useState<string>("");
@@ -137,8 +137,8 @@ const RetailerStyleFlow = ({ onBack }: Props) => {
       if (data?.error) throw new Error(data.error);
       if (!data?.brand) throw new Error("Nothing could be read from that website");
       setBrand(data.brand as RetailerBrand);
-      setScenes([]);
       toast({ title: "Brand style captured", description: (data.brand as RetailerBrand).styleName });
+
     } catch (err) {
       console.error("Brand website error", err);
       toast({ title: "Couldn't read that website", description: getAiErrorMessage(err), variant: "destructive" });
@@ -276,8 +276,8 @@ const RetailerStyleFlow = ({ onBack }: Props) => {
     else if (step === "types") setStep("range");
     else if (step === "channel") setStep(isFullHome ? "range" : "types");
     else if (step === "upload") setStep("channel");
-    else if (step === "website") setStep("upload");
-    else setStep("website");
+    else setStep("upload");
+
   };
 
   return (
@@ -438,79 +438,13 @@ const RetailerStyleFlow = ({ onBack }: Props) => {
           )}
 
           <div className="flex justify-center">
-            <Button size="lg" onClick={() => setStep("website")} disabled={images.length === 0}>
-              Continue <ArrowRight className="w-4 h-4 ml-2" />
-            </Button>
-          </div>
-        </div>
-      )}
-
-      {step === "website" && (
-        <div className="space-y-6">
-          <div className="text-center space-y-2">
-            <h2 className="text-2xl font-bold tracking-tight">Have a website?</h2>
-            <p className="text-muted-foreground">
-              Paste your shop address and we read your brand look — colours, materials and mood — then style every
-              room around it. You can skip this if you'd rather not.
-            </p>
-          </div>
-
-          <Card className="border-border/50 bg-gradient-to-br from-accent/5 via-card to-primary/5">
-            <CardContent className="p-6 space-y-4">
-              <div className="flex items-center gap-2 text-sm font-medium">
-                <Globe className="w-4 h-4 text-primary" /> Your website
-              </div>
-              <div className="flex gap-2">
-                <Input
-                  value={siteInput}
-                  placeholder="yourshop.com"
-                  onChange={(e) => setSiteInput(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); void readWebsite(); } }}
-                  disabled={isReadingSite}
-                />
-                <Button variant="secondary" onClick={readWebsite} disabled={isReadingSite || !siteInput.trim()}>
-                  {isReadingSite ? <Loader2 className="w-4 h-4 animate-spin" /> : "Read my brand"}
-                </Button>
-              </div>
-
-              {isReadingSite && <Skeleton className="h-24 w-full rounded-xl" />}
-
-              {brand && !isReadingSite && (
-                <div className="rounded-2xl border border-primary/30 bg-background/70 p-4 space-y-3">
-                  <div className="flex items-center gap-3">
-                    {brand.logo ? (
-                      <img src={brand.logo} alt={`${brand.brandName} logo`} className="w-10 h-10 rounded-lg object-contain bg-card" />
-                    ) : null}
-                    <div>
-                      <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Your brand look</p>
-                      <p className="font-semibold leading-tight">{brand.brandName} · {brand.styleName}</p>
-                    </div>
-                  </div>
-                  {brand.description && <p className="text-sm text-muted-foreground">{brand.description}</p>}
-                  <div className="flex flex-wrap gap-1.5">
-                    {(brand.keywords || []).map((k) => (
-                      <Badge key={k} variant="secondary" className="text-xs">{k}</Badge>
-                    ))}
-                  </div>
-                  {brand.palette?.length ? <Swatches colors={brand.palette} size={26} /> : null}
-                  {brand.materials?.length ? (
-                    <p className="text-xs text-muted-foreground">{brand.materials.join(" · ")}</p>
-                  ) : null}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          <div className="flex justify-center gap-3">
-            <Button variant="ghost" onClick={runAnalysis} disabled={isAnalyzing}>
-              Skip
-            </Button>
-            <Button size="lg" onClick={runAnalysis} disabled={isAnalyzing}>
+            <Button size="lg" onClick={runAnalysis} disabled={images.length === 0 || isAnalyzing}>
               <Sparkles className="w-4 h-4 mr-2" /> Analyze my assortment
             </Button>
           </div>
         </div>
       )}
+
 
       {step === "result" && (
         <div className="space-y-8">
@@ -687,6 +621,68 @@ const RetailerStyleFlow = ({ onBack }: Props) => {
                   </div>
                 )}
               </div>
+
+              {/* Brand website — after the scene collage, restyles the created scenes */}
+              {scenes.length > 0 && (
+                <Card className="border-border/50 bg-gradient-to-br from-accent/5 via-card to-primary/5">
+                  <CardContent className="p-6 space-y-4">
+                    <div>
+                      <div className="flex items-center gap-2 text-sm font-medium">
+                        <Globe className="w-4 h-4 text-primary" /> Have a website?
+                      </div>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Paste your shop address and we read your brand look — colours, materials and mood — then
+                        restyle these rooms around it, keeping your exact products.
+                      </p>
+                    </div>
+                    <div className="flex gap-2">
+                      <Input
+                        value={siteInput}
+                        placeholder="yourshop.com"
+                        onChange={(e) => setSiteInput(e.target.value)}
+                        onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); void readWebsite(); } }}
+                        disabled={isReadingSite}
+                      />
+                      <Button variant="secondary" onClick={readWebsite} disabled={isReadingSite || !siteInput.trim()}>
+                        {isReadingSite ? <Loader2 className="w-4 h-4 animate-spin" /> : "Read my brand"}
+                      </Button>
+                    </div>
+
+                    {isReadingSite && <Skeleton className="h-24 w-full rounded-xl" />}
+
+                    {brand && !isReadingSite && (
+                      <div className="rounded-2xl border border-primary/30 bg-background/70 p-4 space-y-3">
+                        <div className="flex items-center gap-3">
+                          {brand.logo ? (
+                            <img src={brand.logo} alt={`${brand.brandName} logo`} className="w-10 h-10 rounded-lg object-contain bg-card" />
+                          ) : null}
+                          <div>
+                            <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Your brand look</p>
+                            <p className="font-semibold leading-tight">{brand.brandName} · {brand.styleName}</p>
+                          </div>
+                        </div>
+                        {brand.description && <p className="text-sm text-muted-foreground">{brand.description}</p>}
+                        <div className="flex flex-wrap gap-1.5">
+                          {(brand.keywords || []).map((k) => (
+                            <Badge key={k} variant="secondary" className="text-xs">{k}</Badge>
+                          ))}
+                        </div>
+                        {brand.palette?.length ? <Swatches colors={brand.palette} size={26} /> : null}
+                        {brand.materials?.length ? (
+                          <p className="text-xs text-muted-foreground">{brand.materials.join(" · ")}</p>
+                        ) : null}
+                        <Button onClick={generateScenes} disabled={isRendering}>
+                          {isRendering ? (
+                            <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Restyling rooms…</>
+                          ) : (
+                            <><Sparkles className="w-4 h-4 mr-2" /> Restyle rooms to my brand</>
+                          )}
+                        </Button>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
 
 
               {/* Combined categories */}
