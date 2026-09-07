@@ -37,6 +37,16 @@ export interface RetailerAnalysis {
   products: RetailerProduct[];
 }
 
+export interface RetailerScene {
+  room: string;
+  style?: string;
+  isCombination: boolean;
+  productNames: string[];
+  productIndices?: number[];
+  imageUrl: string | null;
+  error?: string;
+}
+
 const RANGE_OPTIONS = [
   { id: "specialist", label: "Specialist", description: "One focused category (e.g. only sofas or only lighting)" },
   { id: "multi-category", label: "Multi-category", description: "Several categories across a few rooms" },
@@ -91,6 +101,35 @@ const RetailerStyleFlow = ({ onBack }: Props) => {
   const [isScraping, setIsScraping] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysis, setAnalysis] = useState<RetailerAnalysis | null>(null);
+  const [scenes, setScenes] = useState<RetailerScene[]>([]);
+  const [isRendering, setIsRendering] = useState(false);
+
+  const generateScenes = async () => {
+    if (!analysis?.products?.length) return;
+    setIsRendering(true);
+    try {
+      trackEvent("ai_call", "retailer-style", { fn: "generate-retailer-scenes" });
+      const { data, error } = await supabase.functions.invoke("generate-retailer-scenes", {
+        body: {
+          images,
+          products: analysis.products,
+          overallStyle: analysis.overall?.styleName,
+          palette: analysis.overall?.palette || [],
+        },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      const next = (data?.scenes || []) as RetailerScene[];
+      if (!next.some((s) => s.imageUrl)) throw new Error("No scenes could be created");
+      setScenes(next);
+    } catch (err) {
+      console.error("Retailer scene error", err);
+      toast({ title: "Couldn't create the scenes", description: getAiErrorMessage(err), variant: "destructive" });
+    } finally {
+      setIsRendering(false);
+    }
+  };
+
 
   const toggleType = (t: string) =>
     setProductTypes((prev) => (prev.includes(t) ? prev.filter((x) => x !== t) : [...prev, t]));
@@ -142,6 +181,7 @@ const RetailerStyleFlow = ({ onBack }: Props) => {
     if (images.length === 0) return;
     setIsAnalyzing(true);
     setAnalysis(null);
+    setScenes([]);
     setStep("result");
     try {
       trackEvent("ai_call", "retailer-style", { fn: "analyze-retailer-products" });
@@ -440,33 +480,83 @@ const RetailerStyleFlow = ({ onBack }: Props) => {
                 </div>
               </div>
 
-              {/* Collage */}
+              {/* Scene collage */}
               <div className="space-y-4">
-                <h3 className="text-xl font-semibold tracking-tight">Your product collage</h3>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                  {analysis.products?.map((p, i) => {
-                    const src = images[p.imageIndex ?? i];
-                    const tint = p.colors?.[0] || "hsl(var(--secondary))";
-                    return (
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <h3 className="text-xl font-semibold tracking-tight">Your products in real rooms</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Interior scenes built around your exact products, in different styles.
+                    </p>
+                  </div>
+                  {scenes.length === 0 && (
+                    <Button onClick={generateScenes} disabled={isRendering}>
+                      {isRendering ? (
+                        <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Styling rooms…</>
+                      ) : (
+                        <><Sparkles className="w-4 h-4 mr-2" /> Create scene collage</>
+                      )}
+                    </Button>
+                  )}
+                </div>
+
+                {isRendering && scenes.length === 0 ? (
+                  <div className="grid md:grid-cols-2 gap-3">
+                    {[0, 1, 2, 3].map((i) => <Skeleton key={i} className="aspect-[4/3] rounded-2xl" />)}
+                  </div>
+                ) : scenes.length > 0 ? (
+                  <div className="grid md:grid-cols-2 gap-3 md:auto-rows-fr">
+                    {scenes.filter((s) => s.imageUrl).map((s, i) => (
                       <div
                         key={i}
-                        className={`relative rounded-2xl overflow-hidden border border-border/50 ${i % 5 === 0 ? "md:col-span-2 md:row-span-2" : ""}`}
-                        style={{ backgroundColor: tint }}
+                        className={`relative rounded-2xl overflow-hidden border ${
+                          s.isCombination
+                            ? "md:col-span-2 border-primary ring-2 ring-primary/30 shadow-lg"
+                            : "border-border/50"
+                        }`}
                       >
-                        <div className="aspect-square">
-                          {src && <img src={src} alt={p.name} className="w-full h-full object-cover mix-blend-normal" />}
-                        </div>
-                        <div className="absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-t from-background/95 to-transparent">
-                          <p className="text-xs font-medium truncate">{p.name}</p>
-                          <p className="text-[10px] text-muted-foreground truncate">
-                            {(p.styleTags || []).slice(0, 2).join(" · ")}
+                        <img
+                          src={s.imageUrl as string}
+                          alt={`${s.room} with ${s.productNames.join(", ")}`}
+                          className={`w-full object-cover ${s.isCombination ? "aspect-[16/9]" : "aspect-[4/3]"}`}
+                          loading="lazy"
+                        />
+                        {s.isCombination && (
+                          <span className="absolute top-3 left-3 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary text-primary-foreground text-[10px] font-semibold uppercase tracking-wider shadow-md">
+                            <Layers className="w-3 h-3" /> Works as a set
+                          </span>
+                        )}
+                        <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-background via-background/80 to-transparent">
+                          <p className="text-sm font-medium capitalize">{s.room}</p>
+                          <p className="text-xs text-muted-foreground line-clamp-1">
+                            {s.productNames.join(" + ")}
                           </p>
                         </div>
                       </div>
-                    );
-                  })}
-                </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    {analysis.products?.map((p, i) => {
+                      const src = images[p.imageIndex ?? i];
+                      return (
+                        <div
+                          key={i}
+                          className="relative rounded-2xl overflow-hidden border border-border/50 bg-secondary"
+                        >
+                          <div className="aspect-square">
+                            {src && <img src={src} alt={p.name} className="w-full h-full object-cover" />}
+                          </div>
+                          <div className="absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-t from-background/95 to-transparent">
+                            <p className="text-xs font-medium truncate">{p.name}</p>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
+
 
               {/* Combined categories */}
               {grouped.length > 0 && (
