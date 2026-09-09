@@ -119,6 +119,7 @@ const RetailerStyleFlow = ({ onBack }: Props) => {
   const [analysis, setAnalysis] = useState<RetailerAnalysis | null>(null);
   const [scenes, setScenes] = useState<RetailerScene[]>([]);
   const [isRendering, setIsRendering] = useState(false);
+  const [profileId, setProfileId] = useState<string | null>(null);
 
   const [siteInput, setSiteInput] = useState("");
   const [brand, setBrand] = useState<RetailerBrand | null>(null);
