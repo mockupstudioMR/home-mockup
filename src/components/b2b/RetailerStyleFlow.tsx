@@ -278,6 +278,7 @@ const RetailerStyleFlow = ({ onBack }: Props) => {
     else if (step === "types") setStep("range");
     else if (step === "channel") setStep(isFullHome ? "range" : "types");
     else if (step === "upload") setStep("channel");
+    else if (step === "posts") setStep("result");
     else setStep("upload");
 
   };
