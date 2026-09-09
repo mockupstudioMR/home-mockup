@@ -239,7 +239,7 @@ const RetailerStyleFlow = ({ onBack }: Props) => {
       setAnalysis(result);
 
       if (user) {
-        await supabase.from("retailer_style_profiles").insert({
+        const { data: row } = await supabase.from("retailer_style_profiles").insert({
           user_id: user.id,
           product_range: productRange || null,
           product_types: productTypes,
@@ -247,7 +247,8 @@ const RetailerStyleFlow = ({ onBack }: Props) => {
           product_links: links,
           product_images: images,
           analysis: { ...result, brand } as any,
-        } as any);
+        } as any).select("id").single();
+        if (row) setProfileId((row as any).id as string);
       }
     } catch (err) {
       console.error("Retailer analysis error", err);
