@@ -721,13 +721,29 @@ const RetailerStyleFlow = ({ onBack }: Props) => {
                 </div>
               )}
 
-              <div className="flex justify-center gap-3">
+              <div className="flex flex-wrap justify-center gap-3">
                 <Button variant="outline" onClick={() => setStep("upload")}>Change products</Button>
+                <Button onClick={() => setStep("posts")}>
+                  <Wand2 className="w-4 h-4 mr-2" /> Create marketing posts
+                </Button>
               </div>
             </>
           )}
         </div>
       )}
+
+      {step === "posts" && (
+        <RetailerPostsPanel
+          analysis={analysis}
+          brand={brand}
+          images={images}
+          scenes={scenes}
+          productRange={productRange}
+          salesChannel={salesChannel}
+          profileId={profileId}
+        />
+      )}
+
     </div>
   );
 };
