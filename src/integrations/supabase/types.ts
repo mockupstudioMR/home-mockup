@@ -1058,6 +1058,71 @@ export type Database = {
         }
         Relationships: []
       }
+      retailer_posts: {
+        Row: {
+          body: string | null
+          caption: string | null
+          channel: string
+          created_at: string
+          hashtags: string | null
+          id: string
+          image_prompt: string | null
+          image_url: string | null
+          is_pinned: boolean
+          language: string | null
+          metadata: Json
+          preview: string | null
+          profile_id: string | null
+          subject: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          body?: string | null
+          caption?: string | null
+          channel: string
+          created_at?: string
+          hashtags?: string | null
+          id?: string
+          image_prompt?: string | null
+          image_url?: string | null
+          is_pinned?: boolean
+          language?: string | null
+          metadata?: Json
+          preview?: string | null
+          profile_id?: string | null
+          subject?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          body?: string | null
+          caption?: string | null
+          channel?: string
+          created_at?: string
+          hashtags?: string | null
+          id?: string
+          image_prompt?: string | null
+          image_url?: string | null
+          is_pinned?: boolean
+          language?: string | null
+          metadata?: Json
+          preview?: string | null
+          profile_id?: string | null
+          subject?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "retailer_posts_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "retailer_style_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       retailer_style_profiles: {
         Row: {
           analysis: Json | null
