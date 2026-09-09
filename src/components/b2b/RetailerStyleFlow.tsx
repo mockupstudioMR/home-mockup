@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
-  ArrowLeft, ArrowRight, Upload, Link2, X, Loader2, Sparkles, Layers, Palette, Globe,
+  ArrowLeft, ArrowRight, Upload, Link2, X, Loader2, Sparkles, Layers, Palette, Globe, Wand2,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -13,6 +13,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { optimizeImageSourceToDataUrl } from "@/lib/imageOptimization";
 import { getAiErrorMessage } from "@/lib/aiErrorMessage";
 import { trackEvent } from "@/lib/analytics";
+import RetailerPostsPanel from "./RetailerPostsPanel";
 
 export interface RetailerProduct {
   imageIndex: number;
@@ -106,7 +107,7 @@ const RetailerStyleFlow = ({ onBack }: Props) => {
   const { toast } = useToast();
   const { user } = useAuth();
 
-  const [step, setStep] = useState<"range" | "types" | "channel" | "upload" | "result">("range");
+  const [step, setStep] = useState<"range" | "types" | "channel" | "upload" | "result" | "posts">("range");
   const [productRange, setProductRange] = useState<string>("");
   const [productTypes, setProductTypes] = useState<string[]>([]);
   const [salesChannel, setSalesChannel] = useState<string>("");
@@ -119,6 +120,7 @@ const RetailerStyleFlow = ({ onBack }: Props) => {
   const [analysis, setAnalysis] = useState<RetailerAnalysis | null>(null);
   const [scenes, setScenes] = useState<RetailerScene[]>([]);
   const [isRendering, setIsRendering] = useState(false);
+  const [profileId, setProfileId] = useState<string | null>(null);
 
   const [siteInput, setSiteInput] = useState("");
   const [brand, setBrand] = useState<RetailerBrand | null>(null);
@@ -238,7 +240,7 @@ const RetailerStyleFlow = ({ onBack }: Props) => {
       setAnalysis(result);
 
       if (user) {
-        await supabase.from("retailer_style_profiles").insert({
+        const { data: row } = await supabase.from("retailer_style_profiles").insert({
           user_id: user.id,
           product_range: productRange || null,
           product_types: productTypes,
@@ -246,7 +248,8 @@ const RetailerStyleFlow = ({ onBack }: Props) => {
           product_links: links,
           product_images: images,
           analysis: { ...result, brand } as any,
-        } as any);
+        } as any).select("id").single();
+        if (row) setProfileId((row as any).id as string);
       }
     } catch (err) {
       console.error("Retailer analysis error", err);
@@ -276,6 +279,7 @@ const RetailerStyleFlow = ({ onBack }: Props) => {
     else if (step === "types") setStep("range");
     else if (step === "channel") setStep(isFullHome ? "range" : "types");
     else if (step === "upload") setStep("channel");
+    else if (step === "posts") setStep("result");
     else setStep("upload");
 
   };
@@ -718,13 +722,29 @@ const RetailerStyleFlow = ({ onBack }: Props) => {
                 </div>
               )}
 
-              <div className="flex justify-center gap-3">
+              <div className="flex flex-wrap justify-center gap-3">
                 <Button variant="outline" onClick={() => setStep("upload")}>Change products</Button>
+                <Button onClick={() => setStep("posts")}>
+                  <Wand2 className="w-4 h-4 mr-2" /> Create marketing posts
+                </Button>
               </div>
             </>
           )}
         </div>
       )}
+
+      {step === "posts" && (
+        <RetailerPostsPanel
+          analysis={analysis}
+          brand={brand}
+          images={images}
+          scenes={scenes}
+          productRange={productRange}
+          salesChannel={salesChannel}
+          profileId={profileId}
+        />
+      )}
+
     </div>
   );
 };
