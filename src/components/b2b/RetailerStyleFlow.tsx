@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
-  ArrowLeft, ArrowRight, Upload, Link2, X, Loader2, Sparkles, Layers, Palette, Globe,
+  ArrowLeft, ArrowRight, Upload, Link2, X, Loader2, Sparkles, Layers, Palette, Globe, Wand2,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -13,6 +13,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { optimizeImageSourceToDataUrl } from "@/lib/imageOptimization";
 import { getAiErrorMessage } from "@/lib/aiErrorMessage";
 import { trackEvent } from "@/lib/analytics";
+import RetailerPostsPanel from "./RetailerPostsPanel";
 
 export interface RetailerProduct {
   imageIndex: number;
