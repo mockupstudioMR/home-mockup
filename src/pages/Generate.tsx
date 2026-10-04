@@ -1158,14 +1158,8 @@ const Generate = () => {
           floorPlanContext,
       };
 
-      // Retry transient failures (cold-start boot errors, 5xx, rate limits).
-      let response = await supabase.functions.invoke("generate-design", { body: generateBody });
-      for (let attempt = 1; attempt <= 2 && (response.error || !response.data?.imageUrl); attempt++) {
-        const msg = getAiErrorMessage(response.error ?? response.data);
-        if (/402|403|credits|blocked/i.test(msg)) break;
-        await new Promise((r) => setTimeout(r, attempt * 2500));
-        response = await supabase.functions.invoke("generate-design", { body: generateBody });
-      }
+      // The generator handles transient retries; do not replay terminal failures here.
+      const response = await supabase.functions.invoke("generate-design", { body: generateBody });
 
       if (response.error) {
         throw new Error(getAiErrorMessage(response.error));
