@@ -1257,12 +1257,21 @@ const Generate = () => {
             changeElements: changeElementsFromState,
             selectedInspirations,
             inspirationDetails,
-            detectedColors: analysisResult?.dominantColors,
+            detectedColors: currentMoodboard?.colors?.length ? currentMoodboard.colors : analysisResult?.dominantColors,
             detectedKeywords: analysisResult?.styles
               ?.filter(s => s.styleName.toLowerCase().replace(/[&\s]+/g, '-').replace(/-+/g, '-') === overriddenQuiz.stylePreference.replace(/_/g, '-'))
               ?.flatMap(s => s.keywords) || [],
             moodboardDescription: analysisResult?.moodboardDescription,
-            styleImageUrls: getStyleMoodboardUrls(overriddenQuiz.stylePreference),
+            moodboardMaterials: currentMoodboard?.materials || [],
+            moodboardReferences: currentMoodboard?.references || [],
+            architectureReferences: currentMoodboard?.architectureReferences || [],
+            furnitureReferences: currentMoodboard?.furnitureReferences || [],
+            decorReferences: currentMoodboard?.decorReferences || [],
+            mustIncludeItems: currentMoodboard?.mustInclude || [],
+            styleImageUrls: [
+              ...((currentMoodboard?.references?.map(r => r.imageUrl).filter(Boolean) as string[]) || []),
+              ...getStyleMoodboardUrls(overriddenQuiz.stylePreference),
+            ],
             floorPlanContext,
           },
         });
@@ -1317,7 +1326,7 @@ const Generate = () => {
       }
     };
     run();
-  }, [quizData, user, location.state, uploadDesignImage, toast, resolveActiveRoomContext]);
+  }, [quizData, user, location.state, currentMoodboard, uploadDesignImage, toast, resolveActiveRoomContext]);
 
   const handleSurpriseStyle = useCallback(() => {
     const styles = ["modern-minimal", "bohemian-eclectic", "classic-historical", "rustic-nature", "mediterranean", "glam-luxe"];
