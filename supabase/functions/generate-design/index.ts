@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { buildMoodboardDirective, collectMoodboardReferences } from "../_shared/moodboardContext.ts";
 
 const VERSION = "v2.3.0";
 const DEPLOYED_AT = "2026-02-06T12:30:00Z";
@@ -55,6 +56,7 @@ interface GenerateRequest {
   moodboardMaterials?: { label: string; imageUrl?: string }[];
   /** User-curated moodboard style references (with optional reference images). */
   moodboardReferences?: { label: string; imageUrl?: string }[];
+  architectureReferences?: { label: string; imageUrl?: string }[];
   /** Furniture inspiration uploads — "use similar furniture in style/silhouette". */
   furnitureReferences?: { label: string; imageUrl?: string }[];
   /** Decor inspiration uploads — accessories, textiles, lighting, art. "Use similar decor". */
@@ -352,6 +354,9 @@ serve(async (req) => {
 
     // Build the image generation prompt using DB templates
     let prompt = buildImagePrompt(enrichedRequestData, promptTemplates, roomFurnitureItems);
+    if (!enrichedRequestData.modificationPrompt) {
+      prompt = buildMoodboardDirective(enrichedRequestData) + prompt;
+    }
     addDebug("Prompt built", `${prompt.length} chars`, { prompt });
 
     // Prepare messages for image generation
@@ -405,7 +410,7 @@ serve(async (req) => {
       if (validProductImageUrls.length > 0) {
         addDebug("Product images (scene mode)", `Added ${validProductImageUrls.length} product reference images BEFORE scene layout`);
       }
-      for (const imgUrl of enrichedRequestData.existingRoomImages!.slice(0, 4)) {
+      for (const imgUrl of (enrichedRequestData.existingRoomImages || []).slice(0, 4)) {
         contentParts.push({ type: "image_url", image_url: { url: imgUrl } });
       }
       addDebug("Scene layout image", `Added scene reference after product images`);
@@ -449,27 +454,17 @@ serve(async (req) => {
       }
 
 
-      // Style moodboard images for the user-selected style(s) — visual references
-      // for color palette, materials and furniture vibe. Cap at 3 to avoid context bloat.
-      if (enrichedRequestData.styleImageUrls && enrichedRequestData.styleImageUrls.length > 0) {
-        const styleImgs = enrichedRequestData.styleImageUrls.slice(0, 2);
-        for (const imgUrl of styleImgs) {
-          contentParts.push({ type: "image_url", image_url: { url: imgUrl } });
-        }
-        addDebug("Style moodboard images", `Added ${styleImgs.length} style reference image(s) to request`);
+    }
+
+    // Never silently truncate curated materials or architecture. Surgical edits
+    // remain source-only so unrelated parts of a saved design are preserved.
+    if (!enrichedRequestData.modificationPrompt) {
+      const references = collectMoodboardReferences(enrichedRequestData);
+      for (const ref of references) {
+        contentParts.push({ type: "text", text: ref.label });
+        contentParts.push({ type: "image_url", image_url: { url: ref.url } });
       }
-
-      // Furniture references — inspiration
-      const furnImgs = (enrichedRequestData.furnitureReferences || [])
-        .map((f) => f.imageUrl).filter(Boolean).slice(0, 2) as string[];
-      for (const u of furnImgs) contentParts.push({ type: "image_url", image_url: { url: u } });
-      if (furnImgs.length > 0) addDebug("Furniture references", `Added ${furnImgs.length} furniture inspiration image(s)`);
-
-      // Decor references — inspiration
-      const decorImgs = (enrichedRequestData.decorReferences || [])
-        .map((d) => d.imageUrl).filter(Boolean).slice(0, 2) as string[];
-      for (const u of decorImgs) contentParts.push({ type: "image_url", image_url: { url: u } });
-      if (decorImgs.length > 0) addDebug("Decor references", `Added ${decorImgs.length} decor inspiration image(s)`);
+      addDebug("Moodboard references", `Attached ${references.length} labeled visual references`, references.map(ref => ref.label));
     }
 
     const messages: any[] = [
@@ -667,7 +662,9 @@ function buildImagePrompt(
   const style = mappedStyles.length > 1
     ? `a thoughtful fusion of ${mappedStyles.slice(0, -1).join(", ")} and ${mappedStyles[mappedStyles.length - 1]} — blend characteristic elements from each style cohesively`
     : mappedStyles[0];
-  const colors = colorMap[data.colorPalette] || data.colorPalette;
+  const colors = data.detectedColors?.length
+    ? `the user-selected palette (${data.detectedColors.join(", ")}) for editable elements, preserving locked objects`
+    : colorMap[data.colorPalette] || data.colorPalette;
   const room = roomMap[data.roomType] || data.roomType;
   const budget = budgetMap[data.budgetFeel] || data.budgetFeel;
   const elements = data.mustHaveElements?.length 
@@ -681,11 +678,11 @@ function buildImagePrompt(
   if (data.detectedColors && data.detectedColors.length > 0) {
     const colorList = data.detectedColors.join(", ");
     detectedColorsContext =
-      `MANDATORY COLOR PALETTE (ABSOLUTE HIGHEST PRIORITY — overrides product images, style refs, and every other instruction): ` +
-      `The final design MUST use ONLY these exact hex colors: ${colorList}. ` +
+      `MANDATORY MOODBOARD COLOR PALETTE (overrides generic style palettes, but NEVER exact pinned products or locked room elements): ` +
+      `Use these colors as the design palette for editable elements: ${colorList}. ` +
       `EVERY hex in this list must be CLEARLY visible in the final image — distribute them deliberately across walls (at least one wall in a palette color), large textiles (rugs, sofas, curtains, bedding), upholstery, wood/metal finishes, accents and decor so the palette reads unmistakably at first glance. ` +
       `Before finalizing, mentally check: is each of these colors present? If any is missing, ADD it (e.g. as a cushion, throw, vase, art, accent wall, lamp). ` +
-      `Do NOT introduce ANY color outside this palette. If a reference image (product, style, decor) shows a different color, IGNORE its color and recolor that surface/object to the nearest palette hex. `;
+      `Keep natural material shading and lighting. Recolor only editable surfaces to this palette; NEVER recolor exact products, must-include items or elements marked to keep. `;
   }
 
   // Build detected keywords/visual elements context
