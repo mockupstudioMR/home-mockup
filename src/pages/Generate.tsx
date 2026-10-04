@@ -1062,15 +1062,19 @@ const Generate = () => {
     }
   };
 
-  const generateDesign = async (quizResponseId?: string) => {
-    if (!quizData || !user) return;
+  const generateDesign = async (quizResponseId?: string, forceRecreate = false) => {
+    if (generating && forceRecreate) return;
+    if (!quizData || !user) {
+      toast({ title: "Cannot recreate design", description: !user ? "Please sign in again." : "Please return to your moodboard to restore your room selections.", variant: "destructive" });
+      return;
+    }
 
     const { productAnalysis, sourceImages, includeProducts, scenePreviewImage } = location.state || {};
     const moodboard = currentMoodboard;
     const shouldIncludeProducts = !!includeProducts && !isExistingRoomFlow;
 
     setGenerating(true);
-    setDesign(null);
+    if (!forceRecreate) setDesign(null);
     setHighlightsData(null);
     setAngleImages([]);
     setDesignItems([]);
@@ -1084,7 +1088,7 @@ const Generate = () => {
 
       // If we have a scene preview image from the product flow, use it directly
       // as the final design — no re-generation needed.
-      if (scenePreviewImage) {
+      if (scenePreviewImage && !forceRecreate) {
         const storedImageUrl = await uploadDesignImage(scenePreviewImage, user.id);
 
         const designTitle = generateDesignTitle(quizData.stylePreference, quizData.roomType);
@@ -1154,14 +1158,8 @@ const Generate = () => {
           floorPlanContext,
       };
 
-      // Retry transient failures (cold-start boot errors, 5xx, rate limits).
-      let response = await supabase.functions.invoke("generate-design", { body: generateBody });
-      for (let attempt = 1; attempt <= 2 && (response.error || !response.data?.imageUrl); attempt++) {
-        const msg = getAiErrorMessage(response.error ?? response.data);
-        if (/402|403|credits|blocked/i.test(msg)) break;
-        await new Promise((r) => setTimeout(r, attempt * 2500));
-        response = await supabase.functions.invoke("generate-design", { body: generateBody });
-      }
+      // The generator handles transient retries; do not replay terminal failures here.
+      const response = await supabase.functions.invoke("generate-design", { body: generateBody });
 
       if (response.error) {
         throw new Error(getAiErrorMessage(response.error));
@@ -1198,7 +1196,7 @@ const Generate = () => {
 
       const newDesign: GeneratedDesign = {
         id: savedDesign?.id || `design-${Date.now()}`,
-        imageUrl,
+        imageUrl: storedImageUrl,
         title: designTitle,
         description: "Custom room design based on your style preferences",
         isFavorite: false,
@@ -2314,7 +2312,7 @@ RULES:
               modificationInput={modificationInput}
               onModificationInputChange={setModificationInput}
               onModify={handleModify}
-              onRegenerate={() => generateDesign()}
+              onRegenerate={() => generateDesign(undefined, true)}
               onUndo={handleUndoDesign}
               canUndo={imageHistoryStack.length > 0}
               generating={generating}
@@ -2329,6 +2327,15 @@ RULES:
               roomType={quizData?.roomType}
               mustHaveElements={quizData?.mustHaveElements}
             />
+          </div>
+        )}
+
+        {design && (
+          <div className="max-w-3xl mx-auto flex justify-end">
+            <Button variant="outline" onClick={() => generateDesign(undefined, true)} disabled={generating}>
+              {generating ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <RefreshCw className="w-4 h-4 mr-2" />}
+              {generating ? "Recreating design…" : "Recreate from moodboard"}
+            </Button>
           </div>
         )}
 
@@ -2384,7 +2391,7 @@ RULES:
             modificationInput={modificationInput}
             onModificationInputChange={setModificationInput}
             onModify={(type, prefill, layerInfo) => handleModify(type, prefill, undefined, layerInfo)}
-            onRegenerate={() => generateDesign()}
+            onRegenerate={() => generateDesign(undefined, true)}
             onUndo={handleUndoDesign}
             canUndo={imageHistoryStack.length > 0}
             generating={generating}
