@@ -1352,8 +1352,13 @@ const Generate = () => {
     handleTryStyle(random);
   }, [quizData, handleTryStyle]);
 
+  // The start-up effect can re-run on many renders while highlights load;
+  // never start a second paid analysis for the same image while one runs.
+  const highlightsInFlightRef = useRef<string | null>(null);
   const generateHighlights = async (imageUrl: string) => {
     if (!quizData) return;
+    if (highlightsInFlightRef.current === imageUrl) return;
+    highlightsInFlightRef.current = imageUrl;
 
     setGeneratingHighlights(true);
     try {
@@ -1425,6 +1430,7 @@ const Generate = () => {
       setStyleProfile(generateStyleProfile(defaultMatches, quizData));
     } finally {
       setGeneratingHighlights(false);
+      if (highlightsInFlightRef.current === imageUrl) highlightsInFlightRef.current = null;
     }
   };
 
