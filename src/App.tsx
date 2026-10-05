@@ -7,7 +7,11 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { QuizProvider } from "@/contexts/QuizContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
-import DevRoleSwitcher from "@/components/DevRoleSwitcher";
+// Development-only helper. In production builds this branch is removed, so
+// the component (and the account emails inside it) never ship to users.
+const DevRoleSwitcher = import.meta.env.DEV
+  ? lazy(() => import("@/components/DevRoleSwitcher"))
+  : () => null;
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 
@@ -112,7 +116,9 @@ const App = () => (
           <Sonner />
           <AppErrorBoundary>
             <BrowserRouter>
-              <DevRoleSwitcher />
+              <Suspense fallback={null}>
+                <DevRoleSwitcher />
+              </Suspense>
               <Suspense fallback={<PageLoader />}>
               <Routes>
               <Route path="/" element={<Index />} />
