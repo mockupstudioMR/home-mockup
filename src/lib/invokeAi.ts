@@ -31,6 +31,7 @@ const messageFromHttpError = async (error: FunctionsHttpError): Promise<string> 
   return bodyMessage || `Request failed (${status ?? "unknown status"}). Please try again.`;
 };
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- callers read untyped function responses
 export async function invokeAi<T = any>(
   fn: string,
   options: { body?: unknown; timeoutMs?: number } = {},

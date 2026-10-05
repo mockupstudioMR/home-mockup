@@ -408,37 +408,42 @@ const Generate = () => {
   });
   const designRef = useRef<HTMLDivElement>(null);
   
-  // Upload a base64 data URI to storage and return the public URL
+  // Upload a base64 data URI to storage and return the public URL.
+  // Never returns the data URI itself: a multi-megabyte base64 string written
+  // to generated_designs.image_url bloats the database, slows the gallery and
+  // overflows sessionStorage. Retries transient failures, then throws.
   const uploadDesignImage = useCallback(async (base64DataUri: string, userId: string): Promise<string> => {
     if (!base64DataUri.startsWith('data:')) return base64DataUri;
-    try {
-      const mimeMatch = base64DataUri.match(/^data:(image\/\w+);base64,/);
-      const mimeType = mimeMatch?.[1] || 'image/png';
-      const ext = mimeType === 'image/jpeg' ? 'jpg' : 'png';
-      const base64 = base64DataUri.replace(/^data:image\/\w+;base64,/, '');
-      const byteString = atob(base64);
-      const ab = new ArrayBuffer(byteString.length);
-      const ia = new Uint8Array(ab);
-      for (let i = 0; i < byteString.length; i++) {
-        ia[i] = byteString.charCodeAt(i);
-      }
-      const blob = new Blob([ab], { type: mimeType });
-      const fileName = `${userId}/design-${Date.now()}.${ext}`;
+    const mimeMatch = base64DataUri.match(/^data:(image\/\w+);base64,/);
+    const mimeType = mimeMatch?.[1] || 'image/png';
+    const ext = mimeType === 'image/jpeg' ? 'jpg' : 'png';
+    const base64 = base64DataUri.replace(/^data:image\/\w+;base64,/, '');
+    const byteString = atob(base64);
+    const ia = new Uint8Array(byteString.length);
+    for (let i = 0; i < byteString.length; i++) {
+      ia[i] = byteString.charCodeAt(i);
+    }
+    const blob = new Blob([ia], { type: mimeType });
+    const fileName = `${userId}/design-${Date.now()}-${crypto.randomUUID().slice(0, 8)}.${ext}`;
+
+    const maxAttempts = 3;
+    let lastError: unknown = null;
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
       const { error: uploadError } = await supabase.storage
         .from('design-images')
-        .upload(fileName, blob, { contentType: mimeType });
-      if (uploadError) {
-        console.error('Failed to upload design image:', uploadError);
-        return base64DataUri;
+        .upload(fileName, blob, { contentType: mimeType, upsert: true });
+      if (!uploadError) {
+        return supabase.storage.from('design-images').getPublicUrl(fileName).data.publicUrl;
       }
-      const { data: urlData } = supabase.storage
-        .from('design-images')
-        .getPublicUrl(fileName);
-      return urlData.publicUrl;
-    } catch (err) {
-      console.error('Error uploading design image:', err);
-      return base64DataUri;
+      lastError = uploadError;
+      console.error(`Design image upload failed (attempt ${attempt}/${maxAttempts}):`, uploadError);
+      if (attempt < maxAttempts) await new Promise((r) => setTimeout(r, 800 * attempt));
     }
+    throw new Error(
+      `We couldn't save the design image. Please check your connection and try again.${
+        lastError instanceof Error ? ` (${lastError.message})` : ''
+      }`,
+    );
   }, []);
 
   // Track if initial load has been done
