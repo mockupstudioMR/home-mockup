@@ -1,10 +1,24 @@
 import { getAiErrorMessage } from "@/lib/aiErrorMessage";
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useLayoutEffect, useMemo, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { invokeAi } from "@/lib/invokeAi";
 import { requireUserId } from "@/lib/requireUserId";
+import { uploadDesignImage } from "@/services/designImages";
+import {
+  GENERATE_KEYS,
+  clearDesignView,
+  hydrateAnalyzeRoomCacheFromMoodboard,
+  fromRouteOrCache,
+  readJson,
+  readString,
+  remove as removeSessionKeys,
+  writeJson,
+  writeString,
+  type GenerateMoodboard,
+} from "@/lib/generateSession";
+import { useSessionCachedState, useSessionCachedString } from "@/hooks/useSessionCachedState";
 import { invokeQueued } from "@/lib/aiQueue";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,6 +41,15 @@ import {
 } from "lucide-react";
 import type { QuizData } from "@/contexts/QuizContext";
 import { useQuiz } from "@/contexts/QuizContext";
+import type { AngleImage, BoundingBox, DesignHighlightsData, DesignItem, GeneratedDesign, StyleMatch } from "./generate/types";
+import { generateDesignTitle } from "./generate/designTitle";
+import {
+  buildStyleMatches,
+  generateStyleProfile,
+  getDefaultAccentFurniture,
+  getDefaultColors,
+  getMaterialsForStyle,
+} from "./generate/styleDefaults";
 import DesignImage from "@/components/generate/DesignImage";
 import { trackEvent } from "@/lib/analytics";
 
@@ -47,143 +70,50 @@ import { getStyleMoodboardUrls } from "@/lib/styleMoodboards";
 import MoodboardElementsPanel, { type MoodboardItem, type MoodboardAction } from "@/components/generate/MoodboardElementsPanel";
 import MoodboardRefinePanel from "@/components/generate/MoodboardRefinePanel";
 
-interface GeneratedDesign {
-  id: string;
-  imageUrl: string;
-  title: string;
-  description: string;
-  isFavorite: boolean;
-  isLocked?: boolean;
-}
-
-interface AngleImage {
-  label: string;
-  imageUrl: string;
-}
-
-interface DesignHighlightsData {
-  colorScheme: {
-    colors: string[];
-    description: string;
-    visual?: string;
-    materials?: string[];
-  };
-  accentFurniture: {
-    name: string;
-    description: string;
-    visual?: string;
-  };
-  moodboard: {
-    elements: string[];
-    description: string;
-    visual?: string;
-  };
-}
-
-interface StyleMatch {
-  style: string;
-  percentage: number;
-  color: string;
-}
-
-interface BoundingBox {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-}
-
-interface DesignItem {
-  id: string;
-  item_type: string;
-  item_name: string;
-  item_description: string;
-  color?: string;
-  hex_code?: string;
-  material?: string;
-  style?: string;
-  priority: "essential" | "recommended" | "optional";
-  matched_product_id?: string;
-  google_shopping_url?: string;
-  google_images_url?: string;
-  bounding_box?: BoundingBox;
-  product_photo_url?: string;
-  wall_type?: string;
-  matchedProduct?: {
-    id: string;
-    name: string;
-    price?: number;
-    currency?: string;
-    image_urls?: string[];
-    source_url?: string;
-    ai_style_tags?: string[];
-  };
-}
-
-type GenerateMoodboard = {
-  colors?: string[];
-  materials?: { label: string; imageUrl?: string }[];
-  references?: { label: string; imageUrl?: string }[];
-  furnitureReferences?: { label: string; imageUrl?: string }[];
-  decorReferences?: { label: string; imageUrl?: string }[];
-  architectureReferences?: { label: string; imageUrl?: string }[];
-  mustInclude?: { label: string; imageUrl?: string }[];
+// What earlier screens pass to /generate through navigation state.
+type GenerateRouteState = {
+  quizData?: QuizData & { existingRoomImages?: string[] };
+  resumeDesignId?: string;
+  existingRoomImages?: string[];
+  keepElements?: string[];
+  changeElements?: string[];
+  source?: string;
+  analysisResult?: AnalysisData;
+  productAnalysis?: unknown;
+  scenePreviewImage?: string;
+  selectedInspirations?: string[];
+  inspirationDetails?: InspirationDetail[];
+  moodboard?: GenerateMoodboard;
 };
 
-// Rebuild the analyze-room persisted cache from a saved moodboard so the
-// "Back to Moodboard" flow from an existing design reopens the exact
-// curated inspiration (colors, materials, furniture, decor, must-includes)
-// instead of restarting from scratch.
-const hydrateAnalyzeRoomCacheFromMoodboard = (mb: GenerateMoodboard) => {
-  try {
-    const existing = (() => {
-      try {
-        const raw = sessionStorage.getItem("analyze_room_cache");
-        return raw ? JSON.parse(raw) : {};
-      } catch { return {}; }
-    })();
-    const moodboard = {
-      materials: mb.materials || [],
-      references: mb.references || [],
-      furnitureReferences: mb.furnitureReferences || [],
-      decorReferences: mb.decorReferences || [],
-      architectureReferences: mb.architectureReferences || [],
-      mustInclude: mb.mustInclude || [],
-    };
-    const snapshot = {
-      ...existing,
-      moodboard,
-      moodboardReady: true,
-      moodboardStep: 5,
-      editableColors: mb.colors || existing.editableColors || [],
-    };
-    sessionStorage.setItem("analyze_room_cache", JSON.stringify(snapshot));
-  } catch { /* ignore quota */ }
+// What the start-up effect reads from the current render.
+type StartupState = {
+  design: GeneratedDesign | null;
+  designItems: DesignItem[];
+  highlightsData: DesignHighlightsData | null;
+  generateHighlights: (imageUrl: string) => Promise<void>;
+  loadDesignById: (designId: string) => Promise<void>;
+  loadExistingOrGenerate: () => Promise<void>;
 };
 
-// Generate a suggested design name from style & room type
-const generateDesignTitle = (style?: string, roomType?: string): string => {
-  const styleTitles: Record<string, string[]> = {
-    "modern-minimal": ["Clean Lines Retreat", "Minimal Serenity", "Modern Calm"],
-    "bohemian-eclectic": ["Bohemian Dream", "Eclectic Oasis", "Free Spirit Haven"],
-    "glam-luxe": ["Luxe Elegance", "Golden Hour Suite", "Glamorous Escape"],
-    "rustic-nature": ["Nature's Embrace", "Rustic Warmth", "Woodland Comfort"],
-    "mediterranean": ["Mediterranean Breeze", "Coastal Warmth", "Sun-Kissed Villa"],
-    "classic-historical": ["Timeless Grandeur", "Heritage Charm", "Classic Revival"],
-  };
-  const roomLabels: Record<string, string> = {
-    "living-room": "Living Room",
-    bedroom: "Bedroom",
-    kitchen: "Kitchen",
-    bathroom: "Bathroom",
-    office: "Home Office",
-  };
-  const styleKey = style?.replace(/_/g, "-") || "";
-  const options = styleTitles[styleKey] || ["Inspired Design"];
-  const pick = options[Math.floor(Math.random() * options.length)];
-  const room = roomLabels[roomType || ""] || "Room";
-  return `${pick} – ${room}`;
+type InspirationDetail = { label: string; description: string; type: string };
+type AnalysisData = {
+  styles?: Array<{ styleName: string; keywords: string[] }>;
+  dominantColors?: string[];
+  moodboardDescription?: string;
 };
+
+
+// Persistence rules for the session-cached state below.
+const isPresent = <T,>(v: T | null | undefined) => v !== null && v !== undefined;
+const isNonEmpty = (v: unknown[]) => v.length > 0;
+// Visual URLs are large and can be regenerated; keep only the text.
+const stripHighlightVisuals = (h: DesignHighlightsData | null) =>
+  h && {
+    colorScheme: { ...h.colorScheme, visual: undefined },
+    accentFurniture: { ...h.accentFurniture, visual: undefined },
+    moodboard: { ...h.moodboard, visual: undefined },
+  };
 
 const Generate = () => {
   const navigate = useNavigate();
@@ -218,7 +148,7 @@ const Generate = () => {
           furnitureSource: (a.furnitureSource as "shop_only" | "open") ?? "open",
           sourceImageUrl: (a.sourceImageUrl as string) || undefined,
         });
-        sessionStorage.setItem("generate_quiz_nonce", crypto.randomUUID());
+        writeString(GENERATE_KEYS.quizNonce, crypto.randomUUID());
         setWaHydrating(false);
       } catch (e) {
         console.error("[Generate] wa claim error", e);
@@ -229,248 +159,103 @@ const Generate = () => {
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [waSessionId]);
-  const routeQuizData = location.state?.quizData as QuizData | undefined;
-  // Persist the quiz payload so a reload, chunk-recovery refresh, or a lost
-  // history state never bounces the user back to the quiz upload screen.
-  const cachedQuizData = (() => {
-    if (routeQuizData) {
-      try { sessionStorage.setItem("generate_quiz_data_cache", JSON.stringify(routeQuizData)); } catch { /* ignore quota */ }
-      return routeQuizData;
-    }
-    try {
-      const cached = sessionStorage.getItem("generate_quiz_data_cache");
-      const parsed = cached ? (JSON.parse(cached) as QuizData) : undefined;
-      return parsed?.roomType ? parsed : undefined;
-    } catch { return undefined; }
-  })();
+  // Inputs from the previous screen. Each is cached in sessionStorage so a
+  // reload or lost history state does not bounce the user back. They are
+  // computed once per navigation (location.state), NOT on every render:
+  // before, every render re-read and re-wrote these caches and produced new
+  // objects, which re-ran the start-up effect on every render.
+  const routeState = location.state as GenerateRouteState | null;
+  const routeQuizData = routeState?.quizData as QuizData | undefined;
+  const cachedQuizData = useMemo(
+    () => fromRouteOrCache<QuizData>(GENERATE_KEYS.quizData, routeQuizData, (q) => !!q?.roomType),
+    [routeQuizData],
+  );
   // Fallback: if user arrived without route state but already has a chosen
   // roomType in the quiz context (e.g. from Start → moodboard flow), use that
   // instead of bouncing back to /quiz.
   const quizData: QuizData | undefined =
     routeQuizData || cachedQuizData || (contextQuizData?.roomType ? contextQuizData : undefined);
 
-  const resumeDesignId = location.state?.resumeDesignId as string | undefined;
-  const existingRoomImagesFromState = (location.state?.quizData?.existingRoomImages || location.state?.existingRoomImages) as string[] | undefined;
-  const keepElementsFromState = location.state?.keepElements as string[] | undefined;
-  const changeElementsFromState = location.state?.changeElements as string[] | undefined;
-  const isExistingRoomFlow = location.state?.source === "existing-room" || !!existingRoomImagesFromState?.length;
+  const resumeDesignId = routeState?.resumeDesignId as string | undefined;
+  const existingRoomImagesFromState = (routeState?.quizData?.existingRoomImages || routeState?.existingRoomImages) as string[] | undefined;
+  const keepElementsFromState = routeState?.keepElements as string[] | undefined;
+  const changeElementsFromState = routeState?.changeElements as string[] | undefined;
+  const isExistingRoomFlow = routeState?.source === "existing-room" || !!existingRoomImagesFromState?.length;
   const shouldUseFloorPlanContext =
-    !location.state?.analysisResult &&
+    !routeState?.analysisResult &&
     !existingRoomImagesFromState?.length &&
-    !location.state?.productAnalysis &&
-    !location.state?.scenePreviewImage &&
-    location.state?.source !== "existing-room";
-  
-  // Persist analysisResult and selectedInspirations to sessionStorage so they survive re-renders/HMR
-  const selectedInspirations = (() => {
-    const fromState = location.state?.selectedInspirations as string[] | undefined;
-    if (fromState) {
-      sessionStorage.setItem('generate_inspirations_cache', JSON.stringify(fromState));
-      return fromState;
-    }
-    try {
-      const cached = sessionStorage.getItem('generate_inspirations_cache');
-      return cached ? JSON.parse(cached) as string[] : undefined;
-    } catch { return undefined; }
-  })();
+    !routeState?.productAnalysis &&
+    !routeState?.scenePreviewImage &&
+    routeState?.source !== "existing-room";
 
-  const inspirationDetails = (() => {
-    type Detail = { label: string; description: string; type: string };
-    const fromState = location.state?.inspirationDetails as Detail[] | undefined;
-    if (fromState) {
-      sessionStorage.setItem('generate_inspiration_details_cache', JSON.stringify(fromState));
-      return fromState;
-    }
-    try {
-      const cached = sessionStorage.getItem('generate_inspiration_details_cache');
-      return cached ? JSON.parse(cached) as Detail[] : undefined;
-    } catch { return undefined; }
-  })();
+  const selectedInspirations = useMemo(
+    () => fromRouteOrCache<string[]>(GENERATE_KEYS.inspirations, routeState?.selectedInspirations),
+    [routeState?.selectedInspirations],
+  );
+  const inspirationDetails = useMemo(
+    () => fromRouteOrCache<InspirationDetail[]>(GENERATE_KEYS.inspirationDetails, routeState?.inspirationDetails),
+    [routeState?.inspirationDetails],
+  );
+  const analysisResult = useMemo(
+    () => fromRouteOrCache<AnalysisData>(GENERATE_KEYS.analysis, routeState?.analysisResult),
+    [routeState?.analysisResult],
+  );
 
-  const analysisResult = (() => {
-    type AnalysisData = { styles?: Array<{ styleName: string; keywords: string[] }>; dominantColors?: string[]; moodboardDescription?: string };
-    const fromState = location.state?.analysisResult as AnalysisData | undefined;
-    if (fromState) {
-      sessionStorage.setItem('generate_analysis_cache', JSON.stringify(fromState));
-      return fromState;
-    }
-    try {
-      const cached = sessionStorage.getItem('generate_analysis_cache');
-      return cached ? JSON.parse(cached) as AnalysisData : undefined;
-    } catch { return undefined; }
-  })();
-
-  const routeMoodboard = location.state?.moodboard as GenerateMoodboard | undefined;
-  const currentMoodboard = (() => {
-    if (routeMoodboard) return routeMoodboard;
-    try {
-      const cached = sessionStorage.getItem("generate_moodboard_cache");
-      return cached ? (JSON.parse(cached) as GenerateMoodboard) : undefined;
-    } catch {
-      return undefined;
-    }
-  })();
-
-  console.log('[Generate] analysisResult colors:', analysisResult?.dominantColors, 'keywords:', analysisResult?.styles?.flatMap(s => s.keywords));
-
-  // Initialize state from sessionStorage to persist across tab switches
-  const getInitialDesign = (): GeneratedDesign | null => {
-    try {
-      const cached = sessionStorage.getItem('generate_design_cache');
-      return cached ? JSON.parse(cached) : null;
-    } catch {
-      return null;
-    }
-  };
-
-  const getInitialAngleImages = (): AngleImage[] => {
-    try {
-      const cached = sessionStorage.getItem('generate_angles_cache');
-      return cached ? JSON.parse(cached) : [];
-    } catch {
-      return [];
-    }
-  };
-
-  const getInitialHighlights = (): DesignHighlightsData | null => {
-    try {
-      const cached = sessionStorage.getItem('generate_highlights_cache');
-      return cached ? JSON.parse(cached) : null;
-    } catch {
-      return null;
-    }
-  };
+  // The moodboard is state: restoring a saved design replaces it, and the
+  // page must re-render with the restored one.
+  const routeMoodboard = routeState?.moodboard as GenerateMoodboard | undefined;
+  const [currentMoodboard, setCurrentMoodboardState] = useState<GenerateMoodboard | undefined>(
+    () => routeMoodboard ?? readJson<GenerateMoodboard | undefined>(GENERATE_KEYS.moodboard, undefined),
+  );
+  const setCurrentMoodboard = useCallback((mb: GenerateMoodboard | undefined) => {
+    if (mb) writeJson(GENERATE_KEYS.moodboard, mb);
+    else removeSessionKeys(GENERATE_KEYS.moodboard);
+    setCurrentMoodboardState(mb);
+  }, []);
+  useEffect(() => {
+    if (routeMoodboard) setCurrentMoodboard(routeMoodboard);
+  }, [routeMoodboard, setCurrentMoodboard]);
 
   const [activeTab, setActiveTab] = useState("current");
   const [generating, setGenerating] = useState(false);
-  const [design, setDesign] = useState<GeneratedDesign | null>(getInitialDesign);
-  const [angleImages, setAngleImages] = useState<AngleImage[]>(getInitialAngleImages);
+  const [design, setDesign] = useSessionCachedState<GeneratedDesign | null>(GENERATE_KEYS.design, null, { shouldPersist: isPresent });
+  const [angleImages, setAngleImages] = useSessionCachedState<AngleImage[]>(GENERATE_KEYS.angles, [], { shouldPersist: isNonEmpty });
   const [modificationInput, setModificationInput] = useState("");
   const [extractedWalls, setExtractedWalls] = useState<ExtractedWall[]>([]);
-  const [highlightsData, setHighlightsData] = useState<DesignHighlightsData | null>(getInitialHighlights);
+  const [highlightsData, setHighlightsData] = useSessionCachedState<DesignHighlightsData | null>(
+    GENERATE_KEYS.highlights,
+    null,
+    { shouldPersist: isPresent, serialize: stripHighlightVisuals },
+  );
   const [generatingHighlights, setGeneratingHighlights] = useState(false);
   const [applyingHighlight, setApplyingHighlight] = useState<string | null>(null);
   const [editingTitle, setEditingTitle] = useState(false);
   const [titleDraft, setTitleDraft] = useState("");
-  const [styleProfile, setStyleProfile] = useState<{
+  const [styleProfile, setStyleProfile] = useSessionCachedState<{
     matches: StyleMatch[];
     name: string;
     description: string;
-  } | null>(() => {
-    try {
-      const cached = sessionStorage.getItem('generate_styleprofile_cache');
-      return cached ? JSON.parse(cached) : null;
-    } catch {
-      return null;
-    }
-  });
-  const [designItems, setDesignItems] = useState<DesignItem[]>(() => {
-    try {
-      const cached = sessionStorage.getItem('generate_items_cache');
-      return cached ? JSON.parse(cached) : [];
-    } catch {
-      return [];
-    }
-  });
-  const [extractingItems, setExtractingItems] = useState(() => {
-    return sessionStorage.getItem('generate_extracting_cache') === 'true';
-  });
-  const [fullDescription, setFullDescription] = useState(() => {
-    return sessionStorage.getItem('generate_description_cache') || "";
-  });
-  const [modificationHistory, setModificationHistory] = useState<string[]>(() => {
-    try {
-      const cached = sessionStorage.getItem('generate_history_cache');
-      return cached ? JSON.parse(cached) : [];
-    } catch {
-      return [];
-    }
-  });
+  } | null>(GENERATE_KEYS.styleProfile, null, { shouldPersist: isPresent });
+  const [designItems, setDesignItems] = useSessionCachedState<DesignItem[]>(GENERATE_KEYS.items, [], { shouldPersist: isNonEmpty });
+  const [extractingItems, setExtractingItems] = useSessionCachedState<boolean>(GENERATE_KEYS.extracting, false);
+  const [fullDescription, setFullDescription] = useSessionCachedString(GENERATE_KEYS.description);
+  const [modificationHistory, setModificationHistory] = useSessionCachedState<string[]>(GENERATE_KEYS.history, [], { shouldPersist: isNonEmpty });
   const [referenceImageUrl, setReferenceImageUrl] = useState<string | null>(null);
-  const [imageHistoryStack, setImageHistoryStack] = useState<string[]>(() => {
-    try {
-      const cached = sessionStorage.getItem('generate_image_history_stack');
-      return cached ? JSON.parse(cached) : [];
-    } catch { return []; }
-  });
+  const [imageHistoryStack, setImageHistoryStack] = useSessionCachedState<string[]>(GENERATE_KEYS.imageHistory, [], { shouldPersist: isNonEmpty });
   const [isolatingPhotos, setIsolatingPhotos] = useState(false);
   const [existingRoomImages, setExistingRoomImages] = useState<string[]>([]);
   const [uploadingReference, setUploadingReference] = useState(false);
-  const [debugSteps, setDebugSteps] = useState<Array<{ timestamp: string; step: string; detail: string; data?: unknown }>>(() => {
-    try {
-      const cached = sessionStorage.getItem('generate_debug_steps_cache');
-      return cached ? JSON.parse(cached) : [];
-    } catch {
-      return [];
-    }
-  });
-  const [debugPrompt, setDebugPrompt] = useState<string>(() => {
-    return sessionStorage.getItem('generate_debug_prompt_cache') || "";
-  });
+  const [debugSteps, setDebugSteps] = useSessionCachedState<Array<{ timestamp: string; step: string; detail: string; data?: unknown }>>(
+    GENERATE_KEYS.debugSteps,
+    [],
+    { shouldPersist: isNonEmpty },
+  );
+  const [debugPrompt, setDebugPrompt] = useSessionCachedString(GENERATE_KEYS.debugPrompt);
   const designRef = useRef<HTMLDivElement>(null);
   
-  // Upload a base64 data URI to storage and return the public URL.
-  // Never returns the data URI itself: a multi-megabyte base64 string written
-  // to generated_designs.image_url bloats the database, slows the gallery and
-  // overflows sessionStorage. Retries transient failures, then throws.
-  const uploadDesignImage = useCallback(async (base64DataUri: string, userId: string): Promise<string> => {
-    if (!base64DataUri.startsWith('data:')) return base64DataUri;
-    const mimeMatch = base64DataUri.match(/^data:(image\/\w+);base64,/);
-    const mimeType = mimeMatch?.[1] || 'image/png';
-    const ext = mimeType === 'image/jpeg' ? 'jpg' : 'png';
-    const base64 = base64DataUri.replace(/^data:image\/\w+;base64,/, '');
-    const byteString = atob(base64);
-    const ia = new Uint8Array(byteString.length);
-    for (let i = 0; i < byteString.length; i++) {
-      ia[i] = byteString.charCodeAt(i);
-    }
-    const blob = new Blob([ia], { type: mimeType });
-    const fileName = `${userId}/design-${Date.now()}-${crypto.randomUUID().slice(0, 8)}.${ext}`;
-
-    const maxAttempts = 3;
-    let lastError: unknown = null;
-    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-      const { error: uploadError } = await supabase.storage
-        .from('design-images')
-        .upload(fileName, blob, { contentType: mimeType });
-      // "already exists" means an earlier attempt did succeed (the response
-      // was lost), so the file is there under this unique name.
-      const alreadyThere = !!uploadError && /exists|duplicate/i.test(uploadError.message);
-      if (!uploadError || alreadyThere) {
-        return supabase.storage.from('design-images').getPublicUrl(fileName).data.publicUrl;
-      }
-      lastError = uploadError;
-      console.error(`Design image upload failed (attempt ${attempt}/${maxAttempts}):`, uploadError);
-      if (attempt < maxAttempts) await new Promise((r) => setTimeout(r, 800 * attempt));
-    }
-    throw new Error(
-      `We couldn't save the design image. Please check your connection and try again.${
-        lastError instanceof Error ? ` (${lastError.message})` : ''
-      }`,
-    );
-  }, []);
 
   // Track if initial load has been done
   const hasInitializedRef = useRef(false);
-
-  // Safe sessionStorage setter that handles quota errors
-  const safeSessionStorage = useCallback((key: string, value: string) => {
-    try {
-      sessionStorage.setItem(key, value);
-    } catch (error) {
-      // Quota exceeded - clear old caches and try again
-      console.warn('SessionStorage quota exceeded, clearing caches');
-      sessionStorage.removeItem('generate_highlights_cache');
-      sessionStorage.removeItem('generate_products_cache');
-      sessionStorage.removeItem('generate_styleprofile_cache');
-      try {
-        sessionStorage.setItem(key, value);
-      } catch {
-        // Still failing, just skip caching
-        console.warn('Unable to cache:', key);
-      }
-    }
-  }, []);
 
   const resolveActiveRoomContext = useCallback(async () => {
     if (!shouldUseFloorPlanContext) {
@@ -499,83 +284,6 @@ const Generate = () => {
     return { floorPlanContext, activeRoomId };
   }, [shouldUseFloorPlanContext]);
 
-  // Cache state changes to sessionStorage (skip large data like highlights visuals)
-  useEffect(() => {
-    if (design) {
-      safeSessionStorage('generate_design_cache', JSON.stringify(design));
-    }
-  }, [design, safeSessionStorage]);
-
-  useEffect(() => {
-    if (angleImages.length > 0) {
-      safeSessionStorage('generate_angles_cache', JSON.stringify(angleImages));
-    }
-  }, [angleImages, safeSessionStorage]);
-
-  useEffect(() => {
-    if (highlightsData) {
-      // Strip visual URLs to save space - they can be regenerated
-      const lightHighlights = {
-        colorScheme: { ...highlightsData.colorScheme, visual: undefined },
-        accentFurniture: { ...highlightsData.accentFurniture, visual: undefined },
-        moodboard: { ...highlightsData.moodboard, visual: undefined },
-      };
-      safeSessionStorage('generate_highlights_cache', JSON.stringify(lightHighlights));
-    }
-  }, [highlightsData, safeSessionStorage]);
-
-  useEffect(() => {
-    if (styleProfile) {
-      safeSessionStorage('generate_styleprofile_cache', JSON.stringify(styleProfile));
-    }
-  }, [styleProfile, safeSessionStorage]);
-
-  useEffect(() => {
-    if (designItems.length > 0) {
-      safeSessionStorage('generate_items_cache', JSON.stringify(designItems));
-    }
-  }, [designItems, safeSessionStorage]);
-
-  useEffect(() => {
-    if (fullDescription) {
-      safeSessionStorage('generate_description_cache', fullDescription);
-    }
-  }, [fullDescription, safeSessionStorage]);
-
-  useEffect(() => {
-    if (modificationHistory.length > 0) {
-      safeSessionStorage('generate_history_cache', JSON.stringify(modificationHistory));
-    }
-  }, [modificationHistory, safeSessionStorage]);
-
-  useEffect(() => {
-    if (imageHistoryStack.length > 0) {
-      safeSessionStorage('generate_image_history_stack', JSON.stringify(imageHistoryStack));
-    }
-  }, [imageHistoryStack, safeSessionStorage]);
-
-  // Cache extracting state to persist across tab switches
-  useEffect(() => {
-    safeSessionStorage('generate_extracting_cache', extractingItems ? 'true' : 'false');
-  }, [extractingItems, safeSessionStorage]);
-
-  // Cache debug data
-  useEffect(() => {
-    if (debugSteps.length > 0) {
-      safeSessionStorage('generate_debug_steps_cache', JSON.stringify(debugSteps));
-    }
-  }, [debugSteps, safeSessionStorage]);
-
-  useEffect(() => {
-    if (debugPrompt) {
-      safeSessionStorage('generate_debug_prompt_cache', debugPrompt);
-    }
-  }, [debugPrompt, safeSessionStorage]);
-
-  useEffect(() => {
-    if (!routeMoodboard) return;
-    safeSessionStorage("generate_moodboard_cache", JSON.stringify(routeMoodboard));
-  }, [routeMoodboard, safeSessionStorage]);
 
   // Persist the moodboard onto the design row so it can be restored when the
   // user re-opens the design later. Runs once per (designId, moodboard) pair.
@@ -619,7 +327,7 @@ const Generate = () => {
           .maybeSingle();
         const savedMb = !error ? ((data as any)?.moodboard as GenerateMoodboard | null | undefined) : undefined;
         if (savedMb && Object.keys(savedMb).length > 0) {
-          try { sessionStorage.setItem("generate_moodboard_cache", JSON.stringify(savedMb)); } catch { /* ignore */ }
+          setCurrentMoodboard(savedMb);
           hydrateAnalyzeRoomCacheFromMoodboard(savedMb);
           navigate("/analyze-room");
           return;
@@ -637,7 +345,7 @@ const Generate = () => {
         mustInclude: [],
       };
 
-      try { sessionStorage.setItem("generate_moodboard_cache", JSON.stringify(synthesized)); } catch { /* ignore */ }
+      setCurrentMoodboard(synthesized);
       hydrateAnalyzeRoomCacheFromMoodboard(synthesized);
 
       if (designId) {
@@ -658,9 +366,19 @@ const Generate = () => {
   };
 
   // Track the quiz data to detect new quizzes
-  const lastQuizDataRef = useRef<string | null>(sessionStorage.getItem('generate_quiz_hash'));
+  const lastQuizDataRef = useRef<string | null>(readString(GENERATE_KEYS.quizHash));
+
+  // The start-up effect below must run when its INPUTS change (user, quiz,
+  // route), not whenever the page re-renders. Page state and helper
+  // functions are read through this ref so they are always current without
+  // re-triggering the effect.
+  // Filled by the layout effect placed after these functions are declared.
+  const startupStateRef = useRef<StartupState | null>(null);
 
   useEffect(() => {
+    if (!startupStateRef.current) return;
+    const { design, designItems, highlightsData, generateHighlights, loadDesignById, loadExistingOrGenerate } =
+      startupStateRef.current;
     if (!loading && !user) {
       navigate("/auth");
       return;
@@ -688,54 +406,45 @@ const Generate = () => {
       budgetFeel: quizData.budgetFeel,
       mustHaveElements: quizData.mustHaveElements,
       furnitureSource: quizData.furnitureSource,
-      source: location.state?.source,
+      source: routeState?.source,
       existingRoomImages: existingRoomImagesFromState,
       keepElements: keepElementsFromState,
       changeElements: changeElementsFromState,
     });
 
     // Also include the nonce to detect re-submissions with same preferences
-    const quizNonce = sessionStorage.getItem('generate_quiz_nonce') || '';
+    const quizNonce = readString(GENERATE_KEYS.quizNonce) || '';
     const fullHash = quizHash + '|' + quizNonce;
 
     // Get the last quiz hash from sessionStorage
-    const storedHash = sessionStorage.getItem('generate_quiz_hash');
+    const storedHash = readString(GENERATE_KEYS.quizHash);
     
     // Check if this is a NEW quiz (different from stored one) or a scene preview flow.
     // Also: if the user arrived here with fresh quizData in navigation state (not just a tab
     // switch / refresh that re-reads from sessionStorage), always treat it as a new generation
     // request so we never silently reuse a stale cached design.
-    const hasScenePreview = !!location.state?.scenePreviewImage;
+    const hasScenePreview = !!routeState?.scenePreviewImage;
     // Only treat as "fresh quiz arrival" the FIRST time this nonce is seen.
     // Without this, switching tabs/windows re-runs this effect with the same
     // location.state and would trigger a brand-new generation every focus.
-    const consumedNonceKey = 'generate_consumed_quiz_nonce';
-    const consumedNonce = sessionStorage.getItem(consumedNonceKey);
+    const consumedNonceKey = GENERATE_KEYS.consumedQuizNonce;
+    const consumedNonce = readString(consumedNonceKey);
     const arrivedWithFreshQuiz =
-      !!location.state?.quizData &&
+      !!routeState?.quizData &&
       !resumeDesignId &&
       consumedNonce !== quizNonce;
     const isNewQuiz = (storedHash !== null && storedHash !== fullHash) || hasScenePreview || arrivedWithFreshQuiz;
     if (arrivedWithFreshQuiz) {
-      sessionStorage.setItem(consumedNonceKey, quizNonce);
+      writeString(consumedNonceKey, quizNonce);
     }
     
     if (isNewQuiz) {
-      // Clear all caches for fresh start
-      sessionStorage.removeItem('generate_design_cache');
-      sessionStorage.removeItem('generate_products_cache');
-      sessionStorage.removeItem('generate_highlights_cache');
-      sessionStorage.removeItem('generate_styleprofile_cache');
-      sessionStorage.removeItem('generate_items_cache');
-      sessionStorage.removeItem('generate_description_cache');
-      sessionStorage.removeItem('generate_history_cache');
-      sessionStorage.removeItem('generate_image_history_stack');
-      sessionStorage.removeItem('generate_extracting_cache');
-      sessionStorage.removeItem('generate_quiz_response_id');
-      sessionStorage.removeItem('generate_debug_steps_cache');
-      sessionStorage.removeItem('generate_debug_prompt_cache');
-      sessionStorage.removeItem('generate_moodboard_cache');
-      
+      // Clear all caches for fresh start. clearDesignView() also drops the
+      // camera-angle cache, which used to survive and reappear after a reload.
+      clearDesignView();
+      removeSessionKeys(GENERATE_KEYS.quizResponseId);
+      setCurrentMoodboard(routeMoodboard);
+
       // Reset state
       setDesign(null);
       setAngleImages([]);
@@ -752,11 +461,11 @@ const Generate = () => {
     }
 
     // Store current quiz hash (includes nonce)
-    sessionStorage.setItem('generate_quiz_hash', fullHash);
+    writeString(GENERATE_KEYS.quizHash, fullHash);
     lastQuizDataRef.current = fullHash;
 
     // Skip if we already have a cached design (tab switching)
-    const cachedDesign = getInitialDesign();
+    const cachedDesign = readJson<GeneratedDesign | null>(GENERATE_KEYS.design, null);
     if (cachedDesign && !isNewQuiz) {
       // Already have design from sessionStorage, just make sure state is set
       if (!design) {
@@ -781,7 +490,24 @@ const Generate = () => {
 
     // Check for existing design first, only generate if none exists
     loadExistingOrGenerate();
-  }, [user, loading, navigate, quizData, resumeDesignId]);
+  }, [
+    user,
+    loading,
+    navigate,
+    quizData,
+    resumeDesignId,
+    waHydrating, // a failed WhatsApp hydration must still send the user on to /quiz
+    routeState,
+    routeMoodboard,
+    existingRoomImagesFromState,
+    keepElementsFromState,
+    changeElementsFromState,
+    setCurrentMoodboard,
+    startupStateRef,
+    // state setters (stable)
+    setDesign, setAngleImages, setHighlightsData, setStyleProfile, setDesignItems, setFullDescription,
+    setModificationHistory, setImageHistoryStack, setExtractingItems, setDebugSteps, setDebugPrompt,
+  ]);
 
   const loadDesignById = async (designId: string) => {
     if (!user) return;
@@ -805,7 +531,7 @@ const Generate = () => {
       const savedMoodboard = (existingDesign as any).moodboard as GenerateMoodboard | null | undefined;
       if (savedMoodboard && typeof savedMoodboard === "object") {
         try {
-          sessionStorage.setItem("generate_moodboard_cache", JSON.stringify(savedMoodboard));
+          setCurrentMoodboard(savedMoodboard);
           hydrateAnalyzeRoomCacheFromMoodboard(savedMoodboard);
         } catch { /* ignore quota */ }
       }
@@ -862,7 +588,7 @@ const Generate = () => {
     setGenerating(true);
     try {
       // Check if we have a cached quiz response ID from this session
-      let currentQuizId = sessionStorage.getItem('generate_quiz_response_id');
+      let currentQuizId = readString(GENERATE_KEYS.quizResponseId);
 
       const answers = {
         room_type: quizData.roomType || "living_room",
@@ -905,7 +631,7 @@ const Generate = () => {
             .maybeSingle();
           if (priorDesign?.quiz_response_id) {
             currentQuizId = priorDesign.quiz_response_id;
-            sessionStorage.setItem('generate_quiz_response_id', currentQuizId);
+            writeString(GENERATE_KEYS.quizResponseId, currentQuizId);
           }
         }
       }
@@ -920,7 +646,7 @@ const Generate = () => {
 
         currentQuizId = quizResponse?.id || null;
         if (currentQuizId) {
-          sessionStorage.setItem('generate_quiz_response_id', currentQuizId);
+          writeString(GENERATE_KEYS.quizResponseId, currentQuizId);
         }
       }
 
@@ -953,7 +679,7 @@ const Generate = () => {
       const savedMoodboard = (existingDesign as any).moodboard as GenerateMoodboard | null | undefined;
       if (savedMoodboard && typeof savedMoodboard === "object") {
         try {
-          sessionStorage.setItem("generate_moodboard_cache", JSON.stringify(savedMoodboard));
+          setCurrentMoodboard(savedMoodboard);
           hydrateAnalyzeRoomCacheFromMoodboard(savedMoodboard);
         } catch { /* ignore */ }
       }
@@ -1011,7 +737,7 @@ const Generate = () => {
         loadDesignItems(existingDesign.id);
         // Clear any stale extracting state since design is already locked
         setExtractingItems(false);
-        sessionStorage.removeItem('generate_extracting_cache');
+        removeSessionKeys(GENERATE_KEYS.extracting);
       }
 
       // Only regenerate highlights/products if they weren't cached
@@ -1241,7 +967,9 @@ const Generate = () => {
     }
   };
 
-  const handleTryStyle = useCallback((newStyle: string) => {
+  // Plain click handlers: a memoized version kept outdated values (e.g. the
+  // analysis inputs) because its dependency list was incomplete.
+  const handleTryStyle = (newStyle: string) => {
     if (!quizData || !user) return;
     // Override the style preference and regenerate
     const overriddenQuiz = { ...quizData, stylePreference: newStyle };
@@ -1342,15 +1070,15 @@ const Generate = () => {
       }
     };
     run();
-  }, [quizData, user, location.state, currentMoodboard, uploadDesignImage, toast, resolveActiveRoomContext]);
+  };
 
-  const handleSurpriseStyle = useCallback(() => {
+  const handleSurpriseStyle = () => {
     const styles = ["modern-minimal", "bohemian-eclectic", "classic-historical", "rustic-nature", "mediterranean", "glam-luxe"];
     const current = quizData?.stylePreference || "";
     const others = styles.filter((s) => s !== current);
     const random = others[Math.floor(Math.random() * others.length)];
     handleTryStyle(random);
-  }, [quizData, handleTryStyle]);
+  };
 
   // The start-up effect can re-run on many renders while highlights load;
   // never start a second paid analysis for the same image while one runs.
@@ -1434,6 +1162,19 @@ const Generate = () => {
     }
   };
 
+  // Keep the start-up effect's view of page state current. Layout effects run
+  // before regular effects, so it always sees this render's values.
+  useLayoutEffect(() => {
+    startupStateRef.current = {
+      design,
+      designItems,
+      highlightsData,
+      generateHighlights,
+      loadDesignById,
+      loadExistingOrGenerate,
+    };
+  });
+
   const generateHighlightVisuals = async (highlights: DesignHighlightsData, quiz: QuizData) => {
     const style = quiz.stylePreference || "modern-minimal";
     const room = quiz.roomType || "living room";
@@ -1483,119 +1224,6 @@ const Generate = () => {
     });
   };
 
-  const buildStyleMatches = (primaryStyle?: string, analysis?: Record<string, unknown> | null): StyleMatch[] => {
-    const styleColors: Record<string, string> = {
-      "modern-minimal": "#64748B",
-      "classic-historical": "#92400E",
-      "bohemian-eclectic": "#7C3AED",
-      "rustic-nature": "#059669",
-      "mediterranean": "#0891B2",
-      "glam-luxe": "#BE185D",
-    };
-
-    const primary = primaryStyle || "modern-minimal";
-    
-    // Calculate percentages based on primary style
-    const matches: StyleMatch[] = [];
-    
-    // Primary style gets highest percentage
-    matches.push({
-      style: primary,
-      percentage: 45,
-      color: styleColors[primary] || "#64748B",
-    });
-
-    // Add complementary styles based on the primary
-    const complementaryMap: Record<string, string[]> = {
-      "modern-minimal": ["rustic-nature", "mediterranean"],
-      "classic-historical": ["glam-luxe", "mediterranean"],
-      "bohemian-eclectic": ["rustic-nature", "glam-luxe"],
-      "rustic-nature": ["bohemian-eclectic", "mediterranean"],
-      "mediterranean": ["rustic-nature", "modern-minimal"],
-      "glam-luxe": ["classic-historical", "modern-minimal"],
-    };
-
-    const complementary = complementaryMap[primary] || ["rustic-nature", "modern-minimal"];
-    matches.push({
-      style: complementary[0],
-      percentage: 30,
-      color: styleColors[complementary[0]] || "#059669",
-    });
-    matches.push({
-      style: complementary[1],
-      percentage: 25,
-      color: styleColors[complementary[1]] || "#0891B2",
-    });
-
-    return matches;
-  };
-
-  const generateStyleProfile = (matches: StyleMatch[], quiz: QuizData): { matches: StyleMatch[]; name: string; description: string } => {
-    const primary = matches[0]?.style || "modern-minimal";
-    const secondary = matches[1]?.style;
-    
-    const profileNames: Record<string, string> = {
-      "modern-minimal": "Contemporary Zen",
-      "classic-historical": "Timeless Elegance",
-      "bohemian-eclectic": "Creative Spirit",
-      "rustic-nature": "Organic Harmony",
-      "mediterranean": "Coastal Serenity",
-      "glam-luxe": "Modern Luxe",
-    };
-
-    const blendDescriptions: Record<string, string> = {
-      "modern-minimal+rustic-nature": "Your style blends clean contemporary lines with organic natural textures, creating spaces that feel both refined and grounded in nature.",
-      "modern-minimal+mediterranean": "You gravitate toward crisp minimalism softened by coastal warmth—airy spaces with natural light and calming blue accents.",
-      "classic-historical+glam-luxe": "Your aesthetic marries traditional elegance with glamorous touches—rich materials, ornate details, and luxurious finishes.",
-      "bohemian-eclectic+rustic-nature": "You embrace a collected, personal style where global artisan pieces meet earthy organic elements in a warm, layered space.",
-      "rustic-nature+mediterranean": "Your spaces feel like a countryside retreat—natural materials, earthy tones, and a relaxed Mediterranean ease.",
-    };
-
-    const blendKey = `${primary}+${secondary}`;
-    const description = blendDescriptions[blendKey] || 
-      `Your unique style combines ${matches.map(m => m.style.replace(/-/g, " ")).join(", ")} influences, creating a personalized aesthetic for your ${quiz.roomType || "space"}.`;
-
-    return {
-      matches,
-      name: profileNames[primary] || "Personalized Style",
-      description,
-    };
-  };
-
-  const getMaterialsForStyle = (style?: string): string[] => {
-    const materialsMap: Record<string, string[]> = {
-      "modern-minimal": ["oak wood", "linen", "concrete", "brushed steel"],
-      "classic-historical": ["mahogany", "velvet", "marble", "brass"],
-      "bohemian-eclectic": ["rattan", "woven textiles", "terracotta", "macramé"],
-      "rustic-nature": ["reclaimed wood", "jute", "natural stone", "raw linen"],
-      "mediterranean": ["whitewashed wood", "terracotta", "wrought iron", "cotton"],
-      "glam-luxe": ["lacquer", "velvet", "mirror", "gold leaf"],
-    };
-    return materialsMap[style || "modern-minimal"] || materialsMap["modern-minimal"];
-  };
-
-  const getDefaultColors = (palette?: string): string[] => {
-    const colorMaps: Record<string, string[]> = {
-      neutral: ["#F5F5DC", "#D4C4A8", "#8B7355", "#5D4E37", "#2F2F2F"],
-      cool: ["#E3F2FD", "#90CAF9", "#42A5F5", "#1976D2", "#0D47A1"],
-      warm: ["#FFF3E0", "#FFCC80", "#FF9800", "#E65100", "#BF360C"],
-      bold: ["#F3E5F5", "#BA68C8", "#7B1FA2", "#4A148C", "#1A237E"],
-      monochrome: ["#FAFAFA", "#BDBDBD", "#757575", "#424242", "#212121"],
-    };
-    return colorMaps[palette || "neutral"] || colorMaps.neutral;
-  };
-
-  const getDefaultAccentFurniture = (style?: string): string => {
-    const furnitureMap: Record<string, string> = {
-      "modern-minimal": "Sculptural Lounge Chair",
-      "classic-historical": "Antique Armoire",
-      "bohemian-eclectic": "Rattan Peacock Chair",
-      "rustic-nature": "Live Edge Wood Table",
-      "mediterranean": "Wrought Iron Daybed",
-      "glam-luxe": "Velvet Statement Sofa",
-    };
-    return furnitureMap[style || "modern-minimal"] || "Designer Accent Chair";
-  };
 
   const handleAngleImageGenerated = useCallback((label: string, imageUrl: string) => {
     setAngleImages(prev => {
@@ -1605,7 +1233,7 @@ const Generate = () => {
       }
       return [...prev, { label, imageUrl }];
     });
-  }, []);
+  }, [setAngleImages]);
 
   const handleReferenceUpload = useCallback(
     async (e: React.ChangeEvent<HTMLInputElement>) => {
