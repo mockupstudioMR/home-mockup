@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { requireUser } from "../_shared/auth.ts";
+import { fetchWithTimeout } from "../_shared/http.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -27,7 +28,7 @@ Deno.serve(async (req) => {
 
     console.log(`Identifying item at (${clickX}%, ${clickY}%) in image`);
 
-    const response = await fetch(
+    const response = await fetchWithTimeout(
       "https://ai.gateway.lovable.dev/v1/chat/completions",
       {
         method: "POST",

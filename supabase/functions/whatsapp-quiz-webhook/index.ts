@@ -2,6 +2,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { verifyTwilioRequest } from "../_shared/twilioSignature.ts";
 import { STEPS, parseTextAnswer, renderTextStep, advanceAndSend, sendWhatsApp, firstMessage } from "../_shared/whatsappQuiz.ts";
+import { fetchWithTimeout } from "../_shared/http.ts";
 
 async function downloadTwilioMediaToStorage(
   admin: ReturnType<typeof createClient>,
@@ -19,7 +20,7 @@ async function downloadTwilioMediaToStorage(
   const pathSuffix = m ? m[1] : new URL(mediaUrl).pathname;
   const gatewayUrl = `https://connector-gateway.lovable.dev/twilio${pathSuffix}`;
 
-  const res = await fetch(gatewayUrl, {
+  const res = await fetchWithTimeout(gatewayUrl, {
     headers: {
       Authorization: `Bearer ${LOVABLE_API_KEY}`,
       "X-Connection-Api-Key": TWILIO_API_KEY,

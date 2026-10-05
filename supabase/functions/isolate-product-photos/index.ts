@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { forbidUnlessDesignOwner, requireUser } from "../_shared/auth.ts";
+import { fetchWithTimeout } from "../_shared/http.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -80,7 +81,7 @@ Produce a clean e-commerce product photo of that ONE object only, cut out of the
 - Centre it, filling roughly 80% of a square frame, fully inside the frame.
 - No text, watermarks, labels, props, people, reflections or drop shadows.`;
 
-            const response = await fetch(
+            const response = await fetchWithTimeout(
               "https://ai.gateway.lovable.dev/v1/chat/completions",
               {
                 method: "POST",

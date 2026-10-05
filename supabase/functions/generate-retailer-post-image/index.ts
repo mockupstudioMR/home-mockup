@@ -1,5 +1,6 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { requireUser } from "../_shared/auth.ts";
+import { fetchWithTimeout } from "../_shared/http.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -30,7 +31,7 @@ async function toDataUrl(url: string): Promise<string | null> {
   if (!url) return null;
   if (url.startsWith("data:")) return url;
   try {
-    const res = await fetch(url);
+    const res = await fetchWithTimeout(url);
     if (!res.ok) return null;
     const buf = new Uint8Array(await res.arrayBuffer());
     let binary = "";
@@ -114,7 +115,7 @@ Requirements:
     const content: any[] = [{ type: "text", text: prompt }];
     for (const url of refs) content.push({ type: "image_url", image_url: { url } });
 
-    const res = await fetch("https://ai.gateway.lovable.dev/v1/images/generations", {
+    const res = await fetchWithTimeout("https://ai.gateway.lovable.dev/v1/images/generations", {
       method: "POST",
       headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
       body: JSON.stringify({

@@ -1,3 +1,4 @@
+import { fetchWithTimeout } from "./http.ts";
 // Shared WhatsApp quiz logic: question flow + Twilio sender.
 
 export const APP_URL = Deno.env.get("APP_URL") ?? "https://home-mockup.lovable.app";
@@ -122,7 +123,7 @@ export async function sendWhatsApp(toE164: string, body: string): Promise<string
   if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY missing");
   if (!TWILIO_API_KEY) throw new Error("TWILIO_API_KEY missing");
 
-  const res = await fetch("https://connector-gateway.lovable.dev/twilio/Messages.json", {
+  const res = await fetchWithTimeout("https://connector-gateway.lovable.dev/twilio/Messages.json", {
     method: "POST",
     headers: {
       Authorization: `Bearer ${LOVABLE_API_KEY}`,

@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { isAdmin, requireUser } from "../_shared/auth.ts";
+import { fetchWithTimeout } from "../_shared/http.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -84,7 +85,7 @@ Deno.serve(async (req) => {
     ];
 
     // Step 1: Map the website to find all pages
-    const mapResponse = await fetch("https://api.firecrawl.dev/v1/map", {
+    const mapResponse = await fetchWithTimeout("https://api.firecrawl.dev/v1/map", {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${FIRECRAWL_API_KEY}`,
@@ -167,7 +168,7 @@ Deno.serve(async (req) => {
       try {
         console.log("Scraping:", url);
         
-        const scrapeResponse = await fetch("https://api.firecrawl.dev/v1/scrape", {
+        const scrapeResponse = await fetchWithTimeout("https://api.firecrawl.dev/v1/scrape", {
           method: "POST",
           headers: {
             "Authorization": `Bearer ${FIRECRAWL_API_KEY}`,
@@ -257,7 +258,7 @@ Return as JSON array:
 Scraped pages:
 ${productsToExtract}`;
 
-    const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const aiResponse = await fetchWithTimeout("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${LOVABLE_API_KEY}`,
@@ -306,7 +307,7 @@ ${productsToExtract}`;
       if (product.image_url) {
         try {
           console.log("Downloading image:", product.image_url);
-          const imgResponse = await fetch(product.image_url, {
+          const imgResponse = await fetchWithTimeout(product.image_url, {
             headers: { "User-Agent": "Mozilla/5.0" },
           });
           

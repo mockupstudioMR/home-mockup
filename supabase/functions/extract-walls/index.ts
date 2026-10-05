@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { forbidUnlessDesignOwner, requireUser } from "../_shared/auth.ts";
+import { fetchWithTimeout } from "../_shared/http.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -71,7 +72,7 @@ Deno.serve(async (req) => {
     console.log(`Extracting walls from design ${designId}, room: ${roomType || "unknown"}, must-have: ${furnitureItems.join(", ")}`);
 
     // Step 1: Analyze the design to identify walls
-    const analysisResponse = await fetch(
+    const analysisResponse = await fetchWithTimeout(
       "https://ai.gateway.lovable.dev/v1/chat/completions",
       {
         method: "POST",
@@ -250,7 +251,7 @@ IMPORTANT: This must look like the SAME ROOM, maintaining identical style, light
       for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
         try {
           console.log(`Generating wall image for ${wall.label} (attempt ${attempt}/${MAX_ATTEMPTS})`);
-          const imageResponse = await fetch(
+          const imageResponse = await fetchWithTimeout(
             "https://ai.gateway.lovable.dev/v1/chat/completions",
             {
               method: "POST",
@@ -353,7 +354,7 @@ IMPORTANT: This must look like the SAME ROOM, maintaining identical style, light
     for (let attempt = 1; attempt <= CEILING_MAX_ATTEMPTS; attempt++) {
       try {
         console.log(`Generating ceiling image (attempt ${attempt}/${CEILING_MAX_ATTEMPTS})`);
-        const ceilingResponse = await fetch(
+        const ceilingResponse = await fetchWithTimeout(
           "https://ai.gateway.lovable.dev/v1/chat/completions",
           {
             method: "POST",

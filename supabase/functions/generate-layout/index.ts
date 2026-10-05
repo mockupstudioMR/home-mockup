@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { requireUser } from "../_shared/auth.ts";
+import { fetchWithTimeout } from "../_shared/http.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -95,7 +96,7 @@ Ensure items don't overlap and are placed logically.`;
 
     const userPrompt = `Room shape: ${shape}\nDimensions: ${dimDesc}${roomTypeDesc}${styleDesc}${refDesc}\nFurniture to place: ${furnitureList}${wallsDesc}${openingsDesc}\n\nGenerate the best furniture layout using ONLY the specified furniture items. Explain why each piece is placed where it is with practical, advisor-style reasoning.`;
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const response = await fetchWithTimeout("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${LOVABLE_API_KEY}`,

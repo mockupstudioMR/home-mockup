@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { forbidUnlessDesignOwner, requireUser } from "../_shared/auth.ts";
+import { fetchWithTimeout } from "../_shared/http.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -97,7 +98,7 @@ CRITICAL RULES:
 
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
       console.log(`Replace wall attempt ${attempt}/${maxAttempts}`);
-      const response = await fetch(
+      const response = await fetchWithTimeout(
         "https://ai.gateway.lovable.dev/v1/chat/completions",
         {
           method: "POST",

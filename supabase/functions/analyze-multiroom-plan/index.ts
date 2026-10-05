@@ -1,4 +1,5 @@
 import { requireUser } from "../_shared/auth.ts";
+import { fetchWithTimeout } from "../_shared/http.ts";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
@@ -133,7 +134,7 @@ Be precise and consistent: rooms must not overlap, and the sum of room areas mus
     const askAI = async (messages: unknown[]) => {
       let lastStatus = 0;
       for (const model of MODELS) {
-        const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        const res = await fetchWithTimeout("https://ai.gateway.lovable.dev/v1/chat/completions", {
           method: "POST",
           headers: {
             Authorization: `Bearer ${LOVABLE_API_KEY}`,

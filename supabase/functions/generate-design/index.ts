@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { buildMoodboardDirective, collectMoodboardReferences } from "../_shared/moodboardContext.ts";
 import { requireUser } from "../_shared/auth.ts";
+import { fetchWithTimeout } from "../_shared/http.ts";
 
 const VERSION = "v2.3.0";
 const DEPLOYED_AT = "2026-02-06T12:30:00Z";
@@ -391,19 +392,24 @@ serve(async (req) => {
     if (combinedProductUrls.length > 0) {
       const candidateUrls = combinedProductUrls.slice(0, maxProductImages + 2);
 
-      for (const imageUrl of candidateUrls) {
-        if (validProductImageUrls.length >= maxProductImages) break;
-        try {
-          const headResp = await fetch(imageUrl, { method: "HEAD", redirect: "follow" });
-          if (headResp.ok) {
-            validProductImageUrls.push(imageUrl);
-          } else {
+      // Check all candidates in parallel with a short timeout. Checking them
+      // one by one let a single slow retailer site stall the whole generation.
+      // Results keep the original order, so must-include images stay first.
+      const checks = await Promise.all(
+        candidateUrls.map(async (imageUrl) => {
+          try {
+            const headResp = await fetchWithTimeout(imageUrl, { method: "HEAD", redirect: "follow" }, 5_000);
+            if (headResp.ok) return true;
             addDebug("Image validation", `Skipping broken image (HTTP ${headResp.status}): ${imageUrl.slice(0, 100)}`);
+          } catch (_e) {
+            addDebug("Image validation", `Skipping unreachable image: ${imageUrl.slice(0, 100)}`);
           }
-        } catch (e) {
-          addDebug("Image validation", `Skipping unreachable image: ${imageUrl.slice(0, 100)}`);
-        }
-      }
+          return false;
+        }),
+      );
+      validProductImageUrls = candidateUrls
+        .filter((_, i) => checks[i])
+        .slice(0, maxProductImages);
     }
 
     if (isScenePreviewMode) {
@@ -492,7 +498,7 @@ serve(async (req) => {
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       addDebug("AI generation attempt", `Attempt ${attempt}/${maxRetries}`);
       
-      const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      const response = await fetchWithTimeout("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
         headers: {
           Authorization: `Bearer ${LOVABLE_API_KEY}`,

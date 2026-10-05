@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { requireUser } from "../_shared/auth.ts";
+import { fetchWithTimeout } from "../_shared/http.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -51,17 +52,19 @@ serve(async (req) => {
     const productList = productDescriptions.join(", ");
 
     // Validate product images
-    const validImages: string[] = [];
-    for (const img of (productImages || []).slice(0, 4)) {
-      if (img.startsWith("data:")) {
-        validImages.push(img);
-        continue;
-      }
-      try {
-        const resp = await fetch(img, { method: "HEAD", redirect: "follow" });
-        if (resp.ok) validImages.push(img);
-      } catch { /* skip */ }
-    }
+    const candidates: string[] = (productImages || []).slice(0, 4);
+    const reachable = await Promise.all(
+      candidates.map(async (img) => {
+        if (img.startsWith("data:")) return true;
+        try {
+          const resp = await fetchWithTimeout(img, { method: "HEAD", redirect: "follow" }, 5_000);
+          return resp.ok;
+        } catch {
+          return false;
+        }
+      }),
+    );
+    const validImages = candidates.filter((_, i) => reachable[i]);
 
     console.log(`Generating ${styles.length} scene previews for ${room} with ${validImages.length} product images`);
 
@@ -77,7 +80,7 @@ serve(async (req) => {
       }
 
       try {
-        const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        const response = await fetchWithTimeout("https://ai.gateway.lovable.dev/v1/chat/completions", {
           method: "POST",
           headers: {
             Authorization: `Bearer ${LOVABLE_API_KEY}`,

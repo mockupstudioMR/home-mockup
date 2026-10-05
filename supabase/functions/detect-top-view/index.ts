@@ -1,4 +1,5 @@
 import { requireUser } from "../_shared/auth.ts";
+import { fetchWithTimeout } from "../_shared/http.ts";
 // Generate a realistic TOP-DOWN photographic view of the room based on the
 // rendered design image. Returns { imageUrl } as a data URI (PNG/JPEG).
 
@@ -17,7 +18,7 @@ async function toDataUrl(url: string): Promise<string | null> {
   if (!url) return null;
   if (url.startsWith("data:")) return url;
   try {
-    const res = await fetch(url);
+    const res = await fetchWithTimeout(url);
     if (!res.ok) {
       console.error("Image fetch failed", res.status, url.slice(0, 120));
       return null;
@@ -96,7 +97,7 @@ STYLE:
 - Photorealistic interior photography, soft natural daylight, magazine quality.
 - 1:1 or 4:3 aspect ratio framed tightly to the room.`;
 
-    const resp = await fetch(
+    const resp = await fetchWithTimeout(
       "https://ai.gateway.lovable.dev/v1/chat/completions",
       {
         method: "POST",

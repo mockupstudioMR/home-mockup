@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { forbidUnlessDesignOwner, requireUser } from "../_shared/auth.ts";
+import { fetchWithTimeout } from "../_shared/http.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -121,7 +122,7 @@ Deno.serve(async (req) => {
     }
 
     // Use AI to analyze the image and extract all items
-    const visionResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const visionResponse = await fetchWithTimeout("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${LOVABLE_API_KEY}`,
@@ -188,7 +189,7 @@ Deno.serve(async (req) => {
     // If parsing failed, retry with simpler prompt
     if (!analysis) {
       console.log("First attempt failed, retrying with simpler prompt...");
-      const retryResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      const retryResponse = await fetchWithTimeout("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
         headers: {
           Authorization: `Bearer ${LOVABLE_API_KEY}`,

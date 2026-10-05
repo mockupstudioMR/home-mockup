@@ -1,4 +1,5 @@
 import { requireUser } from "../_shared/auth.ts";
+import { fetchWithTimeout } from "../_shared/http.ts";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
@@ -15,7 +16,7 @@ async function toDataUrl(url: string): Promise<string | null> {
   if (!url) return null;
   if (url.startsWith("data:")) return url;
   try {
-    const res = await fetch(url);
+    const res = await fetchWithTimeout(url);
     if (!res.ok) {
       console.error("Image fetch failed", res.status, url.slice(0, 120));
       return null;
@@ -102,7 +103,7 @@ Respond with EXACT JSON only:
 
     const maxRetries = 3;
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
-      const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      const response = await fetchWithTimeout("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
         headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
         body: JSON.stringify({
