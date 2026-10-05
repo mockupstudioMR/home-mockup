@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -18,6 +18,10 @@ const Auth = () => {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [acceptingInvite, setAcceptingInvite] = useState(false);
+  // Accept each invite once. Without this, a refreshed session (new user
+  // object) re-ran acceptance and showed a false "Invite Error".
+  const inviteHandledRef = useRef(false);
+  const [inviteDone, setInviteDone] = useState(!inviteToken);
   const [rememberMe, setRememberMe] = useState(() => {
     return localStorage.getItem("rememberMe") === "true";
   });
@@ -29,7 +33,8 @@ const Auth = () => {
   // Handle post-auth invite acceptance
   useEffect(() => {
     const handleInviteAcceptance = async () => {
-      if (user && inviteToken && !acceptingInvite) {
+      if (user && inviteToken && !inviteHandledRef.current) {
+        inviteHandledRef.current = true;
         setAcceptingInvite(true);
         const result = await acceptInvite(inviteToken);
         
@@ -46,15 +51,18 @@ const Auth = () => {
           });
         }
         setAcceptingInvite(false);
+        setInviteDone(true);
       }
     };
 
     handleInviteAcceptance();
-  }, [user, inviteToken]);
+  }, [user, inviteToken, acceptInvite, toast]);
 
   // Redirect based on role after login
   useEffect(() => {
-    if (user && role && !acceptingInvite) {
+    // With an invite link, wait until it is accepted so the user lands on
+    // the dashboard for their new role, not the old one.
+    if (user && role && !acceptingInvite && inviteDone) {
       const roleRedirects: Record<string, string> = {
         admin: "/admin",
         designer: "/designer",
@@ -63,7 +71,7 @@ const Auth = () => {
       };
       navigate(roleRedirects[role] || "/start");
     }
-  }, [user, role, acceptingInvite, navigate]);
+  }, [user, role, acceptingInvite, inviteDone, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

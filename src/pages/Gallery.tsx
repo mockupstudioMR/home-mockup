@@ -64,8 +64,9 @@ const Gallery = () => {
     setDiag((prev) => [...prev, entry].slice(-100));
   };
 
+  const userId = user?.id;
   useEffect(() => {
-    if (!user) return;
+    if (!userId) return;
 
     let cancelled = false;
 
@@ -74,7 +75,7 @@ const Gallery = () => {
       setLoadError(null);
       setDiag([]);
       const url = (import.meta.env.VITE_SUPABASE_URL as string) || "(unset)";
-      log("info", "Starting fetch", `user=${user.id}  online=${navigator.onLine}  supabase=${url}`);
+      log("info", "Starting fetch", `user=${userId}  online=${navigator.onLine}  supabase=${url}`);
       const maxAttempts = 3;
       let delayMs = 600;
       let lastError: unknown = null;
@@ -92,7 +93,7 @@ const Gallery = () => {
         } catch { /* fall back to anon key */ }
         const query = new URLSearchParams({
           select: "id, image_url, prompt, is_favorite, created_at, quiz_response_id, room_id",
-          user_id: `eq.${user.id}`,
+          user_id: `eq.${userId}`,
           order: "created_at.desc",
           limit: "120",
         });
@@ -123,7 +124,7 @@ const Gallery = () => {
             const r = await supabase
               .from("generated_designs")
               .select("id, image_url, prompt, is_favorite, created_at, quiz_response_id, room_id")
-              .eq("user_id", user.id)
+              .eq("user_id", userId)
               .order("created_at", { ascending: false })
               .limit(120)
               .abortSignal(controller.signal);
@@ -183,7 +184,7 @@ const Gallery = () => {
     fetchDesigns();
 
     return () => { cancelled = true; };
-  }, [user?.id, retryTick]);
+  }, [userId, retryTick]);
 
   const handleDelete = async (id: string) => {
     try {

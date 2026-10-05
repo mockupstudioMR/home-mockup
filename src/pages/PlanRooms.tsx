@@ -123,15 +123,16 @@ const PlanRooms = () => {
 
   // Restore the last analysed plan from the database so returning to this page
   // never re-runs the AI on a plan we already read.
+  const userId = user?.id;
   useEffect(() => {
-    if (!user) return;
+    if (!userId) return;
     let cancelled = false;
     (async () => {
       try {
         const { data } = await supabase
           .from("floor_plan_analyses")
           .select("image_url, plan")
-          .eq("user_id", user.id)
+          .eq("user_id", userId)
           .order("created_at", { ascending: false })
           .limit(1)
           .maybeSingle();
@@ -147,7 +148,7 @@ const PlanRooms = () => {
       }
     })();
     return () => { cancelled = true; };
-  }, [user?.id]);
+  }, [userId]);
 
   const handleUpload = useCallback(
     async (e: React.ChangeEvent<HTMLInputElement>) => {

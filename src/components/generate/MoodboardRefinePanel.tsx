@@ -85,6 +85,8 @@ const LAYER_KINDS: Record<DesignLayer, MoodboardItemKind[]> = {
   decor: ["decor"],
 };
 
+const DECOR_TYPE_RE = /(lamp|light|rug|art|plant|pillow|cushion|throw|mirror|vase|accessor|decor|textile|curtain|drape|sconce|chandelier|pendant|candle|book|frame)/i;
+
 const DECOR_TYPE_RE_GLOBAL =
   /(lamp|light|rug|art|plant|pillow|cushion|throw|mirror|vase|accessor|decor|textile|curtain|drape|sconce|chandelier|pendant|candle|book|frame)/i;
 
@@ -364,7 +366,6 @@ const MoodboardRefinePanel = ({
     if (activeLayerIdx > guidedStep) {
       updateActiveLayer(LAYERS[guidedStep].id);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeLayerIdx, guidedStep]);
 
   const updateLockPrevious = (v: boolean) => {
@@ -521,7 +522,6 @@ const MoodboardRefinePanel = ({
     detectUsed(it, designDescription, extractedItemNames),
   ).length;
 
-  const DECOR_TYPE_RE = /(lamp|light|rug|art|plant|pillow|cushion|throw|mirror|vase|accessor|decor|textile|curtain|drape|sconce|chandelier|pendant|candle|book|frame)/i;
   const inDesign = useMemo(() => {
     const furniture: typeof extractedItems = [];
     const decor: typeof extractedItems = [];

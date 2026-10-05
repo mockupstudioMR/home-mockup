@@ -17,6 +17,11 @@ import { getAiOptimizedImageUrl, getThumbnailImageUrl, optimizeImageFileSafe } f
 import { getAiErrorMessage } from "@/lib/aiErrorMessage";
 import { cn } from "@/lib/utils";
 import { useJourneySession } from "@/hooks/useJourneySession";
+import { useLatest } from "@/hooks/useLatest";
+
+// Hydrate this screen from the saved journey once per app session (survives
+// remounts when navigating to /generate and back).
+const journeyHydratedFromDb = { done: false };
 
 interface AnalyzedStyle {
   styleName: string;
@@ -77,6 +82,9 @@ const AnalyzeRoom = () => {
   const { quizData, updateQuizData } = useQuiz();
   const { toast } = useToast();
   const journey = useJourneySession();
+  // Persist only when the moodboard state changes, not whenever the journey
+  // object is recreated (that would also race the one-time DB hydration).
+  const journeyRef = useLatest(journey);
   
   const [uploadedImages, setUploadedImages] = useState<string[]>(() => persisted.images || []);
   const stylePrompt: string | undefined = (() => {
@@ -124,11 +132,9 @@ const AnalyzeRoom = () => {
   // Hydrate from DB once — if the user has a saved journey, prefer it over the
   // local sessionStorage cache so returning from another device / tab restores
   // exactly what was last persisted server-side.
-  const hydratedFromDbRef = (globalThis as any).__journeyHydratedRef ?? { current: false };
-  (globalThis as any).__journeyHydratedRef = hydratedFromDbRef;
   useEffect(() => {
-    if (!journey.ready || hydratedFromDbRef.current) return;
-    hydratedFromDbRef.current = true;
+    if (!journey.ready || journeyHydratedFromDb.done) return;
+    journeyHydratedFromDb.done = true;
     const p = (journey.snapshot?.payload as any)?.analyzeRoom;
     if (!p) return;
     if (Array.isArray(p.images)) setUploadedImages(p.images);
@@ -142,7 +148,7 @@ const AnalyzeRoom = () => {
     if (typeof p.moodboardStep === "number") setMoodboardStep(p.moodboardStep);
     if (Array.isArray(p.pinnedVisuals)) setPinnedVisuals(p.pinnedVisuals);
     if (p.moodboard) setMoodboard(p.moodboard);
-  }, [journey.ready]);
+  }, [journey.ready, journey.snapshot?.payload]); // runs once per app session (guard above)
 
   // Persist state so users can navigate away (e.g. to /generate) and return via
   // "Back to Moodboard" without losing their design, analysis, or moodboard.
@@ -164,15 +170,15 @@ const AnalyzeRoom = () => {
       sessionStorage.setItem(STORAGE_KEY, JSON.stringify(snapshot));
       // Mirror to DB (debounced inside the hook) so returning to this screen
       // fetches the moodboard instead of regenerating it from scratch.
-      if (journey.ready) {
-        journey.patch({
+      if (journeyRef.current.ready) {
+        journeyRef.current.patch({
           stage: "analyze",
           sub_step: `step-${moodboardStep}`,
           payload: { analyzeRoom: snapshot },
         });
       }
     } catch { /* ignore quota */ }
-  }, [uploadedImages, analysisResult, selectedStyleIndex, selectedInspirations, inspirationDetailsMap, editableColors, moodboardExtras, moodboardReady, moodboardStep, pinnedVisuals, moodboard]);
+  }, [uploadedImages, analysisResult, selectedStyleIndex, selectedInspirations, inspirationDetailsMap, editableColors, moodboardExtras, moodboardReady, moodboardStep, pinnedVisuals, moodboard, journeyRef]);
 
   // Prompt-driven path: skip upload, run analysis immediately on mount.
   useEffect(() => {
@@ -243,7 +249,7 @@ const AnalyzeRoom = () => {
   };
 
 
-  const handleFileUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     e.target.value = "";
     if (!files.length || !user) return;
@@ -293,7 +299,7 @@ const AnalyzeRoom = () => {
     } finally {
       setIsUploading(false);
     }
-  }, [user, uploadedImages.length, toast]);
+  };
 
 
 

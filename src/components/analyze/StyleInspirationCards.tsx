@@ -3,6 +3,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Check, Armchair, LayoutGrid } from "lucide-react";
 import { invokeQueued } from "@/lib/aiQueue";
 import { cn } from "@/lib/utils";
+import { useLatest } from "@/hooks/useLatest";
 
 interface InspirationItem {
   id: string;
@@ -84,6 +85,8 @@ const StyleInspirationCards = ({
   refreshKey = 0,
 }: StyleInspirationCardsProps) => {
   const [items, setItems] = useState<InspirationItem[]>([]);
+  // Latest callback without re-running the effect below (it starts AI requests).
+  const onItemsReadyRef = useLatest(onItemsReady);
 
   useEffect(() => {
     const slug = styleSlugMap[styleName] || styleName.toLowerCase().replace(/\s+/g, "-");
@@ -109,7 +112,7 @@ const StyleInspirationCards = ({
     setItems(newItems);
     
     // Notify parent of item details so they can be passed downstream
-    onItemsReady?.(newItems.map(i => ({ id: i.id, label: i.label, description: i.description, type: i.type })));
+    onItemsReadyRef.current?.(newItems.map(i => ({ id: i.id, label: i.label, description: i.description, type: i.type })));
 
     // Generate visuals
     newItems.forEach((item) => {
@@ -143,7 +146,7 @@ const StyleInspirationCards = ({
           setItems((prev) => prev.map((i) => (i.id === item.id ? { ...i, loading: false } : i)));
         });
     });
-  }, [styleIndex, styleName, keywords, roomType, refreshKey]);
+  }, [styleIndex, styleName, keywords, roomType, refreshKey, onItemsReadyRef]); // ref is stable
 
   return (
     <div className="grid grid-cols-2 gap-2 mt-3">

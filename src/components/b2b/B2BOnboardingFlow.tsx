@@ -179,7 +179,8 @@ const B2BOnboardingFlow = () => {
     };
 
     generateScene();
-  }, [step]);
+    // Safe to list all inputs: generationStarted ensures one run per visit to step 5.
+  }, [step, user, uploadedFiles, startMode, selectedStyle]);
 
   const runLoadingAnimation = () => {
     let idx = 0;

@@ -107,7 +107,7 @@ const WallExtractionPanel = ({
     } finally {
       setExtracting(false);
     }
-  }, [designImageUrl, designId, toast]);
+  }, [designImageUrl, designId, roomType, mustHaveElements, onWallsExtracted, toast]);
 
   const handleUploadRealWall = async (
     wallId: string,

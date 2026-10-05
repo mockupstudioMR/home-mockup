@@ -150,8 +150,7 @@ const AnalyzeProducts = () => {
   }, []);
 
   // ── Upload handlers ──────────────────────────────────
-  const handleFileUpload = useCallback(
-    async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
       const files = e.target.files;
       if (!files) return;
 
@@ -165,9 +164,7 @@ const AnalyzeProducts = () => {
       setUploadedImages(updated);
       setAnalysisResult(null);
       if (updated.length > 0) setTimeout(() => autoAnalyze(updated), 100);
-    },
-    [uploadedImages],
-  );
+  };
 
   const removeImage = (index: number) => {
     setUploadedImages((prev) => prev.filter((_, i) => i !== index));
