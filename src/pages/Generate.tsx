@@ -1662,9 +1662,12 @@ const Generate = () => {
 
       if (response.error) throw new Error(response.error.message);
 
-      const { imageUrl, debugSteps: steps, prompt: usedPrompt } = response.data;
+      const { imageUrl: rawImageUrl, debugSteps: steps, prompt: usedPrompt } = response.data;
       if (steps) setDebugSteps(steps);
       if (usedPrompt) setDebugPrompt(usedPrompt);
+      // The model returns base64; store it as a file so the row and the
+      // undo stack hold a short URL instead of megabytes of image data.
+      const imageUrl = user ? await uploadDesignImage(rawImageUrl, user.id) : rawImageUrl;
 
       // Push current image to undo stack before replacing
       setImageHistoryStack((prev) => [...prev, design.imageUrl]);
