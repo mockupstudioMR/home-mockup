@@ -39,6 +39,29 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: "Wrong step" }), { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
+    // The picker page is opened from WhatsApp, usually without being signed
+    // in, so it cannot upload to storage itself (uploads are limited to the
+    // user's own folder). Hand out a one-time signed upload URL instead, only
+    // to holders of this session's valid step token.
+    if (body._action === "upload-url") {
+      const rawName = String(body.fileName ?? "photo.jpg");
+      const safeName = rawName.replace(/[^a-zA-Z0-9._-]/g, "_").slice(-80) || "photo.jpg";
+      const prefix = body.purpose === "style" ? "style-" : "";
+      const path = `wa/${session.id}/${prefix}${Date.now()}-${safeName}`;
+      const { data: signed, error: signErr } = await admin.storage
+        .from("room-photos")
+        .createSignedUploadUrl(path);
+      if (signErr || !signed) {
+        console.error("whatsapp-quiz-step: signed upload url failed", signErr);
+        return new Response(JSON.stringify({ error: "Could not prepare the upload. Please try again." }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+      const { data: pub } = admin.storage.from("room-photos").getPublicUrl(path);
+      return new Response(
+        JSON.stringify({ path: signed.path, token: signed.token, publicUrl: pub.publicUrl }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
     const answers = { ...(session.answers as Record<string, unknown>) };
     if (step.id === "stylePreference" && value && typeof value === "object" && !Array.isArray(value)) {
       const v = value as { style?: string; referenceImageUrl?: string };

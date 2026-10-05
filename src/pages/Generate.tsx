@@ -431,8 +431,11 @@ const Generate = () => {
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
       const { error: uploadError } = await supabase.storage
         .from('design-images')
-        .upload(fileName, blob, { contentType: mimeType, upsert: true });
-      if (!uploadError) {
+        .upload(fileName, blob, { contentType: mimeType });
+      // "already exists" means an earlier attempt did succeed (the response
+      // was lost), so the file is there under this unique name.
+      const alreadyThere = !!uploadError && /exists|duplicate/i.test(uploadError.message);
+      if (!uploadError || alreadyThere) {
         return supabase.storage.from('design-images').getPublicUrl(fileName).data.publicUrl;
       }
       lastError = uploadError;

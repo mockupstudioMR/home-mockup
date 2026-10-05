@@ -56,15 +56,30 @@ const WhatsAppPicker = () => {
     }
   };
 
+  // Upload through a one-time signed URL from the server: this page is opened
+  // from WhatsApp, usually without being signed in.
+  const uploadViaSignedUrl = async (file: File, purpose: "photo" | "style"): Promise<string> => {
+    const { data, error } = await supabase.functions.invoke("whatsapp-quiz-step", {
+      body: { sessionId, visualKind, token, _action: "upload-url", fileName: file.name, purpose },
+    });
+    if (error) throw error;
+    const signed = data as { path?: string; token?: string; publicUrl?: string; error?: string };
+    if (signed?.error || !signed?.path || !signed?.token || !signed?.publicUrl) {
+      throw new Error(signed?.error || "Could not prepare the upload");
+    }
+    const { error: upErr } = await supabase.storage
+      .from("room-photos")
+      .uploadToSignedUrl(signed.path, signed.token, file, { contentType: file.type || undefined });
+    if (upErr) throw upErr;
+    return signed.publicUrl;
+  };
+
   const [imageUrl, setImageUrl] = useState("");
   const uploadAndSubmit = async (file: File) => {
     setSubmitting(true);
     try {
-      const path = `wa/${sessionId}/${Date.now()}-${file.name}`;
-      const { error: upErr } = await supabase.storage.from("room-photos").upload(path, file, { upsert: true });
-      if (upErr) throw upErr;
-      const { data } = supabase.storage.from("room-photos").getPublicUrl(path);
-      await submit(data.publicUrl);
+      const publicUrl = await uploadViaSignedUrl(file, "photo");
+      await submit(publicUrl);
     } catch (e) {
       toast({ title: "Upload failed", description: (e as Error).message, variant: "destructive" });
       setSubmitting(false);
@@ -74,11 +89,8 @@ const WhatsAppPicker = () => {
   const uploadStyleRef = async (file: File) => {
     setSubmitting(true);
     try {
-      const path = `wa/${sessionId}/style-${Date.now()}-${file.name}`;
-      const { error: upErr } = await supabase.storage.from("room-photos").upload(path, file, { upsert: true });
-      if (upErr) throw upErr;
-      const { data } = supabase.storage.from("room-photos").getPublicUrl(path);
-      setStyleRefUrl(data.publicUrl);
+      const publicUrl = await uploadViaSignedUrl(file, "style");
+      setStyleRefUrl(publicUrl);
       toast({ title: "Reference image added" });
     } catch (e) {
       toast({ title: "Upload failed", description: (e as Error).message, variant: "destructive" });
