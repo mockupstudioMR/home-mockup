@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import { invokeAi } from "@/lib/invokeAi";
 import { invokeQueued } from "@/lib/aiQueue";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -1035,7 +1036,7 @@ const Generate = () => {
   const handleGenerateAngle = async (anglePrompt: string): Promise<string | null> => {
     if (!design || !quizData) return null;
     try {
-      const response = await supabase.functions.invoke("generate-design", {
+      const response = await invokeAi("generate-design", {
         body: {
           ...quizData,
           sourceImageUrl: design.imageUrl,
@@ -1159,7 +1160,7 @@ const Generate = () => {
       };
 
       // The generator handles transient retries; do not replay terminal failures here.
-      const response = await supabase.functions.invoke("generate-design", { body: generateBody });
+      const response = await invokeAi("generate-design", { body: generateBody });
 
       if (response.error) {
         throw new Error(getAiErrorMessage(response.error));
@@ -1246,7 +1247,7 @@ const Generate = () => {
     const run = async () => {
       try {
         const { floorPlanContext, activeRoomId } = await resolveActiveRoomContext();
-        const response = await supabase.functions.invoke("generate-design", {
+        const response = await invokeAi("generate-design", {
           body: {
             ...overriddenQuiz,
             sourceImageUrl: overriddenQuiz.sourceImageUrl,
@@ -1641,7 +1642,7 @@ const Generate = () => {
 
     setGenerating(true);
     try {
-      const response = await supabase.functions.invoke("generate-design", {
+      const response = await invokeAi("generate-design", {
         body: {
           ...quizData,
           modificationPrompt: promptToUse,
@@ -1747,7 +1748,7 @@ const Generate = () => {
 
     setGenerating(true);
     try {
-      const response = await supabase.functions.invoke("generate-design", {
+      const response = await invokeAi("generate-design", {
         body: {
           ...quizData,
           sourceImageUrl: design.imageUrl,
@@ -1820,7 +1821,7 @@ RULES:
 - Choose a camera angle (eye-level perspective) that clearly shows the room matching the planned layout 1:1.
 - The result must look like the top-down floor plan extruded into a real photographic 3D room.`;
 
-      const response = await supabase.functions.invoke("generate-design", {
+      const response = await invokeAi("generate-design", {
         body: {
           ...quizData,
           modificationPrompt: modPrompt,
@@ -2022,7 +2023,7 @@ RULES:
     const modificationPrompt = highlightPrompts[highlightId] || note;
 
     try {
-      const response = await supabase.functions.invoke("generate-design", {
+      const response = await invokeAi("generate-design", {
         body: {
           ...quizData,
           modificationPrompt,

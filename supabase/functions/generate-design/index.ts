@@ -2,7 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { buildMoodboardDirective, collectMoodboardReferences } from "../_shared/moodboardContext.ts";
 import { requireUser } from "../_shared/auth.ts";
-import { fetchWithTimeout } from "../_shared/http.ts";
+import { fetchWithTimeout, UpstreamTimeoutError } from "../_shared/http.ts";
 
 const VERSION = "v2.3.0";
 const DEPLOYED_AT = "2026-02-06T12:30:00Z";
@@ -99,6 +99,7 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  const startedAt = Date.now();
   const caller = await requireUser(req, corsHeaders);
   if (caller instanceof Response) return caller;
 
@@ -490,14 +491,26 @@ serve(async (req) => {
       : "google/gemini-3-pro-image";
     addDebug("AI request prepared", `Model: ${modelToUse}, ${contentParts.length} content parts`);
 
-    // Retry logic for image generation
+    // Retry logic for image generation.
+    // The whole request must finish inside the edge function time limit
+    // (~150 s). Three full attempts could exceed it, and the app then got a
+    // generic failure. Allow at most 2 attempts and only start the second one
+    // when there is still enough time for it to finish.
     let imageUrl: string | undefined;
     let textContent = "";
-    const maxRetries = 3;
-    
+    const maxRetries = 2;
+    const TIME_BUDGET_MS = 140_000;
+    const MIN_TIME_FOR_ATTEMPT_MS = 45_000;
+    const remainingMs = () => TIME_BUDGET_MS - (Date.now() - startedAt);
+
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      if (attempt > 1 && remainingMs() < MIN_TIME_FOR_ATTEMPT_MS) {
+        addDebug("Out of time", `Not retrying: ${Math.round(remainingMs() / 1000)}s left`);
+        break;
+      }
       addDebug("AI generation attempt", `Attempt ${attempt}/${maxRetries}`);
-      
+
+      const attemptTimeoutMs = Math.max(10_000, Math.min(110_000, remainingMs() - 5_000));
       const response = await fetchWithTimeout("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
         headers: {
@@ -509,7 +522,7 @@ serve(async (req) => {
           messages,
           modalities: ["image", "text"],
         }),
-      });
+      }, attemptTimeoutMs);
 
       if (!response.ok) {
         if (response.status === 429) {
@@ -596,7 +609,7 @@ serve(async (req) => {
 
     if (!imageUrl) {
       addDebug("Generation failed", "No image after all attempts");
-      throw new Error("Failed to generate image after multiple attempts. Please try again.");
+      throw new Error("The image model did not return a design this time. Please try again.");
     }
 
     addDebug("Complete", `Pipeline finished successfully`);
@@ -613,9 +626,15 @@ serve(async (req) => {
     );
   } catch (error) {
     console.error("Generate design error:", error);
+    const timedOut = error instanceof UpstreamTimeoutError;
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : "Failed to generate design" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      JSON.stringify({
+        error: timedOut
+          ? "Generating the design took too long. Please try again."
+          : error instanceof Error ? error.message : "Failed to generate design",
+        retryable: true,
+      }),
+      { status: timedOut ? 504 : 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
 });
