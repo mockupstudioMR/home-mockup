@@ -1,4 +1,4 @@
-import { Component, lazy, Suspense, type ComponentType, type ReactNode } from "react";
+import { lazy, Suspense, type ComponentType } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { QuizProvider } from "@/contexts/QuizContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
+import { ErrorBoundary, RouteErrorBoundary } from "@/components/ErrorBoundary";
 // Development-only helper. In production builds this branch is removed, so
 // the component (and the account emails inside it) never ship to users.
 const DevRoleSwitcher = import.meta.env.DEV
@@ -38,45 +39,6 @@ const lazyWithReload = <T extends ComponentType<Record<string, never>>>(
       throw error;
     }
   });
-
-class AppErrorBoundary extends Component<
-  { children: ReactNode },
-  { hasError: boolean }
-> {
-  state = { hasError: false };
-
-  static getDerivedStateFromError() {
-    return { hasError: true };
-  }
-
-  componentDidCatch(error: unknown) {
-    console.error("App render failed:", error);
-  }
-
-  render() {
-    if (this.state.hasError) {
-      return (
-        <div className="min-h-screen flex items-center justify-center bg-background p-6 text-center">
-          <div className="max-w-sm space-y-4">
-            <h1 className="text-2xl font-semibold">We need to refresh HomeMockUp</h1>
-            <p className="text-sm text-muted-foreground">
-              A new version is available. Refresh to load the latest experience.
-            </p>
-            <button
-              type="button"
-              className="rounded-md bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground shadow-sm transition hover:bg-primary/90"
-              onClick={() => window.location.reload()}
-            >
-              Refresh
-            </button>
-          </div>
-        </div>
-      );
-    }
-
-    return this.props.children;
-  }
-}
 
 // Lazy load heavy pages
 const Start = lazyWithReload(() => import("./pages/Start"), "start");
@@ -114,11 +76,12 @@ const App = () => (
         <TooltipProvider>
           <Toaster />
           <Sonner />
-          <AppErrorBoundary>
+          <ErrorBoundary variant="app">
             <BrowserRouter>
               <Suspense fallback={null}>
                 <DevRoleSwitcher />
               </Suspense>
+              <RouteErrorBoundary>
               <Suspense fallback={<PageLoader />}>
               <Routes>
               <Route path="/" element={<Index />} />
@@ -211,8 +174,9 @@ const App = () => (
               <Route path="*" element={<NotFound />} />
               </Routes>
               </Suspense>
+              </RouteErrorBoundary>
             </BrowserRouter>
-          </AppErrorBoundary>
+          </ErrorBoundary>
         </TooltipProvider>
       </QuizProvider>
     </AuthProvider>

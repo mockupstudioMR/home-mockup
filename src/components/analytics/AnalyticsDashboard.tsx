@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Loader2, Rocket, Sparkles, Cpu, Heart } from "lucide-react";
+import { Loader2, Rocket, Sparkles, Cpu, Heart, AlertTriangle } from "lucide-react";
 
 interface AnalyticsEvent {
   id: string;
@@ -85,6 +85,20 @@ const AnalyticsDashboard = ({ scope }: Props) => {
     .map(([k, v]) => ({ screen: k.replace("ai_call::", ""), count: v }))
     .sort((a, b) => b.count - a.count);
 
+  // Most recent crashes first, grouped by message so repeats are counted once.
+  const errorGroups = Object.values(
+    events
+      .filter((e) => e.event_type === "client_error")
+      .reduce((acc, e) => {
+        const message = String(e.metadata?.message ?? "Unknown error");
+        const key = `${e.screen}|${message}`;
+        const existing = acc[key];
+        if (existing) existing.count++;
+        else acc[key] = { key, screen: e.screen, message, kind: String(e.metadata?.kind ?? ""), count: 1, last: e.created_at };
+        return acc;
+      }, {} as Record<string, { key: string; screen: string; message: string; kind: string; count: number; last: string }>),
+  ).sort((a, b) => b.last.localeCompare(a.last));
+
   const stats = [
     { label: "Journeys started", value: journeyStarts, icon: Rocket, color: "text-primary", sub: null as string | null },
     { label: "Outputs generated", value: outputsGenerated, icon: Sparkles, color: "text-accent-foreground", sub: `${conversionRate}% of journeys` },
@@ -144,6 +158,42 @@ const AnalyticsDashboard = ({ scope }: Props) => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Errors */}
+      {scope === "admin" && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5 text-destructive" />
+              Errors
+            </CardTitle>
+            <CardDescription>Crashes recorded in signed-in users' browsers, newest first</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {errorGroups.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No errors recorded.</p>
+            ) : (
+              <div className="space-y-2">
+                {errorGroups.slice(0, 15).map((g) => (
+                  <div key={g.key} className="flex items-start justify-between gap-4 text-sm py-2 border-b border-border/50 last:border-0">
+                    <div className="min-w-0">
+                      <p className="font-medium break-words">{g.message}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {g.screen}
+                        {g.kind ? ` · ${g.kind.replace(/_/g, " ")}` : ""}
+                      </p>
+                    </div>
+                    <div className="shrink-0 text-right">
+                      <p className="font-medium">{g.count}×</p>
+                      <p className="text-xs text-muted-foreground">{new Date(g.last).toLocaleString()}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Recent activity */}
       <Card>

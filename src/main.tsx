@@ -1,6 +1,9 @@
 import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./index.css";
+import { installGlobalErrorReporting } from "./lib/errorReporting";
+
+installGlobalErrorReporting();
 
 window.addEventListener("vite:preloadError", () => {
   const reloadKey = "hm_preload_reload_attempted";

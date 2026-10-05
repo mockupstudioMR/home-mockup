@@ -4,7 +4,8 @@ export type AnalyticsEventType =
   | "journey_start"
   | "output_generated"
   | "ai_call"
-  | "satisfied";
+  | "satisfied"
+  | "client_error";
 
 /**
  * Fire-and-forget analytics tracker. Silently no-ops if user is not logged in.
