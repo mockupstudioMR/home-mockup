@@ -1,5 +1,6 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
+import { verifyTwilioRequest } from "../_shared/twilioSignature.ts";
 import { STEPS, parseTextAnswer, renderTextStep, advanceAndSend, sendWhatsApp, firstMessage } from "../_shared/whatsappQuiz.ts";
 
 async function downloadTwilioMediaToStorage(
@@ -44,6 +45,18 @@ Deno.serve(async (req) => {
 
   try {
     const form = await req.formData();
+
+    // Reject forged requests: anyone can POST to this public URL and claim
+    // any phone number in "From".
+    const check = await verifyTwilioRequest(req, form);
+    if (check === "invalid") {
+      console.warn("whatsapp-quiz-webhook: rejected request with invalid Twilio signature");
+      return new Response("Forbidden", { status: 403 });
+    }
+    if (check === "not-configured") {
+      console.warn("whatsapp-quiz-webhook: TWILIO_AUTH_TOKEN not set; Twilio signatures are NOT verified");
+    }
+
     const from = String(form.get("From") ?? ""); // e.g. "whatsapp:+1415..."
     const bodyRaw = String(form.get("Body") ?? "").trim();
     const phone = from.replace(/^whatsapp:/, "");
