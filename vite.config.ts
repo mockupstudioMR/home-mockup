@@ -32,6 +32,18 @@ export default defineConfig(({ mode }) => ({
         navigateFallbackDenylist: [/^\/~oauth/, /^\/auth/],
         cleanupOutdatedCaches: true,
         globPatterns: ["**/*.{js,css,html,svg,ico,woff2}"],
+        // Don't make every visitor download export libraries (PDF, screenshot)
+        // and staff-only dashboards up front; they load on demand when used.
+        globIgnores: [
+          "**/jspdf*.js",
+          "**/html2canvas*.js",
+          "**/purify.es*.js",
+          "**/index.es-*.js",
+          "**/AdminDashboard-*.js",
+          "**/DesignerDashboard-*.js",
+          "**/ShopDashboard-*.js",
+          "**/AnalyticsDashboard-*.js",
+        ],
         // Raise precache limit to 5 MiB so large style images don't break the build
         maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
       },

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent } from "@/components/ui/card";
@@ -6,6 +6,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Clock, Edit3, Lock, Image as ImageIcon } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
+import { Button } from "@/components/ui/button";
+import { getThumbnailImageUrl } from "@/lib/imageOptimization";
+
+const PAGE_SIZE = 24;
 
 interface DesignHistoryItem {
   id: string;
@@ -26,34 +30,46 @@ const DesignHistoryTab = ({ onSelectDesign }: DesignHistoryTabProps) => {
   const { user } = useAuth();
   const [designs, setDesigns] = useState<DesignHistoryItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(false);
+  const userId = user?.id;
+
+  // Loads one page at a time instead of every design the user ever made.
+  const loadPage = useCallback(async (offset: number) => {
+    if (!userId) return;
+    const { data, error } = await supabase
+      .from("generated_designs")
+      .select("id, image_url, prompt, created_at, is_locked, is_favorite, modification_history, full_description")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false })
+      .range(offset, offset + PAGE_SIZE); // one extra row tells us whether more exist
+
+    if (error) throw error;
+    const rows = (data || []).map((d) => ({
+      ...d,
+      modification_history: d.modification_history as string[] | null,
+    }));
+    setHasMore(rows.length > PAGE_SIZE);
+    const page = rows.slice(0, PAGE_SIZE);
+    setDesigns((prev) => (offset === 0 ? page : [...prev, ...page]));
+  }, [userId]);
 
   useEffect(() => {
-    if (user) {
-      loadHistory();
-    }
-  }, [user]);
-
-  const loadHistory = async () => {
-    if (!user) return;
-    
+    if (!userId) return;
     setLoading(true);
-    try {
-      const { data, error } = await supabase
-        .from("generated_designs")
-        .select("id, image_url, prompt, created_at, is_locked, is_favorite, modification_history, full_description")
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: false });
+    loadPage(0)
+      .catch((error) => console.error("Error loading design history:", error))
+      .finally(() => setLoading(false));
+  }, [userId, loadPage]);
 
-      if (error) throw error;
-      
-      setDesigns((data || []).map(d => ({
-        ...d,
-        modification_history: d.modification_history as string[] | null
-      })));
+  const loadMore = async () => {
+    setLoadingMore(true);
+    try {
+      await loadPage(designs.length);
     } catch (error) {
-      console.error("Error loading design history:", error);
+      console.error("Error loading more designs:", error);
     } finally {
-      setLoading(false);
+      setLoadingMore(false);
     }
   };
 
@@ -88,6 +104,7 @@ const DesignHistoryTab = ({ onSelectDesign }: DesignHistoryTabProps) => {
   }
 
   return (
+    <div className="space-y-4">
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
       {designs.map((design) => (
         <Card
@@ -97,8 +114,10 @@ const DesignHistoryTab = ({ onSelectDesign }: DesignHistoryTabProps) => {
         >
           <div className="relative aspect-video overflow-hidden bg-muted">
             <img
-              src={design.image_url}
+              src={getThumbnailImageUrl(design.image_url)}
               alt="Design"
+              loading="lazy"
+              decoding="async"
               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
             />
             <div className="absolute top-2 right-2 flex gap-1">
@@ -145,6 +164,14 @@ const DesignHistoryTab = ({ onSelectDesign }: DesignHistoryTabProps) => {
           </CardContent>
         </Card>
       ))}
+    </div>
+    {hasMore && (
+      <div className="flex justify-center">
+        <Button variant="outline" onClick={loadMore} disabled={loadingMore}>
+          {loadingMore ? "Loading…" : "Load more designs"}
+        </Button>
+      </div>
+    )}
     </div>
   );
 };

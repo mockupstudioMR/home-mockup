@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent } from "@/components/ui/card";
@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Heart, Lock, Download, ExternalLink } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
+import { getThumbnailImageUrl } from "@/lib/imageOptimization";
 
 interface LikedDesign {
   id: string;
@@ -28,23 +29,20 @@ const DesignLikesTab = ({ onSelectDesign }: DesignLikesTabProps) => {
   const [designs, setDesigns] = useState<LikedDesign[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    if (user) {
-      loadLikes();
-    }
-  }, [user]);
+  const userId = user?.id;
 
-  const loadLikes = async () => {
-    if (!user) return;
-    
+  const loadLikes = useCallback(async () => {
+    if (!userId) return;
+
     setLoading(true);
     try {
       const { data, error } = await supabase
         .from("generated_designs")
         .select("id, image_url, created_at, is_locked, is_favorite, full_description")
-        .eq("user_id", user.id)
+        .eq("user_id", userId)
         .eq("is_favorite", true)
-        .order("created_at", { ascending: false });
+        .order("created_at", { ascending: false })
+        .limit(200);
 
       if (error) throw error;
       setDesigns(data || []);
@@ -53,7 +51,11 @@ const DesignLikesTab = ({ onSelectDesign }: DesignLikesTabProps) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [userId]);
+
+  useEffect(() => {
+    loadLikes();
+  }, [loadLikes]);
 
   const handleUnlike = async (designId: string, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -139,8 +141,10 @@ const DesignLikesTab = ({ onSelectDesign }: DesignLikesTabProps) => {
         >
           <div className="relative aspect-video overflow-hidden bg-muted">
             <img
-              src={design.image_url}
+              src={getThumbnailImageUrl(design.image_url)}
               alt="Liked design"
+              loading="lazy"
+              decoding="async"
               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
             />
             <div className="absolute top-2 left-2">
