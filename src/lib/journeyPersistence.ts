@@ -52,7 +52,10 @@ async function mirrorToStorage(
     const { error } = await supabase.storage
       .from(BUCKET)
       .upload(path, blob, { contentType: blob.type || "image/png", upsert: false });
-    if (error) return null;
+    if (error) {
+      console.error(`[journeyPersistence] upload to "${BUCKET}" failed: ${error.message}`);
+      return null;
+    }
     const { data: signed } = await supabase.storage.from(BUCKET).createSignedUrl(path, 60 * 60 * 24 * 365);
     return { url: signed?.signedUrl || sourceUrl, path };
   } catch (e) {
@@ -78,8 +81,14 @@ export async function saveMoodboardAsset(input: SaveMoodboardAssetInput): Promis
     if (!userId) return;
     const sessionId = await getSessionId(userId);
     const mirrored = await mirrorToStorage(input.imageUrl, userId, input.section);
+    // Never store an inline base64 image in the table: if the upload failed,
+    // skip this asset rather than writing megabytes into a row.
+    if (!mirrored && input.imageUrl.startsWith("data:")) {
+      console.error("[journeyPersistence] moodboard asset not saved: image upload failed");
+      return;
+    }
     const finalUrl = mirrored?.url || input.imageUrl;
-    await supabase.from("moodboard_assets" as any).insert({
+    const { error: insertError } = await supabase.from("moodboard_assets" as any).insert({
       user_id: userId,
       session_id: sessionId,
       design_id: input.designId ?? undefined,
@@ -92,6 +101,7 @@ export async function saveMoodboardAsset(input: SaveMoodboardAssetInput): Promis
       is_pinned: !!input.isPinned,
       metadata: input.metadata ?? {},
     });
+    if (insertError) console.error("[journeyPersistence] saveMoodboardAsset insert failed", insertError);
   } catch (e) {
     console.warn("[journeyPersistence] saveMoodboardAsset failed", e);
   }
@@ -120,6 +130,9 @@ export async function saveJourneyProduct(input: SaveJourneyProductInput): Promis
       if (mirrored) {
         storagePath = mirrored.path;
         finalImage = mirrored.url;
+      } else if (input.imageUrl.startsWith("data:")) {
+        // Upload failed: keep the row, but never store inline base64.
+        finalImage = undefined;
       }
     }
     await supabase.from("journey_products" as any).insert({
@@ -159,6 +172,9 @@ export async function saveStylePrompt(input: SaveStylePromptInput): Promise<void
       if (mirrored) {
         storagePath = mirrored.path;
         finalImage = mirrored.url;
+      } else if (input.generatedImageUrl.startsWith("data:")) {
+        // Upload failed: keep the row, but never store inline base64.
+        finalImage = undefined;
       }
     }
     await supabase.from("style_prompts" as any).insert({
