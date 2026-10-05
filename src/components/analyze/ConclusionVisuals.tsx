@@ -147,12 +147,17 @@ const VisualChip = ({
         // 2) Persist the freshly generated visual so subsequent requests can
         //    reuse it. Ignore duplicate-key errors (another client raced us).
         try {
-          await supabase.from("material_visuals").insert({
-            style_slug: cacheStyle,
-            kind,
-            label: kind === "material" ? label : itemForStyle,
-            image_url: data.imageUrl,
-          });
+          const { data: sessionData } = await supabase.auth.getSession();
+          const userId = sessionData.session?.user?.id;
+          if (userId) {
+            await supabase.from("material_visuals").insert({
+              style_slug: cacheStyle,
+              kind,
+              label: kind === "material" ? label : itemForStyle,
+              image_url: data.imageUrl,
+              created_by: userId,
+            });
+          }
         } catch { /* ignore */ }
       }
     } catch {
