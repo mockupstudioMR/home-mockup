@@ -1,3 +1,4 @@
+import { requireUser } from "../_shared/auth.ts";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
@@ -8,6 +9,9 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
+
+  const caller = await requireUser(req, corsHeaders);
+  if (caller instanceof Response) return caller;
 
   try {
     const body = await req.json();

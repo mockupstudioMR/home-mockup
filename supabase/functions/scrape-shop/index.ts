@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { isAdmin, requireUser } from "../_shared/auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -14,6 +15,9 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
+
+  const caller = await requireUser(req, corsHeaders);
+  if (caller instanceof Response) return caller;
 
   try {
     const FIRECRAWL_API_KEY = Deno.env.get("FIRECRAWL_API_KEY");
@@ -33,7 +37,18 @@ Deno.serve(async (req) => {
       throw new Error("Supabase credentials not configured");
     }
 
-    const { shopUrl, userId }: ScrapeRequest = await req.json();
+    const { shopUrl, userId: requestedUserId }: ScrapeRequest = await req.json();
+
+    // Products are saved under this id with the service-role key, so only
+    // admins may scrape on behalf of another shop.
+    const callerId = caller.kind === "user" ? caller.userId : null;
+    const userId = requestedUserId || callerId || "";
+    if (requestedUserId && requestedUserId !== callerId && !(await isAdmin(caller))) {
+      return new Response(
+        JSON.stringify({ success: false, error: "You can only import products into your own shop." }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     if (!shopUrl || !userId) {
       return new Response(

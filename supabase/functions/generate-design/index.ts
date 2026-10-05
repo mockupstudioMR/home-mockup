@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { buildMoodboardDirective, collectMoodboardReferences } from "../_shared/moodboardContext.ts";
+import { requireUser } from "../_shared/auth.ts";
 
 const VERSION = "v2.3.0";
 const DEPLOYED_AT = "2026-02-06T12:30:00Z";
@@ -96,6 +97,9 @@ serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
+
+  const caller = await requireUser(req, corsHeaders);
+  if (caller instanceof Response) return caller;
 
   try {
     const debugSteps: DebugStep[] = [];

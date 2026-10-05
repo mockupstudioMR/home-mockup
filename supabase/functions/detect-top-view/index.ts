@@ -1,3 +1,4 @@
+import { requireUser } from "../_shared/auth.ts";
 // Generate a realistic TOP-DOWN photographic view of the room based on the
 // rendered design image. Returns { imageUrl } as a data URI (PNG/JPEG).
 
@@ -41,6 +42,9 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
+
+  const caller = await requireUser(req, corsHeaders);
+  if (caller instanceof Response) return caller;
 
   try {
     const { imageUrl, roomShape, dimensions, expectedFurniture } =

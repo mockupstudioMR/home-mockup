@@ -319,6 +319,15 @@ const AnalyzeRoom = () => {
 
   const analyzeImages = async () => {
     if (uploadedImages.length === 0 && !isPromptMode) return;
+    // Style analysis runs on a paid AI model and requires an account.
+    if (!user) {
+      toast({
+        title: "Sign in to analyze your style",
+        description: "Create a free account to get your style analysis.",
+      });
+      navigate("/auth", { state: { from: "/analyze-room" } });
+      return;
+    }
 
     setIsAnalyzing(true);
     try {

@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { forbidUnlessDesignOwner, requireUser } from "../_shared/auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -20,6 +21,9 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
+
+  const caller = await requireUser(req, corsHeaders);
+  if (caller instanceof Response) return caller;
 
   try {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
@@ -45,6 +49,9 @@ Deno.serve(async (req) => {
         "designImageUrl, designId, and realWallImageUrl are required"
       );
     }
+
+    const denied = await forbidUnlessDesignOwner(caller, designId, corsHeaders);
+    if (denied) return denied;
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 

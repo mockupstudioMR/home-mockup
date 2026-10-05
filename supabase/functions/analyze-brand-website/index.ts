@@ -1,3 +1,4 @@
+import { requireUser } from "../_shared/auth.ts";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
@@ -33,6 +34,9 @@ async function firecrawlScrape(url: string, key: string, formats: string[]) {
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+
+  const caller = await requireUser(req, corsHeaders);
+  if (caller instanceof Response) return caller;
 
   try {
     const FIRECRAWL_API_KEY = Deno.env.get("FIRECRAWL_API_KEY");
