@@ -2,6 +2,15 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  GENERATE_KEYS,
+  clearDesignView,
+  hydrateAnalyzeRoomCacheFromMoodboard,
+  remove as removeSessionKeys,
+  writeJson,
+  writeString,
+  type GenerateMoodboard,
+} from "@/lib/generateSession";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
@@ -329,23 +338,10 @@ const Gallery = () => {
   const handleContinueDesign = async (design: Design) => {
     setResumingId(design.id);
     try {
-      // Clear existing generate caches so the page loads from DB
-      const generateKeys = [
-        'generate_design_cache',
-        'generate_products_cache',
-        'generate_highlights_cache',
-        'generate_styleprofile_cache',
-        'generate_items_cache',
-        'generate_description_cache',
-        'generate_history_cache',
-        'generate_extracting_cache',
-        'generate_debug_steps_cache',
-        'generate_debug_prompt_cache',
-        'generate_quiz_hash',
-        'generate_quiz_nonce',
-        'generate_image_history_stack',
-      ];
-      generateKeys.forEach((key) => sessionStorage.removeItem(key));
+      // Clear what the Generate page shows for the previous design (incl. its
+      // camera angles, which this list used to miss) so it loads from the DB.
+      clearDesignView();
+      removeSessionKeys(GENERATE_KEYS.quizHash, GENERATE_KEYS.quizNonce);
 
       // Restore the moodboard for this design so "Back to Moodboard" opens
       // its curated inspiration instead of a blank / restarted moodboard.
@@ -357,30 +353,10 @@ const Gallery = () => {
           .maybeSingle();
         const mb = (designRow as any)?.moodboard;
         if (mb && typeof mb === "object") {
-          sessionStorage.setItem("generate_moodboard_cache", JSON.stringify(mb));
-          const existing = (() => {
-            try {
-              const raw = sessionStorage.getItem("analyze_room_cache");
-              return raw ? JSON.parse(raw) : {};
-            } catch { return {}; }
-          })();
-          const moodboard = {
-            materials: mb.materials || [],
-            references: mb.references || [],
-            furnitureReferences: mb.furnitureReferences || [],
-            decorReferences: mb.decorReferences || [],
-            architectureReferences: mb.architectureReferences || [],
-            mustInclude: mb.mustInclude || [],
-          };
-          sessionStorage.setItem("analyze_room_cache", JSON.stringify({
-            ...existing,
-            moodboard,
-            moodboardReady: true,
-            moodboardStep: 5,
-            editableColors: mb.colors || existing.editableColors || [],
-          }));
+          writeJson(GENERATE_KEYS.moodboard, mb);
+          hydrateAnalyzeRoomCacheFromMoodboard(mb as GenerateMoodboard);
         } else {
-          sessionStorage.removeItem("generate_moodboard_cache");
+          removeSessionKeys(GENERATE_KEYS.moodboard);
         }
       } catch (e) {
         console.warn("[Gallery] moodboard restore failed", e);
@@ -404,7 +380,7 @@ const Gallery = () => {
             furnitureSource: (quizResponse.furniture_source as "shop_only" | "open") || "open",
           };
 
-          sessionStorage.setItem('generate_quiz_response_id', design.quiz_response_id);
+          writeString(GENERATE_KEYS.quizResponseId, design.quiz_response_id);
           sessionStorage.setItem('quiz_data_cache', JSON.stringify(quizData));
 
           const quizHash = JSON.stringify({
@@ -415,7 +391,7 @@ const Gallery = () => {
             mustHaveElements: quizData.mustHaveElements,
             furnitureSource: quizData.furnitureSource,
           });
-          sessionStorage.setItem('generate_quiz_hash', quizHash + '|');
+          writeString(GENERATE_KEYS.quizHash, quizHash + '|');
 
           navigate("/generate", { state: { quizData } });
           return;
