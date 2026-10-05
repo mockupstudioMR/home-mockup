@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { requireUserId } from "@/lib/requireUserId";
 import { 
   Store, 
   Package, 
@@ -61,7 +62,7 @@ const ShopDashboard = () => {
       const { data, error } = await supabase
         .from("business_profiles")
         .select("*")
-        .eq("user_id", user?.id)
+        .eq("user_id", requireUserId(user?.id))
         .single();
       
       if (error) throw error;
@@ -77,7 +78,7 @@ const ShopDashboard = () => {
       const { data, error } = await supabase
         .from("shop_products")
         .select("*")
-        .eq("shop_id", user?.id)
+        .eq("shop_id", requireUserId(user?.id))
         .order("created_at", { ascending: false });
       
       if (error) throw error;

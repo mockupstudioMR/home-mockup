@@ -58,7 +58,7 @@ export const invokeQueued = async <T = unknown>(
     let lastError: unknown = null;
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
       try {
-        const { data, error } = await supabase.functions.invoke(fn, { body });
+        const { data, error } = await supabase.functions.invoke(fn, { body: body as Record<string, unknown> });
         if (!error) return { data: data as T, error: null };
         lastError = error;
         if (!isTransient(error)) return { data: null, error };

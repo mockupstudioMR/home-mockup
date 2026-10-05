@@ -7,6 +7,7 @@
  * a persistence failure never blocks the UI.
  */
 import { supabase } from "@/integrations/supabase/client";
+import type { Json } from "@/integrations/supabase/types";
 
 const BUCKET = "moodboard-assets";
 
@@ -88,7 +89,7 @@ export async function saveMoodboardAsset(input: SaveMoodboardAssetInput): Promis
       return;
     }
     const finalUrl = mirrored?.url || input.imageUrl;
-    const { error: insertError } = await supabase.from("moodboard_assets" as any).insert({
+    const { error: insertError } = await supabase.from("moodboard_assets").insert({
       user_id: userId,
       session_id: sessionId,
       design_id: input.designId ?? undefined,
@@ -99,7 +100,7 @@ export async function saveMoodboardAsset(input: SaveMoodboardAssetInput): Promis
       image_url: finalUrl,
       storage_path: mirrored?.path ?? undefined,
       is_pinned: !!input.isPinned,
-      metadata: input.metadata ?? {},
+      metadata: (input.metadata ?? {}) as Json,
     });
     if (insertError) console.error("[journeyPersistence] saveMoodboardAsset insert failed", insertError);
   } catch (e) {
@@ -135,7 +136,7 @@ export async function saveJourneyProduct(input: SaveJourneyProductInput): Promis
         finalImage = undefined;
       }
     }
-    await supabase.from("journey_products" as any).insert({
+    await supabase.from("journey_products").insert({
       user_id: userId,
       session_id: sessionId,
       design_id: input.designId ?? undefined,
@@ -146,7 +147,7 @@ export async function saveJourneyProduct(input: SaveJourneyProductInput): Promis
       storage_path: storagePath,
       price: input.price ?? undefined,
       currency: input.currency ?? "EUR",
-      metadata: input.metadata ?? {},
+      metadata: (input.metadata ?? {}) as Json,
     });
   } catch (e) {
     console.warn("[journeyPersistence] saveJourneyProduct failed", e);
@@ -177,14 +178,14 @@ export async function saveStylePrompt(input: SaveStylePromptInput): Promise<void
         finalImage = undefined;
       }
     }
-    await supabase.from("style_prompts" as any).insert({
+    await supabase.from("style_prompts").insert({
       user_id: userId,
       session_id: sessionId,
       input_kind: input.inputKind || "text",
       prompt: input.prompt,
       generated_image_url: finalImage,
       storage_path: storagePath,
-      metadata: input.metadata ?? {},
+      metadata: (input.metadata ?? {}) as Json,
     });
   } catch (e) {
     console.warn("[journeyPersistence] saveStylePrompt failed", e);
@@ -205,16 +206,16 @@ export async function saveDesignJourneyMetadata(input: SaveDesignJourneyMetadata
   try {
     const userId = await getUserId();
     if (!userId) return;
-    await supabase.from("design_journey_metadata" as any).upsert(
+    await supabase.from("design_journey_metadata").upsert(
       {
         user_id: userId,
         design_id: input.designId,
         health_score: input.healthScore ?? undefined,
-        style_dna: input.styleDna ?? {},
-        budget: input.budget ?? {},
-        roadmap: input.roadmap ?? {},
-        shopping: input.shopping ?? {},
-        metadata: input.metadata ?? {},
+        style_dna: (input.styleDna ?? {}) as Json,
+        budget: (input.budget ?? {}) as Json,
+        roadmap: (input.roadmap ?? {}) as Json,
+        shopping: (input.shopping ?? {}) as Json,
+        metadata: (input.metadata ?? {}) as Json,
       },
       { onConflict: "design_id" },
     );

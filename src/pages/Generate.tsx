@@ -4,6 +4,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { invokeAi } from "@/lib/invokeAi";
+import { requireUserId } from "@/lib/requireUserId";
 import { invokeQueued } from "@/lib/aiQueue";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -924,6 +925,13 @@ const Generate = () => {
       }
 
 
+      // Saving the answers failed: nothing to look up, generate a new design.
+      if (!currentQuizId) {
+        setGenerating(false);
+        generateDesign(undefined);
+        return;
+      }
+
       // Check if there's an existing design for THIS quiz response
       const { data: existingDesign, error } = await supabase
         .from("generated_designs")
@@ -1034,7 +1042,8 @@ const Generate = () => {
           ...item,
           priority: item.priority as "essential" | "recommended" | "optional",
           bounding_box: item.bounding_box as unknown as BoundingBox | undefined,
-        })));
+        // DB columns are nullable; the UI treats null and missing alike.
+        })) as unknown as DesignItem[]);
       }
     } catch (error) {
       console.error("Error loading design items:", error);
@@ -1881,7 +1890,7 @@ RULES:
       const { data: profile } = await supabase
         .from("profiles")
         .select("city")
-        .eq("user_id", user?.id)
+        .eq("user_id", requireUserId(user?.id))
         .single();
 
       // Call extract-room-items edge function

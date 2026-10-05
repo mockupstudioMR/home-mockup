@@ -248,7 +248,7 @@ const Gallery = () => {
     let spec: RoomSpec | null = null;
       if (design.room_id) {
         const { data } = await supabase
-          .from("rooms" as any)
+          .from("rooms")
           .select("*")
           .eq("id", design.room_id)
           .maybeSingle();

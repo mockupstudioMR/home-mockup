@@ -16,8 +16,8 @@ interface DesignHistoryItem {
   image_url: string;
   prompt: string;
   created_at: string;
-  is_locked: boolean;
-  is_favorite: boolean;
+  is_locked: boolean | null;
+  is_favorite: boolean | null;
   modification_history: string[] | null;
   full_description: string | null;
 }

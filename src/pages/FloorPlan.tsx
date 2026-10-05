@@ -953,7 +953,7 @@ const FloorPlan = () => {
             user_note: itemNotes[i] || null,
           };
         })
-        .filter(Boolean);
+        .filter((row): row is NonNullable<typeof row> => row !== null);
 
       if (feedbackRows.length > 0) {
         await supabase.from("layout_feedback").insert(feedbackRows);

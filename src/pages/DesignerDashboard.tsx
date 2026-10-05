@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { requireUserId } from "@/lib/requireUserId";
 import { 
   Palette, 
   Users, 
@@ -34,7 +35,7 @@ const DesignerDashboard = () => {
       const { data, error } = await supabase
         .from("business_profiles")
         .select("*")
-        .eq("user_id", user?.id)
+        .eq("user_id", requireUserId(user?.id))
         .single();
       
       if (error) throw error;
@@ -65,7 +66,7 @@ const DesignerDashboard = () => {
       const { data, error } = await supabase
         .from("offers")
         .select("*")
-        .eq("from_user_id", user?.id)
+        .eq("from_user_id", requireUserId(user?.id))
         .order("created_at", { ascending: false });
       
       if (error) throw error;

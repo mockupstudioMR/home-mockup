@@ -85,7 +85,7 @@ export default function FloorPlanComparison({
         }
 
         const { data: room } = await supabase
-          .from("rooms" as any)
+          .from("rooms")
           .select("shape, dimensions, room_type, furniture, walls, layout")
           .eq("id", roomId)
           .maybeSingle();

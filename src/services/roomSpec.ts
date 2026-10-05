@@ -11,6 +11,7 @@
  */
 
 import { supabase } from "@/integrations/supabase/client";
+import type { Json, TablesInsert } from "@/integrations/supabase/types";
 import {
   ROOM_SPEC_VERSION,
   RoomSpec,
@@ -136,7 +137,7 @@ export async function loadActiveRoomSpec(): Promise<RoomSpec | null> {
   if (!id) return null;
 
   const { data, error } = await supabase
-    .from("rooms" as any)
+    .from("rooms")
     .select("*")
     .eq("id", id)
     .maybeSingle();
@@ -159,7 +160,7 @@ export async function saveRoomSpec(spec: RoomSpec): Promise<RoomSpec | null> {
 
   if (spec.id) {
     const { data, error } = await supabase
-      .from("rooms" as any)
+      .from("rooms")
       .update(row)
       .eq("id", spec.id)
       .select()
@@ -173,7 +174,7 @@ export async function saveRoomSpec(spec: RoomSpec): Promise<RoomSpec | null> {
   }
 
   const { data, error } = await supabase
-    .from("rooms" as any)
+    .from("rooms")
     .insert(row)
     .select()
     .maybeSingle();
@@ -234,7 +235,8 @@ function rowToSpec(row: any): RoomSpec {
   };
 }
 
-function specToRow(spec: RoomSpec) {
+// Nested JSON columns (walls, style, furniture...) are typed loosely as Json in the DB types.
+function specToRow(spec: RoomSpec & { user_id: string }): TablesInsert<"rooms"> {
   return {
     user_id: spec.user_id,
     name: spec.name,
@@ -242,10 +244,10 @@ function specToRow(spec: RoomSpec) {
     shape: spec.shape,
     dimensions: spec.dimensions,
     custom_walls: spec.custom_walls ?? null,
-    walls: spec.walls,
-    style: spec.style,
-    furniture: spec.furniture,
-    layout: spec.layout ?? null,
+    walls: spec.walls as unknown as Json,
+    style: spec.style as unknown as Json,
+    furniture: spec.furniture as unknown as Json,
+    layout: (spec.layout ?? null) as unknown as Json,
     schema_version: spec.schema_version,
   };
 }

@@ -14,8 +14,8 @@ interface LikedDesign {
   id: string;
   image_url: string;
   created_at: string;
-  is_locked: boolean;
-  is_favorite: boolean;
+  is_locked: boolean | null;
+  is_favorite: boolean | null;
   full_description: string | null;
 }
 
