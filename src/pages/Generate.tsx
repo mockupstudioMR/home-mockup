@@ -46,6 +46,7 @@ import FloorPlanComparison from "@/components/generate/FloorPlanComparison";
 import { getStyleMoodboardUrls } from "@/lib/styleMoodboards";
 import MoodboardElementsPanel, { type MoodboardItem, type MoodboardAction } from "@/components/generate/MoodboardElementsPanel";
 import MoodboardRefinePanel from "@/components/generate/MoodboardRefinePanel";
+import ActivitiesStep from "@/components/generate/ActivitiesStep";
 
 interface GeneratedDesign {
   id: string;
@@ -2365,6 +2366,8 @@ RULES:
             </Button>
           </div>
         )}
+
+        {design && !generating && <ActivitiesStep roomType={quizData?.roomType} />}
 
         {/* Continue with the floor plan */}
         {design && !generating && (
