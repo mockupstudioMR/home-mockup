@@ -1,6 +1,6 @@
 import "https://deno.land/std@0.224.0/dotenv/load.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
+import { corsHeaders } from "../_shared/http.ts";
 import { sendWhatsApp, firstMessage } from "../_shared/whatsappQuiz.ts";
 
 Deno.serve(async (req) => {
