@@ -60,6 +60,7 @@ const DesignerDashboard = lazyWithReload(() => import("./pages/DesignerDashboard
 const ShopDashboard = lazyWithReload(() => import("./pages/ShopDashboard"), "shop");
 const WhatsAppPicker = lazyWithReload(() => import("./pages/WhatsAppPicker"), "whatsapp-picker");
 const DesignJourney = lazyWithReload(() => import("./pages/DesignJourney"), "design-journey");
+const ProjectHome = lazyWithReload(() => import("./pages/ProjectHome"), "project-home");
 
 const PageLoader = () => (
   <div className="min-h-screen flex items-center justify-center">
@@ -136,6 +137,11 @@ const App = () => (
               <Route path="/gallery" element={
                 <ProtectedRoute allowedRoles={["user"]}>
                   <Gallery />
+                </ProtectedRoute>
+              } />
+              <Route path="/project" element={
+                <ProtectedRoute allowedRoles={["user"]}>
+                  <ProjectHome />
                 </ProtectedRoute>
               } />
               <Route path="/my-stats" element={

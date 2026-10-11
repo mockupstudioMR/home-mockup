@@ -41,15 +41,6 @@ Deno.serve(async (req) => {
 
     const { shopUrl, userId: requestedUserId, shopRef }: ScrapeRequest = await req.json();
 
-    // shopRef (a row in public.shops) is set when an admin scrapes a partner or user-added shop.
-    // Those shops may have no account of their own, so products are filed under the admin.
-    if (shopRef && !(await isAdmin(caller))) {
-      return new Response(
-        JSON.stringify({ success: false, error: "Only admins can scrape shops from the shop list." }),
-        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
     // Products are saved under this id with the service-role key, so only
     // admins may scrape on behalf of another shop.
     const callerId = caller.kind === "user" ? caller.userId : null;
@@ -70,6 +61,18 @@ Deno.serve(async (req) => {
 
     // Initialize Supabase client
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+
+    // shopRef (a row in public.shops): an admin scraping a listed shop, or a user reading a
+    // shop they added to their project in step 5.0. Such shops may have no account of their own.
+    if (shopRef && !(await isAdmin(caller))) {
+      const { data: allowed } = await supabase.rpc("can_read_shop", { _shop: shopRef, _user: callerId });
+      if (allowed !== true) {
+        return new Response(
+          JSON.stringify({ success: false, error: "You can only read shops you added to your project." }),
+          { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    }
 
     console.log("Starting to scrape shop:", shopUrl);
     let runId: string | null = null;

@@ -12,8 +12,11 @@ import GroundYourSpace, { type GroundData } from "@/components/start/GroundYourS
 import CaptureVision, { type VisionData } from "@/components/start/CaptureVision";
 import { saveStylePrompt } from "@/lib/journeyPersistence";
 import IntentStep from "@/components/quiz/steps/IntentStep";
+import { createProjectFromGround } from "@/lib/projectStore";
 
 interface StartLocationState {
+  /** Set by the project home when the user continues with another room (steps 2–10 repeat per room). */
+  resumeRoom?: string;
   fromChoosePath?: boolean;
 }
 
@@ -114,6 +117,12 @@ const Start = () => {
 
   useEffect(() => {
     const state = location.state as StartLocationState | null;
+    if (state?.resumeRoom) {
+      updateQuizData({ roomType: state.resumeRoom });
+      setFreshStage("vision");
+      navigate(location.pathname, { replace: true, state: {} });
+      return;
+    }
     if (state?.fromChoosePath && freshStage === "path") {
       setFreshStage("intent");
       navigate(location.pathname, { replace: true, state: {} });
@@ -213,12 +222,20 @@ const Start = () => {
           <Logo size={32} />
           <span className="font-semibold text-lg tracking-tight text-foreground">HomeMockUp</span>
         </button>
-        <button
-          onClick={() => navigate("/my-stats")}
-          className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
-        >
-          My Stats
-        </button>
+        <div className="flex items-center gap-5">
+          <button
+            onClick={() => navigate("/project")}
+            className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
+          >
+            My project
+          </button>
+          <button
+            onClick={() => navigate("/my-stats")}
+            className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
+          >
+            My Stats
+          </button>
+        </div>
       </header>
 
       {/* Main Content */}
@@ -320,6 +337,8 @@ const Start = () => {
                   onBack={() => setFreshStage("intent")}
                   onComplete={(data: GroundData) => {
                     updateQuizData({ roomType: data.startRoom });
+                    // Save step 1 as a project with its rooms (no-op until the project tables exist).
+                    void createProjectFromGround(data);
                     try {
                       sessionStorage.setItem("ground_your_space", JSON.stringify(data));
                       sessionStorage.removeItem("ground_your_space_draft");

@@ -4022,11 +4022,13 @@ export type Database = {
     }
     Functions: {
       accept_invite: { Args: { invite_token: string }; Returns: boolean }
+      add_project_shop: { Args: { _project: string; _url: string }; Returns: Json[] }
       admin_refresh_scores: { Args: never; Returns: string }
       apply_scope_defaults: { Args: { _room_id: string }; Returns: undefined }
       can_access_project: { Args: { _project_id: string }; Returns: boolean }
       can_access_room: { Args: { _room_id: string }; Returns: boolean }
       can_edit_room: { Args: { _room_id: string }; Returns: boolean }
+      can_read_shop: { Args: { _shop: string; _user: string }; Returns: boolean }
       deduct_credits: { Args: { _amount: number; _user_id: string }; Returns: boolean }
       get_user_role: { Args: { _user_id: string }; Returns: Database["public"]["Enums"]["app_role"] }
       has_role: { Args: { _role: Database["public"]["Enums"]["app_role"]; _user_id: string }; Returns: boolean }

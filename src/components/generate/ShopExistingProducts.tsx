@@ -11,6 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { DEFAULT_WEIGHTS, type MatchingWeights } from "@/components/admin/ProductMatchingWeights";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { loadShopPreferences } from "@/lib/projectStore";
 
 interface DesignItem {
   id: string;
@@ -38,6 +39,8 @@ interface MatchedProduct {
   ai_image_description: string | null;
   matchReasons: string[];
   matchScore: number;
+  shop_ref?: string | null;
+  isOwnShop?: boolean;
 }
 
 interface ShopExistingProductsProps {
@@ -654,6 +657,23 @@ const ShopExistingProducts = ({ item, onClose }: ShopExistingProductsProps) => {
           error = result.error;
         }
 
+        // Shop choice from step 5.0: the user's own shops are searched too (and may be all they want).
+        const prefs = await loadShopPreferences();
+        if (prefs?.choice.use_own_shops && prefs.ownShopIds.size > 0 && expandedSearchKeywords.length > 0) {
+          const orFilter = expandedSearchKeywords
+            .map(kw => `name.ilike.%${kw}%,type.ilike.%${kw}%,description.ilike.%${kw}%,ai_image_description.ilike.%${kw}%`)
+            .join(",");
+          const own = await supabase
+            .from("shop_products")
+            .select("*")
+            .eq("is_active", true)
+            .in("shop_ref", Array.from(prefs.ownShopIds))
+            .or(orFilter)
+            .limit(50);
+          const seen = new Set(data.map((p) => p.id));
+          data = [...data, ...(own.data || []).filter((p) => !seen.has(p.id))];
+        }
+
         // Fallback: if no targeted results, fetch by type
         if (data.length === 0) {
           const expectedType = typeFromItemType(item.item_type);
@@ -706,7 +726,20 @@ const ShopExistingProducts = ({ item, onClose }: ShopExistingProductsProps) => {
           })
           .sort((a, b) => b.matchScore - a.matchScore);
 
-        const deduped = dedupeProducts(scored);
+        // Hide products from shops this user can't see (someone else's shop still waiting for review),
+        // keep only their own shops when they turned suggested furniture off, and put their shops first.
+        let chosen = scored.map((p) => ({ ...p, isOwnShop: !!p.shop_ref && !!prefs?.ownShopIds.has(p.shop_ref) }));
+        if (prefs?.visibleShopIds) {
+          chosen = chosen.filter((p) => !p.shop_ref || prefs.visibleShopIds!.has(p.shop_ref) || p.isOwnShop);
+        }
+        if (prefs && !prefs.choice.use_suggested && prefs.choice.use_own_shops) {
+          chosen = chosen.filter((p) => p.isOwnShop);
+        }
+        if (prefs?.choice.use_own_shops && prefs.choice.own_shops_first) {
+          chosen = [...chosen].sort((a, b) => Number(!!b.isOwnShop) - Number(!!a.isOwnShop) || b.matchScore - a.matchScore);
+        }
+
+        const deduped = dedupeProducts(chosen);
         debug.afterScoringCount = scored.length;
         debug.afterDedupCount = deduped.length;
         setProducts(deduped.slice(0, 8));
@@ -792,6 +825,11 @@ const ShopExistingProducts = ({ item, onClose }: ShopExistingProductsProps) => {
                 </div>
 
                 <div className="flex flex-wrap gap-1 mt-1">
+                  {product.isOwnShop && (
+                    <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 bg-emerald-50 text-emerald-700 border-emerald-200">
+                      Your shop
+                    </Badge>
+                  )}
                   {product.matchReasons.filter(r => r.toLowerCase().startsWith("type match")).map((reason, idx) => {
                     const reasonLower = reason.toLowerCase();
                     const colorClass = reasonLower.includes("type")
