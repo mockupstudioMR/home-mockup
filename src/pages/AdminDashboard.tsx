@@ -4,15 +4,10 @@ import {
   CreditCard,
   FileText,
   FolderOpen,
-  Grid2x2,
   Home,
-  Inbox,
   LogOut,
-  Palette,
   Ruler,
-  ScanLine,
   ShoppingBag,
-  Tag,
   Users,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
@@ -30,16 +25,8 @@ import OpeningRulesManager from "@/components/admin/OpeningRulesManager";
 import ProductMatchingWeights from "@/components/admin/ProductMatchingWeights";
 import AnalyticsDashboard from "@/components/analytics/AnalyticsDashboard";
 import AdminHome, { type AdminSection, useAdminCounts } from "@/components/admin/AdminHome";
-import ScanUpload from "@/components/admin/scan/ScanUpload";
-import ReviewQueue from "@/components/admin/review/ReviewQueue";
-import VocabularyManager from "@/components/admin/library/VocabularyManager";
-import ShopsManager from "@/components/admin/library/ShopsManager";
-import SchemesLibrary from "@/components/admin/library/SchemesLibrary";
-import StylesPalettes from "@/components/admin/library/StylesPalettes";
-import ScopeDefaultsManager from "@/components/admin/library/ScopeDefaultsManager";
 import ProjectSupport from "@/components/admin/ProjectSupport";
 import UsersInvites from "@/components/admin/UsersInvites";
-import SettingsHistory from "@/components/admin/SettingsHistory";
 
 type NavItem = { id: AdminSection; label: string; icon: React.ComponentType<{ className?: string }>; count?: number; soon?: boolean };
 
@@ -58,20 +45,10 @@ const AdminDashboard = () => {
   const groups: { label: string; items: NavItem[] }[] = [
     { label: "Overview", items: [{ id: "home", label: "Admin home", icon: Home }] },
     {
-      label: "Feed",
-      items: [
-        { id: "scan", label: "Scan & upload", icon: ScanLine },
-        { id: "review", label: "Review queue", icon: Inbox, count: counts?.waiting },
-      ],
-    },
-    {
       label: "Curate",
       items: [
-        { id: "vocabulary", label: "Vocabulary", icon: Tag, count: counts?.proposed },
-        { id: "schemes", label: "Schemes & combinations", icon: Grid2x2 },
-        { id: "styles", label: "Styles & palettes", icon: Palette },
         { id: "sizes", label: "Sizes, scope & config", icon: Ruler, count: counts?.missingSizes },
-        { id: "products", label: "Products & shops", icon: ShoppingBag, count: counts?.pendingShops },
+        { id: "products", label: "Products & shops", icon: ShoppingBag, count: counts?.newProducts },
       ],
     },
     {
@@ -88,11 +65,6 @@ const AdminDashboard = () => {
 
   const content = (() => {
     switch (section) {
-      case "scan": return <ScanUpload />;
-      case "review": return <ReviewQueue />;
-      case "vocabulary": return <VocabularyManager />;
-      case "schemes": return <SchemesLibrary />;
-      case "styles": return <StylesPalettes />;
       case "sizes":
         return (
           <div className="space-y-8">
@@ -103,7 +75,6 @@ const AdminDashboard = () => {
               </p>
             </div>
             <FurnitureSpecsManager />
-            <ScopeDefaultsManager />
             <RoomActivitiesManager />
             <OpeningRulesManager />
             <RoomFurnitureManager />
@@ -121,19 +92,12 @@ const AdminDashboard = () => {
                 The shops we search and the products in them. Shops users add in step 5 land here first.
               </p>
             </div>
-            <ShopsManager />
             <AdminProductManagement />
           </div>
         );
       case "projects": return <ProjectSupport />;
       case "users": return <UsersInvites />;
-      case "cms":
-        return (
-          <div className="space-y-8">
-            <CMSEditor />
-            <SettingsHistory />
-          </div>
-        );
+      case "cms": return <CMSEditor />;
       case "analytics": return <AnalyticsDashboard scope="admin" />;
       case "billing":
         return (
