@@ -5,7 +5,6 @@ import Logo from "@/components/Logo";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import ShopChoicePanel from "@/components/shop/ShopChoicePanel";
-import { supabase } from "@/integrations/supabase/client";
 import { ROOM_LABELS, ensureProject, projectDb, projectsReady } from "@/lib/projectStore";
 import { cn } from "@/lib/utils";
 
