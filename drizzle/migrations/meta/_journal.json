@@ -36,6 +36,13 @@
       "when": 1788957924349,
       "tag": "0004_create_retailer_posts",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1791760720908,
+      "tag": "0005_admin_read_policies_for_support_screens",
+      "breakpoints": true
     }
   ]
 }

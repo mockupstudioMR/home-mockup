@@ -1,12 +1,26 @@
 /**
  * Projects, rooms and shop choices for the "Designing my home" journey.
  *
- * Everything here is best-effort: if the project tables are not in the database yet
- * (migrations 20261012090000–090500 not applied), the calls return null / defaults and
- * the existing journey keeps working exactly as before.
+ * Everything here is best-effort: the project tables (`projects`, `step_progress`,
+ * `shops`, `project_shops`, `project_shop_choices`) are not in the database yet, so
+ * the calls return null / defaults and the existing journey keeps working exactly as
+ * before. Because those tables are absent, `src/integrations/supabase/types.ts` does
+ * not describe them — they are reached through `projectDb`, a loosely-typed view of
+ * the same client, so this module stays honest about what is and isn't set up.
  */
 import { supabase } from "@/integrations/supabase/client";
-import type { Tables } from "@/integrations/supabase/types";
+
+/**
+ * Same client, but without the generated table types: the optional project tables
+ * have no entry in `types.ts`, and casting here keeps that file untouched.
+ */
+type LooseClient = {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  from(relation: string): any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  rpc(functionName: string, args?: Record<string, unknown>): any;
+};
+export const projectDb = supabase as unknown as LooseClient;
 
 const PROJECT_KEY = "hm_project_id";
 const LOCAL_CHOICE_KEY = "hm_shop_choice";
@@ -24,7 +38,20 @@ export const DEFAULT_SHOP_CHOICE: ShopChoice = {
   own_shops_first: true,
 };
 
-export type ProjectShop = Pick<Tables<"shops">, "id" | "name" | "domain" | "url" | "status" | "product_count" | "last_scraped_at">;
+/** A shop the user pasted into their project, as `scrape-shop` reports it. */
+export type ProjectShop = {
+  id: string;
+  name: string;
+  domain: string | null;
+  url: string | null;
+  status: string;
+  product_count: number;
+  last_scraped_at: string | null;
+};
+
+type RoomState = "core_shell" | "empty" | "partially_furnished" | "redo_all";
+type PropertyType = "apartment" | "house" | "studio" | "loft";
+type ProjectIntent = "new_space" | "redesign" | "exploring";
 
 let readyCache: Promise<boolean> | null = null;
 /** True when the project tables exist and the user can use them. */
@@ -32,7 +59,7 @@ export function projectsReady(): Promise<boolean> {
   if (!readyCache) {
     readyCache = (async () => {
       try {
-        const { error } = await supabase.from("projects").select("id", { head: true, count: "exact" }).limit(1);
+        const { error } = await projectDb.from("projects").select("id", { head: true, count: "exact" }).limit(1);
         return !error;
       } catch {
         return false;
@@ -59,13 +86,13 @@ const safeStorage = {
   },
 };
 
-const STATE_MAP: Record<string, Tables<"rooms">["starting_state"]> = {
+const STATE_MAP: Record<string, RoomState> = {
   "core-shell": "core_shell",
   empty: "empty",
   partial: "partially_furnished",
   redoing: "redo_all",
 };
-const PROPERTY_MAP: Record<string, Tables<"projects">["property_type"]> = {
+const PROPERTY_MAP: Record<string, PropertyType> = {
   apartment: "apartment",
   house: "house",
   studio: "studio",
@@ -95,10 +122,10 @@ export async function createProjectFromGround(data: {
     const userId = auth.user?.id;
     if (!userId) return null;
     const state = STATE_MAP[data.houseState] ?? null;
-    const intent: Tables<"projects">["intent"] =
+    const intent: ProjectIntent =
       data.houseState === "partial" || data.houseState === "redoing" ? "redesign" : "new_space";
 
-    const { data: project, error } = await supabase
+    const { data: project, error } = await projectDb
       .from("projects")
       .insert({
         owner_id: userId,
@@ -113,7 +140,7 @@ export async function createProjectFromGround(data: {
 
     const ordered = [data.startRoom, ...data.rooms.filter((r) => r !== data.startRoom)].filter(Boolean);
     if (ordered.length) {
-      const { data: created } = await supabase.from("rooms").insert(
+      const { data: created } = await projectDb.from("rooms").insert(
         ordered.map((roomType, i) => ({
           user_id: userId,
           project_id: project.id,
@@ -126,10 +153,10 @@ export async function createProjectFromGround(data: {
       const first = (created ?? []).find((r) => r.sequence_no === 1);
       if (first) {
         safeStorage.set("hm_room_id", first.id);
-        await supabase.from("rooms").update({ current_step: 2 }).eq("id", first.id);
+        await projectDb.from("rooms").update({ current_step: 2 }).eq("id", first.id);
       }
     }
-    await supabase.from("step_progress").insert({ project_id: project.id, step_no: 1, status: "completed" });
+    await projectDb.from("step_progress").insert({ project_id: project.id, step_no: 1, status: "completed" });
     safeStorage.set(PROJECT_KEY, project.id);
     return project.id;
   } catch (e) {
@@ -147,10 +174,10 @@ export async function ensureProject(): Promise<string | null> {
     if (!userId) return null;
     const remembered = safeStorage.get(PROJECT_KEY);
     if (remembered) {
-      const { data } = await supabase.from("projects").select("id").eq("id", remembered).eq("owner_id", userId).maybeSingle();
+      const { data } = await projectDb.from("projects").select("id").eq("id", remembered).eq("owner_id", userId).maybeSingle();
       if (data) return data.id;
     }
-    const { data: latest } = await supabase
+    const { data: latest } = await projectDb
       .from("projects")
       .select("id")
       .eq("owner_id", userId)
@@ -162,7 +189,7 @@ export async function ensureProject(): Promise<string | null> {
       safeStorage.set(PROJECT_KEY, latest.id);
       return latest.id;
     }
-    const { data: created } = await supabase
+    const { data: created } = await projectDb
       .from("projects")
       .insert({ owner_id: userId, name: "My home", intent: "exploring" })
       .select("id")
@@ -176,7 +203,7 @@ export async function ensureProject(): Promise<string | null> {
 
 export async function loadShopChoice(projectId: string | null): Promise<ShopChoice> {
   if (projectId) {
-    const { data } = await supabase.from("project_shop_choices").select("*").eq("project_id", projectId).maybeSingle();
+    const { data } = await projectDb.from("project_shop_choices").select("*").eq("project_id", projectId).maybeSingle();
     if (data) {
       return {
         use_suggested: data.use_suggested,
@@ -196,18 +223,18 @@ export async function loadShopChoice(projectId: string | null): Promise<ShopChoi
 export async function saveShopChoice(projectId: string | null, choice: ShopChoice) {
   safeStorage.set(LOCAL_CHOICE_KEY, JSON.stringify(choice));
   if (!projectId) return;
-  const { error } = await supabase
+  const { error } = await projectDb
     .from("project_shop_choices")
     .upsert({ project_id: projectId, ...choice, updated_at: new Date().toISOString() });
   if (error) throw error;
   // The room being designed has reached step 5 (furniture).
   const roomId = safeStorage.get("hm_room_id");
-  if (roomId) await supabase.from("rooms").update({ current_step: 5 }).eq("id", roomId).lt("current_step", 5);
+  if (roomId) await projectDb.from("rooms").update({ current_step: 5 }).eq("id", roomId).lt("current_step", 5);
 }
 
 export async function loadProjectShops(projectId: string | null): Promise<ProjectShop[]> {
   if (!projectId) return [];
-  const { data } = await supabase
+  const { data } = await projectDb
     .from("project_shops")
     .select("shops(id, name, domain, url, status, product_count, last_scraped_at)")
     .eq("project_id", projectId)
@@ -217,7 +244,7 @@ export async function loadProjectShops(projectId: string | null): Promise<Projec
 
 /** Add a shop link to the project. A shop with the same domain is reused, even if someone else added it. */
 export async function addProjectShop(projectId: string, link: string): Promise<ProjectShop> {
-  const { data, error } = await supabase.rpc("add_project_shop", { _project: projectId, _url: link });
+  const { data, error } = await projectDb.rpc("add_project_shop", { _project: projectId, _url: link });
   if (error) throw new Error(error.message.replace(/^.*?:\s*/, ""));
   const shop = (data ?? [])[0];
   if (!shop) throw new Error("Could not add this shop.");
@@ -225,7 +252,7 @@ export async function addProjectShop(projectId: string, link: string): Promise<P
 }
 
 export async function removeProjectShop(projectId: string, shopId: string) {
-  await supabase.from("project_shops").delete().eq("project_id", projectId).eq("shop_id", shopId);
+  await projectDb.from("project_shops").delete().eq("project_id", projectId).eq("shop_id", shopId);
 }
 
 /** Read a shop the user added so its products can be matched (runs the existing scrape-shop function). */
@@ -242,7 +269,7 @@ export async function readShop(shop: ProjectShop) {
 /** Shops whose products this user may be shown (approved ones plus their own), or null when shops are not set up. */
 export async function visibleShopIds(): Promise<Set<string> | null> {
   if (!(await projectsReady())) return null;
-  const { data, error } = await supabase.from("shops").select("id");
+  const { data, error } = await projectDb.from("shops").select("id");
   if (error) return null;
   return new Set((data ?? []).map((s) => s.id));
 }

@@ -5,3 +5,4 @@
 - [x] Correct moodboard-to-design references and verify generation inputs (reference tests passed; generator deployed).
 
 - [x] Shopping list: auto-extract missing design items and show exact design crops only (never generic/catalog substitutes)
+- [x] Repair the app build: drop admin screens whose tables were never created, rebuild Admin home and Projects support on live data, fix WhatsApp functions, grant admin read access. Verified: typecheck clean, tests pass, all admin sections render.
