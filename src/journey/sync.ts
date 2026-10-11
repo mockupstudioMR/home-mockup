@@ -102,3 +102,62 @@ export async function saveStepDone(s: JourneyState, step: number) {
     /* best effort */
   }
 }
+
+const ACTION_DB: Record<string, "buy" | "keep" | "custom" | "own_or_buy" | "buy_or_keep"> = {
+  Buy: "buy", Keep: "keep", "Keep · yours": "keep", Custom: "custom", "Own or buy": "own_or_buy", "Buy or keep": "buy_or_keep",
+};
+
+/** Step 9: the buying list becomes the room's items (replacing the earlier ones). */
+export async function saveBuyList(s: JourneyState, rows: { id: string; name: string; qty: string; wall: string; action: string; tab: string }[]) {
+  if (isQa() || !s.roomId || !(await projectsReady())) return;
+  try {
+    await supabase.from("room_items").delete().eq("room_id", s.roomId);
+    const items = rows.map((r, i) => {
+      const n = parseFloat(r.qty);
+      return {
+        room_id: s.roomId!,
+        label: r.name,
+        item_type: r.tab === "finishes" ? "finish" : r.id.startsWith("keep") ? "kept" : "furniture",
+        source: (r.action.startsWith("Keep") ? "existing_kept" : "proposed") as "existing_kept" | "proposed",
+        action: ACTION_DB[r.action] ?? "buy",
+        quantity: Number.isFinite(n) && n > 0 ? n : 1,
+        quantity_note: Number.isFinite(n) && String(n) === r.qty ? null : r.qty,
+        wall_id: r.wall,
+        sort_order: i,
+      };
+    });
+    if (items.length) await supabase.from("room_items").insert(items);
+  } catch (e) {
+    console.warn("[journey] could not save the buying list", e);
+  }
+}
+
+const ROLE_DB: Record<string, string> = { Designer: "designer", Joiner: "joiner", Electrician: "electrician", Plumber: "plumber", "AC installer": "ac_installer", "Flooring & curtains": "flooring_curtains", Decorator: "decorator" };
+
+/** Step 9.3: invite someone to the project by email (they get a project_collaborators invite). */
+export async function inviteCollaborator(s: JourneyState, role: string, email: string) {
+  if (isQa() || !s.projectId || !(await projectsReady())) return false;
+  const { error } = await supabase.from("project_collaborators").insert({ project_id: s.projectId, email, role: (ROLE_DB[role] ?? "other") as never });
+  if (error) throw new Error(error.message);
+  return true;
+}
+
+/** Step 10: the next room becomes the current one; the project keeps everything else. */
+export async function startNextRoom(s: JourneyState, room: string) {
+  if (isQa() || !s.projectId || !(await projectsReady())) return null;
+  try {
+    const { data } = await supabase.from("rooms").select("id").eq("project_id", s.projectId).eq("room_type", room).maybeSingle();
+    if (s.roomId) await supabase.from("rooms").update({ current_step: 10 }).eq("id", s.roomId);
+    if (data?.id) {
+      await supabase.from("rooms").update({ current_step: 2 }).eq("id", data.id).lt("current_step", 2);
+      try {
+        localStorage.setItem("hm_room_id", data.id);
+      } catch {
+        /* ignore */
+      }
+    }
+    return data?.id ?? null;
+  } catch {
+    return null;
+  }
+}

@@ -148,7 +148,19 @@ export type JourneyState = {
   };
   // Step 8 — wall by wall
   walls: Partial<Record<Wall, WallPlan>>;
-  // later steps are added as their screens are built
+  // Step 9 — make it happen
+  buyEdits?: Record<string, { size?: string; action?: string }>;
+  /** Space available, per buying-list row (the second of the three sizes). */
+  spaceAvail?: Record<string, string>;
+  checks?: Record<string, boolean[]>;
+  todo?: Record<string, boolean>;
+  team?: { role: string; email: string }[];
+  // Step 10 / more rooms
+  /** The room being designed now (steps 2–10 repeat per room). Defaults to the start room. */
+  current?: string;
+  roomsDone: string[];
+  /** Each finished room's answers, kept for the project page. */
+  archive?: Record<string, Partial<JourneyState>>;
   [key: string]: unknown;
   /** Steps finished for this room (1–10). */
   done: number[];
@@ -173,6 +185,7 @@ export const EMPTY: JourneyState = {
   catalogPhotos: [],
   supporting: [],
   walls: {},
+  roomsDone: [],
   layouts: [],
   done: [],
 };
@@ -222,4 +235,13 @@ export function useJourney() {
 
 /** Rooms in the order they will be designed: the start room first. */
 export const orderedRooms = (s: JourneyState) => (s.startRoom ? [s.startRoom, ...s.rooms.filter((r) => r !== s.startRoom)] : s.rooms);
+/** The room being designed now. */
+export const curRoom = (s: JourneyState) => s.current ?? s.startRoom;
+/** Answers that belong to one room (steps 2–10); the rest are the project's. */
+export const ROOM_KEYS: (keyof JourneyState)[] = [
+  "visionMode", "photos", "pinterest", "note", "quickNotes", "analysis", "styles", "moodboard", "preview",
+  "activities", "priorities", "keeping", "nothingKept", "fixedCounts", "fixedTbc", "placements", "fixedPhotos",
+  "room", "layouts", "chosenLayout", "anchor", "accent", "supporting", "supportImage", "samplesAdded", "lighting", "walls",
+  "buyEdits", "spaceAvail", "checks", "todo",
+];
 export const uid = () => Math.random().toString(36).slice(2, 10);

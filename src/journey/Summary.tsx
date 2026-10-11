@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import { Back, Go, Screen } from "./Shell";
 import { I, ROOM_ICON_SM } from "./icons";
 import { STEP_NAMES, STEP_TITLES, roomName } from "./data";
-import { orderedRooms, useJourney } from "./state";
+import { curRoom, orderedRooms, useJourney } from "./state";
 import type { ScreenId } from "./routes";
 
 export type Decision = { k: string; v: ReactNode; edit?: ScreenId; editLabel?: string; editExtra?: string };
@@ -29,9 +29,9 @@ export function JourneyStrip({ step }: { step: number }) {
 /** Rail card: the other rooms, waiting their turn. */
 export function RoomsLeft({ step }: { step: number }) {
   const { s } = useJourney();
-  const rooms = orderedRooms(s);
-  const current = rooms[0];
-  const left = Math.max(0, rooms.length - 1);
+  const current = curRoom(s) ?? orderedRooms(s)[0];
+  const rooms = [current, ...orderedRooms(s).filter((r) => r !== current)].filter(Boolean) as string[];
+  const left = rooms.filter((r) => r !== current && !s.roomsDone.includes(r)).length;
   return (
     <div className="rail-card rooms">
       <div className="row between">
@@ -47,7 +47,7 @@ export function RoomsLeft({ step }: { step: number }) {
             <div key={r} className={`rmi${i === 0 ? " cur" : ""}`}>
               <Icon />
               <b>{roomName(r)}</b>
-              <span className="st">{i === 0 ? `Step ${step} of 10 ✓` : "Not started"}</span>
+              <span className="st">{i === 0 ? `Step ${step} of 10 ✓` : s.roomsDone.includes(r) ? "✓ Done" : "Not started"}</span>
             </div>
           );
         })}

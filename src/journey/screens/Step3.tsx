@@ -6,7 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Back, Go, Opt, Screen } from "../Shell";
 import { I, Ic, ROOM_ICON, SCOPE_ICON } from "../icons";
 import { stateInfo } from "../data";
-import { uid, useJourney, type FixedKind, type JourneyState, type KeepItem, type Placement, type Wall } from "../state";
+import { curRoom, uid, useJourney, type FixedKind, type JourneyState, type KeepItem, type Placement, type Wall } from "../state";
 import { StepSummary } from "../Summary";
 import { uploadPhoto } from "../services";
 import { dims, fallbackFor, sizeVariants, type SizeVariant } from "../sizes";
@@ -86,7 +86,7 @@ function useActivities(room?: string) {
 /** 3.1 · Activities */
 export function Activities() {
   const { s, set } = useJourney();
-  const all = useActivities(s.startRoom);
+  const all = useActivities(curRoom(s));
   const extra = s.activities.filter((a) => !all.includes(a));
   const [own, setOwn] = useState("");
   const toggle = (a: string) => set((x) => ({ activities: x.activities.includes(a) ? x.activities.filter((y) => y !== a) : [...x.activities, a] }));

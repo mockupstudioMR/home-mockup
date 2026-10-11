@@ -4,7 +4,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Back, Go, Opt, Screen, useGo } from "../Shell";
 import { I, Ic } from "../icons";
 import { roomName } from "../data";
-import { uid, useJourney, type FixedKind, type JourneyState, type Layout, type Placement, type Wall } from "../state";
+import { curRoom, uid, useJourney, type FixedKind, type JourneyState, type Layout, type Placement, type Wall } from "../state";
 import { StepSummary } from "../Summary";
 import { analyzePlan, makeLayout, uploadPhoto } from "../services";
 import { list, soFar } from "../story";
@@ -63,7 +63,7 @@ export function RoomInput() {
     </li>
   );
   return (
-    <Screen board="S4-Input" step={4} right={roomName(s.startRoom)} wrapStyle={{ maxWidth: "1120px" }}>
+    <Screen board="S4-Input" step={4} right={roomName(curRoom(s))} wrapStyle={{ maxWidth: "1120px" }}>
       <p className="eyebrow">Choose where life happens</p>
       <h1 className="h1">Show us the room</h1>
       <p className="sub">{busy ?? "Now we fit your direction to the real space. Pick whichever is easiest."}</p>
@@ -205,7 +205,7 @@ export function Measure() {
   const ORDER: FixedKind[] = ["windows", "radiators", "doors", "columns"];
   const shown = pl.filter((x) => ORDER.includes(x.kind)).sort((a, b) => ORDER.indexOf(a.kind) - ORDER.indexOf(b.kind) || a.n - b.n);
   return (
-    <Screen board="S4-Measure" step={4} right={roomName(s.startRoom)} wrapClass="wrap wide">
+    <Screen board="S4-Measure" step={4} right={roomName(curRoom(s))} wrapClass="wrap wide">
       <div className="left">
         <p className="eyebrow">Choose where life happens</p>
         <h1 className="h1" style={{ fontSize: "clamp(36px,4vw,56px)" }}>
@@ -217,7 +217,7 @@ export function Measure() {
       </div>
       <div className="split" style={{ marginTop: "32px" }}>
         <div className="main">
-          <div className="board" role="img" aria-label={`Floor plan of the ${roomName(s.startRoom).toLowerCase()} with walls A to D`}>
+          <div className="board" role="img" aria-label={`Floor plan of the ${roomName(curRoom(s)).toLowerCase()} with walls A to D`}>
             <div style={{ position: "absolute", inset: 0, transform: `scale(${zoom})`, transformOrigin: "50% 50%" }}>
               <div className="room" ref={roomRef} style={{ width: W + 20, height: H + 20, boxSizing: "border-box", cursor: current ? "crosshair" : undefined }} onClick={place}>
                 {shown.filter((x) => x.wall).flatMap((x) => featureStyle(x, W, H, 10).map((st, i) => <div key={x.id + i} style={st} />))}
@@ -440,7 +440,7 @@ export function Layouts() {
   const kinds = new Set(s.layouts.flatMap((x) => x.items.map((i) => i.kind)));
   const words = ["", "One way", "Two ways", "Three ways"][s.layouts.length] ?? "Ways";
   return (
-    <Screen board="S4-Layouts" step={4} right={roomName(s.startRoom)} wrapStyle={{ maxWidth: "1200px" }}>
+    <Screen board="S4-Layouts" step={4} right={roomName(curRoom(s))} wrapStyle={{ maxWidth: "1200px" }}>
       <p className="eyebrow">Choose where life happens</p>
       <h1 className="h1">{s.layouts.length ? `${words} to live in it` : "Finding ways to live in it"}</h1>
       <p className="sub">

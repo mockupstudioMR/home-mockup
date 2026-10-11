@@ -1,6 +1,6 @@
 /** One-line recaps of each finished step, for "Your project so far" and the final page. */
 import { PROPERTIES, roomName, stateInfo } from "./data";
-import type { JourneyState } from "./state";
+import { curRoom, type JourneyState } from "./state";
 
 const list = (xs: string[]) => (xs.length > 1 ? `${xs.slice(0, -1).join(", ")} and ${xs[xs.length - 1]}` : xs[0] ?? "");
 
@@ -8,7 +8,7 @@ export function stepLine(s: JourneyState, step: number): string {
   switch (step) {
     case 1: {
       const prop = PROPERTIES.find((p) => p.id === s.propertyType)?.title.toLowerCase();
-      return [roomName(s.startRoom), prop, s.houseState ? stateInfo(s.houseState).lbl.toLowerCase() : null].filter(Boolean).join(" · ");
+      return [roomName(curRoom(s)), prop, s.houseState ? stateInfo(s.houseState).lbl.toLowerCase() : null].filter(Boolean).join(" · ");
     }
     case 2: {
       const pv = s.preview;

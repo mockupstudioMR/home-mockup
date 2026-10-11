@@ -8,7 +8,7 @@ import { getAiErrorMessage } from "@/lib/aiErrorMessage";
 import { getAiOptimizedImageUrl, optimizeImageFileSafe } from "@/lib/imageOptimization";
 import { getStyleMoodboardUrls } from "@/lib/styleMoodboards";
 import { trackEvent } from "@/lib/analytics";
-import { uid, type JourneyState, type Layout, type Piece, type StyleMatch, type Swatch } from "./state";
+import { curRoom, uid, type JourneyState, type Layout, type Piece, type StyleMatch, type Swatch } from "./state";
 
 const userId = async () => (await supabase.auth.getUser()).data.user?.id ?? null;
 
@@ -153,7 +153,7 @@ export async function generatePreview(s: JourneyState, opts: { sourceImage?: str
     body: {
       stylePreference: (mb?.name ?? s.styles[0]?.name ?? "").toLowerCase().replace(/[&\s]+/g, "-"),
       colorPalette: (mb?.palette ?? []).map((p) => p.name).join(", "),
-      roomType: s.startRoom ?? "living-room",
+      roomType: curRoom(s) ?? "living-room",
       budgetFeel: "mid",
       mustHaveElements: [],
       detectedColors: (mb?.palette ?? []).map((p) => p.hex),
@@ -193,7 +193,7 @@ export async function makeLayout(s: JourneyState, opts: { emphasis?: number; avo
   const { data, error } = await invokeAi<{ layout?: Omit<Layout, "id">; error?: string }>("generate-layout", {
     body: {
       journey: true,
-      roomType: s.startRoom ?? "living-room",
+      roomType: curRoom(s) ?? "living-room",
       widthM: s.room.widthM ?? 3.75,
       lengthM: s.room.lengthM ?? 4.9,
       activities: s.activities,
@@ -214,7 +214,7 @@ export async function makeLayout(s: JourneyState, opts: { emphasis?: number; avo
 /** A product-style picture of one piece (generate-highlight-visuals, editable prompt "highlight_accent_furniture"). */
 export async function pieceVisual(s: JourneyState, name: string, description: string) {
   const { data, error } = await invokeAi<{ imageUrl?: string }>("generate-highlight-visuals", {
-    body: { type: "accentFurniture", style: s.moodboard?.name ?? "", room: (s.startRoom ?? "living-room").replace(/-/g, " "), furnitureName: name, furnitureDescription: description, colors: s.moodboard?.palette.map((p) => p.name) },
+    body: { type: "accentFurniture", style: s.moodboard?.name ?? "", room: (curRoom(s) ?? "living-room").replace(/-/g, " "), furnitureName: name, furnitureDescription: description, colors: s.moodboard?.palette.map((p) => p.name) },
     timeoutMs: 120_000,
   });
   if (error || !data?.imageUrl) throw new Error(getAiErrorMessage(error, "The picture couldn't be made."));
@@ -224,7 +224,7 @@ export async function pieceVisual(s: JourneyState, name: string, description: st
 /** A flat-lay of the palette's materials (generate-highlight-visuals "colorPalette"). */
 export async function paletteVisual(s: JourneyState) {
   const { data, error } = await invokeAi<{ imageUrl?: string }>("generate-highlight-visuals", {
-    body: { type: "colorPalette", style: s.moodboard?.name ?? "", room: (s.startRoom ?? "living-room").replace(/-/g, " "), colors: s.moodboard?.palette.map((p) => p.name), materials: s.analysis?.materials },
+    body: { type: "colorPalette", style: s.moodboard?.name ?? "", room: (curRoom(s) ?? "living-room").replace(/-/g, " "), colors: s.moodboard?.palette.map((p) => p.name), materials: s.analysis?.materials },
     timeoutMs: 120_000,
   });
   if (error || !data?.imageUrl) throw new Error(getAiErrorMessage(error, "The picture couldn't be made."));

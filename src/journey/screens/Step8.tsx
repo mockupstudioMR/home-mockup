@@ -4,7 +4,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Back, Go, Screen, useGo } from "../Shell";
 import { I } from "../icons";
 import { roomName } from "../data";
-import { useJourney, type JourneyState, type Wall, type WallItem, type WallPlan } from "../state";
+import { curRoom, useJourney, type JourneyState, type Wall, type WallItem, type WallPlan } from "../state";
 import { StepSummary } from "../Summary";
 import { generatePreview } from "../services";
 import { soFar } from "../story";
@@ -74,7 +74,7 @@ export function composeWalls(s: JourneyState): Record<Wall, WallPlan> {
       items.push({ group: "inside", name: "Ventilation grille", note: "Above the door", action: "TBC" });
     }
     if (/sofa|bed/i.test(role) && inWalls) items.push({ group: "inside", name: "AC unit", note: "Position TBC", action: "TBC" });
-    const water = s.placements.some((p) => p.kind === "water" && p.wall === w) || (s.fixedTbc.includes("water") && role === "Window" && /kitchen|bath/.test(s.startRoom ?? ""));
+    const water = s.placements.some((p) => p.kind === "water" && p.wall === w) || (s.fixedTbc.includes("water") && role === "Window" && /kitchen|bath/.test(curRoom(s) ?? ""));
     items.push({ group: "inside", name: "Water", note: water ? "Supply on this wall" : "None on this wall", action: water ? "TBC" : "—" });
     let e = 0, d = 0, v = 0;
     const numbered = items.map((it, i) => {
@@ -145,7 +145,7 @@ export function Walls() {
   };
   const locPos: Record<Wall, React.CSSProperties> = { A: { left: "62px", top: "5px" }, B: { right: "5px", top: "77px" }, C: { left: "62px", bottom: "5px" }, D: { left: "5px", top: "77px" } };
   return (
-    <Screen board="S8-Walls" step={8} right={roomName(s.startRoom)} wrapClass="wrap wide">
+    <Screen board="S8-Walls" step={8} right={roomName(curRoom(s))} wrapClass="wrap wide">
       <div className="row" style={{ gap: "32px", alignItems: "center", flexWrap: "wrap" }}>
         <div className="left" style={{ flex: "1 1 520px" }}>
           <p className="eyebrow">Your room, wall by wall</p>

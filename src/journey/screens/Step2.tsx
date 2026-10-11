@@ -5,7 +5,7 @@ import { Back, Go, Opt, Screen, useGo } from "../Shell";
 import { I, Ic, SCOPE_ICON } from "../icons";
 import { roomName } from "../data";
 import { stepLine } from "../story";
-import { uid, useJourney, type JourneyState, type ReadKey, type StyleMatch } from "../state";
+import { curRoom, uid, useJourney, type JourneyState, type ReadKey, type StyleMatch } from "../state";
 import { StepSummary } from "../Summary";
 import { analyzeStyles, blendName, findStylePieces, generatePreview, paletteFrom, readDesign, uploadPhoto } from "../services";
 import { saveStepDone } from "../sync";
@@ -25,7 +25,7 @@ export function Vision() {
     } else go("S2-Upload");
   };
   return (
-    <Screen board="S2-Vision" step={2} right={roomName(s.startRoom)}>
+    <Screen board="S2-Vision" step={2} right={roomName(curRoom(s))}>
       <p className="eyebrow">Start your journey</p>
       <h1 className="h1">Capture the vision</h1>
       <p className="sub">How would you like to share your style?</p>
@@ -129,7 +129,7 @@ export function Upload() {
   const canAnalyze = s.photos.length > 0 || (describe && (s.note ?? "").trim().length > 3);
 
   return (
-    <Screen board="S2-Upload" step={2} right={roomName(s.startRoom)}>
+    <Screen board="S2-Upload" step={2} right={roomName(curRoom(s))}>
       <h1 className="h1" style={{ marginTop: "0" }}>
         {describe ? "Describe your style" : "Upload Room Inspiration"}
       </h1>
@@ -294,7 +294,7 @@ export function Analyzing() {
   const cues = s.analysis?.cues?.length ? s.analysis.cues : PENDING_CUES;
   const ticked = s.analysis ? cues.length : Math.min(cues.length - 2, Math.floor(pct / 22));
   return (
-    <Screen board="S2-Analyzing" step={2} right={roomName(s.startRoom)} wrapStyle={{ maxWidth: "860px" }}>
+    <Screen board="S2-Analyzing" step={2} right={roomName(curRoom(s))} wrapStyle={{ maxWidth: "860px" }}>
       <p className="script">reading your references…</p>
       <h1 className="h1" style={{ fontSize: "clamp(36px,4.4vw,60px)" }}>
         Finding what you love
@@ -407,7 +407,7 @@ export function Matches() {
   };
 
   return (
-    <Screen board="S2-Matches" step={2} right={roomName(s.startRoom)}>
+    <Screen board="S2-Matches" step={2} right={roomName(curRoom(s))}>
       <h1 className="h1" style={{ marginTop: "0" }}>
         {discover ? "Discover styles" : "Style Matches"}
       </h1>
@@ -536,7 +536,7 @@ export function Moodboard() {
   const { toast } = useToast();
   const mb = s.moodboard;
   const share = async () => {
-    const text = `My ${roomName(s.startRoom).toLowerCase()} moodboard: ${mb?.name}`;
+    const text = `My ${roomName(curRoom(s)).toLowerCase()} moodboard: ${mb?.name}`;
     try {
       if (navigator.share) await navigator.share({ title: mb?.name, text, url: mb?.image });
       else {
@@ -566,7 +566,7 @@ export function Moodboard() {
     }
   };
   return (
-    <Screen board="S2-Moodboard" step={2} right={roomName(s.startRoom)}>
+    <Screen board="S2-Moodboard" step={2} right={roomName(curRoom(s))}>
       <section className="panel" style={{ padding: "40px" }}>
         <Dots at={2} />
         <p className="script" style={{ marginTop: "20px" }}>
@@ -699,15 +699,15 @@ export function Preview() {
   const items = (s.preview?.read ?? []).flatMap((p) => (p.key === "furniture" ? p.keywords.slice(0, 2) : p.key === "colours" ? p.keywords.slice(0, 2) : p.keywords.slice(0, 1))).slice(0, 6);
   const n = (s.preview?.current ?? 0) + 1;
   return (
-    <Screen board="S2-Preview" step={2} right={roomName(s.startRoom)}>
+    <Screen board="S2-Preview" step={2} right={roomName(curRoom(s))}>
       <p className="eyebrow">Your direction</p>
       <h1 className="h1">One preview. Keep or adjust.</h1>
       <p className="sub">
-        Here's your {roomName(s.startRoom).toLowerCase()}, inspired by your references. It's a direction — the real fit comes once we know the room.
+        Here's your {roomName(curRoom(s)).toLowerCase()}, inspired by your references. It's a direction — the real fit comes once we know the room.
       </p>
       <div className="ph hero" style={{ marginTop: "40px", borderRadius: "28px" }}>
         {v ? (
-          <img className="img" src={v.image} alt={`Inspired ${roomName(s.startRoom).toLowerCase()} preview`} style={{ borderRadius: "28px" }} />
+          <img className="img" src={v.image} alt={`Inspired ${roomName(curRoom(s)).toLowerCase()} preview`} style={{ borderRadius: "28px" }} />
         ) : (
           <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", color: "#665A80", fontSize: "20px" }}>
             {busy === "make" ? "Painting your preview… about a minute" : "No preview yet"}
@@ -831,7 +831,7 @@ export function Adjust() {
   };
 
   return (
-    <Screen board="S2-Adjust" step={2} right={roomName(s.startRoom)} wrapClass="wrap wide">
+    <Screen board="S2-Adjust" step={2} right={roomName(curRoom(s))} wrapClass="wrap wide">
       <div className="left">
         <p className="eyebrow">Adjust your direction</p>
         <h1 className="h1" style={{ fontSize: "clamp(36px,4vw,56px)" }}>

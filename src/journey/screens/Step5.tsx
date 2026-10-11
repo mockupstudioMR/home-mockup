@@ -10,7 +10,7 @@ import {
 import { Back, Go, Opt, Screen } from "../Shell";
 import { I, Ic } from "../icons";
 import { roomName } from "../data";
-import { useJourney, type JourneyState, type Wall } from "../state";
+import { curRoom, useJourney, type JourneyState, type Wall } from "../state";
 import { StepSummary } from "../Summary";
 import { pieceVisual, uploadPhoto } from "../services";
 import { dims, fallbackFor, sizeVariants, type SizeVariant } from "../sizes";
@@ -89,7 +89,7 @@ export function Shops() {
   const shops = ctx?.shops ?? [];
   const n = shops.length + s.catalogPhotos.length;
   return (
-    <Screen board="S5-Shops" step={5} right={roomName(s.startRoom)}>
+    <Screen board="S5-Shops" step={5} right={roomName(curRoom(s))}>
       <p className="eyebrow">Before we pick the pieces</p>
       <h1 className="h1">Where do you want to shop?</h1>
       <p className="sub">We look for furniture that matches your {s.moodboard?.name ?? "chosen"} style and your room sizes — in the places you choose.</p>
@@ -339,7 +339,7 @@ export function Anchor() {
   const { s, set } = useJourney();
   const { toast } = useToast();
   const lay = s.layouts[s.chosenLayout ?? 0];
-  const kind = ANCHOR_BY_ROOM[s.startRoom ?? "living-room"] ?? "sofa";
+  const kind = ANCHOR_BY_ROOM[curRoom(s) ?? "living-room"] ?? "sofa";
   const shapes = shapesFor(kind);
   const readWords = (s.preview?.read ?? []).find((r) => r.key === "furniture")?.keywords.join(" ").toLowerCase() ?? "";
   const material = useMemo(() => {
@@ -393,7 +393,7 @@ export function Anchor() {
   const keepName = s.keeping[0]?.name;
   const label = `${a.shape} ${kind}`.replace(/^\w/, (c) => c.toUpperCase());
   return (
-    <Screen board="S5-Anchor" step={5} right={roomName(s.startRoom)} wrapClass="wrap wide" wrapStyle={{ paddingTop: "28px" }}>
+    <Screen board="S5-Anchor" step={5} right={roomName(curRoom(s))} wrapClass="wrap wide" wrapStyle={{ paddingTop: "28px" }}>
       <div className="palbar" aria-label="Your palette">
         <span className="lbl" style={{ marginRight: "6px" }}>
           Your palette
@@ -610,7 +610,7 @@ export function Anchor() {
 /** The wall the anchor piece stands against in the chosen layout. */
 export function wallOf(s: JourneyState): Wall | undefined {
   const roles = wallRoles(s, s.layouts[s.chosenLayout ?? 0]);
-  const kind = ANCHOR_BY_ROOM[s.startRoom ?? "living-room"] ?? "sofa";
+  const kind = ANCHOR_BY_ROOM[curRoom(s) ?? "living-room"] ?? "sofa";
   const hit = roles.split(" · ").find((r) => r.toLowerCase().includes(kind.split(" ")[0]));
   return hit?.[0] as Wall | undefined;
 }

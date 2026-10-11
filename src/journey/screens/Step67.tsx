@@ -4,7 +4,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Back, Go, Screen } from "../Shell";
 import { Ic } from "../icons";
 import { roomName } from "../data";
-import { useJourney, type JourneyState, type Wall } from "../state";
+import { curRoom, useJourney, type JourneyState, type Wall } from "../state";
 import { StepSummary } from "../Summary";
 import { pieceVisual } from "../services";
 import { soFar } from "../story";
@@ -139,7 +139,7 @@ export function Palette() {
   const setAccent = (decision: "keep" | "adjust" | "skip") => set((x) => ({ accent: { ...(x.accent ?? accent!), decision } }));
 
   return (
-    <Screen board="S6-Palette" step={6} right={roomName(s.startRoom)} wrapClass="wrap wide" wrapStyle={{ paddingTop: "28px" }}>
+    <Screen board="S6-Palette" step={6} right={roomName(curRoom(s))} wrapClass="wrap wide" wrapStyle={{ paddingTop: "28px" }}>
       <nav className="crumbs" aria-label="Refinement order">
         <Go className="done" to="S5-Anchor">✓ Main furniture</Go>
         <Go className="on" to="S6-Palette">2 · Accents</Go>
@@ -377,7 +377,7 @@ export function Lighting() {
   const hasWindow = s.placements.some((x) => x.kind === "windows" && x.wall);
   const pal = s.moodboard?.palette ?? [];
   return (
-    <Screen board="S7-Lighting" step={7} right={roomName(s.startRoom)} wrapClass="wrap wide" wrapStyle={{ paddingTop: "28px" }}>
+    <Screen board="S7-Lighting" step={7} right={roomName(curRoom(s))} wrapClass="wrap wide" wrapStyle={{ paddingTop: "28px" }}>
       <div className="palbar" aria-label="Your palette">
         <span className="lbl" style={{ marginRight: "4px" }}>
           Palette
