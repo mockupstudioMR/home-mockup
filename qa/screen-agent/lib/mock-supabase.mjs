@@ -118,7 +118,10 @@ export async function installMock(page, { role, fixtures, log }) {
     }
     if (p.startsWith("/functions/v1/")) {
       const fn = p.slice("/functions/v1/".length);
-      return json(fixtures.functions[fn] ?? { success: true });
+      const f = fixtures.functions[fn] ?? { success: true };
+      // "__delayMs" keeps a function busy, so screens that show progress can be checked mid-way.
+      if (f.__delayMs) await new Promise((r) => setTimeout(r, f.__delayMs));
+      return json(f);
     }
     if (p.startsWith("/storage/v1/object")) return route.fulfill({ status: 200, contentType: "image/png", body: PNG_1PX });
     if (p.startsWith("/storage/v1/")) return json({});

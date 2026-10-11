@@ -993,7 +993,8 @@
    {
     "text": "Analysing photo 3 of 3",
     "kind": "label",
-    "must": true
+    "must": true,
+    "match": "Analysing photo \\d+ of \\d+"
    },
    {
     "text": "72%",

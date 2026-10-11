@@ -1,21 +1,282 @@
 {
-  "v": 1,
-  "intent": "new_space",
-  "propertyType": "apartment",
-  "rooms": ["living-room", "bedroom", "kitchen", "bathroom"],
-  "startRoom": "living-room",
-  "houseState": "core-shell",
-  "allowInWalls": false,
-  "brief": {},
-  "visionMode": "upload",
-  "photos": ["/journey-sample/insp-1.jpg", "/journey-sample/insp-2.jpg", "/journey-sample/insp-3.jpg"],
-  "note": "Love the dark, moody feel and the plants. Not too cluttered.",
-  "quickNotes": [],
-  "styles": [],
-  "activities": [],
-  "priorities": [],
-  "keeping": [],
-  "fixed": [],
-  "fixedPhotos": [],
-  "done": [1]
+ "v": 1,
+ "intent": "new_space",
+ "propertyType": "apartment",
+ "rooms": [
+  "living-room",
+  "bedroom",
+  "kitchen",
+  "bathroom"
+ ],
+ "startRoom": "living-room",
+ "houseState": "core-shell",
+ "allowInWalls": false,
+ "brief": {},
+ "visionMode": "upload",
+ "photos": [
+  "/journey-sample/insp-1.jpg",
+  "/journey-sample/insp-2.jpg",
+  "/journey-sample/insp-3.jpg"
+ ],
+ "note": "Love the dark, moody feel and the plants. Not too cluttered.",
+ "quickNotes": [],
+ "styles": [
+  {
+   "name": "Eclectic Luxe",
+   "score": 85,
+   "keywords": [
+    {
+     "word": "velvet",
+     "on": 1
+    },
+    {
+     "word": "jewel tones",
+     "on": 1
+    },
+    {
+     "word": "curated",
+     "on": 1
+    },
+    {
+     "word": "maximalist",
+     "on": 0
+    },
+    {
+     "word": "sophisticated",
+     "on": 0
+    }
+   ],
+   "pieces": [
+    {
+     "id": "l1",
+     "label": "Blue velvet tub chair",
+     "image": "/journey-sample/luxe-1.jpg",
+     "added": true
+    },
+    {
+     "id": "l2",
+     "label": "Patchwork velvet armchair",
+     "image": "/journey-sample/luxe-2.jpg",
+     "added": false
+    },
+    {
+     "id": "l3",
+     "label": "Inlaid cabinet with malachite top",
+     "image": "/journey-sample/luxe-3.jpg",
+     "added": true
+    },
+    {
+     "id": "l4",
+     "label": "Embroidered green wingback chair",
+     "image": "/journey-sample/luxe-4.jpg",
+     "added": false
+    }
+   ]
+  },
+  {
+   "name": "Biophilic Contemporary",
+   "score": 80,
+   "keywords": [
+    {
+     "word": "greenery",
+     "on": 1
+    },
+    {
+     "word": "organic shapes",
+     "on": 1
+    },
+    {
+     "word": "nature-inspired",
+     "on": 0
+    },
+    {
+     "word": "natural light",
+     "on": 0
+    },
+    {
+     "word": "sustainable",
+     "on": 0
+    }
+   ],
+   "pieces": [
+    {
+     "id": "b1",
+     "label": "Live-edge walnut console with moss",
+     "image": "/journey-sample/bio-1.jpg",
+     "added": false
+    },
+    {
+     "id": "b2",
+     "label": "Sideboard with moss panels",
+     "image": "/journey-sample/bio-2.jpg",
+     "added": false
+    },
+    {
+     "id": "b3",
+     "label": "Curved wood floor lamp with rattan shade",
+     "image": "/journey-sample/bio-3.jpg",
+     "added": true
+    },
+    {
+     "id": "b4",
+     "label": "Sculptural boucle lounge chair",
+     "image": "/journey-sample/bio-4.jpg",
+     "added": false
+    }
+   ]
+  }
+ ],
+ "activities": [],
+ "priorities": [],
+ "keeping": [],
+ "fixed": [],
+ "fixedPhotos": [],
+ "done": [
+  1,
+  2
+ ],
+ "analysis": {
+  "colors": [
+   "#5B2E45",
+   "#2F5B4A",
+   "#4A3022",
+   "#B4975A",
+   "#6B6862"
+  ],
+  "cues": [
+   "Deep greens, plum and warm wood",
+   "Velvet, patterned and textured walls",
+   "Curated shelves with books and objects",
+   "Greenery and natural shapes",
+   "Lighting mood"
+  ],
+  "materials": [
+   "velvet",
+   "walnut",
+   "brass"
+  ],
+  "description": "Rich jewel tones with abundant greenery, varied textures and curated displays — a lounge-like, inviting room with a touch of modern glamour."
+ },
+ "moodboard": {
+  "name": "Eclectic Modern",
+  "description": "Rich jewel tones with abundant greenery, varied textures and curated displays — a lounge-like, inviting room with a touch of modern glamour.",
+  "image": "/journey-sample/moodboard.jpg",
+  "palette": [
+   {
+    "name": "Plum",
+    "hex": "#5B2E45",
+    "use": "Seating, curtains"
+   },
+   {
+    "name": "Emerald green",
+    "hex": "#2F5B4A",
+    "use": "Accents, arch"
+   },
+   {
+    "name": "Dark walnut",
+    "hex": "#4A3022",
+    "use": "Wood, floor"
+   },
+   {
+    "name": "Brushed brass",
+    "hex": "#B4975A",
+    "use": "Metal, lighting"
+   },
+   {
+    "name": "Grey plaster",
+    "hex": "#6B6862",
+    "use": "Walls"
+   }
+  ],
+  "feels": [
+   "velvet",
+   "jewel tones",
+   "curated",
+   "greenery",
+   "organic shapes",
+   "warm light"
+  ]
+ },
+ "preview": {
+  "versions": [
+   {
+    "id": "v1",
+    "image": "/journey-sample/room-hero.jpg",
+    "createdAt": "2026-10-11T10:00:00Z"
+   }
+  ],
+  "current": 0,
+  "readOf": "/journey-sample/room-hero.jpg",
+  "kept": true,
+  "read": [
+   {
+    "key": "finishes",
+    "text": "Deep emerald walls with a grey plaster feature wall and white period cornicing. An arched doorway frames patterned wallpaper in the hall. Style reads as eclectic modern on a classic backdrop.",
+    "keywords": [
+     "Emerald walls",
+     "Grey plaster",
+     "Cornicing",
+     "Arched doorway",
+     "Eclectic modern"
+    ],
+    "x": 19,
+    "y": 36
+   },
+   {
+    "key": "furniture",
+    "text": "A curved plum velvet sofa anchors the room, joined by a green leather-and-cane lounge chair and a low walnut coffee table with a green stone top. Walnut shelving is built in floor to ceiling.",
+    "keywords": [
+     "Plum curved sofa",
+     "Green accent chair",
+     "Low coffee table",
+     "Built-in shelving"
+    ],
+    "x": 74,
+    "y": 62
+   },
+   {
+    "key": "colours",
+    "text": "Jewel tones — plum and emerald — set against dark walnut and brushed brass. High contrast, low overall brightness. Velvet, leather, cane, stone and plaster give lots of texture.",
+    "keywords": [
+     "Dark walnut",
+     "Brass",
+     "Plum",
+     "Emerald",
+     "High contrast",
+     "Rich textures"
+    ],
+    "x": 47,
+    "y": 80
+   },
+   {
+    "key": "decor",
+    "text": "Curated shelves of ceramics, glass vases and books. Plenty of plants at different heights. A layered rug and cushions in rust and plum soften the seating.",
+    "keywords": [
+     "Plants",
+     "Ceramics",
+     "Glass vases",
+     "Layered rug",
+     "Cushions"
+    ],
+    "x": 65,
+    "y": 40
+   },
+   {
+    "key": "lighting",
+    "text": "A cluster of smoked-glass and brass globe pendants is the centrepiece, with a brass floor lamp for reading and warm light on the shelves. Mood: warm, dim, evening.",
+    "keywords": [
+     "Textured walls",
+     "Pendant cluster",
+     "Floor lamp",
+     "Shelf lighting"
+    ],
+    "x": 52,
+    "y": 11
+   }
+  ],
+  "changes": {
+   "finishes": "Lighter walls — warm greige. Keep the green arch."
+  },
+  "request": "Lighter walls — warm greige. Keep the green arch, the sofa and the green accents."
+ }
 }

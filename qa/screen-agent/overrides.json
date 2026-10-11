@@ -1,27 +1,135 @@
 {
-  "_about": "Design text that is example data. 'soft' = report only. 'match' = a regex the screen must match instead of the literal design words.",
-  "journey": {
-    "S1-Start": {"match": {"Start with the living room": "Start with the .+"}},
-    "S1-State": {"match": {"What we'll design with \"Core & shell\"": "What we'll design with"}},
-    "S1-State-Empty": {"match": {"What we'll design with \"Empty\"": "What we'll design with"}},
-    "S1-State-Partial": {"match": {"What we'll design with \"Partially furnished\"": "What we'll design with"}},
-    "S1-State-Redo": {"match": {"What we'll design with \"Redoing it all\"": "What we'll design with"}},
-    "S3-Activities": {"match": {"Continue · 3 selected": "Continue · \\d+ selected"}},
-    "S3-Existing": {"soft": ["Bench · standard", "I've measured mine Standard · not measured yet"]},
-    "S4-Layouts": {"soft": ["Two ways to live in it", "More social seating"], "match": {"Choose layout 1 and finish step 4": "Choose layout \\d and finish step 4"}},
-    "S5-Anchor": {"match": {"Use my existing sofa": "Use my existing .+"}},
-    "S6-Palette": {"soft": ["Accent piece"]},
-    "S8-Walls": {"soft": ["Sofa wall", "Window wall", "Entry wall"], "match": {"Keep all 4 walls · finish step 8": "Keep all \\d+ walls · finish step 8"}},
-    "S8-WallDetail": {"match": {"What the entry wall needs": "What (the )?.+ needs"}},
-    "S10-Final": {"match": {"3 rooms still to design": "(\\d+ rooms? still to design|All rooms designed)", "Continue with room 2: Bedroom - from step 2": "(Continue with room \\d+: .+ - from step 2|Back to my project)"}}
+ "_about": "Design text that is example data. 'soft' = report only. 'match' = a regex the screen must match instead of the literal design words.",
+ "journey": {
+  "S1-Start": {
+   "match": {
+    "Start with the living room": "Start with the .+"
+   }
   },
-  "admin": {
-    "B1-Queue": {"soft": ["Accept \"smoked glass\" everywhere"]},
-    "B2-Review": {"match": {"\"Smoked glass\" isn't in the vocabulary": "isn't in the vocabulary"}},
-    "B3-SpotCheck": {"soft": ["Wingback chair"]},
-    "C1-Vocabulary": {"soft": ["Map to Tinted glass", "Accept under Stone", "Map to Embroidered", "Map to Wool", "Map to Burgundy", "Filter materials"]},
-    "D1-Schemes": {"soft": ["Lounge chair", "Console", "Open shelving", "Sideboard", "Floor lamp"]},
-    "G1-Project": {"soft": ["Flat in Kreuzberg"], "match": {"Buying list · living room": "Buying list · .+"}},
-    "X2-Products": {"match": {"Products · [PARTNER SHOP]": "Products · .+"}}
+  "S1-State": {
+   "match": {
+    "What we'll design with \"Core & shell\"": "What we'll design with"
+   }
+  },
+  "S1-State-Empty": {
+   "match": {
+    "What we'll design with \"Empty\"": "What we'll design with"
+   }
+  },
+  "S1-State-Partial": {
+   "match": {
+    "What we'll design with \"Partially furnished\"": "What we'll design with"
+   }
+  },
+  "S1-State-Redo": {
+   "match": {
+    "What we'll design with \"Redoing it all\"": "What we'll design with"
+   }
+  },
+  "S3-Activities": {
+   "match": {
+    "Continue · 3 selected": "Continue · \\d+ selected"
+   }
+  },
+  "S3-Existing": {
+   "soft": [
+    "Bench · standard",
+    "I've measured mine Standard · not measured yet"
+   ]
+  },
+  "S4-Layouts": {
+   "soft": [
+    "Two ways to live in it",
+    "More social seating"
+   ],
+   "match": {
+    "Choose layout 1 and finish step 4": "Choose layout \\d and finish step 4"
+   }
+  },
+  "S5-Anchor": {
+   "match": {
+    "Use my existing sofa": "Use my existing .+"
+   }
+  },
+  "S6-Palette": {
+   "soft": [
+    "Accent piece"
+   ]
+  },
+  "S8-Walls": {
+   "soft": [
+    "Sofa wall",
+    "Window wall",
+    "Entry wall"
+   ],
+   "match": {
+    "Keep all 4 walls · finish step 8": "Keep all \\d+ walls · finish step 8"
+   }
+  },
+  "S8-WallDetail": {
+   "match": {
+    "What the entry wall needs": "What (the )?.+ needs"
+   }
+  },
+  "S10-Final": {
+   "match": {
+    "3 rooms still to design": "(\\d+ rooms? still to design|All rooms designed)",
+    "Continue with room 2: Bedroom - from step 2": "(Continue with room \\d+: .+ - from step 2|Back to my project)"
+   }
+  },
+  "S2-Analyzing": {
+   "match": {
+    "Analysing photo 3 of 3": "Analysing photo \\d+ of \\d+"
+   }
   }
+ },
+ "admin": {
+  "B1-Queue": {
+   "soft": [
+    "Accept \"smoked glass\" everywhere"
+   ]
+  },
+  "B2-Review": {
+   "match": {
+    "\"Smoked glass\" isn't in the vocabulary": "isn't in the vocabulary"
+   }
+  },
+  "B3-SpotCheck": {
+   "soft": [
+    "Wingback chair"
+   ]
+  },
+  "C1-Vocabulary": {
+   "soft": [
+    "Map to Tinted glass",
+    "Accept under Stone",
+    "Map to Embroidered",
+    "Map to Wool",
+    "Map to Burgundy",
+    "Filter materials"
+   ]
+  },
+  "D1-Schemes": {
+   "soft": [
+    "Lounge chair",
+    "Console",
+    "Open shelving",
+    "Sideboard",
+    "Floor lamp"
+   ]
+  },
+  "G1-Project": {
+   "soft": [
+    "Flat in Kreuzberg"
+   ],
+   "match": {
+    "Buying list · living room": "Buying list · .+"
+   }
+  },
+  "X2-Products": {
+   "match": {
+    "Products · [PARTNER SHOP]": "Products · .+"
+   }
+  }
+ }
 }

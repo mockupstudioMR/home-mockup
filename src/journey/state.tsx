@@ -13,6 +13,7 @@ export type Piece = { id: string; label: string; image: string; added: boolean; 
 export type StyleMatch = { name: string; score: number; description?: string; keywords: Keyword[]; pieces: Piece[] };
 export type Swatch = { name: string; hex: string; use?: string; image?: string };
 export type PreviewVersion = { id: string; image: string; request?: string; createdAt: string };
+export type ReadKey = "finishes" | "furniture" | "colours" | "decor" | "lighting";
 
 export type KeepItem = {
   id: string;
@@ -45,10 +46,19 @@ export type JourneyState = {
   pinterest?: string;
   note?: string;
   quickNotes: string[];
-  analysis?: { colors: string[]; cues: string[]; description?: string };
+  analysis?: { colors: string[]; cues: string[]; materials?: string[]; description?: string };
   styles: StyleMatch[];
   moodboard?: { name: string; description?: string; image?: string; palette: Swatch[]; feels: string[] };
-  preview?: { versions: PreviewVersion[]; current: number; items: string[]; kept?: boolean; change?: string };
+  preview?: {
+    versions: PreviewVersion[];
+    current: number;
+    /** The AI read-out of the current version (step 2.7), five parts. */
+    read?: { key: "finishes" | "furniture" | "colours" | "decor" | "lighting"; text: string; keywords: string[]; x: number; y: number }[];
+    readOf?: string;
+    changes?: Partial<Record<"finishes" | "furniture" | "colours" | "decor" | "lighting", string>>;
+    request?: string;
+    kept?: boolean;
+  };
   // Step 3 — daily life
   activities: string[];
   priorities: string[];

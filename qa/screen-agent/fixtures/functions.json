@@ -1,0 +1,12 @@
+{
+ "analyze-style": {
+  "__delayMs": 60000,
+  "styles": []
+ },
+ "generate-design": {
+  "__delayMs": 60000
+ },
+ "read-design": {
+  "__delayMs": 60000
+ }
+}
