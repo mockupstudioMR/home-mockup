@@ -24,7 +24,7 @@ const HERE = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(HERE, "../..");
 const OUT = path.join(HERE, "out");
 const PASS_TEXT = 0.9; // share of required words found
-const PASS_LOOK = 0.55; // visual similarity of the first screen height
+const PASS_LOOK = 0.75; // visual similarity of the first screen height
 
 const args = process.argv.slice(2);
 const opt = (name) => {

@@ -42,6 +42,7 @@ const lazyWithReload = <T extends ComponentType<Record<string, never>>>(
 
 // Lazy load heavy pages
 const Start = lazyWithReload(() => import("./pages/Start"), "start");
+const JourneyPage = lazyWithReload(() => import("./journey/JourneyPage"), "journey");
 const ChoosePath = lazyWithReload(() => import("./pages/ChoosePath"), "choose-path");
 const FloorPlan = lazyWithReload(() => import("./pages/FloorPlan"), "floor-plan");
 const PlanRooms = lazyWithReload(() => import("./pages/PlanRooms"), "plan-rooms");
@@ -139,6 +140,7 @@ const App = () => (
                   <Gallery />
                 </ProtectedRoute>
               } />
+              <Route path="/journey/*" element={<JourneyPage />} />
               <Route path="/project" element={
                 <ProtectedRoute allowedRoles={["user"]}>
                   <ProjectHome />

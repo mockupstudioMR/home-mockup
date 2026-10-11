@@ -1,1 +1,21 @@
-{}
+{
+  "v": 1,
+  "intent": "new_space",
+  "propertyType": "apartment",
+  "rooms": ["living-room", "bedroom", "kitchen", "bathroom"],
+  "startRoom": "living-room",
+  "houseState": "core-shell",
+  "allowInWalls": false,
+  "brief": {},
+  "visionMode": "upload",
+  "photos": ["/journey-sample/insp-1.jpg", "/journey-sample/insp-2.jpg", "/journey-sample/insp-3.jpg"],
+  "note": "Love the dark, moody feel and the plants. Not too cluttered.",
+  "quickNotes": [],
+  "styles": [],
+  "activities": [],
+  "priorities": [],
+  "keeping": [],
+  "fixed": [],
+  "fixedPhotos": [],
+  "done": [1]
+}

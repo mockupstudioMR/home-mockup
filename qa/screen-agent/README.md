@@ -16,7 +16,7 @@ Open `qa/screen-agent/out/report.html` for the design and the app side by side, 
 ## How it decides
 - **Words**: every title, section heading, label and button on the design board must appear on the screen (pass mark 90%).
   Example content in the designs (a piano, a plum sofa, sizes) is listed but never fails a screen.
-- **Look**: where the edges (text, cards, buttons) sit in the first screen height, compared with the design (pass mark 55%).
+- **Look**: where the edges (text, cards, buttons) sit in the first screen height, compared with the design (pass mark 75%).
 - **Errors**: a screen that does not open, redirects elsewhere, or throws in the browser is reported.
 
 ## Files
