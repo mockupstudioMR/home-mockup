@@ -81,6 +81,11 @@
    "match": {
     "Analysing photo 3 of 3": "Analysing photo \\d+ of \\d+"
    }
+  },
+  "S2-Adjust": {
+   "match": {
+    "Keep V1 and finish step 2": "Keep V\\d+ and finish step 2"
+   }
   }
  },
  "admin": {

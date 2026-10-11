@@ -8,6 +8,7 @@ import ShopChoicePanel from "@/components/shop/ShopChoicePanel";
 import { supabase } from "@/integrations/supabase/client";
 import { ROOM_LABELS, ensureProject, projectsReady } from "@/lib/projectStore";
 import { cn } from "@/lib/utils";
+import { resumeRoomInJourney } from "@/journey/state";
 
 const STEP_NAMES = ["", "Project", "Inspiration", "Daily life", "Layout", "Furniture", "Colours", "Lighting", "Details", "Make it happen", "Together"];
 const STATE_LABEL: Record<string, string> = {
@@ -48,7 +49,8 @@ const ProjectHome = () => {
     },
     onSuccess: (room) => {
       qc.invalidateQueries({ queryKey: ["project-home"] });
-      navigate("/start", { state: { resumeRoom: room.room_type } });
+      resumeRoomInJourney(room.room_type, room.id);
+      navigate(room.current_step > 2 ? "/journey" : "/journey/2/vision");
     },
   });
 
@@ -63,7 +65,7 @@ const ProjectHome = () => {
           <Logo size={32} />
           <span className="text-lg font-semibold tracking-tight">HomeMockUp</span>
         </button>
-        <Button variant="ghost" onClick={() => navigate("/start")}>Start something new</Button>
+        <Button variant="ghost" onClick={() => navigate("/journey")}>Start something new</Button>
       </header>
 
       <main className="mx-auto max-w-5xl space-y-10 px-4 pb-20">
@@ -84,7 +86,7 @@ const ProjectHome = () => {
             <CardContent className="space-y-4 py-10 text-center">
               <p className="text-lg font-semibold">Projects are being set up.</p>
               <p className="text-muted-foreground">You can keep designing as usual in the meantime.</p>
-              <Button onClick={() => navigate("/start")}>Continue designing <ArrowRight className="ml-2 h-4 w-4" /></Button>
+              <Button onClick={() => navigate("/journey")}>Continue designing <ArrowRight className="ml-2 h-4 w-4" /></Button>
             </CardContent>
           </Card>
         ) : rooms.length === 0 ? (
@@ -92,7 +94,7 @@ const ProjectHome = () => {
             <CardContent className="space-y-4 py-10 text-center">
               <p className="text-lg font-semibold">No rooms yet</p>
               <p className="text-muted-foreground">Tell us about your place and pick the rooms you want to design.</p>
-              <Button onClick={() => navigate("/start")}>Pick your rooms <ArrowRight className="ml-2 h-4 w-4" /></Button>
+              <Button onClick={() => navigate("/journey/1/rooms")}>Pick your rooms <ArrowRight className="ml-2 h-4 w-4" /></Button>
             </CardContent>
           </Card>
         ) : (

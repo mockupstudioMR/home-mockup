@@ -1346,7 +1346,8 @@
    {
     "text": "Keep V1 and finish step 2",
     "kind": "button",
-    "must": true
+    "must": true,
+    "match": "Keep V\\d+ and finish step 2"
    }
   ],
   "design": "designs/journey/S2-Adjust.jpg"

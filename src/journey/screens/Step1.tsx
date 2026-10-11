@@ -6,7 +6,7 @@ import { I, Ic, ROOM_ICON, ROOM_ICON_SM, SCOPE_ICON } from "../icons";
 import {
   BUDGETS, INTENTS, PROPERTIES, RESTRICTIONS, ROOMS, ROOM_SCOPE, STATES, TIMINGS, WALL_SCOPE, ordinal, roomName, scopeTags, stateInfo,
 } from "../data";
-import { orderedRooms, useJourney } from "../state";
+import { orderedRooms, resumePath, useJourney } from "../state";
 import { JourneyStrip } from "../Summary";
 import { saveStep1 } from "../sync";
 
@@ -14,13 +14,15 @@ import { saveStep1 } from "../sync";
 export function WhoAreYou() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { s } = useJourney();
+  const target = s.done.length ? resumePath(s) : "/journey/1/why";
   return (
     <Screen board="Main" step={0} signedIn={!!user}>
       <p className="eyebrow">Before we begin</p>
       <h1 className="h1">Who are you?</h1>
       <p className="sub">We'll shape the experience around what you're here to do.</p>
       <div className="g3">
-        <Opt tint="a" sel onClick={() => navigate(user ? "/journey/1/why" : "/auth", { state: { from: "/journey/1/why" } })}>
+        <Opt tint="a" sel onClick={() => navigate(user ? target : "/auth", { state: { from: target } })}>
           <span className="tile">
             <I.home />
           </span>

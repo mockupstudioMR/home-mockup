@@ -1,4 +1,4 @@
-import { useNavigate, useLocation } from "react-router-dom";
+import { Navigate, useNavigate, useLocation } from "react-router-dom";
 import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Home, Palette, Upload, Package, ArrowRight, Ruler, Sparkles, Briefcase, Building2, PenTool, Sofa, MoreHorizontal } from "lucide-react";
@@ -196,6 +196,13 @@ const Start = () => {
       iconBg: "bg-background/90 text-accent-foreground",
     },
   ];
+
+  // "I'm designing my home" now runs as the journey built from the design boards (/journey).
+  // Professionals keep this page (?as=pro); the old fresh flow stays reachable with ?legacy=1.
+  const legacy = new URLSearchParams(location.search).get("legacy") === "1";
+  if (!isPro && !legacy && !loading && user) {
+    return <Navigate to="/journey" replace />;
+  }
 
   if (loading) {
     return (

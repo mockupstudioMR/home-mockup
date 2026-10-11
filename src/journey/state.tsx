@@ -245,3 +245,24 @@ export const ROOM_KEYS: (keyof JourneyState)[] = [
   "buyEdits", "spaceAvail", "checks", "todo",
 ];
 export const uid = () => Math.random().toString(36).slice(2, 10);
+
+/** Open the journey on another room of the project (used by the project page). Steps 2–10 start fresh for it. */
+export function resumeRoomInJourney(roomType: string, roomId?: string) {
+  try {
+    const cur: JourneyState = { ...EMPTY, ...JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "{}") };
+    if ((cur.current ?? cur.startRoom) === roomType) return;
+    const reset: Partial<JourneyState> = {};
+    for (const k of ROOM_KEYS) (reset as Record<string, unknown>)[k] = (EMPTY as Record<string, unknown>)[k];
+    const archived = cur.archive?.[roomType] ?? {};
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...cur, ...reset, ...archived, current: roomType, roomId: roomId ?? cur.roomId, rooms: cur.rooms.includes(roomType) ? cur.rooms : [...cur.rooms, roomType] }));
+  } catch {
+    /* private mode */
+  }
+}
+
+/** The first screen of the step after the last finished one. */
+export function resumePath(s: JourneyState) {
+  const last = Math.max(0, ...s.done);
+  const firsts = ["1/why", "2/vision", "3/activities", "4/input", "5/shops", "6/palette", "7/lighting", "8/walls", "9/buy", "10/final", "10/final"];
+  return `/journey/${firsts[Math.min(10, last)]}`;
+}
