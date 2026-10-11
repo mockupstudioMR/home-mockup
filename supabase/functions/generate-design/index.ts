@@ -471,11 +471,28 @@ serve(async (req) => {
     // remain source-only so unrelated parts of a saved design are preserved.
     if (!enrichedRequestData.modificationPrompt) {
       const references = collectMoodboardReferences(enrichedRequestData);
+      // Memory guard: too many images (especially inline base64) exceeded the
+      // worker memory limit. Attach images in priority order up to a cap; the
+      // rest are still named in the prompt text, so nothing is dropped silently.
+      const MAX_REFERENCE_IMAGES = 10;
+      const MAX_INLINE_REFERENCES = 2;
+      let attached = 0, inline = 0;
+      const textOnly: string[] = [];
       for (const ref of references) {
+        const isInline = ref.url.startsWith("data:");
+        if (attached >= MAX_REFERENCE_IMAGES || (isInline && inline >= MAX_INLINE_REFERENCES)) {
+          textOnly.push(ref.label);
+          continue;
+        }
+        if (isInline) inline++;
+        attached++;
         contentParts.push({ type: "text", text: ref.label });
         contentParts.push({ type: "image_url", image_url: { url: ref.url } });
       }
-      addDebug("Moodboard references", `Attached ${references.length} labeled visual references`, references.map(ref => ref.label));
+      if (textOnly.length) {
+        contentParts.push({ type: "text", text: `Additional moodboard references (apply these too): ${textOnly.join("; ")}` });
+      }
+      addDebug("Moodboard references", `Attached ${attached} images, ${textOnly.length} as text`, references.map(ref => ref.label));
     }
 
     const messages: any[] = [
