@@ -33,9 +33,27 @@ export function fakeUser(role) {
   };
 }
 
+/** "@now", "@now-2h", "@now-3d", "@now-15m" in fixtures become real timestamps, so "today" and "2 days ago" stay true. */
+function liveDates(v) {
+  if (typeof v === "string") {
+    const m = /^@now(?:-(\d+)([mhd]))?$/.exec(v);
+    if (!m) return v;
+    const ms = m[1] ? Number(m[1]) * { m: 60000, h: 3600000, d: 86400000 }[m[2]] : 0;
+    return new Date(Date.now() - ms).toISOString();
+  }
+  if (Array.isArray(v)) return v.map(liveDates);
+  if (v && typeof v === "object") return Object.fromEntries(Object.entries(v).map(([k, x]) => [k, liveDates(x)]));
+  return v;
+}
+
 export function loadFixtures(dir) {
   const read = (f) => (fs.existsSync(path.join(dir, f)) ? JSON.parse(fs.readFileSync(path.join(dir, f), "utf8")) : {});
-  return { tables: read("tables.json"), rpc: read("rpc.json"), functions: read("functions.json") };
+  // tables.json plus any tables.*.json (e.g. tables.admin.json), merged table by table.
+  const tables = {};
+  for (const f of fs.readdirSync(dir).filter((f) => /^tables(\..+)?\.json$/.test(f)).sort()) {
+    for (const [t, rows] of Object.entries(read(f))) tables[t] = [...(tables[t] ?? []), ...rows];
+  }
+  return { tables: liveDates(tables), rpc: read("rpc.json"), functions: read("functions.json"), storage: read("storage.json"), publicDir: path.resolve(dir, "../../../public") };
 }
 
 const PNG_1PX = Buffer.from(
@@ -43,11 +61,77 @@ const PNG_1PX = Buffer.from(
   "base64",
 );
 
+
+/** Split a PostgREST select at top-level commas: "*, a(b, c(d))" → ["*", "a(b, c(d))"]. */
+function splitTop(sel) {
+  const out = [];
+  let depth = 0, cur = "";
+  for (const ch of sel) {
+    if (ch === "(") depth++;
+    if (ch === ")") depth--;
+    if (ch === "," && depth === 0) {
+      out.push(cur.trim());
+      cur = "";
+    } else cur += ch;
+  }
+  if (cur.trim()) out.push(cur.trim());
+  return out;
+}
+const singular = (t) => t.replace(/ies$/, "y").replace(/s$/, "");
+const lastWord = (t) => singular(t).split("_").pop();
+
+/** Resolve embedded relations ("ingest_items(storage_path, ingest_batches(name))") from the other fixture tables. */
+function embed(rows, table, select, tables) {
+  if (!select) return rows;
+  const parts = splitTop(select).filter((x) => x.includes("("));
+  if (!parts.length) return rows;
+  return rows.map((row) => {
+    const r = { ...row };
+    for (const part of parts) {
+      const m = /^(?:(\w+):)?(\w+)(?:!(\w+))?\((.*)\)$/s.exec(part);
+      if (!m) continue;
+      const [, alias, target, hint, inner] = m;
+      const key = alias || target;
+      const rel = tables[target];
+      if (!rel) continue; // keep whatever the fixture already holds
+      const hintCol = hint && /_fkey$/.test(hint) ? hint.replace(new RegExp(`^${table}_`), "").replace(/_fkey$/, "") : hint;
+      const own = [hintCol, alias && `${alias}_id`, `${singular(target)}_id`, `${lastWord(target)}_id`].filter(Boolean).find((c) => c in row);
+      if (own) {
+        const hit = rel.find((x) => x.id === row[own]);
+        r[key] = hit ? embed([hit], target, inner, tables)[0] : null;
+      } else {
+        const back = [`${singular(table)}_id`, `${lastWord(table)}_id`].find((c) => rel.some((x) => c in x));
+        r[key] = back ? embed(rel.filter((x) => x[back] === row.id), target, inner, tables) : [];
+      }
+    }
+    return r;
+  });
+}
+
+function applyOrder(rows, order) {
+  if (!order) return rows;
+  const keys = order.split(",").map((o) => {
+    const [col, dir, nulls] = o.split(".");
+    return { col, desc: dir === "desc", nullsFirst: nulls === "nullsfirst" };
+  });
+  return [...rows].sort((a, b) => {
+    for (const k of keys) {
+      const x = a[k.col], y = b[k.col];
+      if (x === y) continue;
+      if (x == null) return k.nullsFirst ? -1 : 1;
+      if (y == null) return k.nullsFirst ? 1 : -1;
+      const c = x < y ? -1 : 1;
+      return k.desc ? -c : c;
+    }
+    return 0;
+  });
+}
+
 /** Applies the simple PostgREST filters the app uses (eq, neq, in, is) so a fixture table answers like a real one. */
 function applyFilters(rows, params) {
   let out = rows;
   for (const [key, raw] of params) {
-    if (["select", "order", "limit", "offset", "on_conflict", "columns"].includes(key)) continue;
+    if (["select", "order", "limit", "offset", "on_conflict", "columns"].includes(key) || key.includes(".")) continue;
     const m = /^(not\.)?(eq|neq|in|is|gte|lte|gt|lt|ilike|like)\.(.*)$/.exec(raw);
     if (!m) continue;
     const [, not, op, val] = m;
@@ -67,6 +151,7 @@ function applyFilters(rows, params) {
     };
     out = out.filter((r) => (not ? !test(r) : test(r)));
   }
+  out = applyOrder(out, params.get("order"));
   const limit = params.get("limit");
   if (limit) out = out.slice(0, Number(limit));
   return out;
@@ -102,7 +187,7 @@ export async function installMock(page, { role, fixtures, log }) {
       const rows = fixtures.tables[table] ?? [];
       const single = (req.headers()["accept"] || "").includes("vnd.pgrst.object");
       if (method === "GET" || method === "HEAD") {
-        const out = applyFilters(rows, url.searchParams);
+        const out = embed(applyFilters(rows, url.searchParams), table, url.searchParams.get("select"), fixtures.tables);
         const headers = { "content-range": `0-${Math.max(0, out.length - 1)}/${out.length}` };
         if (single) {
           if (!out.length) return json({ code: "PGRST116", message: "JSON object requested, multiple (or no) rows returned", details: "", hint: null }, 406);
@@ -123,7 +208,13 @@ export async function installMock(page, { role, fixtures, log }) {
       if (f.__delayMs) await new Promise((r) => setTimeout(r, f.__delayMs));
       return json(f);
     }
-    if (p.startsWith("/storage/v1/object")) return route.fulfill({ status: 200, contentType: "image/png", body: PNG_1PX });
+    // Signed links point back here; a file named in storage.json is served from public/ so scans show a real picture.
+    if (p.startsWith("/storage/v1/object/sign/") && method === "POST") return json({ signedURL: `${p.slice("/storage/v1".length)}?token=mock` });
+    if (p.startsWith("/storage/v1/object")) {
+      const file = fixtures.storage?.[decodeURIComponent(p).split("/").pop()];
+      if (file && fs.existsSync(path.join(fixtures.publicDir, file))) return route.fulfill({ status: 200, contentType: "image/jpeg", body: fs.readFileSync(path.join(fixtures.publicDir, file)) });
+      return route.fulfill({ status: 200, contentType: "image/png", body: PNG_1PX });
+    }
     if (p.startsWith("/storage/v1/")) return json({});
     if (p.startsWith("/realtime/")) return route.abort();
     return json({});

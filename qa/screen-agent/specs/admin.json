@@ -379,7 +379,8 @@
    {
     "text": "Review 3 pieces",
     "kind": "button",
-    "must": true
+    "must": true,
+    "match": "Review \\d+ pieces?"
    },
    {
     "text": "Review",
@@ -389,7 +390,8 @@
    {
     "text": "Combination from image 1",
     "kind": "heading",
-    "must": true
+    "must": true,
+    "match": "Combination from image \\d+"
    },
    {
     "text": "Source",
@@ -586,7 +588,7 @@
     "text": "\"Smoked glass\" isn't in the vocabulary",
     "kind": "heading",
     "must": true,
-    "match": "isn't in the vocabulary"
+    "match": "\".+\" isn\\'t in the vocabulary"
    },
    {
     "text": "Closest existing schemes",
@@ -1244,7 +1246,8 @@
    {
     "text": "Scope defaults · Living room",
     "kind": "heading",
-    "must": true
+    "must": true,
+    "match": "Scope defaults · .+"
    },
    {
     "text": "Starting point",
