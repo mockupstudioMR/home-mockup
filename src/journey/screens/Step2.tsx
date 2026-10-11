@@ -3,7 +3,8 @@ import { useEffect, useRef, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Back, Go, Opt, Screen, useGo } from "../Shell";
 import { I, Ic, SCOPE_ICON } from "../icons";
-import { roomName, stateInfo, PROPERTIES } from "../data";
+import { roomName } from "../data";
+import { stepLine } from "../story";
 import { uid, useJourney, type JourneyState, type ReadKey, type StyleMatch } from "../state";
 import { StepSummary } from "../Summary";
 import { analyzeStyles, blendName, findStylePieces, generatePreview, paletteFrom, readDesign, uploadPhoto } from "../services";
@@ -962,7 +963,6 @@ export function Step2Summary() {
   const pv = s.preview;
   const v = pv?.versions[pv.current];
   const change = pv && pv.current > 0 ? pv.versions[pv.current].request : undefined;
-  const prop = PROPERTIES.find((p) => p.id === s.propertyType)?.title.toLowerCase();
   return (
     <StepSummary
       step={2}
@@ -1029,7 +1029,7 @@ export function Step2Summary() {
       ]}
       open={["Exact colours — confirmed with real samples in step 6", "The preview isn't to scale — it gets fitted to your room in step 4"]}
       soFar={[
-        ["1", [roomName(s.startRoom), prop, s.houseState ? stateInfo(s.houseState).lbl.toLowerCase() : null].filter(Boolean).join(" · ")],
+        ["1", stepLine(s, 1)],
         ["2", `${mb?.name ?? "Your"} direction`],
       ]}
       back={pv?.versions.length && pv.versions.length > 1 ? "S2-Adjust" : "S2-Preview"}

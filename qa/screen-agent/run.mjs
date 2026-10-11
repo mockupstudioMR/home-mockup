@@ -74,12 +74,14 @@ async function similarity(page, aPath, bPath, viewportH, width) {
     async ({ a, b, h, w }) => {
       const load = (src) => new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = src; });
       const [ia, ib] = await Promise.all([load(a), load(b)]);
-      const W = 144, H = Math.round((144 * h) / w);
+      // Compare the first screen height both images have (a short design is not penalised for empty space).
+      const common = Math.min(h, (ia.naturalHeight * w) / ia.naturalWidth, (ib.naturalHeight * w) / ib.naturalWidth);
+      const W = 144, H = Math.round((144 * common) / w);
       const grid = (img) => {
         const c = document.createElement("canvas"); c.width = W; c.height = H;
         const x = c.getContext("2d");
-        const sh = Math.min(img.naturalHeight, (img.naturalWidth * h) / w);
-        x.drawImage(img, 0, 0, img.naturalWidth, sh, 0, 0, W, Math.round((W * sh) / img.naturalWidth));
+        const sh = (img.naturalWidth * common) / w;
+        x.drawImage(img, 0, 0, img.naturalWidth, sh, 0, 0, W, H);
         const d = x.getImageData(0, 0, W, H).data, g = new Float32Array(W * H);
         for (let i = 0; i < W * H; i++) g[i] = 0.299 * d[i * 4] + 0.587 * d[i * 4 + 1] + 0.114 * d[i * 4 + 2];
         return g;

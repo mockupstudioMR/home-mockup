@@ -126,14 +126,43 @@
    ]
   }
  ],
- "activities": [],
- "priorities": [],
- "keeping": [],
+ "activities": [
+  "Relax",
+  "Host friends",
+  "Play piano"
+ ],
+ "priorities": [
+  "Comfortable seating",
+  "Space to play the piano"
+ ],
+ "keeping": [
+  {
+   "id": "k1",
+   "name": "Upright piano",
+   "variant": "Upright piano · standard",
+   "photos": [
+    "/journey-sample/piano-wall.jpg",
+    "/journey-sample/piano-wall.jpg"
+   ],
+   "measured": false,
+   "w": 150,
+   "d": 60,
+   "h": 125,
+   "extraLabel": "Bench · standard",
+   "extra": "56 × 36 × 49",
+   "wall": "B",
+   "pos": 50,
+   "fixedSpot": false
+  }
+ ],
  "fixed": [],
- "fixedPhotos": [],
+ "fixedPhotos": [
+  "/journey-sample/electrical.jpg"
+ ],
  "done": [
   1,
-  2
+  2,
+  3
  ],
  "analysis": {
   "colors": [
@@ -203,9 +232,15 @@
     "id": "v1",
     "image": "/journey-sample/room-hero.jpg",
     "createdAt": "2026-10-11T10:00:00Z"
+   },
+   {
+    "id": "v2",
+    "image": "/journey-sample/room-hero.jpg",
+    "request": "Lighter walls — warm greige. Keep the green arch.",
+    "createdAt": "2026-10-11T10:05:00Z"
    }
   ],
-  "current": 0,
+  "current": 1,
   "readOf": "/journey-sample/room-hero.jpg",
   "kept": true,
   "read": [
@@ -278,5 +313,56 @@
    "finishes": "Lighter walls — warm greige. Keep the green arch."
   },
   "request": "Lighter walls — warm greige. Keep the green arch, the sofa and the green accents."
- }
+ },
+ "fixedCounts": {
+  "windows": 1,
+  "doors": 2,
+  "radiators": 1,
+  "columns": 0,
+  "builtins": 0,
+  "stacks": 0,
+  "ac": 0,
+  "panels": 1
+ },
+ "fixedTbc": [
+  "sockets",
+  "water"
+ ],
+ "placements": [
+  {
+   "id": "w1",
+   "kind": "windows",
+   "n": 1,
+   "wall": "C",
+   "pos": 50,
+   "photo": "/journey-sample/window-wall.jpg"
+  },
+  {
+   "id": "d1",
+   "kind": "doors",
+   "n": 1,
+   "wall": "D",
+   "pos": 15,
+   "photo": "/journey-sample/entry-wall.jpg"
+  },
+  {
+   "id": "d2",
+   "kind": "doors",
+   "n": 2
+  },
+  {
+   "id": "r1",
+   "kind": "radiators",
+   "n": 1,
+   "wall": "C",
+   "pos": 50
+  },
+  {
+   "id": "p1",
+   "kind": "panels",
+   "n": 1,
+   "wall": "D",
+   "pos": 45
+  }
+ ]
 }

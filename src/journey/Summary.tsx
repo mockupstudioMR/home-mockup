@@ -63,7 +63,7 @@ export function RoomsLeft({ step }: { step: number }) {
 }
 
 export function StepSummary({
-  step, board, sub, title, media, decisions, open, soFar, back, next, nextLabel,
+  step, board, sub, title, media, decisions, open, soFar, back, next, nextLabel, decWrap,
 }: {
   step: number;
   board: string;
@@ -76,7 +76,20 @@ export function StepSummary({
   back: ScreenId;
   next: ScreenId;
   nextLabel?: string;
+  /** Decisions sit in their own block (no picture above them). */
+  decWrap?: boolean;
 }) {
+  const decs = decisions.map((d) => (
+    <div className="dec" key={d.k}>
+      <span className="k">{d.k}</span>
+      <span className="v">{d.v}</span>
+      {d.edit && (
+        <Go className="ed" to={d.edit} extra={d.editExtra}>
+          {d.editLabel ?? "Edit"}
+        </Go>
+      )}
+    </div>
+  ));
   return (
     <Screen board={board} step={step} right="Summary" wrapStyle={{ maxWidth: "1160px" }}>
       <p className="eyebrow">
@@ -89,17 +102,7 @@ export function StepSummary({
         <section className="panel main">
           <h2 className="h3">{title ?? `What we decided in step ${step}`}</h2>
           {media}
-          {decisions.map((d) => (
-            <div className="dec" key={d.k}>
-              <span className="k">{d.k}</span>
-              <span className="v">{d.v}</span>
-              {d.edit && (
-                <Go className="ed" to={d.edit} extra={d.editExtra}>
-                  {d.editLabel ?? "Edit"}
-                </Go>
-              )}
-            </div>
-          ))}
+          {decWrap ? <div style={{ marginTop: "12px" }}>{decs}</div> : decs}
         </section>
         <aside className="rail stack" style={{ gap: "20px" }}>
           <RoomsLeft step={step} />

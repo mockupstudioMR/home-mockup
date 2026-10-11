@@ -15,18 +15,27 @@ export type Swatch = { name: string; hex: string; use?: string; image?: string }
 export type PreviewVersion = { id: string; image: string; request?: string; createdAt: string };
 export type ReadKey = "finishes" | "furniture" | "colours" | "decor" | "lighting";
 
+export type Wall = "A" | "B" | "C" | "D";
 export type KeepItem = {
   id: string;
-  type: string; // e.g. "Upright piano"
-  label?: string;
-  photo?: string;
+  /** What it is, e.g. "Upright piano". */
+  name: string;
+  /** The size variant picked, e.g. "Upright piano · standard". */
+  variant?: string;
+  photos: string[];
   measured: boolean;
   w?: number; d?: number; h?: number; // cm
-  extra?: string; // e.g. "Bench · standard"
-  wall?: string; // A–D
-  required?: boolean;
+  /** A companion piece and its size, e.g. bench "56 × 36 × 49". */
+  extraLabel?: string;
+  extra?: string;
+  wall?: Wall;
+  /** Position along the wall, 0–100. */
+  pos?: number;
+  fixedSpot: boolean;
 };
-export type FixedFeature = { id: string; kind: string; count: number; wall?: string; unsure?: boolean; placed?: boolean };
+export type FixedKind = "windows" | "doors" | "radiators" | "columns" | "sockets" | "builtins" | "water" | "stacks" | "ac" | "panels";
+/** One counted thing that can't move, placed on a wall of the plan. */
+export type Placement = { id: string; kind: FixedKind; n: number; wall?: Wall; pos?: number; photo?: string };
 
 export type JourneyState = {
   v: 1;
@@ -64,7 +73,11 @@ export type JourneyState = {
   priorities: string[];
   keeping: KeepItem[];
   nothingKept?: boolean;
-  fixed: FixedFeature[];
+  fixedCounts: Partial<Record<FixedKind, number>>;
+  /** Things inside the walls the person isn't sure about yet. */
+  fixedTbc: FixedKind[];
+  placements: Placement[];
+  /** Photos of the room taken in 3.4 that aren't tied to one feature. */
   fixedPhotos: string[];
   // later steps are added as their screens are built
   [key: string]: unknown;
@@ -83,7 +96,9 @@ export const EMPTY: JourneyState = {
   activities: [],
   priorities: [],
   keeping: [],
-  fixed: [],
+  fixedCounts: {},
+  fixedTbc: [],
+  placements: [],
   fixedPhotos: [],
   done: [],
 };
