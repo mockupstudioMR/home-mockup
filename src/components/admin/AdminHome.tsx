@@ -1,146 +1,281 @@
 import { useQuery } from "@tanstack/react-query";
-import { ArrowRight, Inbox, ScanLine } from "lucide-react";
+import { ArrowRight, Images, MessagesSquare, Package, ShieldCheck, Store, Users } from "lucide-react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { cn } from "@/lib/utils";
-import { StatusBadge } from "./library/shared";
+import { StatusBadge } from "@/components/admin/library/shared";
 
-export type AdminSection =
-  | "home" | "scan" | "review" | "vocabulary" | "schemes" | "styles" | "sizes" | "products"
-  | "projects" | "users" | "cms" | "analytics" | "billing";
+export type AdminSection = "home" | "sizes" | "products" | "projects" | "users" | "cms" | "analytics" | "billing";
 
+export type AdminCounts = {
+  missingSizes: number;
+  newProducts: number;
+  newDesigns: number;
+  newUsers: number;
+  activeWhatsapp: number;
+};
+
+const weekAgo = () => new Date(Date.now() - 7 * 86_400_000).toISOString();
+
+/** Nav badges: what actually needs an admin's attention right now. */
 export function useAdminCounts() {
-  return useQuery({
+  return useQuery<AdminCounts>({
     queryKey: ["admin-counts"],
     queryFn: async () => {
-      const head = { count: "exact" as const, head: true };
-      const [waiting, proposed, pendingShops] = await Promise.all([
-        supabase.from("detected_pieces").select("id", head).eq("status", "waiting"),
-        supabase.from("taxonomy_terms").select("id", head).eq("status", "proposed"),
-        supabase.from("shops").select("id", head).eq("status", "pending"),
+      const since = weekAgo();
+      const [specs, products, designs, users, whatsapp] = await Promise.all([
+        supabase.from("furniture_specs").select("id", { count: "exact", head: true }).or("width_cm.is.null,width_cm.eq.0"),
+        supabase.from("shop_products").select("id", { count: "exact", head: true }).gte("created_at", since),
+        supabase.from("generated_designs").select("id", { count: "exact", head: true }).gte("created_at", since),
+        supabase.from("profiles").select("id", { count: "exact", head: true }).gte("created_at", since),
+        supabase.from("whatsapp_quiz_sessions").select("id", { count: "exact", head: true }).eq("status", "active"),
       ]);
-      // Categories used by schemes that have no standard size yet
-      const [{ data: used }, { data: sized }] = await Promise.all([
-        supabase.from("furniture_schemes").select("category_id").eq("status", "active").limit(5000),
-        supabase.from("furniture_specs").select("category_term_id").not("category_term_id", "is", null),
-      ]);
-      const sizedSet = new Set((sized ?? []).map((s) => s.category_term_id));
-      const missingSizes = new Set((used ?? []).map((u) => u.category_id).filter((c) => !sizedSet.has(c))).size;
       return {
-        waiting: waiting.count ?? 0,
-        proposed: proposed.count ?? 0,
-        pendingShops: pendingShops.count ?? 0,
-        missingSizes,
+        missingSizes: specs.count ?? 0,
+        newProducts: products.count ?? 0,
+        newDesigns: designs.count ?? 0,
+        newUsers: users.count ?? 0,
+        activeWhatsapp: whatsapp.count ?? 0,
       };
     },
-    refetchInterval: 60_000,
   });
 }
 
-export default function AdminHome({ go }: { go: (s: AdminSection) => void }) {
+const fmtDate = (iso: string) =>
+  new Date(iso).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" });
+
+const fmtDateTime = (iso: string) =>
+  new Date(iso).toLocaleString(undefined, { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+
+const Kpi = ({
+  label,
+  value,
+  hint,
+  icon: Icon,
+}: {
+  label: string;
+  value: number | string;
+  hint?: string;
+  icon: React.ComponentType<{ className?: string }>;
+}) => (
+  <Card>
+    <CardContent className="flex items-start gap-4 p-5">
+      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+        <Icon className="h-5 w-5" />
+      </span>
+      <div className="min-w-0">
+        <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground">{label}</p>
+        <p className="mt-1 text-3xl font-extrabold tracking-tight">{value}</p>
+        {hint && <p className="mt-1 text-xs text-muted-foreground">{hint}</p>}
+      </div>
+    </CardContent>
+  </Card>
+);
+
+/** Admin home: what the product did this week, straight from the live tables. */
+const AdminHome = ({ go }: { go: (s: AdminSection) => void }) => {
   const { data: counts } = useAdminCounts();
-  const { data: batches } = useQuery({
-    queryKey: ["ingest-batches-recent"],
+
+  const { data, isLoading } = useQuery({
+    queryKey: ["admin-home"],
     queryFn: async () => {
-      const { data } = await supabase.from("ingest_batches").select("*").order("created_at", { ascending: false }).limit(5);
-      return data ?? [];
-    },
-  });
-  const { data: changes } = useQuery({
-    queryKey: ["admin-audit-recent"],
-    queryFn: async () => {
-      const { data } = await supabase.from("admin_audit_log").select("*").order("created_at", { ascending: false }).limit(6);
-      return data ?? [];
+      const [totals, designs, quizzes, retailers, specs] = await Promise.all([
+        Promise.all([
+          supabase.from("generated_designs").select("id", { count: "exact", head: true }),
+          supabase.from("profiles").select("id", { count: "exact", head: true }),
+          supabase.from("rooms").select("id", { count: "exact", head: true }),
+          supabase.from("shopping_lists").select("id", { count: "exact", head: true }),
+          supabase.from("shop_products").select("id", { count: "exact", head: true }).eq("is_active", true),
+        ]),
+        supabase
+          .from("generated_designs")
+          .select("id, title, image_url, room_id, created_at")
+          .order("created_at", { ascending: false })
+          .limit(6),
+        supabase
+          .from("quiz_responses")
+          .select("id, room_type, style_preference, color_palette, created_at")
+          .order("created_at", { ascending: false })
+          .limit(6),
+        supabase
+          .from("retailer_style_profiles")
+          .select("id, product_range, sales_channel, product_types, created_at")
+          .order("created_at", { ascending: false })
+          .limit(4),
+        supabase
+          .from("furniture_specs")
+          .select("id, name, width_cm, depth_cm")
+          .or("width_cm.is.null,width_cm.eq.0")
+          .order("name")
+          .limit(8),
+      ]);
+      return {
+        designs: totals[0].count ?? 0,
+        users: totals[1].count ?? 0,
+        rooms: totals[2].count ?? 0,
+        lists: totals[3].count ?? 0,
+        products: totals[4].count ?? 0,
+        recentDesigns: designs.data ?? [],
+        recentQuizzes: quizzes.data ?? [],
+        recentRetailers: retailers.data ?? [],
+        specsMissingSizes: specs.data ?? [],
+      };
     },
   });
 
-  const kpis: { n: number | undefined; label: string; sub: string; to: AdminSection; warn?: boolean }[] = [
-    { n: counts?.waiting, label: "Pieces waiting for review", sub: "Nothing reaches users until confirmed", to: "review", warn: (counts?.waiting ?? 0) > 0 },
-    { n: counts?.proposed, label: "New words proposed", sub: "Found by scans, not in the vocabulary", to: "vocabulary" },
-    { n: counts?.pendingShops, label: "Shops users added", sub: "Waiting for approval", to: "products" },
-    { n: counts?.missingSizes, label: "Categories without sizes", sub: "Used by schemes, no standard size", to: "sizes" },
+  const quickLinks: { id: AdminSection; label: string; text: string; icon: React.ComponentType<{ className?: string }> }[] = [
+    { id: "sizes", label: "Sizes & design config", text: "Standard sizes, activities, openings, prompt templates", icon: ShieldCheck },
+    { id: "products", label: "Products & shops", text: "Everything the matcher can suggest", icon: Store },
+    { id: "projects", label: "Projects support", text: "Look up what any user has designed", icon: Images },
+    { id: "users", label: "Users & invites", text: "Roles, invitations, access", icon: Users },
   ];
 
   return (
     <div className="space-y-8">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h2 className="text-4xl font-extrabold tracking-tight">What needs you today</h2>
-          <p className="mt-2 max-w-2xl text-muted-foreground">
-            Feed the library with designs you trust, clear what the AI wasn&apos;t sure about, and keep the words and sizes behind every recommendation right.
-          </p>
-        </div>
-        <Button size="lg" onClick={() => go("scan")}><ScanLine className="mr-2 h-5 w-5" /> Scan a design</Button>
+      <div>
+        <h2 className="text-3xl font-extrabold tracking-tight">Admin home</h2>
+        <p className="mt-2 max-w-2xl text-muted-foreground">
+          Live numbers from the database — designs generated, people using it, and what still needs setting up.
+        </p>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {kpis.map((k) => (
-          <button
-            key={k.label}
-            type="button"
-            onClick={() => go(k.to)}
-            className={cn(
-              "rounded-2xl border p-5 text-left transition-colors hover:border-primary/40",
-              k.warn ? "border-amber-300 bg-amber-50" : "bg-card",
-            )}
-          >
-            <span className={cn("block text-4xl font-extrabold", k.warn && "text-amber-900")}>{k.n ?? "–"}</span>
-            <span className={cn("mt-1 block font-semibold", k.warn ? "text-amber-900" : "text-foreground")}>{k.label}</span>
-            <span className="block text-sm text-muted-foreground">{k.sub}</span>
-          </button>
-        ))}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <Kpi
+          label="Designs"
+          value={data?.designs ?? "—"}
+          hint={counts ? `+${counts.newDesigns} in the last 7 days` : undefined}
+          icon={Images}
+        />
+        <Kpi
+          label="People"
+          value={data?.users ?? "—"}
+          hint={counts ? `+${counts.newUsers} in the last 7 days` : undefined}
+          icon={Users}
+        />
+        <Kpi label="Rooms drawn" value={data?.rooms ?? "—"} hint="Floor plans saved" icon={ShieldCheck} />
+        <Kpi label="Shopping lists" value={data?.lists ?? "—"} hint="Lists users reached" icon={Package} />
+        <Kpi label="Products indexed" value={data?.products ?? "—"} hint="Live in the catalogue" icon={Store} />
+        <Kpi
+          label="WhatsApp chats"
+          value={counts?.activeWhatsapp ?? "—"}
+          hint="Quizzes in progress"
+          icon={MessagesSquare}
+        />
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
-        <button type="button" onClick={() => go("scan")} className="rounded-3xl bg-gradient-to-br from-primary/20 via-secondary to-accent/20 p-7 text-left">
-          <ScanLine className="h-8 w-8 text-primary" aria-hidden="true" />
-          <p className="mt-4 text-2xl font-extrabold">Scan &amp; upload designs</p>
-          <p className="mt-2 text-muted-foreground">Pieces become schemes; pieces seen together become a combination.</p>
-          <span className="mt-4 inline-flex items-center gap-2 font-bold">Start a batch <ArrowRight className="h-4 w-4" /></span>
-        </button>
-        <button type="button" onClick={() => go("review")} className="rounded-3xl bg-gradient-to-br from-accent/30 via-secondary to-primary/10 p-7 text-left">
-          <Inbox className="h-8 w-8 text-primary" aria-hidden="true" />
-          <p className="mt-4 text-2xl font-extrabold">Clear the review queue</p>
-          <p className="mt-2 text-muted-foreground">Confirm, fix or merge what the AI wasn&apos;t sure about.</p>
-          <span className="mt-4 inline-flex items-center gap-2 font-bold">Review {counts?.waiting ?? 0} pieces <ArrowRight className="h-4 w-4" /></span>
-        </button>
-      </div>
-
-      <div className="grid gap-6 lg:grid-cols-[2fr_1fr]">
+      <div className="grid gap-4 lg:grid-cols-2">
         <Card>
-          <CardHeader><CardTitle>Recent batches</CardTitle></CardHeader>
-          <CardContent className="divide-y">
-            {(batches ?? []).length === 0 && <p className="text-muted-foreground">No scans yet.</p>}
-            {(batches ?? []).map((b) => (
-              <div key={b.id} className="flex flex-wrap items-center gap-3 py-3">
-                <div className="min-w-0 flex-1">
-                  <p className="font-semibold">{b.name}</p>
-                  <p className="text-sm text-muted-foreground">{new Date(b.created_at).toLocaleString()} · {b.found_count} found · {b.saved_count} saved</p>
+          <CardHeader>
+            <CardTitle>Latest designs</CardTitle>
+            <CardDescription>The most recent mockups, newest first</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {isLoading && <p className="text-muted-foreground">Loading…</p>}
+            {!isLoading && (data?.recentDesigns.length ?? 0) === 0 && (
+              <p className="text-muted-foreground">No designs yet.</p>
+            )}
+            {(data?.recentDesigns ?? []).map((d) => (
+              <div key={d.id} className="flex items-center gap-3 rounded-xl border bg-background p-2">
+                {d.image_url ? (
+                  <img src={d.image_url} alt="" className="h-12 w-12 shrink-0 rounded-lg object-cover" />
+                ) : (
+                  <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+                    <Images className="h-4 w-4" />
+                  </span>
+                )}
+                <div className="min-w-0">
+                  <p className="truncate font-semibold">{d.title || "Untitled design"}</p>
+                  <p className="text-xs text-muted-foreground">{fmtDateTime(d.created_at)}</p>
                 </div>
-                <StatusBadge status={b.status} />
               </div>
             ))}
           </CardContent>
         </Card>
+
         <Card>
-          <CardHeader><CardTitle>Latest admin changes</CardTitle></CardHeader>
-          <CardContent className="divide-y">
-            {(changes ?? []).length === 0 && <p className="text-muted-foreground">No changes recorded yet.</p>}
-            {(changes ?? []).map((c) => {
-              const after = (c.after ?? c.before) as { label?: string; name?: string; key?: string } | null;
-              return (
-                <div key={c.id} className="py-3">
-                  <p className="text-sm font-semibold capitalize">{c.action} · {c.table_name.replace(/_/g, " ")}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {after?.label ?? after?.name ?? after?.key ?? ""} · {new Date(c.created_at).toLocaleString()}
+          <CardHeader>
+            <CardTitle>Latest quizzes &amp; retailers</CardTitle>
+            <CardDescription>What people asked for, and shops that onboarded</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {!isLoading && (data?.recentQuizzes.length ?? 0) === 0 && (data?.recentRetailers.length ?? 0) === 0 && (
+              <p className="text-muted-foreground">Nothing yet.</p>
+            )}
+            {(data?.recentQuizzes ?? []).map((q) => (
+              <div key={q.id} className="flex items-center justify-between gap-3 rounded-xl border bg-background p-3">
+                <div className="min-w-0">
+                  <p className="truncate font-semibold capitalize">{q.room_type?.replace(/-/g, " ") || "A room"}</p>
+                  <p className="truncate text-xs text-muted-foreground">
+                    {q.style_preference || "No style given"}
+                    {q.color_palette ? ` · ${q.color_palette}` : ""}
                   </p>
                 </div>
-              );
-            })}
+                <span className="shrink-0 text-xs text-muted-foreground">{fmtDate(q.created_at)}</span>
+              </div>
+            ))}
+            {(data?.recentRetailers ?? []).map((r) => (
+              <div key={r.id} className="flex items-center justify-between gap-3 rounded-xl border border-primary/30 bg-primary/5 p-3">
+                <div className="min-w-0">
+                  <p className="truncate font-semibold capitalize">{r.product_range || "Retailer"}</p>
+                  <p className="truncate text-xs text-muted-foreground">
+                    {(r.product_types ?? []).slice(0, 3).join(", ") || "No types given"} · {r.sales_channel || "channel not set"}
+                  </p>
+                </div>
+                <span className="shrink-0 text-xs text-muted-foreground">{fmtDate(r.created_at)}</span>
+              </div>
+            ))}
           </CardContent>
         </Card>
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <ShieldCheck className="h-5 w-5" /> Needs a look
+          </CardTitle>
+          <CardDescription>
+            {counts?.missingSizes
+              ? `${counts.missingSizes} furniture ${counts.missingSizes === 1 ? "piece" : "pieces"} without standard sizes — the size step skips them.`
+              : "Every furniture piece has standard sizes."}
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          {(data?.specsMissingSizes ?? []).map((s) => (
+            <div key={s.id} className="flex items-center justify-between gap-3 rounded-lg border bg-background px-3 py-2">
+              <span className="font-medium">{s.name}</span>
+              <StatusBadge status="pending" label="No size" />
+            </div>
+          ))}
+          {(data?.specsMissingSizes.length ?? 0) > 0 && (
+            <button
+              type="button"
+              onClick={() => go("sizes")}
+              className="inline-flex items-center gap-2 text-sm font-semibold text-primary hover:underline"
+            >
+              Add the sizes <ArrowRight className="h-4 w-4" />
+            </button>
+          )}
+        </CardContent>
+      </Card>
+
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {quickLinks.map((l) => {
+          const Icon = l.icon;
+          return (
+            <button
+              key={l.id}
+              type="button"
+              onClick={() => go(l.id)}
+              className="rounded-2xl border bg-card p-5 text-left transition hover:border-primary/50 hover:shadow-md"
+            >
+              <Icon className="h-5 w-5 text-primary" />
+              <p className="mt-3 font-bold">{l.label}</p>
+              <p className="mt-1 text-xs text-muted-foreground">{l.text}</p>
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
-}
+};
+
+export default AdminHome;
