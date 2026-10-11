@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 import { useToast } from "@/hooks/use-toast";
 import { I } from "@/journey/icons";
-import { useScanImage, useTerms, type Term } from "@/components/admin/library/shared";
+import { useScanImage, useTerms, type Term } from "@/admin/data";
 import { A, AdminShell, Chip, Crumb, PillSel, zoomTo, type Box } from "../ui";
 
 type Scheme = Tables<"furniture_schemes"> & { furniture_scheme_tags: { term_id: string }[] };

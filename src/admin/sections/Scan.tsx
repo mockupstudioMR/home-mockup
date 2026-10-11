@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 import { useToast } from "@/hooks/use-toast";
 import { I, Ic } from "@/journey/icons";
-import { useScanImage, useTerms } from "@/components/admin/library/shared";
+import { useScanImage, useTerms } from "@/admin/data";
 import { A, AdminShell, Bdg, Chip, Conf, Crop, Crumb, Scan as ScanImg, ago, useAdminNav, type Box } from "../ui";
 import { getPending, getProgress, pdfToImages, retryFailed, setPending, startBatch, subscribe } from "../scanStore";
 

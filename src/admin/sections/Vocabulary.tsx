@@ -5,7 +5,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { I, Ic } from "@/journey/icons";
-import { facetLabel, slugify, useTerms, type Facet, type Term } from "@/components/admin/library/shared";
+import { facetLabel, slugify, useTerms, type Facet, type Term } from "@/admin/data";
 import { AdminShell, Crumb } from "../ui";
 
 type Tab = "category" | "color" | "style" | "material" | "tags" | "room_type" | "proposed";

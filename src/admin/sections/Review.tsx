@@ -6,7 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 import { useToast } from "@/hooks/use-toast";
 import { I, Ic } from "@/journey/icons";
-import { facetLabel, useScanImage, useTerms, type Term } from "@/components/admin/library/shared";
+import { facetLabel, useScanImage, useTerms, type Term } from "@/admin/data";
 import { A, AdminShell, AdminTop, Chip, Crop, Crumb, Scan as ScanImg, adminHref, useAdminNav, type Box } from "../ui";
 
 const p = (d: string) => <path d={d} />;

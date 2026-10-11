@@ -4,7 +4,7 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Ic, I } from "@/journey/icons";
-import type { Term } from "@/components/admin/library/shared";
+import type { Term } from "@/admin/data";
 import "@/journey/mu.css";
 import "./admin.css";
 import "./boards.css";

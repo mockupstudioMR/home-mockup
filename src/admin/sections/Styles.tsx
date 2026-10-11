@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Ic } from "@/journey/icons";
-import { facetLabel, useTerms, type Term } from "@/components/admin/library/shared";
+import { facetLabel, useTerms, type Term } from "@/admin/data";
 import { A, AdminShell, Crumb } from "../ui";
 import { Shot } from "./Schemes";
 

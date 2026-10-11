@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 import { useToast } from "@/hooks/use-toast";
-import { useTerms } from "@/components/admin/library/shared";
+import { useTerms } from "@/admin/data";
 import RoomFurnitureManager from "@/components/admin/RoomFurnitureManager";
 import RoomActivitiesManager from "@/components/admin/RoomActivitiesManager";
 import OpeningRulesManager from "@/components/admin/OpeningRulesManager";

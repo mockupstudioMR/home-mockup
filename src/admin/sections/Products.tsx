@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Json, Tables } from "@/integrations/supabase/types";
 import { useToast } from "@/hooks/use-toast";
 import { I } from "@/journey/icons";
-import { useTerms } from "@/components/admin/library/shared";
+import { useTerms } from "@/admin/data";
 import { AdminShell, Crumb, ago } from "../ui";
 
 type Shop = Tables<"shops">;
