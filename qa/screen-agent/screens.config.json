@@ -200,7 +200,28 @@
   "S8-Summary": {
    "route": "/journey/8/summary",
    "role": "user",
-   "seed": "journey-state.json"
+   "seed": "journey-state.json",
+   "patch": {
+    "walls": {
+     "A": {
+      "status": "kept",
+      "items": []
+     },
+     "B": {
+      "status": "kept",
+      "items": []
+     },
+     "C": {
+      "status": "kept",
+      "items": []
+     },
+     "D": {
+      "status": "changed",
+      "items": [],
+      "change": "your own mirror, dimmable wall light, arch and sockets kept"
+     }
+    }
+   }
   },
   "S9-BuyList": {
    "route": "/journey/9/buy",

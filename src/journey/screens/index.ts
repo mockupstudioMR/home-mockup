@@ -5,6 +5,7 @@ import { Activities, Existing, Fixed, Priorities, Step3Summary } from "./Step3";
 import { Layouts, Measure, RoomInput, Step4Summary } from "./Step4";
 import { Anchor, Shops, Step5Summary } from "./Step5";
 import { Lighting, Palette, Step6Summary, Step7Summary } from "./Step67";
+import { Step8Summary, WallDetail, Walls } from "./Step8";
 import { Adjust, Analyzing, Matches, Moodboard, Preview, Step2Summary, Upload, Vision } from "./Step2";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- screens take an optional route param
@@ -40,4 +41,7 @@ export const SCREEN_COMPONENTS: Partial<Record<ScreenId, ComponentType<any>>> = 
   "S6-Summary": Step6Summary,
   "S7-Lighting": Lighting,
   "S7-Summary": Step7Summary,
+  "S8-Walls": Walls,
+  "S8-WallDetail": WallDetail,
+  "S8-Summary": Step8Summary,
 };

@@ -166,7 +166,8 @@
   4,
   5,
   6,
-  7
+  7,
+  8
  ],
  "analysis": {
   "colors": [
@@ -632,5 +633,24 @@
   "dimmer": true,
   "blind": false,
   "stripImage": "/journey-sample/electrical.jpg"
+ },
+ "walls": {
+  "A": {
+   "status": "kept",
+   "items": []
+  },
+  "B": {
+   "status": "kept",
+   "items": []
+  },
+  "C": {
+   "status": "review",
+   "items": []
+  },
+  "D": {
+   "status": "review",
+   "items": [],
+   "change": "Keep the entry arch, use my mirror, and add a dimmable wall light. Keep the existing sockets."
+  }
  }
 }

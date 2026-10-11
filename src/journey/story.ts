@@ -43,6 +43,11 @@ export function stepLine(s: JourneyState, step: number): string {
       const metal = s.moodboard?.palette.find((x) => /brass|black|nickel|bronze|copper|steel|chrome/i.test(x.material ?? x.name));
       return n ? `${n} light layers${metal ? ` in ${(metal.material ?? metal.name).split(" ").slice(-1)[0].toLowerCase()}` : ""}` : "Lighting not set";
     }
+    case 8: {
+      const ws = Object.values(s.walls);
+      const changed = ws.filter((w) => w?.status === "changed").length;
+      return ws.length ? `${ws.length} walls, ${changed} changed` : "Walls not reviewed";
+    }
     default:
       return "";
   }

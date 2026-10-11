@@ -42,6 +42,24 @@ export type Layout = {
   route?: { x1: number; y1: number; x2: number; y2: number };
   notes: { ok: boolean; text: string }[];
 };
+export type WallItem = {
+  n: number;
+  group: "furniture" | "finishes" | "lighting" | "inside";
+  name: string;
+  note: string;
+  action: "Buy" | "Keep" | "Use mine" | "Changed" | "TBC" | "—" | "Custom";
+  code?: string;
+  x: number;
+  y: number;
+};
+export type WallPlan = {
+  role: string; // "Sofa"
+  image?: string;
+  /** Kept as designed, changed, or still to review. */
+  status: "review" | "kept" | "changed";
+  change?: string;
+  items: WallItem[];
+};
 export type FixedKind = "windows" | "doors" | "radiators" | "columns" | "sockets" | "builtins" | "water" | "stacks" | "ac" | "panels";
 /** One counted thing that can't move, placed on a wall of the plan. */
 export type Placement = { id: string; kind: FixedKind; n: number; wall?: Wall; pos?: number; photo?: string };
@@ -128,6 +146,8 @@ export type JourneyState = {
     blind: boolean;
     stripImage?: string;
   };
+  // Step 8 — wall by wall
+  walls: Partial<Record<Wall, WallPlan>>;
   // later steps are added as their screens are built
   [key: string]: unknown;
   /** Steps finished for this room (1–10). */
@@ -152,6 +172,7 @@ export const EMPTY: JourneyState = {
   room: { wallPhotos: [] },
   catalogPhotos: [],
   supporting: [],
+  walls: {},
   layouts: [],
   done: [],
 };
