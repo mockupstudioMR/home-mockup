@@ -5,8 +5,7 @@ import Logo from "@/components/Logo";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import ShopChoicePanel from "@/components/shop/ShopChoicePanel";
-import { supabase } from "@/integrations/supabase/client";
-import { ROOM_LABELS, ensureProject, projectsReady } from "@/lib/projectStore";
+import { ROOM_LABELS, ensureProject, projectDb, projectsReady } from "@/lib/projectStore";
 import { cn } from "@/lib/utils";
 import { resumeRoomInJourney } from "@/journey/state";
 
@@ -30,8 +29,8 @@ const ProjectHome = () => {
       const projectId = await ensureProject();
       if (!projectId) return { ready: false as const };
       const [{ data: project }, { data: rooms }] = await Promise.all([
-        supabase.from("projects").select("*").eq("id", projectId).single(),
-        supabase.from("rooms").select("id, name, room_type, sequence_no, current_step, starting_state").eq("project_id", projectId).order("sequence_no"),
+        projectDb.from("projects").select("*").eq("id", projectId).single(),
+        projectDb.from("rooms").select("id, name, room_type, sequence_no, current_step, starting_state").eq("project_id", projectId).order("sequence_no"),
       ]);
       return { ready: true as const, project, rooms: rooms ?? [] };
     },
@@ -39,7 +38,7 @@ const ProjectHome = () => {
 
   const continueRoom = useMutation({
     mutationFn: async (room: { id: string; room_type: string; current_step: number }) => {
-      if (room.current_step < 2) await supabase.from("rooms").update({ current_step: 2 }).eq("id", room.id);
+      if (room.current_step < 2) await projectDb.from("rooms").update({ current_step: 2 }).eq("id", room.id);
       try {
         localStorage.setItem("hm_room_id", room.id);
       } catch {
