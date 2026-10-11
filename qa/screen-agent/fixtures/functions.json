@@ -14,5 +14,11 @@
  },
  "analyze-floorplan": {
   "__delayMs": 60000
+ },
+ "generate-highlight-visuals": {
+  "__delayMs": 60000
+ },
+ "scrape-shop": {
+  "__delayMs": 60000
  }
 }

@@ -163,7 +163,8 @@
   1,
   2,
   3,
-  4
+  4,
+  5
  ],
  "analysis": {
   "colors": [
@@ -195,27 +196,37 @@
    {
     "name": "Plum",
     "hex": "#5B2E45",
-    "use": "Seating, curtains"
+    "use": "Seating, curtains",
+    "material": "Plum velvet",
+    "image": "/journey-sample/sw-plum.jpg"
    },
    {
     "name": "Emerald green",
     "hex": "#2F5B4A",
-    "use": "Accents, arch"
+    "use": "Accents, arch",
+    "material": "Green velvet",
+    "image": "/journey-sample/sw-green.jpg"
    },
    {
     "name": "Dark walnut",
     "hex": "#4A3022",
-    "use": "Wood, floor"
+    "use": "Wood, floor",
+    "material": "Dark walnut",
+    "image": "/journey-sample/sw-walnut.jpg"
    },
    {
     "name": "Brushed brass",
     "hex": "#B4975A",
-    "use": "Metal, lighting"
+    "use": "Metal, lighting",
+    "material": "Brushed brass",
+    "image": "/journey-sample/sw-brass.jpg"
    },
    {
     "name": "Grey plaster",
     "hex": "#6B6862",
-    "use": "Walls"
+    "use": "Walls",
+    "material": "Grey plaster",
+    "image": "/journey-sample/sw-plaster.jpg"
    }
   ],
   "feels": [
@@ -553,5 +564,19 @@
    ]
   }
  ],
- "chosenLayout": 0
+ "chosenLayout": 0,
+ "catalogPhotos": [],
+ "anchor": {
+  "kind": "sofa",
+  "shape": "Curved",
+  "variant": "Sofa · curved",
+  "w": 240,
+  "d": 105,
+  "h": 80,
+  "material": "plum velvet",
+  "images": {
+   "Curved": "/journey-sample/sofa-wall.jpg"
+  }
+ },
+ "projectId": "pr-demo"
 }

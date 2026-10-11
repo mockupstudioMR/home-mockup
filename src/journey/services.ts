@@ -210,3 +210,23 @@ export async function makeLayout(s: JourneyState, opts: { emphasis?: number; avo
   const l = data.layout;
   return { id: uid(), name: l.name, items: l.items ?? [], zones: l.zones ?? [], route: l.route, notes: (l.notes ?? []).slice(0, 3) } as Layout;
 }
+
+/** A product-style picture of one piece (generate-highlight-visuals, editable prompt "highlight_accent_furniture"). */
+export async function pieceVisual(s: JourneyState, name: string, description: string) {
+  const { data, error } = await invokeAi<{ imageUrl?: string }>("generate-highlight-visuals", {
+    body: { type: "accentFurniture", style: s.moodboard?.name ?? "", room: (s.startRoom ?? "living-room").replace(/-/g, " "), furnitureName: name, furnitureDescription: description, colors: s.moodboard?.palette.map((p) => p.name) },
+    timeoutMs: 120_000,
+  });
+  if (error || !data?.imageUrl) throw new Error(getAiErrorMessage(error, "The picture couldn't be made."));
+  return storeDesignImage(data.imageUrl);
+}
+
+/** A flat-lay of the palette's materials (generate-highlight-visuals "colorPalette"). */
+export async function paletteVisual(s: JourneyState) {
+  const { data, error } = await invokeAi<{ imageUrl?: string }>("generate-highlight-visuals", {
+    body: { type: "colorPalette", style: s.moodboard?.name ?? "", room: (s.startRoom ?? "living-room").replace(/-/g, " "), colors: s.moodboard?.palette.map((p) => p.name), materials: s.analysis?.materials },
+    timeoutMs: 120_000,
+  });
+  if (error || !data?.imageUrl) throw new Error(getAiErrorMessage(error, "The picture couldn't be made."));
+  return storeDesignImage(data.imageUrl);
+}

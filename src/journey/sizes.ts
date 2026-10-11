@@ -15,10 +15,13 @@ const FALLBACK: Record<string, SizeVariant[]> = {
     { label: "Baby grand", w: 150, d: 160, h: 100, extraLabel: "Bench · standard", extra: "76 × 36 × 49" },
   ],
   sofa: [
-    { label: "Sofa · 3-seater", w: 220, d: 95, h: 85 },
-    { label: "Sofa · 2-seater", w: 170, d: 90, h: 85 },
-    { label: "Sofa · L-shape", w: 270, d: 170, h: 85 },
-    { label: "Sofa · curved", w: 240, d: 105, h: 80 },
+    { label: "3-seater sofa · standard", w: 220, d: 95, h: 85 },
+    { label: "3-seater sofa · compact", w: 200, d: 90, h: 85 },
+    { label: "L-shape sofa · standard", w: 270, d: 170, h: 85 },
+    { label: "L-shape sofa · large", w: 300, d: 200, h: 85 },
+    { label: "Curved sofa · 3-seat standard", w: 240, d: 105, h: 80 },
+    { label: "Curved sofa · 2-seat compact", w: 200, d: 95, h: 80 },
+    { label: "Curved sofa · 4-seat large", w: 290, d: 115, h: 80 },
   ],
   rug: [
     { label: "Rug · 200 × 300", w: 200, d: 300, h: 1 },

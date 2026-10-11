@@ -192,3 +192,6 @@
 .mu .rmi.cur .ic{color:var(--ok)}
 .mu .rep{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border-radius:12px;background:#fff;font-size:14px;line-height:1.45;color:var(--ink)}
 .mu .rep .ic{width:20px;height:20px;color:var(--plum);flex:none;margin-top:1px}.mu.app{min-height:100vh}
+
+/* the unit label never shrinks next to its input */
+.mu .unit span{flex:none}.mu .unit .input{min-width:0}

@@ -27,6 +27,12 @@ export function stepLine(s: JourneyState, step: number): string {
       const w = (s.room.widthM ?? 3.75).toFixed(2), l = (s.room.lengthM ?? 4.9).toFixed(2);
       return s.layouts.length ? `Layout ${(s.chosenLayout ?? 0) + 1} on a ${w} × ${l} m room` : "Layout not chosen";
     }
+    case 5: {
+      const a = s.anchor;
+      if (!a) return "Main piece not chosen";
+      const colour = (a.material ?? "").split(" ")[0];
+      return `${a.shape} ${colour && colour !== a.material ? colour + " " : ""}${a.kind}`;
+    }
     default:
       return "";
   }

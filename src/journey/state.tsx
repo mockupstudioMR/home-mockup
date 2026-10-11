@@ -11,7 +11,7 @@ export const STORAGE_KEY = "hm_journey_v1";
 export type Keyword = { word: string; on: boolean };
 export type Piece = { id: string; label: string; image: string; added: boolean; source?: string };
 export type StyleMatch = { name: string; score: number; description?: string; keywords: Keyword[]; pieces: Piece[] };
-export type Swatch = { name: string; hex: string; use?: string; image?: string };
+export type Swatch = { name: string; hex: string; use?: string; image?: string; material?: string };
 export type PreviewVersion = { id: string; image: string; request?: string; createdAt: string };
 export type ReadKey = "finishes" | "furniture" | "colours" | "decor" | "lighting";
 
@@ -102,6 +102,18 @@ export type JourneyState = {
   };
   layouts: Layout[];
   chosenLayout?: number;
+  // Step 5 — main furniture
+  /** Catalogue or shop photos added on 5.0, used as references when matching pieces. */
+  catalogPhotos: string[];
+  anchor?: {
+    kind: string; // "sofa", "bed" …
+    shape: string; // "Curved"
+    variant?: string;
+    w?: number; d?: number; h?: number;
+    material?: string; // "plum velvet"
+    images: Record<string, string>;
+    clearance?: number;
+  };
   // later steps are added as their screens are built
   [key: string]: unknown;
   /** Steps finished for this room (1–10). */
@@ -124,6 +136,7 @@ export const EMPTY: JourneyState = {
   placements: [],
   fixedPhotos: [],
   room: { wallPhotos: [] },
+  catalogPhotos: [],
   layouts: [],
   done: [],
 };
