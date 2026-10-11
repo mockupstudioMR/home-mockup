@@ -33,6 +33,16 @@ export function stepLine(s: JourneyState, step: number): string {
       const colour = (a.material ?? "").split(" ")[0];
       return `${a.shape} ${colour && colour !== a.material ? colour + " " : ""}${a.kind}`;
     }
+    case 6: {
+      const n = s.moodboard?.palette.length ?? 0;
+      const a = s.accent && s.accent.decision !== "skip" ? `, ${s.accent.name.replace(" statement", "").toLowerCase()} accent chair`.replace(" chair accent chair", " accent chair") : "";
+      return `${n} materials${a}`;
+    }
+    case 7: {
+      const n = s.lighting?.layers.length ?? 0;
+      const metal = s.moodboard?.palette.find((x) => /brass|black|nickel|bronze|copper|steel|chrome/i.test(x.material ?? x.name));
+      return n ? `${n} light layers${metal ? ` in ${(metal.material ?? metal.name).split(" ").slice(-1)[0].toLowerCase()}` : ""}` : "Lighting not set";
+    }
     default:
       return "";
   }

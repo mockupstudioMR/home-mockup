@@ -114,6 +114,20 @@ export type JourneyState = {
     images: Record<string, string>;
     clearance?: number;
   };
+  // Step 6 — colours & materials
+  accent?: { name: string; wall?: Wall; decision: "keep" | "adjust" | "skip"; change?: string; image?: string };
+  supporting: { name: string; material: string }[];
+  supportImage?: string;
+  samplesAdded?: boolean;
+  // Step 7 — lighting & power
+  lighting?: {
+    layers: { key: "overall" | "task" | "accent"; name: string; text: string; image?: string; pos?: string; decision: "keep" | "change"; change?: string }[];
+    sockets?: number;
+    switches?: number;
+    dimmer: boolean;
+    blind: boolean;
+    stripImage?: string;
+  };
   // later steps are added as their screens are built
   [key: string]: unknown;
   /** Steps finished for this room (1–10). */
@@ -137,6 +151,7 @@ export const EMPTY: JourneyState = {
   fixedPhotos: [],
   room: { wallPhotos: [] },
   catalogPhotos: [],
+  supporting: [],
   layouts: [],
   done: [],
 };

@@ -164,7 +164,9 @@
   2,
   3,
   4,
-  5
+  5,
+  6,
+  7
  ],
  "analysis": {
   "colors": [
@@ -196,35 +198,35 @@
    {
     "name": "Plum",
     "hex": "#5B2E45",
-    "use": "Seating, curtains",
+    "use": "Sofa, curtains",
     "material": "Plum velvet",
     "image": "/journey-sample/sw-plum.jpg"
    },
    {
     "name": "Emerald green",
     "hex": "#2F5B4A",
-    "use": "Accents, arch",
-    "material": "Green velvet",
+    "use": "Chair, arch, bench",
+    "material": "Green accent",
     "image": "/journey-sample/sw-green.jpg"
    },
    {
     "name": "Dark walnut",
     "hex": "#4A3022",
-    "use": "Wood, floor",
+    "use": "Shelving, tables, floor",
     "material": "Dark walnut",
     "image": "/journey-sample/sw-walnut.jpg"
    },
    {
     "name": "Brushed brass",
     "hex": "#B4975A",
-    "use": "Metal, lighting",
+    "use": "Lamps, panel, plates",
     "material": "Brushed brass",
     "image": "/journey-sample/sw-brass.jpg"
    },
    {
     "name": "Grey plaster",
     "hex": "#6B6862",
-    "use": "Walls",
+    "use": "Walls A and D",
     "material": "Grey plaster",
     "image": "/journey-sample/sw-plaster.jpg"
    }
@@ -578,5 +580,57 @@
    "Curved": "/journey-sample/sofa-wall.jpg"
   }
  },
- "projectId": "pr-demo"
+ "projectId": "pr-demo",
+ "accent": {
+  "name": "Green statement chair",
+  "wall": "C",
+  "decision": "keep",
+  "image": "/journey-sample/window-wall.jpg"
+ },
+ "supporting": [
+  {
+   "name": "Coffee table",
+   "material": "Walnut + green stone"
+  },
+  {
+   "name": "Side table",
+   "material": "Brass"
+  },
+  {
+   "name": "Console",
+   "material": "Fluted walnut"
+  }
+ ],
+ "supportImage": "/journey-sample/entry-wall.jpg",
+ "lighting": {
+  "layers": [
+   {
+    "key": "overall",
+    "name": "Glass pendant cluster",
+    "text": "Soft general light over the seating. On a dimmer.",
+    "image": "/journey-sample/room-hero.jpg",
+    "pos": "55% 0%",
+    "decision": "keep"
+   },
+   {
+    "key": "task",
+    "name": "Reading floor lamp",
+    "text": "Beside the green chair at the window.",
+    "image": "/journey-sample/window-wall.jpg",
+    "pos": "75% 40%",
+    "decision": "keep"
+   },
+   {
+    "key": "accent",
+    "name": "Piano picture light",
+    "text": "Lights the music and the artwork above.",
+    "image": "/journey-sample/piano-wall.jpg",
+    "pos": "50% 15%",
+    "decision": "keep"
+   }
+  ],
+  "dimmer": true,
+  "blind": false,
+  "stripImage": "/journey-sample/electrical.jpg"
+ }
 }

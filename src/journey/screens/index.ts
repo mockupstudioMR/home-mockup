@@ -4,6 +4,7 @@ import { Brief, Place, Rooms, StartRoom, StateOfPlace, WhoAreYou, Why } from "./
 import { Activities, Existing, Fixed, Priorities, Step3Summary } from "./Step3";
 import { Layouts, Measure, RoomInput, Step4Summary } from "./Step4";
 import { Anchor, Shops, Step5Summary } from "./Step5";
+import { Lighting, Palette, Step6Summary, Step7Summary } from "./Step67";
 import { Adjust, Analyzing, Matches, Moodboard, Preview, Step2Summary, Upload, Vision } from "./Step2";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- screens take an optional route param
@@ -35,4 +36,8 @@ export const SCREEN_COMPONENTS: Partial<Record<ScreenId, ComponentType<any>>> = 
   "S5-Shops": Shops,
   "S5-Anchor": Anchor,
   "S5-Summary": Step5Summary,
+  "S6-Palette": Palette,
+  "S6-Summary": Step6Summary,
+  "S7-Lighting": Lighting,
+  "S7-Summary": Step7Summary,
 };
