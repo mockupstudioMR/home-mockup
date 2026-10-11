@@ -33,6 +33,15 @@ export type KeepItem = {
   pos?: number;
   fixedSpot: boolean;
 };
+export type LayoutItem = { label: string; kind: string; x: number; y: number; w: number; h: number; rotate?: number };
+export type Layout = {
+  id: string;
+  name: string;
+  items: LayoutItem[];
+  zones: { label: string; x: number; y: number; w: number; h: number; tone?: string }[];
+  route?: { x1: number; y1: number; x2: number; y2: number };
+  notes: { ok: boolean; text: string }[];
+};
 export type FixedKind = "windows" | "doors" | "radiators" | "columns" | "sockets" | "builtins" | "water" | "stacks" | "ac" | "panels";
 /** One counted thing that can't move, placed on a wall of the plan. */
 export type Placement = { id: string; kind: FixedKind; n: number; wall?: Wall; pos?: number; photo?: string };
@@ -79,6 +88,20 @@ export type JourneyState = {
   placements: Placement[];
   /** Photos of the room taken in 3.4 that aren't tied to one feature. */
   fixedPhotos: string[];
+  // Step 4 — layout
+  room: {
+    input?: "plan" | "photos" | "draw";
+    planImage?: string;
+    wallPhotos: string[];
+    /** Wall A / C length and wall B / D length, in metres. Example sizes until confirmed. */
+    widthM?: number;
+    lengthM?: number;
+    ceilingM?: number;
+    scaleRef?: string;
+    confirmed?: boolean;
+  };
+  layouts: Layout[];
+  chosenLayout?: number;
   // later steps are added as their screens are built
   [key: string]: unknown;
   /** Steps finished for this room (1–10). */
@@ -100,6 +123,8 @@ export const EMPTY: JourneyState = {
   fixedTbc: [],
   placements: [],
   fixedPhotos: [],
+  room: { wallPhotos: [] },
+  layouts: [],
   done: [],
 };
 

@@ -8,7 +8,7 @@ import { getAiErrorMessage } from "@/lib/aiErrorMessage";
 import { getAiOptimizedImageUrl, optimizeImageFileSafe } from "@/lib/imageOptimization";
 import { getStyleMoodboardUrls } from "@/lib/styleMoodboards";
 import { trackEvent } from "@/lib/analytics";
-import { uid, type JourneyState, type Piece, type StyleMatch, type Swatch } from "./state";
+import { uid, type JourneyState, type Layout, type Piece, type StyleMatch, type Swatch } from "./state";
 
 const userId = async () => (await supabase.auth.getUser()).data.user?.id ?? null;
 
@@ -176,4 +176,37 @@ export async function readDesign(imageUrl: string, style?: string): Promise<Read
   const { data, error } = await invokeAi<{ parts?: ReadPart[]; error?: string }>("read-design", { body: { imageUrl, style }, timeoutMs: 60_000 });
   if (error || !data?.parts) throw new Error(getAiErrorMessage(error ?? data, "We couldn't read the preview. Try again."));
   return data.parts;
+}
+
+/** Read an uploaded floor plan: the room's two side lengths, in metres. */
+export async function analyzePlan(imageUrl: string): Promise<{ widthM: number; lengthM: number; shape?: string } | null> {
+  const { data, error } = await invokeAi<{ floorplan?: { walls?: { length_m: number }[]; shape_description?: string } }>("analyze-floorplan", { body: { imageUrl }, timeoutMs: 60_000 });
+  if (error) throw new Error(getAiErrorMessage(error, "We couldn't read the plan. Try a clearer image."));
+  const walls = data?.floorplan?.walls ?? [];
+  if (walls.length < 2) return null;
+  const round = (n: number) => Math.round(n * 100) / 100;
+  return { widthM: round(walls[0].length_m), lengthM: round(walls[1].length_m), shape: data?.floorplan?.shape_description };
+}
+
+/** One layout for the room (step 4.3), built by generate-layout from everything known so far. */
+export async function makeLayout(s: JourneyState, opts: { emphasis?: number; avoid?: string[] } = {}) {
+  const { data, error } = await invokeAi<{ layout?: Omit<Layout, "id">; error?: string }>("generate-layout", {
+    body: {
+      journey: true,
+      roomType: s.startRoom ?? "living-room",
+      widthM: s.room.widthM ?? 3.75,
+      lengthM: s.room.lengthM ?? 4.9,
+      activities: s.activities,
+      priorities: s.priorities,
+      style: s.moodboard?.name,
+      keep: s.keeping.map((k) => ({ name: k.name, w: k.w ?? 100, d: k.d ?? 50, wall: k.wall, fixedSpot: k.fixedSpot })),
+      fixed: s.placements.map((p) => ({ kind: p.kind, wall: p.wall, pos: p.pos })),
+      emphasis: opts.emphasis,
+      avoid: opts.avoid,
+    },
+    timeoutMs: 90_000,
+  });
+  if (error || !data?.layout) throw new Error(getAiErrorMessage(error ?? data, "The layout couldn't be made. Try again."));
+  const l = data.layout;
+  return { id: uid(), name: l.name, items: l.items ?? [], zones: l.zones ?? [], route: l.route, notes: (l.notes ?? []).slice(0, 3) } as Layout;
 }

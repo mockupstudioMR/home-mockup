@@ -2,6 +2,7 @@ import type { ComponentType } from "react";
 import type { ScreenId } from "../routes";
 import { Brief, Place, Rooms, StartRoom, StateOfPlace, WhoAreYou, Why } from "./Step1";
 import { Activities, Existing, Fixed, Priorities, Step3Summary } from "./Step3";
+import { Layouts, Measure, RoomInput, Step4Summary } from "./Step4";
 import { Adjust, Analyzing, Matches, Moodboard, Preview, Step2Summary, Upload, Vision } from "./Step2";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- screens take an optional route param
@@ -26,4 +27,8 @@ export const SCREEN_COMPONENTS: Partial<Record<ScreenId, ComponentType<any>>> = 
   "S3-Existing": Existing,
   "S3-Fixed": Fixed,
   "S3-Summary": Step3Summary,
+  "S4-Input": RoomInput,
+  "S4-Measure": Measure,
+  "S4-Layouts": Layouts,
+  "S4-Summary": Step4Summary,
 };

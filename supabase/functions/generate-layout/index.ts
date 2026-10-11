@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { requireUser } from "../_shared/auth.ts";
 import { fetchWithTimeout } from "../_shared/http.ts";
+import { journeyLayout } from "./journey.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -17,7 +18,15 @@ serve(async (req) => {
   if (caller instanceof Response) return caller;
 
   try {
-    const { shape, dimensions, openings, roomType, furnitureItems, walls, style, referenceImageUrl, customWalls } = await req.json();
+    const body = await req.json();
+    // The "Designing my home" journey (step 4.3) asks for one layout at a time, with zones, a walking route and notes.
+    if (body?.journey) {
+      const key = Deno.env.get("LOVABLE_API_KEY");
+      if (!key) throw new Error("LOVABLE_API_KEY not configured");
+      const out = await journeyLayout(body, key);
+      return new Response(JSON.stringify(out.body), { status: out.status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+    const { shape, dimensions, openings, roomType, furnitureItems, walls, style, referenceImageUrl, customWalls } = body;
 
     if (!shape) {
       return new Response(JSON.stringify({ error: "shape required" }), {

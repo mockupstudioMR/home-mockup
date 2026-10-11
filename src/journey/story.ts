@@ -23,6 +23,10 @@ export function stepLine(s: JourneyState, step: number): string {
       const keep = s.keeping.length ? `keeping the ${list(s.keeping.map((k) => k.name.toLowerCase().replace(/^upright /, "")))}` : "nothing kept";
       return `${what || "Everyday life"}, ${keep}`;
     }
+    case 4: {
+      const w = (s.room.widthM ?? 3.75).toFixed(2), l = (s.room.lengthM ?? 4.9).toFixed(2);
+      return s.layouts.length ? `Layout ${(s.chosenLayout ?? 0) + 1} on a ${w} × ${l} m room` : "Layout not chosen";
+    }
     default:
       return "";
   }

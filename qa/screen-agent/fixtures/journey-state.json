@@ -162,7 +162,8 @@
  "done": [
   1,
   2,
-  3
+  3,
+  4
  ],
  "analysis": {
   "colors": [
@@ -364,5 +365,193 @@
    "wall": "D",
    "pos": 45
   }
- ]
+ ],
+ "room": {
+  "input": "plan",
+  "planImage": "/journey-sample/wall-by-wall.jpg",
+  "wallPhotos": [],
+  "widthM": 3.75,
+  "lengthM": 4.9,
+  "scaleRef": "Wall A length",
+  "confirmed": false
+ },
+ "layouts": [
+  {
+   "id": "L1",
+   "name": "Relax + piano",
+   "items": [
+    {
+     "label": "Curved sofa",
+     "kind": "sofa",
+     "x": 14.1,
+     "y": 4.8,
+     "w": 70.4,
+     "h": 17
+    },
+    {
+     "label": "",
+     "kind": "rug",
+     "x": 17.6,
+     "y": 23.9,
+     "w": 63.4,
+     "h": 26.6
+    },
+    {
+     "label": "Table",
+     "kind": "table",
+     "x": 35.2,
+     "y": 29.3,
+     "w": 28.2,
+     "h": 13.8
+    },
+    {
+     "label": "Chair",
+     "kind": "chair",
+     "x": 7.7,
+     "y": 74.5,
+     "w": 22.5,
+     "h": 17
+    },
+    {
+     "label": "Piano",
+     "kind": "keep",
+     "x": 83.8,
+     "y": 63.8,
+     "w": 16.2,
+     "h": 31.4
+    },
+    {
+     "label": "",
+     "kind": "bench",
+     "x": 71.1,
+     "y": 72.9,
+     "w": 9.2,
+     "h": 13.3
+    }
+   ],
+   "zones": [
+    {
+     "label": "Relax",
+     "x": 4.2,
+     "y": 3.2,
+     "w": 91.5,
+     "h": 53.2,
+     "tone": "plum"
+    },
+    {
+     "label": "Music",
+     "x": 57.7,
+     "y": 59,
+     "w": 39.4,
+     "h": 39.9,
+     "tone": "green"
+    }
+   ],
+   "route": {
+    "x1": 0,
+    "y1": 56.9,
+    "x2": 70.4,
+    "y2": 56.9
+   },
+   "notes": [
+    {
+     "ok": true,
+     "text": "Sofa faces the room; reading chair gets window light"
+    },
+    {
+     "ok": true,
+     "text": "Piano has its own quiet corner and bench space"
+    },
+    {
+     "ok": false,
+     "text": "Seats 4 comfortably"
+    }
+   ]
+  },
+  {
+   "id": "L2",
+   "name": "More social seating",
+   "items": [
+    {
+     "label": "L-sofa",
+     "kind": "sofa",
+     "x": 6.3,
+     "y": 18.6,
+     "w": 21.1,
+     "h": 50.5
+    },
+    {
+     "label": "",
+     "kind": "sofa",
+     "x": 6.3,
+     "y": 53.2,
+     "w": 52.8,
+     "h": 16
+    },
+    {
+     "label": "",
+     "kind": "rug",
+     "x": 33.8,
+     "y": 23.9,
+     "w": 52.8,
+     "h": 26.6
+    },
+    {
+     "label": "Table",
+     "kind": "table",
+     "x": 45.1,
+     "y": 29.3,
+     "w": 28.2,
+     "h": 14.9
+    },
+    {
+     "label": "Chair",
+     "kind": "chair",
+     "x": 72.5,
+     "y": 52.1,
+     "w": 21.1,
+     "h": 16
+    },
+    {
+     "label": "Piano",
+     "kind": "keep",
+     "x": 24.6,
+     "y": 0,
+     "w": 42.3,
+     "h": 11.7
+    }
+   ],
+   "zones": [
+    {
+     "label": "Gather",
+     "x": 4.2,
+     "y": 16,
+     "w": 95,
+     "h": 61.2,
+     "tone": "plum"
+    }
+   ],
+   "route": {
+    "x1": 0,
+    "y1": 79.8,
+    "x2": 98.6,
+    "y2": 79.8
+   },
+   "notes": [
+    {
+     "ok": true,
+     "text": "L-shape seats 6, everyone faces each other"
+    },
+    {
+     "ok": true,
+     "text": "Piano becomes the focal wall for evenings"
+    },
+    {
+     "ok": false,
+     "text": "Less room behind the piano bench"
+    }
+   ]
+  }
+ ],
+ "chosenLayout": 0
 }
