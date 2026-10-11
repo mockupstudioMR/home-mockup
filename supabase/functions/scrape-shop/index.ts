@@ -10,6 +10,7 @@ const corsHeaders = {
 interface ScrapeRequest {
   shopUrl: string;
   userId: string;
+  shopRef?: string;
 }
 
 Deno.serve(async (req) => {
@@ -38,7 +39,16 @@ Deno.serve(async (req) => {
       throw new Error("Supabase credentials not configured");
     }
 
-    const { shopUrl, userId: requestedUserId }: ScrapeRequest = await req.json();
+    const { shopUrl, userId: requestedUserId, shopRef }: ScrapeRequest = await req.json();
+
+    // shopRef (a row in public.shops) is set when an admin scrapes a partner or user-added shop.
+    // Those shops may have no account of their own, so products are filed under the admin.
+    if (shopRef && !(await isAdmin(caller))) {
+      return new Response(
+        JSON.stringify({ success: false, error: "Only admins can scrape shops from the shop list." }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     // Products are saved under this id with the service-role key, so only
     // admins may scrape on behalf of another shop.
@@ -62,6 +72,15 @@ Deno.serve(async (req) => {
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
     console.log("Starting to scrape shop:", shopUrl);
+    let runId: string | null = null;
+    if (shopRef) {
+      const { data: run } = await supabase
+        .from("shop_scrape_runs")
+        .insert({ shop_id: shopRef, started_by: callerId })
+        .select("id")
+        .single();
+      runId = run?.id ?? null;
+    }
 
     // Non-product path patterns to exclude
     const excludePatterns = [
@@ -349,6 +368,7 @@ ${productsToExtract}`;
         .from("shop_products")
         .insert({
           shop_id: userId,
+          shop_ref: shopRef ?? null,
           name: product.name,
           description: product.description || null,
           type: product.category,
@@ -371,6 +391,20 @@ ${productsToExtract}`;
     }
 
     console.log(`Saved ${savedProducts.length} products to database`);
+    if (shopRef) {
+      const { count } = await supabase.from("shop_products").select("id", { count: "exact", head: true }).eq("shop_ref", shopRef);
+      await supabase
+        .from("shops")
+        .update({ product_count: count ?? savedProducts.length, last_scraped_at: new Date().toISOString(),
+                  status: savedProducts.length ? undefined : "unreadable" })
+        .eq("id", shopRef);
+      if (runId) {
+        await supabase
+          .from("shop_scrape_runs")
+          .update({ status: "done", finished_at: new Date().toISOString(), products_found: savedProducts.length })
+          .eq("id", runId);
+      }
+    }
 
     return new Response(
       JSON.stringify({

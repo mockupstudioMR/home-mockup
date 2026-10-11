@@ -1,16 +1,25 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import {
+  BarChart3,
+  CreditCard,
+  FileText,
+  FolderOpen,
+  Grid2x2,
+  Home,
+  Inbox,
+  LogOut,
+  Palette,
+  Ruler,
+  ScanLine,
+  ShoppingBag,
+  Tag,
+  Users,
+} from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Badge } from "@/components/ui/badge";
-import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
 import CMSEditor from "@/components/admin/CMSEditor";
-import AddUserDialog from "@/components/admin/AddUserDialog";
 import AdminProductManagement from "@/components/admin/AdminProductManagement";
 import RoomFurnitureManager from "@/components/admin/RoomFurnitureManager";
 import PromptTemplateManager from "@/components/admin/PromptTemplateManager";
@@ -19,400 +28,183 @@ import FurnitureSpecsManager from "@/components/admin/FurnitureSpecsManager";
 import RoomActivitiesManager from "@/components/admin/RoomActivitiesManager";
 import OpeningRulesManager from "@/components/admin/OpeningRulesManager";
 import ProductMatchingWeights from "@/components/admin/ProductMatchingWeights";
-import { 
-  Shield, 
-  Users, 
-  Copy, 
-  Plus, 
-  LogOut,
-  Store,
-  Palette,
-  FileText,
-  CreditCard,
-  Package,
-  Settings2,
-  BarChart3
-} from "lucide-react";
 import AnalyticsDashboard from "@/components/analytics/AnalyticsDashboard";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import AdminHome, { type AdminSection, useAdminCounts } from "@/components/admin/AdminHome";
+import ScanUpload from "@/components/admin/scan/ScanUpload";
+import ReviewQueue from "@/components/admin/review/ReviewQueue";
+import VocabularyManager from "@/components/admin/library/VocabularyManager";
+import ShopsManager from "@/components/admin/library/ShopsManager";
+import SchemesLibrary from "@/components/admin/library/SchemesLibrary";
+import StylesPalettes from "@/components/admin/library/StylesPalettes";
+import ScopeDefaultsManager from "@/components/admin/library/ScopeDefaultsManager";
+import ProjectSupport from "@/components/admin/ProjectSupport";
+import UsersInvites from "@/components/admin/UsersInvites";
+import SettingsHistory from "@/components/admin/SettingsHistory";
 
-type InviteRole = "designer" | "furniture_shop" | "admin";
+type NavItem = { id: AdminSection; label: string; icon: React.ComponentType<{ className?: string }>; count?: number; soon?: boolean };
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
   const { signOut } = useAuth();
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
-  
-  const [newInviteRole, setNewInviteRole] = useState<InviteRole>("designer");
-  const [inviteEmail, setInviteEmail] = useState("");
+  const [params, setParams] = useSearchParams();
+  const section = (params.get("section") as AdminSection) || "home";
+  const { data: counts } = useAdminCounts();
 
-  // Fetch invites
-  const { data: invites, isLoading: invitesLoading } = useQuery({
-    queryKey: ["admin-invites"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("role_invites")
-        .select("*")
-        .order("created_at", { ascending: false });
-      
-      if (error) throw error;
-      return data;
-    },
-  });
-
-  // Fetch users with roles
-  const { data: userRoles } = useQuery({
-    queryKey: ["admin-user-roles"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("user_roles")
-        .select("*")
-        .order("created_at", { ascending: false });
-      
-      if (error) throw error;
-      return data;
-    },
-  });
-
-  const createInviteMutation = useMutation({
-    mutationFn: async ({ role, email }: { role: InviteRole; email?: string }) => {
-      const { data, error } = await supabase
-        .from("role_invites")
-        .insert({
-          role,
-          email: email || null,
-        })
-        .select()
-        .single();
-      
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ["admin-invites"] });
-      const inviteUrl = `${window.location.origin}/auth?invite=${data.token}`;
-      navigator.clipboard.writeText(inviteUrl);
-      toast({
-        title: "Invite created!",
-        description: "Invite link copied to clipboard.",
-      });
-      setInviteEmail("");
-    },
-    onError: (error) => {
-      toast({
-        title: "Error",
-        description: "Failed to create invite",
-        variant: "destructive",
-      });
-    },
-  });
-
-  const handleSignOut = async () => {
-    await signOut();
-    navigate("/");
+  const go = (s: AdminSection) => {
+    setParams(s === "home" ? {} : { section: s });
+    window.scrollTo({ top: 0 });
   };
 
-  const copyInviteLink = (token: string) => {
-    const inviteUrl = `${window.location.origin}/auth?invite=${token}`;
-    navigator.clipboard.writeText(inviteUrl);
-    toast({
-      title: "Copied!",
-      description: "Invite link copied to clipboard.",
-    });
-  };
+  const groups: { label: string; items: NavItem[] }[] = [
+    { label: "Overview", items: [{ id: "home", label: "Admin home", icon: Home }] },
+    {
+      label: "Feed",
+      items: [
+        { id: "scan", label: "Scan & upload", icon: ScanLine },
+        { id: "review", label: "Review queue", icon: Inbox, count: counts?.waiting },
+      ],
+    },
+    {
+      label: "Curate",
+      items: [
+        { id: "vocabulary", label: "Vocabulary", icon: Tag, count: counts?.proposed },
+        { id: "schemes", label: "Schemes & combinations", icon: Grid2x2 },
+        { id: "styles", label: "Styles & palettes", icon: Palette },
+        { id: "sizes", label: "Sizes, scope & config", icon: Ruler, count: counts?.missingSizes },
+        { id: "products", label: "Products & shops", icon: ShoppingBag, count: counts?.pendingShops },
+      ],
+    },
+    {
+      label: "Run",
+      items: [
+        { id: "projects", label: "Projects support", icon: FolderOpen },
+        { id: "users", label: "Users & invites", icon: Users },
+        { id: "cms", label: "CMS & settings", icon: FileText },
+        { id: "analytics", label: "Analytics", icon: BarChart3 },
+        { id: "billing", label: "Billing", icon: CreditCard, soon: true },
+      ],
+    },
+  ];
 
-  const getRoleIcon = (role: string) => {
-    switch (role) {
-      case "designer": return <Palette className="w-4 h-4" />;
-      case "furniture_shop": return <Store className="w-4 h-4" />;
-      case "admin": return <Shield className="w-4 h-4" />;
-      default: return <Users className="w-4 h-4" />;
-    }
-  };
-
-  const getRoleBadgeColor = (role: string) => {
-    switch (role) {
-      case "admin": return "bg-destructive/10 text-destructive border-destructive/20";
-      case "designer": return "bg-primary/10 text-primary border-primary/20";
-      case "furniture_shop": return "bg-accent/10 text-accent-foreground border-accent/20";
-      default: return "bg-muted text-muted-foreground";
-    }
-  };
-
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-secondary/20 to-primary/10">
-      {/* Header */}
-      <header className="border-b border-border/50 bg-card/80 backdrop-blur-sm">
-        <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-destructive to-destructive/60 flex items-center justify-center">
-              <Shield className="w-5 h-5 text-destructive-foreground" />
-            </div>
+  const content = (() => {
+    switch (section) {
+      case "scan": return <ScanUpload />;
+      case "review": return <ReviewQueue />;
+      case "vocabulary": return <VocabularyManager />;
+      case "schemes": return <SchemesLibrary />;
+      case "styles": return <StylesPalettes />;
+      case "sizes":
+        return (
+          <div className="space-y-8">
             <div>
-              <h1 className="text-xl font-bold">Admin Dashboard</h1>
-              <p className="text-sm text-muted-foreground">Manage platform & users</p>
+              <h2 className="text-3xl font-extrabold tracking-tight">Sizes, scope &amp; design config</h2>
+              <p className="mt-2 max-w-2xl text-muted-foreground">
+                Standard sizes fill the size step for users (they can still edit them). Scope defaults decide what&apos;s pre-selected for each starting point.
+              </p>
             </div>
-          </div>
-          <Button variant="ghost" onClick={handleSignOut}>
-            <LogOut className="w-4 h-4 mr-2" />
-            Sign Out
-          </Button>
-        </div>
-      </header>
-
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 py-8">
-        <Tabs defaultValue="products" className="space-y-6">
-          {/* Horizontally scrollable on mobile so all 7 tabs stay reachable */}
-          <div className="-mx-4 px-4 overflow-x-auto scrollbar-none">
-            <TabsList className="inline-flex w-max sm:grid sm:w-full sm:max-w-4xl sm:grid-cols-7">
-              <TabsTrigger value="products" className="flex items-center gap-2 whitespace-nowrap">
-                <Package className="w-4 h-4" />
-                <span className="hidden sm:inline">Products</span>
-                <span className="sm:hidden">Products</span>
-              </TabsTrigger>
-              <TabsTrigger value="design-config" className="flex items-center gap-2 whitespace-nowrap">
-                <Settings2 className="w-4 h-4" />
-                <span className="hidden sm:inline">Design Config</span>
-                <span className="sm:hidden">Design</span>
-              </TabsTrigger>
-              <TabsTrigger value="invites" className="flex items-center gap-2 whitespace-nowrap">
-                <Users className="w-4 h-4" />
-                <span className="hidden sm:inline">Invites</span>
-                <span className="sm:hidden">Invites</span>
-              </TabsTrigger>
-              <TabsTrigger value="users" className="flex items-center gap-2 whitespace-nowrap">
-                <Users className="w-4 h-4" />
-                <span className="hidden sm:inline">Users</span>
-                <span className="sm:hidden">Users</span>
-              </TabsTrigger>
-              <TabsTrigger value="cms" className="flex items-center gap-2 whitespace-nowrap">
-                <FileText className="w-4 h-4" />
-                <span className="hidden sm:inline">CMS</span>
-                <span className="sm:hidden">CMS</span>
-              </TabsTrigger>
-              <TabsTrigger value="billing" className="flex items-center gap-2 whitespace-nowrap">
-                <CreditCard className="w-4 h-4" />
-                <span className="hidden sm:inline">Billing</span>
-                <span className="sm:hidden">Billing</span>
-              </TabsTrigger>
-              <TabsTrigger value="analytics" className="flex items-center gap-2 whitespace-nowrap">
-                <BarChart3 className="w-4 h-4" />
-                <span className="hidden sm:inline">Analytics</span>
-                <span className="sm:hidden">Stats</span>
-              </TabsTrigger>
-            </TabsList>
-          </div>
-
-          {/* Products Tab */}
-          <TabsContent value="products">
-            <AdminProductManagement />
-          </TabsContent>
-
-          {/* Design Config Tab */}
-          <TabsContent value="design-config" className="space-y-8">
             <FurnitureSpecsManager />
+            <ScopeDefaultsManager />
             <RoomActivitiesManager />
             <OpeningRulesManager />
             <RoomFurnitureManager />
             <TypeFamiliesManager />
             <PromptTemplateManager />
             <ProductMatchingWeights />
-          </TabsContent>
-
-          {/* Invites Tab */}
-          <TabsContent value="invites" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Create Invite</CardTitle>
-                <CardDescription>
-                  Generate invite links for designers and furniture shops
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="space-y-2">
-                    <Label>Role</Label>
-                    <Select value={newInviteRole} onValueChange={(v) => setNewInviteRole(v as InviteRole)}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="designer">Designer</SelectItem>
-                        <SelectItem value="furniture_shop">Furniture Shop</SelectItem>
-                        <SelectItem value="admin">Admin</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Email (optional)</Label>
-                    <Input
-                      type="email"
-                      placeholder="partner@example.com"
-                      value={inviteEmail}
-                      onChange={(e) => setInviteEmail(e.target.value)}
-                    />
-                  </div>
-                  <div className="flex items-end">
-                    <Button
-                      onClick={() => createInviteMutation.mutate({ role: newInviteRole, email: inviteEmail })}
-                      disabled={createInviteMutation.isPending}
-                      className="w-full"
-                    >
-                      <Plus className="w-4 h-4 mr-2" />
-                      Create Invite
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Active Invites</CardTitle>
-                <CardDescription>
-                  Manage pending and accepted invite tokens
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {invitesLoading ? (
-                  <p className="text-muted-foreground">Loading...</p>
-                ) : invites?.length === 0 ? (
-                  <p className="text-muted-foreground">No invites yet</p>
-                ) : (
-                  <div className="space-y-3">
-                    {invites?.map((invite) => (
-                      <div
-                        key={invite.id}
-                        className="flex items-center justify-between p-4 rounded-lg bg-secondary/50 border border-border"
-                      >
-                        <div className="flex items-center gap-3">
-                          {getRoleIcon(invite.role)}
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <span className="font-medium capitalize">
-                                {invite.role.replace("_", " ")}
-                              </span>
-                              <Badge
-                                variant="outline"
-                                className={
-                                  invite.status === "pending"
-                                    ? "bg-yellow-500/10 text-yellow-600 border-yellow-500/20"
-                                    : invite.status === "accepted"
-                                    ? "bg-green-500/10 text-green-600 border-green-500/20"
-                                    : "bg-muted text-muted-foreground"
-                                }
-                              >
-                                {invite.status}
-                              </Badge>
-                            </div>
-                            {invite.email && (
-                              <p className="text-sm text-muted-foreground">{invite.email}</p>
-                            )}
-                          </div>
-                        </div>
-                        {invite.status === "pending" && (
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => copyInviteLink(invite.token)}
-                          >
-                            <Copy className="w-4 h-4" />
-                          </Button>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Users Tab */}
-          <TabsContent value="users" className="space-y-6">
-            <div className="flex justify-end">
-              <AddUserDialog />
+          </div>
+        );
+      case "products":
+        return (
+          <div className="space-y-8">
+            <div>
+              <h2 className="text-3xl font-extrabold tracking-tight">Products &amp; shops</h2>
+              <p className="mt-2 max-w-2xl text-muted-foreground">
+                The shops we search and the products in them. Shops users add in step 5 land here first.
+              </p>
             </div>
-            <Card>
-              <CardHeader>
-                <CardTitle>User Roles</CardTitle>
-                <CardDescription>
-                  View all users with assigned roles
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {userRoles?.length === 0 ? (
-                  <p className="text-muted-foreground">No users with roles yet</p>
-                ) : (
-                  <div className="space-y-3">
-                    {userRoles?.map((ur) => (
-                      <div
-                        key={ur.id}
-                        className="flex items-center justify-between p-4 rounded-lg bg-secondary/50 border border-border"
-                      >
-                        <div className="flex items-center gap-3">
-                          {getRoleIcon(ur.role)}
-                          <div>
-                            <p className="font-mono text-sm">{ur.user_id}</p>
-                            <Badge variant="outline" className={getRoleBadgeColor(ur.role)}>
-                              {ur.role.replace("_", " ")}
-                            </Badge>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* CMS Tab */}
-          <TabsContent value="cms">
+            <ShopsManager />
+            <AdminProductManagement />
+          </div>
+        );
+      case "projects": return <ProjectSupport />;
+      case "users": return <UsersInvites />;
+      case "cms":
+        return (
+          <div className="space-y-8">
             <CMSEditor />
-          </TabsContent>
+            <SettingsHistory />
+          </div>
+        );
+      case "analytics": return <AnalyticsDashboard scope="admin" />;
+      case "billing":
+        return (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2"><CreditCard className="h-5 w-5" /> Billing &amp; credits</CardTitle>
+              <CardDescription>Manage credit packages and payment settings</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="rounded-lg border border-dashed bg-muted/50 p-6 text-center">
+                <p className="font-semibold">Payment integration is coming soon</p>
+              </div>
+            </CardContent>
+          </Card>
+        );
+      default: return <AdminHome go={go} />;
+    }
+  })();
 
-          {/* Billing Tab */}
-          <TabsContent value="billing">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <CreditCard className="w-5 h-5" />
-                  Billing & Credits
-                </CardTitle>
-                <CardDescription>
-                  Manage credit packages and payment settings
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="p-6 rounded-lg bg-muted/50 border border-dashed border-border text-center">
-                  <CreditCard className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                  <h3 className="font-semibold mb-2">Payment Integration</h3>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    Connect your payment provider to enable credit purchases
-                  </p>
-                  <Button disabled variant="outline">
-                    Coming Soon
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-background via-secondary/20 to-primary/10">
+      <header className="sticky top-0 z-30 border-b border-border/50 bg-card/80 backdrop-blur-sm">
+        <div className="flex items-center justify-between gap-4 px-4 py-3 md:px-8">
+          <button type="button" onClick={() => go("home")} className="flex items-center gap-3">
+            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-primary-foreground">
+              <Home className="h-4 w-4" />
+            </span>
+            <span className="text-lg font-extrabold tracking-tight">Home Mockup</span>
+            <span className="rounded-full bg-foreground px-3 py-1 text-[11px] font-bold uppercase tracking-widest text-background">Admin</span>
+          </button>
+          <Button variant="ghost" onClick={async () => { await signOut(); navigate("/"); }}>
+            <LogOut className="mr-2 h-4 w-4" /> Sign out
+          </Button>
+        </div>
+      </header>
 
-          {/* Analytics Tab */}
-          <TabsContent value="analytics" className="space-y-6">
-            <AnalyticsDashboard scope="admin" />
-          </TabsContent>
-        </Tabs>
-      </main>
+      <div className="flex flex-wrap items-start">
+        <nav aria-label="Admin" className="flex w-full flex-row flex-wrap gap-1 border-b px-3 py-3 md:sticky md:top-[61px] md:w-64 md:flex-col md:flex-nowrap md:border-b-0 md:px-3 md:py-6">
+          {groups.map((g) => (
+            <div key={g.label} className="contents md:block">
+              <p className="hidden px-3 pb-1 pt-4 text-[11px] font-bold uppercase tracking-[0.16em] text-muted-foreground first:pt-0 md:block">{g.label}</p>
+              {g.items.map((item) => {
+                const Icon = item.icon;
+                const active = section === item.id;
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => go(item.id)}
+                    aria-current={active ? "page" : undefined}
+                    className={cn(
+                      "flex min-h-[44px] items-center gap-3 rounded-xl px-3 text-sm font-semibold md:w-full",
+                      active ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-primary/10 hover:text-foreground",
+                    )}
+                  >
+                    <Icon className="h-4 w-4 shrink-0" />
+                    <span className="text-left">{item.label}</span>
+                    {!!item.count && (
+                      <span className={cn("ml-auto rounded-full px-2 py-0.5 text-xs font-extrabold", active ? "bg-background text-primary" : "bg-amber-100 text-amber-900")}>
+                        {item.count}
+                      </span>
+                    )}
+                    {item.soon && <span className="ml-auto text-[11px] font-bold opacity-70">Soon</span>}
+                  </button>
+                );
+              })}
+            </div>
+          ))}
+        </nav>
+        <main className="min-w-0 flex-1 px-4 py-8 md:px-10">{content}</main>
+      </div>
     </div>
   );
 };
