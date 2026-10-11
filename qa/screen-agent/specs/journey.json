@@ -1,0 +1,3640 @@
+[
+ {
+  "board": "Main",
+  "title": "00 · Who are you?",
+  "page": "Who are you?",
+  "items": [
+   {
+    "text": "Log in",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "Before we begin",
+    "kind": "eyebrow",
+    "must": true
+   },
+   {
+    "text": "Who are you?",
+    "kind": "title",
+    "must": true
+   },
+   {
+    "text": "I'm designing my home",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "I'm an interior designer",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "I run a furniture shop",
+    "kind": "content",
+    "must": false
+   }
+  ],
+  "design": "designs/journey/Main.jpg"
+ },
+ {
+  "board": "S1-Why",
+  "title": "1.1 · What's brought you here?",
+  "page": "What's brought you here?",
+  "items": [
+   {
+    "text": "Step 1 of 10",
+    "kind": "progress",
+    "must": true
+   },
+   {
+    "text": "Save & exit",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "Start your journey",
+    "kind": "eyebrow",
+    "must": true
+   },
+   {
+    "text": "What's brought you here?",
+    "kind": "title",
+    "must": true
+   },
+   {
+    "text": "Setting up a new space",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Redesigning what I have",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Just exploring for now",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Back",
+    "kind": "button",
+    "must": true
+   }
+  ],
+  "design": "designs/journey/S1-Why.jpg"
+ },
+ {
+  "board": "S1-Place",
+  "title": "1.2 · What kind of place?",
+  "page": "What kind of place?",
+  "items": [
+   {
+    "text": "Step 1 of 10",
+    "kind": "progress",
+    "must": true
+   },
+   {
+    "text": "Save & exit",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "Start your journey",
+    "kind": "eyebrow",
+    "must": true
+   },
+   {
+    "text": "What kind of place?",
+    "kind": "title",
+    "must": true
+   },
+   {
+    "text": "Apartment",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "House",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Studio",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Loft",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Back",
+    "kind": "button",
+    "must": true
+   }
+  ],
+  "design": "designs/journey/S1-Place.jpg"
+ },
+ {
+  "board": "S1-Rooms",
+  "title": "1.3 · Which rooms?",
+  "page": "Which rooms are on your list?",
+  "items": [
+   {
+    "text": "Step 1 of 10",
+    "kind": "progress",
+    "must": true
+   },
+   {
+    "text": "Save & exit",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "Start your journey",
+    "kind": "eyebrow",
+    "must": true
+   },
+   {
+    "text": "Which rooms are on your list?",
+    "kind": "title",
+    "must": true
+   },
+   {
+    "text": "Living Room",
+    "kind": "control",
+    "must": false
+   },
+   {
+    "text": "Bedroom",
+    "kind": "control",
+    "must": false
+   },
+   {
+    "text": "Kitchen",
+    "kind": "control",
+    "must": false
+   },
+   {
+    "text": "Dining Room",
+    "kind": "control",
+    "must": false
+   },
+   {
+    "text": "Home Office",
+    "kind": "control",
+    "must": false
+   },
+   {
+    "text": "Bathroom",
+    "kind": "control",
+    "must": false
+   },
+   {
+    "text": "Kids' Room",
+    "kind": "control",
+    "must": false
+   },
+   {
+    "text": "Hallway & Entry",
+    "kind": "control",
+    "must": false
+   },
+   {
+    "text": "Back",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "Continue",
+    "kind": "button",
+    "must": true
+   }
+  ],
+  "design": "designs/journey/S1-Rooms.jpg"
+ },
+ {
+  "board": "S1-Start",
+  "title": "1.4 · Where to start?",
+  "page": "Where do you want to start?",
+  "items": [
+   {
+    "text": "Step 1 of 10",
+    "kind": "progress",
+    "must": true
+   },
+   {
+    "text": "Save & exit",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "Start your journey",
+    "kind": "eyebrow",
+    "must": true
+   },
+   {
+    "text": "Where do you want to start?",
+    "kind": "title",
+    "must": true
+   },
+   {
+    "text": "Living Room Most popular first room",
+    "kind": "control",
+    "must": false
+   },
+   {
+    "text": "Living Room",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Most popular first room",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Bedroom",
+    "kind": "control",
+    "must": false
+   },
+   {
+    "text": "Kitchen",
+    "kind": "control",
+    "must": false
+   },
+   {
+    "text": "Bathroom",
+    "kind": "control",
+    "must": false
+   },
+   {
+    "text": "Start with the living room",
+    "kind": "button",
+    "must": true,
+    "match": "Start with the .+"
+   },
+   {
+    "text": "Back",
+    "kind": "button",
+    "must": true
+   }
+  ],
+  "design": "designs/journey/S1-Start.jpg"
+ },
+ {
+  "board": "S1-State",
+  "title": "1.5a · State: core & shell",
+  "page": "State of the place — core and shell",
+  "items": [
+   {
+    "text": "Step 1 of 10",
+    "kind": "progress",
+    "must": true
+   },
+   {
+    "text": "Save & exit",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "Start your journey",
+    "kind": "eyebrow",
+    "must": true
+   },
+   {
+    "text": "What's the state of the place?",
+    "kind": "title",
+    "must": true
+   },
+   {
+    "text": "Core & shell",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Empty",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Partially furnished",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Redoing it all",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "What we'll design with \"Core & shell\"",
+    "kind": "label",
+    "must": true,
+    "match": "What we'll design with"
+   },
+   {
+    "text": "Everything from the walls in - including what runs inside them.",
+    "kind": "heading",
+    "must": true
+   },
+   {
+    "text": "Full scope",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Back",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "Continue",
+    "kind": "button",
+    "must": true
+   }
+  ],
+  "design": "designs/journey/S1-State.jpg"
+ },
+ {
+  "board": "S1-State-Empty",
+  "title": "1.5b · State: empty",
+  "page": "State of the place — empty",
+  "items": [
+   {
+    "text": "Step 1 of 10",
+    "kind": "progress",
+    "must": true
+   },
+   {
+    "text": "Save & exit",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "Start your journey",
+    "kind": "eyebrow",
+    "must": true
+   },
+   {
+    "text": "What's the state of the place?",
+    "kind": "title",
+    "must": true
+   },
+   {
+    "text": "Core & shell",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Empty",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Partially furnished",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Redoing it all",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "What we'll design with \"Empty\"",
+    "kind": "label",
+    "must": true,
+    "match": "What we'll design with"
+   },
+   {
+    "text": "We furnish and finish the surfaces - the room itself stays as built.",
+    "kind": "heading",
+    "must": true
+   },
+   {
+    "text": "Light touch",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Back",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "Continue",
+    "kind": "button",
+    "must": true
+   }
+  ],
+  "design": "designs/journey/S1-State-Empty.jpg"
+ },
+ {
+  "board": "S1-State-Partial",
+  "title": "1.5c · State: partially furnished",
+  "page": "State of the place — partially furnished",
+  "items": [
+   {
+    "text": "Step 1 of 10",
+    "kind": "progress",
+    "must": true
+   },
+   {
+    "text": "Save & exit",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "Start your journey",
+    "kind": "eyebrow",
+    "must": true
+   },
+   {
+    "text": "What's the state of the place?",
+    "kind": "title",
+    "must": true
+   },
+   {
+    "text": "Core & shell",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Empty",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Partially furnished",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Redoing it all",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "What we'll design with \"Partially furnished\"",
+    "kind": "label",
+    "must": true,
+    "match": "What we'll design with"
+   },
+   {
+    "text": "We design around the pieces you keep, and refresh the rest.",
+    "kind": "heading",
+    "must": true
+   },
+   {
+    "text": "Work around what stays",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Preview that step",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "Back",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "Continue",
+    "kind": "button",
+    "must": true
+   }
+  ],
+  "design": "designs/journey/S1-State-Partial.jpg"
+ },
+ {
+  "board": "S1-State-Redo",
+  "title": "1.5d · State: redoing it all",
+  "page": "State of the place — redoing it all",
+  "items": [
+   {
+    "text": "Step 1 of 10",
+    "kind": "progress",
+    "must": true
+   },
+   {
+    "text": "Save & exit",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "Start your journey",
+    "kind": "eyebrow",
+    "must": true
+   },
+   {
+    "text": "What's the state of the place?",
+    "kind": "title",
+    "must": true
+   },
+   {
+    "text": "Core & shell",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Empty",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Partially furnished",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Redoing it all",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "What we'll design with \"Redoing it all\"",
+    "kind": "label",
+    "must": true,
+    "match": "What we'll design with"
+   },
+   {
+    "text": "Start over - furniture, finishes and what's inside the walls.",
+    "kind": "heading",
+    "must": true
+   },
+   {
+    "text": "Full scope",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Preview that step",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "Back",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "Continue",
+    "kind": "button",
+    "must": true
+   }
+  ],
+  "design": "designs/journey/S1-State-Redo.jpg"
+ },
+ {
+  "board": "S1-Summary",
+  "title": "1.6 · Your project brief",
+  "page": "Your project brief",
+  "items": [
+   {
+    "text": "Step 1 of 10",
+    "kind": "progress",
+    "must": true
+   },
+   {
+    "text": "Save & exit",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "Step 1 complete · Your project",
+    "kind": "eyebrow",
+    "must": true
+   },
+   {
+    "text": "Here's what we're working on",
+    "kind": "title",
+    "must": true
+   },
+   {
+    "text": "Project brief",
+    "kind": "heading",
+    "must": true
+   },
+   {
+    "text": "Edit answers",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "In scope",
+    "kind": "label",
+    "must": true
+   },
+   {
+    "text": "Furniture",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Walls",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Floors",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Lighting",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Electrical features",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Water & plumbing",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "AC & ventilation",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Heating",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Data, TV & sound",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Built-ins & niches",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Your rooms - one at a time",
+    "kind": "heading",
+    "must": true
+   },
+   {
+    "text": "Room 1 of 4",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Good to know - optional for now",
+    "kind": "heading",
+    "must": true
+   },
+   {
+    "text": "TBC",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Budget for this room",
+    "kind": "label",
+    "must": true
+   },
+   {
+    "text": "When would you like it done?",
+    "kind": "label",
+    "must": true
+   },
+   {
+    "text": "City or postcode",
+    "kind": "label",
+    "must": true
+   },
+   {
+    "text": "Any renovation restrictions?",
+    "kind": "label",
+    "must": true
+   },
+   {
+    "text": "Back",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "Continue to step 2: Inspiration",
+    "kind": "button",
+    "must": true
+   }
+  ],
+  "design": "designs/journey/S1-Summary.jpg"
+ },
+ {
+  "board": "S10-Final",
+  "title": "10 · See everything together",
+  "page": "Ready to make your room real",
+  "items": [
+   {
+    "text": "Step 10 of 10",
+    "kind": "progress",
+    "must": true
+   },
+   {
+    "text": "Save & exit",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "Ready to make your room real",
+    "kind": "title",
+    "must": true
+   },
+   {
+    "text": "What you get",
+    "kind": "heading",
+    "must": true
+   },
+   {
+    "text": "Ready",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Needs sizes",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "After survey",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "3 rooms still to design",
+    "kind": "heading",
+    "must": true,
+    "match": "(\\d+ rooms? still to design|All rooms designed)"
+   },
+   {
+    "text": "1 of 4 rooms done",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Still TBC before this can be ordered or built",
+    "kind": "heading",
+    "must": true
+   },
+   {
+    "text": "Room & item measurements",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Budget & dates",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Exact products & suppliers",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Costs & lead times",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Construction details",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Electrical specs & positions",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Water, AC & data points",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Start measuring",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "Download project file",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "Share",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "Continue with room 2: Bedroom - from step 2",
+    "kind": "button",
+    "must": true,
+    "match": "(Continue with room \\d+: .+ - from step 2|Back to my project)"
+   }
+  ],
+  "design": "designs/journey/S10-Final.jpg"
+ },
+ {
+  "board": "S2-Vision",
+  "title": "2.1 · Capture the vision",
+  "page": "Capture the vision",
+  "items": [
+   {
+    "text": "Step 2 of 10",
+    "kind": "progress",
+    "must": true
+   },
+   {
+    "text": "Save & exit",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "Start your journey",
+    "kind": "eyebrow",
+    "must": true
+   },
+   {
+    "text": "Capture the vision",
+    "kind": "title",
+    "must": true
+   },
+   {
+    "text": "Upload inspiration",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Describe your style",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Discover styles",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Back",
+    "kind": "button",
+    "must": true
+   }
+  ],
+  "design": "designs/journey/S2-Vision.jpg"
+ },
+ {
+  "board": "S2-Upload",
+  "title": "2.2 · Upload inspiration",
+  "page": "Upload room inspiration",
+  "items": [
+   {
+    "text": "Step 2 of 10",
+    "kind": "progress",
+    "must": true
+   },
+   {
+    "text": "Save & exit",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "Upload Room Inspiration",
+    "kind": "title",
+    "must": true
+   },
+   {
+    "text": "3 of 10 photos · JPG, PNG or HEIC",
+    "kind": "label",
+    "must": false
+   },
+   {
+    "text": "Paste a Pinterest link",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "Add more",
+    "kind": "control",
+    "must": false
+   },
+   {
+    "text": "Anything we should know? - optional",
+    "kind": "label",
+    "must": true
+   },
+   {
+    "text": "+ Keep it cosy",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "+ Not too dark",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "+ Pet friendly",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "+ Kid friendly",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Analyze Styles",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "Back",
+    "kind": "button",
+    "must": true
+   }
+  ],
+  "design": "designs/journey/S2-Upload.jpg"
+ },
+ {
+  "board": "S2-Analyzing",
+  "title": "2.3 · Reading your references",
+  "page": "Reading your references",
+  "items": [
+   {
+    "text": "Step 2 of 10",
+    "kind": "progress",
+    "must": true
+   },
+   {
+    "text": "Save & exit",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "Finding what you love",
+    "kind": "title",
+    "must": true
+   },
+   {
+    "text": "Analysing photo 3 of 3",
+    "kind": "label",
+    "must": true
+   },
+   {
+    "text": "72%",
+    "kind": "label",
+    "must": false
+   }
+  ],
+  "design": "designs/journey/S2-Analyzing.jpg"
+ },
+ {
+  "board": "S2-Matches",
+  "title": "2.4 · Style matches",
+  "page": "Style matches",
+  "items": [
+   {
+    "text": "Step 2 of 10",
+    "kind": "progress",
+    "must": true
+   },
+   {
+    "text": "Save & exit",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "Style Matches",
+    "kind": "title",
+    "must": true
+   },
+   {
+    "text": "Eclectic Luxe",
+    "kind": "heading",
+    "must": false
+   },
+   {
+    "text": "velvet",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "jewel tones",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "curated",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "maximalist",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "sophisticated",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Added",
+    "kind": "control",
+    "must": false
+   },
+   {
+    "text": "Add to moodboard",
+    "kind": "control",
+    "must": false
+   },
+   {
+    "text": "Biophilic Contemporary",
+    "kind": "heading",
+    "must": false
+   },
+   {
+    "text": "greenery",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "organic shapes",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "nature-inspired",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "natural light",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "sustainable",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Detect another style",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "Create my moodboard",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "Back to photos",
+    "kind": "button",
+    "must": true
+   }
+  ],
+  "design": "designs/journey/S2-Matches.jpg"
+ },
+ {
+  "board": "S2-Moodboard",
+  "title": "2.5 · Your moodboard",
+  "page": "Your moodboard",
+  "items": [
+   {
+    "text": "Step 2 of 10",
+    "kind": "progress",
+    "must": true
+   },
+   {
+    "text": "Save & exit",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "Eclectic Modern",
+    "kind": "title",
+    "must": false
+   },
+   {
+    "text": "Palette",
+    "kind": "label",
+    "must": true
+   },
+   {
+    "text": "Feels like",
+    "kind": "label",
+    "must": true
+   },
+   {
+    "text": "velvet",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "jewel tones",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "curated",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "greenery",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "organic shapes",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "warm light",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Share",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "Save image",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "Back",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "See it in a room",
+    "kind": "button",
+    "must": true
+   }
+  ],
+  "design": "designs/journey/S2-Moodboard.jpg"
+ },
+ {
+  "board": "S2-Preview",
+  "title": "2.6 · One preview — keep or adjust",
+  "page": "One preview — keep or adjust",
+  "items": [
+   {
+    "text": "Step 2 of 10",
+    "kind": "progress",
+    "must": true
+   },
+   {
+    "text": "Save & exit",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "Your direction",
+    "kind": "eyebrow",
+    "must": true
+   },
+   {
+    "text": "One preview. Keep or adjust.",
+    "kind": "title",
+    "must": true
+   },
+   {
+    "text": "In this preview",
+    "kind": "label",
+    "must": true
+   },
+   {
+    "text": "Plum curved sofa",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Green accent chair",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Dark walnut",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Brass",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Plants",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Textured walls",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Keep this direction",
+    "kind": "heading",
+    "must": true
+   },
+   {
+    "text": "Adjust it",
+    "kind": "heading",
+    "must": true
+   },
+   {
+    "text": "Back to moodboard",
+    "kind": "button",
+    "must": true
+   }
+  ],
+  "design": "designs/journey/S2-Preview.jpg"
+ },
+ {
+  "board": "S2-Adjust",
+  "title": "2.7 · What should change?",
+  "page": "What should change?",
+  "items": [
+   {
+    "text": "Step 2 of 10",
+    "kind": "progress",
+    "must": true
+   },
+   {
+    "text": "Save & exit",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "Adjust your direction",
+    "kind": "eyebrow",
+    "must": true
+   },
+   {
+    "text": "What should change?",
+    "kind": "title",
+    "must": true
+   },
+   {
+    "text": "Versions",
+    "kind": "label",
+    "must": true
+   },
+   {
+    "text": "Read again",
+    "kind": "control",
+    "must": false
+   },
+   {
+    "text": "Emerald walls Grey plaster Cornicing Arched doorway Eclectic modern",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Curved sofa Lounge chair Low coffee table Built-in shelving",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Plum Emerald Dark walnut Brass High contrast Rich textures",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Ceramics Glass vases Many plants Layered rug Cushions",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Pendant cluster Floor lamp Shelf lighting Warm & dim",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Your change request - built from your choices, edit freely",
+    "kind": "label",
+    "must": true
+   },
+   {
+    "text": "Update preview",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "Keep V1 and finish step 2",
+    "kind": "button",
+    "must": true
+   }
+  ],
+  "design": "designs/journey/S2-Adjust.jpg"
+ },
+ {
+  "board": "S2-Summary",
+  "title": "2.8 · Step 2 summary",
+  "page": "Step 2 summary",
+  "items": [
+   {
+    "text": "Step 2 of 10",
+    "kind": "progress",
+    "must": true
+   },
+   {
+    "text": "Save & exit",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "Step 2 complete · Inspiration & moodboard",
+    "kind": "eyebrow",
+    "must": true
+   },
+   {
+    "text": "Here's where we stand",
+    "kind": "title",
+    "must": true
+   },
+   {
+    "text": "What we decided in step 2",
+    "kind": "heading",
+    "must": true
+   },
+   {
+    "text": "Direction",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Palette",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Preview",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Feels like",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "velvet",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "jewel tones",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "curated",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "greenery",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "warm light",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Rooms still to design",
+    "kind": "heading",
+    "must": true
+   },
+   {
+    "text": "3 left",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Still open",
+    "kind": "heading",
+    "must": true
+   },
+   {
+    "text": "Your project so far",
+    "kind": "heading",
+    "must": true
+   },
+   {
+    "text": "Back",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "Continue to step 3: How you use the space",
+    "kind": "button",
+    "must": true
+   }
+  ],
+  "design": "designs/journey/S2-Summary.jpg"
+ },
+ {
+  "board": "S3-Activities",
+  "title": "3.1 · Activities",
+  "page": "What happens in this room?",
+  "items": [
+   {
+    "text": "Step 3 of 10",
+    "kind": "progress",
+    "must": true
+   },
+   {
+    "text": "Save & exit",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "Design around your everyday life",
+    "kind": "eyebrow",
+    "must": true
+   },
+   {
+    "text": "What happens in this room?",
+    "kind": "title",
+    "must": true
+   },
+   {
+    "text": "Relax",
+    "kind": "control",
+    "must": false
+   },
+   {
+    "text": "Host friends",
+    "kind": "control",
+    "must": false
+   },
+   {
+    "text": "Play piano",
+    "kind": "control",
+    "must": false
+   },
+   {
+    "text": "Watch films",
+    "kind": "control",
+    "must": false
+   },
+   {
+    "text": "Read",
+    "kind": "control",
+    "must": false
+   },
+   {
+    "text": "Work",
+    "kind": "control",
+    "must": false
+   },
+   {
+    "text": "Paint & craft",
+    "kind": "control",
+    "must": false
+   },
+   {
+    "text": "Kids play",
+    "kind": "control",
+    "must": false
+   },
+   {
+    "text": "Eat here",
+    "kind": "control",
+    "must": false
+   },
+   {
+    "text": "Yoga & stretch",
+    "kind": "control",
+    "must": false
+   },
+   {
+    "text": "Something else?",
+    "kind": "label",
+    "must": true
+   },
+   {
+    "text": "Add",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "Back",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "Continue · 3 selected",
+    "kind": "button",
+    "must": true,
+    "match": "Continue · \\d+ selected"
+   }
+  ],
+  "design": "designs/journey/S3-Activities.jpg"
+ },
+ {
+  "board": "S3-Priorities",
+  "title": "3.2 · Top priorities",
+  "page": "Top priorities",
+  "items": [
+   {
+    "text": "Step 3 of 10",
+    "kind": "progress",
+    "must": true
+   },
+   {
+    "text": "Save & exit",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "Design around your everyday life",
+    "kind": "eyebrow",
+    "must": true
+   },
+   {
+    "text": "What matters most?",
+    "kind": "title",
+    "must": true
+   },
+   {
+    "text": "Comfortable seating Deep seats, room to stretch out 1",
+    "kind": "control",
+    "must": false
+   },
+   {
+    "text": "Space to play the piano Bench room, good light, no glare 2",
+    "kind": "control",
+    "must": false
+   },
+   {
+    "text": "Seats for guests Enough places for 6+ people",
+    "kind": "control",
+    "must": false
+   },
+   {
+    "text": "Lots of storage Books, records, the everyday stuff",
+    "kind": "control",
+    "must": false
+   },
+   {
+    "text": "Calm, clutter-free Fewer, bigger pieces",
+    "kind": "control",
+    "must": false
+   },
+   {
+    "text": "Easy to keep clean Kids, pets, wipeable fabrics",
+    "kind": "control",
+    "must": false
+   },
+   {
+    "text": "Back",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "Continue",
+    "kind": "button",
+    "must": true
+   }
+  ],
+  "design": "designs/journey/S3-Priorities.jpg"
+ },
+ {
+  "board": "S3-Existing",
+  "title": "3.3 · Pieces you're keeping",
+  "page": "Pieces you're keeping",
+  "items": [
+   {
+    "text": "Step 3 of 10",
+    "kind": "progress",
+    "must": true
+   },
+   {
+    "text": "Save & exit",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "Design around your everyday life",
+    "kind": "eyebrow",
+    "must": true
+   },
+   {
+    "text": "What are you keeping?",
+    "kind": "title",
+    "must": true
+   },
+   {
+    "text": "Upright piano",
+    "kind": "heading",
+    "must": false
+   },
+   {
+    "text": "Keep · required",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Remove",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "Take photo",
+    "kind": "control",
+    "must": false
+   },
+   {
+    "text": "Upload",
+    "kind": "control",
+    "must": false
+   },
+   {
+    "text": "Type",
+    "kind": "label",
+    "must": true
+   },
+   {
+    "text": "Width",
+    "kind": "label",
+    "must": true
+   },
+   {
+    "text": "Depth",
+    "kind": "label",
+    "must": true
+   },
+   {
+    "text": "Height",
+    "kind": "label",
+    "must": true
+   },
+   {
+    "text": "Bench · standard",
+    "kind": "label",
+    "must": false
+   },
+   {
+    "text": "I've measured mine Standard · not measured yet",
+    "kind": "label",
+    "must": false
+   },
+   {
+    "text": "Standard · not measured yet",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Against which wall?",
+    "kind": "label",
+    "must": true
+   },
+   {
+    "text": "A",
+    "kind": "control",
+    "must": false
+   },
+   {
+    "text": "B",
+    "kind": "control",
+    "must": false
+   },
+   {
+    "text": "C",
+    "kind": "control",
+    "must": false
+   },
+   {
+    "text": "D",
+    "kind": "control",
+    "must": false
+   },
+   {
+    "text": "+ Sofa",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "+ Rug",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "+ Bookshelf",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "+ TV",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "+ Artwork",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Snap it - we'll name it",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Back",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "I'm not keeping anything",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "Continue",
+    "kind": "button",
+    "must": true
+   }
+  ],
+  "design": "designs/journey/S3-Existing.jpg"
+ },
+ {
+  "board": "S3-Fixed",
+  "title": "3.4 · Fixed features",
+  "page": "Fixed features",
+  "items": [
+   {
+    "text": "Step 3 of 10",
+    "kind": "progress",
+    "must": true
+   },
+   {
+    "text": "Save & exit",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "Design around your everyday life",
+    "kind": "eyebrow",
+    "must": true
+   },
+   {
+    "text": "What can't move?",
+    "kind": "title",
+    "must": true
+   },
+   {
+    "text": "−",
+    "kind": "control",
+    "must": false
+   },
+   {
+    "text": "+",
+    "kind": "control",
+    "must": false
+   },
+   {
+    "text": "Not sure · TBC",
+    "kind": "control",
+    "must": false
+   },
+   {
+    "text": "Show us where they are",
+    "kind": "heading",
+    "must": true
+   },
+   {
+    "text": "4 of 5 placed",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Photos",
+    "kind": "label",
+    "must": true
+   },
+   {
+    "text": "Take photo",
+    "kind": "control",
+    "must": false
+   },
+   {
+    "text": "Upload",
+    "kind": "control",
+    "must": false
+   },
+   {
+    "text": "Mark on the plan",
+    "kind": "label",
+    "must": true
+   },
+   {
+    "text": "✓ Window · C",
+    "kind": "control",
+    "must": false
+   },
+   {
+    "text": "✓ Radiator · C",
+    "kind": "control",
+    "must": false
+   },
+   {
+    "text": "✓ Door 1 · D",
+    "kind": "control",
+    "must": false
+   },
+   {
+    "text": "✓ Fuse box · D",
+    "kind": "control",
+    "must": false
+   },
+   {
+    "text": "Door 2",
+    "kind": "control",
+    "must": false
+   },
+   {
+    "text": "Back",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "Finish step 3",
+    "kind": "button",
+    "must": true
+   }
+  ],
+  "design": "designs/journey/S3-Fixed.jpg"
+ },
+ {
+  "board": "S3-Summary",
+  "title": "3.5 · Step 3 summary",
+  "page": "Step 3 summary",
+  "items": [
+   {
+    "text": "Step 3 of 10",
+    "kind": "progress",
+    "must": true
+   },
+   {
+    "text": "Save & exit",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "Step 3 complete · How you use the space",
+    "kind": "eyebrow",
+    "must": true
+   },
+   {
+    "text": "Here's where we stand",
+    "kind": "title",
+    "must": true
+   },
+   {
+    "text": "What we decided in step 3",
+    "kind": "heading",
+    "must": true
+   },
+   {
+    "text": "Activities",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Top priorities",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Keeping",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Not measured",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Can't move",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "In the walls",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Not sure",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Rooms still to design",
+    "kind": "heading",
+    "must": true
+   },
+   {
+    "text": "3 left",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Still open",
+    "kind": "heading",
+    "must": true
+   },
+   {
+    "text": "Your project so far",
+    "kind": "heading",
+    "must": true
+   },
+   {
+    "text": "Back",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "Continue to step 4: Your layout",
+    "kind": "button",
+    "must": true
+   }
+  ],
+  "design": "designs/journey/S3-Summary.jpg"
+ },
+ {
+  "board": "S4-Input",
+  "title": "4.1 · Show us the room",
+  "page": "Show us the room",
+  "items": [
+   {
+    "text": "Step 4 of 10",
+    "kind": "progress",
+    "must": true
+   },
+   {
+    "text": "Save & exit",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "Choose where life happens",
+    "kind": "eyebrow",
+    "must": true
+   },
+   {
+    "text": "Show us the room",
+    "kind": "title",
+    "must": true
+   },
+   {
+    "text": "Upload a floorplan",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Quickest · about 2 min",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Photos + measurements",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "No plan needed · about 5 min",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Back",
+    "kind": "button",
+    "must": true
+   }
+  ],
+  "design": "designs/journey/S4-Input.jpg"
+ },
+ {
+  "board": "S4-Measure",
+  "title": "4.2 · Room shape & scale",
+  "page": "Room shape and scale",
+  "items": [
+   {
+    "text": "Step 4 of 10",
+    "kind": "progress",
+    "must": true
+   },
+   {
+    "text": "Save & exit",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "Choose where life happens",
+    "kind": "eyebrow",
+    "must": true
+   },
+   {
+    "text": "Check the shape, place what's fixed",
+    "kind": "title",
+    "must": true
+   },
+   {
+    "text": "Window",
+    "kind": "control",
+    "must": false
+   },
+   {
+    "text": "Door",
+    "kind": "control",
+    "must": false
+   },
+   {
+    "text": "Radiator",
+    "kind": "control",
+    "must": false
+   },
+   {
+    "text": "Column",
+    "kind": "control",
+    "must": false
+   },
+   {
+    "text": "−",
+    "kind": "control",
+    "must": false
+   },
+   {
+    "text": "+",
+    "kind": "control",
+    "must": false
+   },
+   {
+    "text": "Scale",
+    "kind": "heading",
+    "must": true
+   },
+   {
+    "text": "A measurement you know",
+    "kind": "label",
+    "must": true
+   },
+   {
+    "text": "Length",
+    "kind": "label",
+    "must": true
+   },
+   {
+    "text": "Ceiling height",
+    "kind": "label",
+    "must": true
+   },
+   {
+    "text": "Fixed features",
+    "kind": "heading",
+    "must": true
+   },
+   {
+    "text": "Show me layouts",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "Upload a different plan",
+    "kind": "button",
+    "must": true
+   }
+  ],
+  "design": "designs/journey/S4-Measure.jpg"
+ },
+ {
+  "board": "S4-Layouts",
+  "title": "4.3 · Choose a layout",
+  "page": "Choose a layout",
+  "items": [
+   {
+    "text": "Step 4 of 10",
+    "kind": "progress",
+    "must": true
+   },
+   {
+    "text": "Save & exit",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "Choose where life happens",
+    "kind": "eyebrow",
+    "must": true
+   },
+   {
+    "text": "Two ways to live in it",
+    "kind": "title",
+    "must": false
+   },
+   {
+    "text": "Layout 1",
+    "kind": "label",
+    "must": true
+   },
+   {
+    "text": "Relax + piano",
+    "kind": "heading",
+    "must": false
+   },
+   {
+    "text": "Layout 2",
+    "kind": "label",
+    "must": true
+   },
+   {
+    "text": "More social seating",
+    "kind": "heading",
+    "must": false
+   },
+   {
+    "text": "Back",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "Another option",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "Choose layout 1 and finish step 4",
+    "kind": "button",
+    "must": true,
+    "match": "Choose layout \\d and finish step 4"
+   }
+  ],
+  "design": "designs/journey/S4-Layouts.jpg"
+ },
+ {
+  "board": "S4-Summary",
+  "title": "4.4 · Step 4 summary",
+  "page": "Step 4 summary",
+  "items": [
+   {
+    "text": "Step 4 of 10",
+    "kind": "progress",
+    "must": true
+   },
+   {
+    "text": "Save & exit",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "Step 4 complete · Your layout",
+    "kind": "eyebrow",
+    "must": true
+   },
+   {
+    "text": "Here's where we stand",
+    "kind": "title",
+    "must": true
+   },
+   {
+    "text": "What we decided in step 4",
+    "kind": "heading",
+    "must": true
+   },
+   {
+    "text": "Room input",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Room size",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Example · confirm",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Layout",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Walls",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Rooms still to design",
+    "kind": "heading",
+    "must": true
+   },
+   {
+    "text": "3 left",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Still open",
+    "kind": "heading",
+    "must": true
+   },
+   {
+    "text": "Your project so far",
+    "kind": "heading",
+    "must": true
+   },
+   {
+    "text": "Back",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "Continue to step 5: Main furniture",
+    "kind": "button",
+    "must": true
+   }
+  ],
+  "design": "designs/journey/S4-Summary.jpg"
+ },
+ {
+  "board": "S5-Shops",
+  "title": "5.0 · Where do you want to shop?",
+  "page": "Where do you want to shop?",
+  "items": [
+   {
+    "text": "Step 5 of 10",
+    "kind": "progress",
+    "must": true
+   },
+   {
+    "text": "Save & exit",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "Before we pick the pieces",
+    "kind": "eyebrow",
+    "must": true
+   },
+   {
+    "text": "Where do you want to shop?",
+    "kind": "title",
+    "must": true
+   },
+   {
+    "text": "Suggested furniture",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Custom made",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "My own shops",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Your shops",
+    "kind": "heading",
+    "must": true
+   },
+   {
+    "text": "2 added",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Shop link",
+    "kind": "label",
+    "must": true
+   },
+   {
+    "text": "Add shop",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "Photo of a shop or catalogue",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Pick from shops we know",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Searching here",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Back",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "Show me furniture",
+    "kind": "button",
+    "must": true
+   }
+  ],
+  "design": "designs/journey/S5-Shops.jpg"
+ },
+ {
+  "board": "S5-Anchor",
+  "title": "5.1 · Main furniture",
+  "page": "Main furniture",
+  "items": [
+   {
+    "text": "Step 5 of 10",
+    "kind": "progress",
+    "must": true
+   },
+   {
+    "text": "Save & exit",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "Your palette",
+    "kind": "label",
+    "must": true
+   },
+   {
+    "text": "Start with the piece that anchors the room",
+    "kind": "title",
+    "must": true
+   },
+   {
+    "text": "Shape",
+    "kind": "heading",
+    "must": true
+   },
+   {
+    "text": "3-seater Fits layout 1",
+    "kind": "control",
+    "must": false
+   },
+   {
+    "text": "L-shape Best for layout 2",
+    "kind": "control",
+    "must": false
+   },
+   {
+    "text": "Curved As in your preview",
+    "kind": "control",
+    "must": false
+   },
+   {
+    "text": "Size",
+    "kind": "heading",
+    "must": true
+   },
+   {
+    "text": "Standard · final size TBC",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Width",
+    "kind": "label",
+    "must": true
+   },
+   {
+    "text": "Depth",
+    "kind": "label",
+    "must": true
+   },
+   {
+    "text": "Height",
+    "kind": "label",
+    "must": true
+   },
+   {
+    "text": "Fit checks",
+    "kind": "heading",
+    "must": true
+   },
+   {
+    "text": "OK on plan",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Needs real room size",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Check before ordering",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Keep the curved sofa",
+    "kind": "button",
+    "must": false
+   },
+   {
+    "text": "Adjust",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "Use my existing sofa",
+    "kind": "button",
+    "must": true,
+    "match": "Use my existing .+"
+   },
+   {
+    "text": "Your room so far",
+    "kind": "heading",
+    "must": true
+   }
+  ],
+  "design": "designs/journey/S5-Anchor.jpg"
+ },
+ {
+  "board": "S5-Summary",
+  "title": "5.2 · Step 5 summary",
+  "page": "Step 5 summary",
+  "items": [
+   {
+    "text": "Step 5 of 10",
+    "kind": "progress",
+    "must": true
+   },
+   {
+    "text": "Save & exit",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "Step 5 complete · Main furniture",
+    "kind": "eyebrow",
+    "must": true
+   },
+   {
+    "text": "Here's where we stand",
+    "kind": "title",
+    "must": true
+   },
+   {
+    "text": "What we decided in step 5",
+    "kind": "heading",
+    "must": true
+   },
+   {
+    "text": "Main piece",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Size",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Standard · not final",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Fit checks",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Piano and bench clear",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Walkway - needs room size",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Delivery - check access",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Rooms still to design",
+    "kind": "heading",
+    "must": true
+   },
+   {
+    "text": "3 left",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Still open",
+    "kind": "heading",
+    "must": true
+   },
+   {
+    "text": "Your project so far",
+    "kind": "heading",
+    "must": true
+   },
+   {
+    "text": "Back",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "Continue to step 6: Colours & materials",
+    "kind": "button",
+    "must": true
+   }
+  ],
+  "design": "designs/journey/S5-Summary.jpg"
+ },
+ {
+  "board": "S6-Palette",
+  "title": "6 · Colours & materials",
+  "page": "Colours and materials",
+  "items": [
+   {
+    "text": "Step 6 of 10",
+    "kind": "progress",
+    "must": true
+   },
+   {
+    "text": "Save & exit",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "Keep the combination in view",
+    "kind": "title",
+    "must": true
+   },
+   {
+    "text": "Swap",
+    "kind": "control",
+    "must": false
+   },
+   {
+    "text": "Accent piece",
+    "kind": "heading",
+    "must": false
+   },
+   {
+    "text": "Wall C",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Supporting furniture",
+    "kind": "heading",
+    "must": true
+   },
+   {
+    "text": "Coordinated",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Walnut + green stone",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Brass",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Fluted walnut",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Add samples to my list",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "Back",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "Finish step 6",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "Your room so far",
+    "kind": "heading",
+    "must": true
+   }
+  ],
+  "design": "designs/journey/S6-Palette.jpg"
+ },
+ {
+  "board": "S6-Summary",
+  "title": "6.1 · Step 6 summary",
+  "page": "Step 6 summary",
+  "items": [
+   {
+    "text": "Step 6 of 10",
+    "kind": "progress",
+    "must": true
+   },
+   {
+    "text": "Save & exit",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "Step 6 complete · Colours & materials",
+    "kind": "eyebrow",
+    "must": true
+   },
+   {
+    "text": "Here's where we stand",
+    "kind": "title",
+    "must": true
+   },
+   {
+    "text": "What we decided in step 6",
+    "kind": "heading",
+    "must": true
+   },
+   {
+    "text": "Materials",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Accent piece",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Supporting pieces",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Rooms still to design",
+    "kind": "heading",
+    "must": true
+   },
+   {
+    "text": "3 left",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Still open",
+    "kind": "heading",
+    "must": true
+   },
+   {
+    "text": "Your project so far",
+    "kind": "heading",
+    "must": true
+   },
+   {
+    "text": "Back",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "Continue to step 7: Lighting",
+    "kind": "button",
+    "must": true
+   }
+  ],
+  "design": "designs/journey/S6-Summary.jpg"
+ },
+ {
+  "board": "S7-Lighting",
+  "title": "7 · Lighting & power",
+  "page": "Lighting and power",
+  "items": [
+   {
+    "text": "Step 7 of 10",
+    "kind": "progress",
+    "must": true
+   },
+   {
+    "text": "Save & exit",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "Palette",
+    "kind": "label",
+    "must": true
+   },
+   {
+    "text": "See lights and power together",
+    "kind": "title",
+    "must": true
+   },
+   {
+    "text": "Room lighting",
+    "kind": "heading",
+    "must": true
+   },
+   {
+    "text": "Overall",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Task",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Accent",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Visible electrical features",
+    "kind": "heading",
+    "must": true
+   },
+   {
+    "text": "Qty TBC",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Included",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Back",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "Finish step 7",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "Power by wall",
+    "kind": "heading",
+    "must": true
+   }
+  ],
+  "design": "designs/journey/S7-Lighting.jpg"
+ },
+ {
+  "board": "S7-Summary",
+  "title": "7.1 · Step 7 summary",
+  "page": "Step 7 summary",
+  "items": [
+   {
+    "text": "Step 7 of 10",
+    "kind": "progress",
+    "must": true
+   },
+   {
+    "text": "Save & exit",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "Step 7 complete · Lighting",
+    "kind": "eyebrow",
+    "must": true
+   },
+   {
+    "text": "Here's where we stand",
+    "kind": "title",
+    "must": true
+   },
+   {
+    "text": "What we decided in step 7",
+    "kind": "heading",
+    "must": true
+   },
+   {
+    "text": "Room lighting",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Power",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Qty TBC",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Finish",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Rooms still to design",
+    "kind": "heading",
+    "must": true
+   },
+   {
+    "text": "3 left",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Still open",
+    "kind": "heading",
+    "must": true
+   },
+   {
+    "text": "Your project so far",
+    "kind": "heading",
+    "must": true
+   },
+   {
+    "text": "Back",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "Continue to step 8: Finishing details",
+    "kind": "button",
+    "must": true
+   }
+  ],
+  "design": "designs/journey/S7-Summary.jpg"
+ },
+ {
+  "board": "S8-Walls",
+  "title": "8.1 · Your room, wall by wall",
+  "page": "Your room, wall by wall",
+  "items": [
+   {
+    "text": "Step 8 of 10",
+    "kind": "progress",
+    "must": true
+   },
+   {
+    "text": "Save & exit",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "Your room, wall by wall",
+    "kind": "eyebrow",
+    "must": true
+   },
+   {
+    "text": "Walk around the room",
+    "kind": "title",
+    "must": true
+   },
+   {
+    "text": "Sofa wall",
+    "kind": "heading",
+    "must": false
+   },
+   {
+    "text": "✓ Kept",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Pendant cluster",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Reading lamp",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "2 sockets",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "AC unit · position TBC",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Piano wall",
+    "kind": "heading",
+    "must": false
+   },
+   {
+    "text": "Picture light",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "1 socket",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Piano size TBC",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Window wall",
+    "kind": "heading",
+    "must": false
+   },
+   {
+    "text": "To review",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Daylight + lamp",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Socket",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Blind power · optional",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Entry wall",
+    "kind": "heading",
+    "must": false
+   },
+   {
+    "text": "Wall sconce",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Switch + dimmer",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Console power",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Back",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "Keep all 4 walls · finish step 8",
+    "kind": "button",
+    "must": true,
+    "match": "Keep all \\d+ walls · finish step 8"
+   },
+   {
+    "text": "Review wall D",
+    "kind": "button",
+    "must": false
+   }
+  ],
+  "design": "designs/journey/S8-Walls.jpg"
+ },
+ {
+  "board": "S8-WallDetail",
+  "title": "8.2 · Wall D detail",
+  "page": "Wall D — entry wall",
+  "items": [
+   {
+    "text": "Step 8 of 10",
+    "kind": "progress",
+    "must": true
+   },
+   {
+    "text": "Save & exit",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "What the entry wall needs",
+    "kind": "title",
+    "must": true,
+    "match": "What (the )?.+ needs"
+   },
+   {
+    "text": "Elevation preview",
+    "kind": "heading",
+    "must": true
+   },
+   {
+    "text": "Construction-ready after survey",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Furniture & decor",
+    "kind": "heading",
+    "must": true
+   },
+   {
+    "text": "Buy",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Use mine",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Walls & finishes",
+    "kind": "heading",
+    "must": true
+   },
+   {
+    "text": "Keep",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Lighting & electricity",
+    "kind": "heading",
+    "must": true
+   },
+   {
+    "text": "Changed",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Inside the wall",
+    "kind": "heading",
+    "must": true
+   },
+   {
+    "text": "TBC",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "-",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Your change",
+    "kind": "label",
+    "must": true
+   },
+   {
+    "text": "Apply and see wall D",
+    "kind": "button",
+    "must": false
+   },
+   {
+    "text": "Keep wall as it is",
+    "kind": "button",
+    "must": true
+   }
+  ],
+  "design": "designs/journey/S8-WallDetail.jpg"
+ },
+ {
+  "board": "S8-Summary",
+  "title": "8.3 · Step 8 summary",
+  "page": "Step 8 summary",
+  "items": [
+   {
+    "text": "Step 8 of 10",
+    "kind": "progress",
+    "must": true
+   },
+   {
+    "text": "Save & exit",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "Step 8 complete · Finishing details",
+    "kind": "eyebrow",
+    "must": true
+   },
+   {
+    "text": "Here's where we stand",
+    "kind": "title",
+    "must": true
+   },
+   {
+    "text": "What we decided in step 8",
+    "kind": "heading",
+    "must": true
+   },
+   {
+    "text": "Kept as designed",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Changed",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Inside the walls",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Position TBC",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Rooms still to design",
+    "kind": "heading",
+    "must": true
+   },
+   {
+    "text": "3 left",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Still open",
+    "kind": "heading",
+    "must": true
+   },
+   {
+    "text": "Your project so far",
+    "kind": "heading",
+    "must": true
+   },
+   {
+    "text": "Back",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "Continue to step 9: Make it happen",
+    "kind": "button",
+    "must": true
+   }
+  ],
+  "design": "designs/journey/S8-Summary.jpg"
+ },
+ {
+  "board": "S9-BuyList",
+  "title": "9.1 · What to buy",
+  "page": "What to buy",
+  "items": [
+   {
+    "text": "Step 9 of 10",
+    "kind": "progress",
+    "must": true
+   },
+   {
+    "text": "Save & exit",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "Make it happen",
+    "kind": "eyebrow",
+    "must": true
+   },
+   {
+    "text": "Your buying list",
+    "kind": "title",
+    "must": true
+   },
+   {
+    "text": "Export",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "Share",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "Item",
+    "kind": "column",
+    "must": true
+   },
+   {
+    "text": "Qty",
+    "kind": "column",
+    "must": true
+   },
+   {
+    "text": "Standard size (cm) · tap to edit",
+    "kind": "column",
+    "must": true
+   },
+   {
+    "text": "Wall",
+    "kind": "column",
+    "must": true
+   },
+   {
+    "text": "Action",
+    "kind": "column",
+    "must": true
+   },
+   {
+    "text": "Buy",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Fit TBC",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Keep · required",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Custom",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Quote TBC",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Layout TBC",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Measure first",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Keep · yours",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Own or buy",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Buy or keep",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Before you order, every item needs",
+    "kind": "heading",
+    "must": true
+   },
+   {
+    "text": "Product or supplier",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Actual dimensions",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Finish",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Quantity",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Price",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Lead time",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Delivery constraints",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Wall / plan location",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Back",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "Next: confirm the sizes",
+    "kind": "button",
+    "must": true
+   }
+  ],
+  "design": "designs/journey/S9-BuyList.jpg"
+ },
+ {
+  "board": "S9-Sizes",
+  "title": "9.2 · Confirm the sizes",
+  "page": "Confirm the sizes",
+  "items": [
+   {
+    "text": "Step 9 of 10",
+    "kind": "progress",
+    "must": true
+   },
+   {
+    "text": "Save & exit",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "Make it happen",
+    "kind": "eyebrow",
+    "must": true
+   },
+   {
+    "text": "Measure once. Order with confidence.",
+    "kind": "title",
+    "must": true
+   },
+   {
+    "text": "Every item keeps three sizes, separately",
+    "kind": "heading",
+    "must": true
+   },
+   {
+    "text": "Example · Plum curved sofa",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Measuring checklist",
+    "kind": "heading",
+    "must": true
+   },
+   {
+    "text": "Back to list",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "Send checklist to whoever's measuring",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "Next: your to-do list",
+    "kind": "button",
+    "must": true
+   }
+  ],
+  "design": "designs/journey/S9-Sizes.jpg"
+ },
+ {
+  "board": "S9-Todo",
+  "title": "9.3 · Make it real — to-do",
+  "page": "Your practical to-do list",
+  "items": [
+   {
+    "text": "Step 9 of 10",
+    "kind": "progress",
+    "must": true
+   },
+   {
+    "text": "Save & exit",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "How to make it real",
+    "kind": "eyebrow",
+    "must": true
+   },
+   {
+    "text": "Your practical to-do list",
+    "kind": "title",
+    "must": true
+   },
+   {
+    "text": "In progress",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Room and scope",
+    "kind": "label",
+    "must": true
+   },
+   {
+    "text": "Budget TBC",
+    "kind": "label",
+    "must": true
+   },
+   {
+    "text": "TBC",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Target date TBC",
+    "kind": "label",
+    "must": true
+   },
+   {
+    "text": "You · designer",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Designer · suppliers",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Trades",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "You · suppliers",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "You",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Who's involved",
+    "kind": "heading",
+    "must": true
+   },
+   {
+    "text": "Owner",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Finish step 9",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "Back",
+    "kind": "button",
+    "must": true
+   }
+  ],
+  "design": "designs/journey/S9-Todo.jpg"
+ },
+ {
+  "board": "S9-Summary",
+  "title": "9.4 · Step 9 summary",
+  "page": "Step 9 summary",
+  "items": [
+   {
+    "text": "Step 9 of 10",
+    "kind": "progress",
+    "must": true
+   },
+   {
+    "text": "Save & exit",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "Step 9 complete · Make it happen",
+    "kind": "eyebrow",
+    "must": true
+   },
+   {
+    "text": "Here's where we stand",
+    "kind": "title",
+    "must": true
+   },
+   {
+    "text": "What we set up in step 9",
+    "kind": "heading",
+    "must": true
+   },
+   {
+    "text": "Buying list",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Sizes",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "To-do",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Team",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Rooms still to design",
+    "kind": "heading",
+    "must": true
+   },
+   {
+    "text": "3 left",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Still open",
+    "kind": "heading",
+    "must": true
+   },
+   {
+    "text": "Your project so far",
+    "kind": "heading",
+    "must": true
+   },
+   {
+    "text": "Back",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "Continue to step 10: See everything together",
+    "kind": "button",
+    "must": false
+   }
+  ],
+  "design": "designs/journey/S9-Summary.jpg"
+ }
+]

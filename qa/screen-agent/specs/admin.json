@@ -1,0 +1,1611 @@
+[
+ {
+  "board": "Main",
+  "title": "A0 · Admin home",
+  "page": "Admin home",
+  "items": [
+   {
+    "text": "Search admin",
+    "kind": "label",
+    "must": true
+   },
+   {
+    "text": "View app",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "What needs you today",
+    "kind": "title",
+    "must": true
+   },
+   {
+    "text": "Scan a design",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "Scan & upload designs",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Clear the review queue",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Recent batches",
+    "kind": "heading",
+    "must": true
+   },
+   {
+    "text": "Batch",
+    "kind": "column",
+    "must": true
+   },
+   {
+    "text": "Source",
+    "kind": "column",
+    "must": true
+   },
+   {
+    "text": "Found",
+    "kind": "column",
+    "must": true
+   },
+   {
+    "text": "Saved",
+    "kind": "column",
+    "must": true
+   },
+   {
+    "text": "Waiting",
+    "kind": "column",
+    "must": true
+   },
+   {
+    "text": "Status",
+    "kind": "column",
+    "must": true
+   },
+   {
+    "text": "Library",
+    "kind": "heading",
+    "must": true
+   },
+   {
+    "text": "Spot-check 10 AI-saved items",
+    "kind": "button",
+    "must": false
+   },
+   {
+    "text": "Latest admin changes",
+    "kind": "heading",
+    "must": true
+   }
+  ],
+  "design": "designs/admin/Main.jpg"
+ },
+ {
+  "board": "A1-Scan",
+  "title": "A1 · Scan & upload",
+  "page": "Scan and upload",
+  "items": [
+   {
+    "text": "Search admin",
+    "kind": "label",
+    "must": true
+   },
+   {
+    "text": "View app",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "Scan & upload",
+    "kind": "title",
+    "must": true
+   },
+   {
+    "text": "Drop images or a PDF here",
+    "kind": "heading",
+    "must": true
+   },
+   {
+    "text": "Upload images",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "Upload PDF",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "Paste links",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "Scan with camera",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "What you can feed in",
+    "kind": "heading",
+    "must": true
+   },
+   {
+    "text": "Batches",
+    "kind": "heading",
+    "must": true
+   },
+   {
+    "text": "All 24",
+    "kind": "control",
+    "must": false
+   },
+   {
+    "text": "Needs review 3",
+    "kind": "control",
+    "must": false
+   },
+   {
+    "text": "Detecting 1",
+    "kind": "control",
+    "must": false
+   },
+   {
+    "text": "Done 19",
+    "kind": "control",
+    "must": false
+   },
+   {
+    "text": "Failed 1",
+    "kind": "control",
+    "must": false
+   },
+   {
+    "text": "Batch",
+    "kind": "column",
+    "must": true
+   },
+   {
+    "text": "Source",
+    "kind": "column",
+    "must": true
+   },
+   {
+    "text": "Room type",
+    "kind": "column",
+    "must": true
+   },
+   {
+    "text": "Progress",
+    "kind": "column",
+    "must": true
+   },
+   {
+    "text": "Status",
+    "kind": "column",
+    "must": true
+   },
+   {
+    "text": "Actions",
+    "kind": "column",
+    "must": true
+   }
+  ],
+  "design": "designs/admin/A1-Scan.jpg"
+ },
+ {
+  "board": "A2-Setup",
+  "title": "A2 · Batch setup",
+  "page": "Batch setup",
+  "items": [
+   {
+    "text": "Search admin",
+    "kind": "label",
+    "must": true
+   },
+   {
+    "text": "View app",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "Tell us about these designs",
+    "kind": "title",
+    "must": true
+   },
+   {
+    "text": "3 images",
+    "kind": "label",
+    "must": true
+   },
+   {
+    "text": "No duplicates",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Add more",
+    "kind": "control",
+    "must": false
+   },
+   {
+    "text": "Batch name",
+    "kind": "label",
+    "must": true
+   },
+   {
+    "text": "Source type",
+    "kind": "label",
+    "must": true
+   },
+   {
+    "text": "Room photo",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Catalogue page",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Generated design",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Retailer link",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Room type · optional",
+    "kind": "label",
+    "must": true
+   },
+   {
+    "text": "Style hint · used only if the AI can't decide",
+    "kind": "label",
+    "must": true
+   },
+   {
+    "text": "Source credit",
+    "kind": "label",
+    "must": true
+   },
+   {
+    "text": "Link · optional",
+    "kind": "label",
+    "must": true
+   },
+   {
+    "text": "Save automatically when the AI is at least",
+    "kind": "label",
+    "must": true
+   },
+   {
+    "text": "0.85 sure",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Back",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "Start detecting 3 images",
+    "kind": "button",
+    "must": true
+   }
+  ],
+  "design": "designs/admin/A2-Setup.jpg"
+ },
+ {
+  "board": "A3-Detecting",
+  "title": "A3 · Detecting pieces",
+  "page": "Detecting pieces",
+  "items": [
+   {
+    "text": "Search admin",
+    "kind": "label",
+    "must": true
+   },
+   {
+    "text": "View app",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "Finding every piece",
+    "kind": "title",
+    "must": true
+   },
+   {
+    "text": "Found so far",
+    "kind": "label",
+    "must": true
+   },
+   {
+    "text": "40%",
+    "kind": "label",
+    "must": false
+   },
+   {
+    "text": "Run in background",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "See results so far",
+    "kind": "button",
+    "must": true
+   }
+  ],
+  "design": "designs/admin/A3-Detecting.jpg"
+ },
+ {
+  "board": "A4-Result",
+  "title": "A4 · Batch result",
+  "page": "Batch result",
+  "items": [
+   {
+    "text": "Search admin",
+    "kind": "label",
+    "must": true
+   },
+   {
+    "text": "View app",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "12 pieces found, 9 saved",
+    "kind": "title",
+    "must": false
+   },
+   {
+    "text": "Undo batch",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "Review 3 pieces",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "Review",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "Combination from image 1",
+    "kind": "heading",
+    "must": true
+   },
+   {
+    "text": "Source",
+    "kind": "heading",
+    "must": true
+   }
+  ],
+  "design": "designs/admin/A4-Result.jpg"
+ },
+ {
+  "board": "B1-Queue",
+  "title": "B1 · Review queue",
+  "page": "Review queue",
+  "items": [
+   {
+    "text": "Search admin",
+    "kind": "label",
+    "must": true
+   },
+   {
+    "text": "View app",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "Review queue",
+    "kind": "title",
+    "must": true
+   },
+   {
+    "text": "Spot-check AI-saved items",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "All 14",
+    "kind": "control",
+    "must": false
+   },
+   {
+    "text": "New word 6",
+    "kind": "control",
+    "must": false
+   },
+   {
+    "text": "Low confidence 5",
+    "kind": "control",
+    "must": false
+   },
+   {
+    "text": "Possible duplicate 2",
+    "kind": "control",
+    "must": false
+   },
+   {
+    "text": "Reported by support 1",
+    "kind": "control",
+    "must": false
+   },
+   {
+    "text": "Batch",
+    "kind": "label",
+    "must": true
+   },
+   {
+    "text": "Room type",
+    "kind": "label",
+    "must": true
+   },
+   {
+    "text": "Category",
+    "kind": "label",
+    "must": true
+   },
+   {
+    "text": "Sort",
+    "kind": "label",
+    "must": true
+   },
+   {
+    "text": "Confirm as suggested",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "Accept \"smoked glass\" everywhere",
+    "kind": "button",
+    "must": false
+   },
+   {
+    "text": "Piece",
+    "kind": "column",
+    "must": true
+   },
+   {
+    "text": "Suggested scheme",
+    "kind": "column",
+    "must": true
+   },
+   {
+    "text": "Why it's here",
+    "kind": "column",
+    "must": true
+   },
+   {
+    "text": "Sure",
+    "kind": "column",
+    "must": true
+   },
+   {
+    "text": "Actions",
+    "kind": "column",
+    "must": true
+   },
+   {
+    "text": "Review",
+    "kind": "button",
+    "must": true
+   }
+  ],
+  "design": "designs/admin/B1-Queue.jpg"
+ },
+ {
+  "board": "B2-Review",
+  "title": "B2 · Review a piece",
+  "page": "Review a piece",
+  "items": [
+   {
+    "text": "Search admin",
+    "kind": "label",
+    "must": true
+   },
+   {
+    "text": "View app",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "Is this right?",
+    "kind": "title",
+    "must": true
+   },
+   {
+    "text": "Redraw the box",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "Split into separate pieces",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "Scheme",
+    "kind": "heading",
+    "must": true
+   },
+   {
+    "text": "Category",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Colour",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Style",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Material",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "New word",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Tags",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "+ Add tag",
+    "kind": "control",
+    "must": false
+   },
+   {
+    "text": "\"Smoked glass\" isn't in the vocabulary",
+    "kind": "heading",
+    "must": true,
+    "match": "isn't in the vocabulary"
+   },
+   {
+    "text": "Closest existing schemes",
+    "kind": "heading",
+    "must": true
+   },
+   {
+    "text": "Merge",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "Its combination",
+    "kind": "heading",
+    "must": true
+   },
+   {
+    "text": "Not furniture / wrong box",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "Skip",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "Confirm as suggested",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "Add term & confirm",
+    "kind": "button",
+    "must": true
+   }
+  ],
+  "design": "designs/admin/B2-Review.jpg"
+ },
+ {
+  "board": "B3-SpotCheck",
+  "title": "B3 · Spot-check",
+  "page": "Spot-check",
+  "items": [
+   {
+    "text": "Search admin",
+    "kind": "label",
+    "must": true
+   },
+   {
+    "text": "Stop spot-check",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "Spot-check · 4 of 10",
+    "kind": "eyebrow",
+    "must": false
+   },
+   {
+    "text": "Does this look right?",
+    "kind": "title",
+    "must": true
+   },
+   {
+    "text": "Wingback chair",
+    "kind": "heading",
+    "must": false
+   },
+   {
+    "text": "Looks right",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Fix it",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "This round so far",
+    "kind": "heading",
+    "must": true
+   },
+   {
+    "text": "Batch",
+    "kind": "column",
+    "must": true
+   },
+   {
+    "text": "Checked",
+    "kind": "column",
+    "must": true
+   },
+   {
+    "text": "Fixed",
+    "kind": "column",
+    "must": true
+   },
+   {
+    "text": "What was wrong",
+    "kind": "column",
+    "must": true
+   }
+  ],
+  "design": "designs/admin/B3-SpotCheck.jpg"
+ },
+ {
+  "board": "C1-Vocabulary",
+  "title": "C1 · Vocabulary",
+  "page": "Vocabulary",
+  "items": [
+   {
+    "text": "Search admin",
+    "kind": "label",
+    "must": true
+   },
+   {
+    "text": "View app",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "Vocabulary",
+    "kind": "title",
+    "must": true
+   },
+   {
+    "text": "Add term",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "Filter materials",
+    "kind": "label",
+    "must": false
+   },
+   {
+    "text": "Active",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Label",
+    "kind": "label",
+    "must": true
+   },
+   {
+    "text": "Parent",
+    "kind": "label",
+    "must": true
+   },
+   {
+    "text": "Synonyms",
+    "kind": "label",
+    "must": true
+   },
+   {
+    "text": "+ Add synonym",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Merge into another term",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "Retire",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "Save term",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "Proposed by scans",
+    "kind": "heading",
+    "must": true
+   },
+   {
+    "text": "Word",
+    "kind": "column",
+    "must": true
+   },
+   {
+    "text": "Facet",
+    "kind": "column",
+    "must": true
+   },
+   {
+    "text": "Seen",
+    "kind": "column",
+    "must": true
+   },
+   {
+    "text": "Closest term",
+    "kind": "column",
+    "must": true
+   },
+   {
+    "text": "Actions",
+    "kind": "column",
+    "must": true
+   },
+   {
+    "text": "Accept",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "Map to Tinted glass",
+    "kind": "button",
+    "must": false
+   },
+   {
+    "text": "Reject",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "Map to Embroidered",
+    "kind": "button",
+    "must": false
+   },
+   {
+    "text": "Accept under Stone",
+    "kind": "button",
+    "must": false
+   },
+   {
+    "text": "Map",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "Map to Wool",
+    "kind": "button",
+    "must": false
+   },
+   {
+    "text": "Map to Burgundy",
+    "kind": "button",
+    "must": false
+   }
+  ],
+  "design": "designs/admin/C1-Vocabulary.jpg"
+ },
+ {
+  "board": "D1-Schemes",
+  "title": "D1 · Schemes library",
+  "page": "Schemes library",
+  "items": [
+   {
+    "text": "Search admin",
+    "kind": "label",
+    "must": true
+   },
+   {
+    "text": "View app",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "Schemes & combinations",
+    "kind": "title",
+    "must": true
+   },
+   {
+    "text": "Living room",
+    "kind": "control",
+    "must": false
+   },
+   {
+    "text": "Category: any",
+    "kind": "control",
+    "must": false
+   },
+   {
+    "text": "Colour: any",
+    "kind": "control",
+    "must": false
+   },
+   {
+    "text": "Style: eclectic modern",
+    "kind": "control",
+    "must": false
+   },
+   {
+    "text": "Source: all",
+    "kind": "control",
+    "must": false
+   },
+   {
+    "text": "Sort: score",
+    "kind": "control",
+    "must": false
+   },
+   {
+    "text": "New scheme",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "Curved sofa",
+    "kind": "heading",
+    "must": false
+   },
+   {
+    "text": "Lounge chair",
+    "kind": "heading",
+    "must": false
+   },
+   {
+    "text": "Console",
+    "kind": "heading",
+    "must": false
+   },
+   {
+    "text": "Open shelving",
+    "kind": "heading",
+    "must": false
+   },
+   {
+    "text": "Sideboard",
+    "kind": "heading",
+    "must": false
+   },
+   {
+    "text": "Floor lamp",
+    "kind": "heading",
+    "must": false
+   },
+   {
+    "text": "Curved sofa · plum",
+    "kind": "heading",
+    "must": false
+   },
+   {
+    "text": "Seen in designs",
+    "kind": "label",
+    "must": true
+   },
+   {
+    "text": "Best combinations",
+    "kind": "label",
+    "must": true
+   },
+   {
+    "text": "Retire",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "Edit",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "Confirm",
+    "kind": "button",
+    "must": true
+   }
+  ],
+  "design": "designs/admin/D1-Schemes.jpg"
+ },
+ {
+  "board": "D2-Combinations",
+  "title": "D2 · Combinations & weights",
+  "page": "Combinations and weights",
+  "items": [
+   {
+    "text": "Search admin",
+    "kind": "label",
+    "must": true
+   },
+   {
+    "text": "View app",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "Schemes & combinations",
+    "kind": "title",
+    "must": true
+   },
+   {
+    "text": "Living room",
+    "kind": "control",
+    "must": false
+   },
+   {
+    "text": "Style: any",
+    "kind": "control",
+    "must": false
+   },
+   {
+    "text": "Status: active & pinned",
+    "kind": "control",
+    "must": false
+   },
+   {
+    "text": "Sort: score",
+    "kind": "control",
+    "must": false
+   },
+   {
+    "text": "Build a combination",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "Combination",
+    "kind": "column",
+    "must": true
+   },
+   {
+    "text": "Pieces",
+    "kind": "column",
+    "must": true
+   },
+   {
+    "text": "Signals",
+    "kind": "column",
+    "must": true
+   },
+   {
+    "text": "Score",
+    "kind": "column",
+    "must": true
+   },
+   {
+    "text": "Status",
+    "kind": "column",
+    "must": true
+   },
+   {
+    "text": "Signal weights",
+    "kind": "heading",
+    "must": true
+   },
+   {
+    "text": "signal_weights",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "−",
+    "kind": "control",
+    "must": false
+   },
+   {
+    "text": "+",
+    "kind": "control",
+    "must": false
+   },
+   {
+    "text": "If you save, the top 20 would move",
+    "kind": "label",
+    "must": false
+   },
+   {
+    "text": "Save weights & refresh",
+    "kind": "button",
+    "must": true
+   }
+  ],
+  "design": "designs/admin/D2-Combinations.jpg"
+ },
+ {
+  "board": "E1-Styles",
+  "title": "E1 · Styles, palettes & rules",
+  "page": "Styles, palettes and rules",
+  "items": [
+   {
+    "text": "Search admin",
+    "kind": "label",
+    "must": true
+   },
+   {
+    "text": "View app",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "Styles, palettes & rules",
+    "kind": "title",
+    "must": true
+   },
+   {
+    "text": "Styles",
+    "kind": "heading",
+    "must": true
+   },
+   {
+    "text": "Add style",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "Eclectic modern",
+    "kind": "heading",
+    "must": false
+   },
+   {
+    "text": "style_definitions",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Description shown to users",
+    "kind": "label",
+    "must": true
+   },
+   {
+    "text": "Colours",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Materials",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Shapes",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Reference images · from scans",
+    "kind": "label",
+    "must": true
+   },
+   {
+    "text": "Palettes",
+    "kind": "heading",
+    "must": true
+   },
+   {
+    "text": "New palette",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "Scandinavian",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Art deco",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Compatibility rules",
+    "kind": "heading",
+    "must": true
+   },
+   {
+    "text": "Add rule",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "When",
+    "kind": "column",
+    "must": true
+   },
+   {
+    "text": "Rule",
+    "kind": "column",
+    "must": true
+   },
+   {
+    "text": "With",
+    "kind": "column",
+    "must": true
+   },
+   {
+    "text": "Strength",
+    "kind": "column",
+    "must": true
+   },
+   {
+    "text": "What the data says",
+    "kind": "column",
+    "must": true
+   }
+  ],
+  "design": "designs/admin/E1-Styles.jpg"
+ },
+ {
+  "board": "F1-Sizes",
+  "title": "F1 · Sizes, scope & design config",
+  "page": "Sizes, scope and design config",
+  "items": [
+   {
+    "text": "Search admin",
+    "kind": "label",
+    "must": true
+   },
+   {
+    "text": "View app",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "Sizes, scope & design config",
+    "kind": "title",
+    "must": true
+   },
+   {
+    "text": "Variant",
+    "kind": "column",
+    "must": true
+   },
+   {
+    "text": "Width",
+    "kind": "column",
+    "must": true
+   },
+   {
+    "text": "Depth",
+    "kind": "column",
+    "must": true
+   },
+   {
+    "text": "Height",
+    "kind": "column",
+    "must": true
+   },
+   {
+    "text": "Clearance",
+    "kind": "column",
+    "must": true
+   },
+   {
+    "text": "Default",
+    "kind": "column",
+    "must": true
+   },
+   {
+    "text": "Add variant",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "Save sizes",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "Scope defaults · Living room",
+    "kind": "heading",
+    "must": true
+   },
+   {
+    "text": "Starting point",
+    "kind": "column",
+    "must": true
+   },
+   {
+    "text": "Pre-selected in scope",
+    "kind": "column",
+    "must": true
+   },
+   {
+    "text": "Off by default",
+    "kind": "column",
+    "must": true
+   }
+  ],
+  "design": "designs/admin/F1-Sizes.jpg"
+ },
+ {
+  "board": "G1-Project",
+  "title": "G1 · Project support",
+  "page": "Project support",
+  "items": [
+   {
+    "text": "Search admin",
+    "kind": "label",
+    "must": true
+   },
+   {
+    "text": "View app",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "Flat in Kreuzberg",
+    "kind": "title",
+    "must": false
+   },
+   {
+    "text": "Report a bad match",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "Rooms",
+    "kind": "heading",
+    "must": true
+   },
+   {
+    "text": "Starting point",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Style",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Shopping",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "1 waiting approval",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Layout",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Combination used",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Still open",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Exact sizes",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Electrical positions",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Buying list · living room",
+    "kind": "heading",
+    "must": true,
+    "match": "Buying list · .+"
+   },
+   {
+    "text": "Project history",
+    "kind": "heading",
+    "must": true
+   }
+  ],
+  "design": "designs/admin/G1-Project.jpg"
+ },
+ {
+  "board": "X1-Users",
+  "title": "X1 · Users & invites",
+  "page": "Users and invites",
+  "items": [
+   {
+    "text": "Search admin",
+    "kind": "label",
+    "must": true
+   },
+   {
+    "text": "View app",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "Users & invites",
+    "kind": "title",
+    "must": true
+   },
+   {
+    "text": "Create account",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "All",
+    "kind": "control",
+    "must": false
+   },
+   {
+    "text": "Admins 2",
+    "kind": "control",
+    "must": false
+   },
+   {
+    "text": "Designers 5",
+    "kind": "control",
+    "must": false
+   },
+   {
+    "text": "Retailers 3",
+    "kind": "control",
+    "must": false
+   },
+   {
+    "text": "User",
+    "kind": "column",
+    "must": true
+   },
+   {
+    "text": "Role",
+    "kind": "column",
+    "must": true
+   },
+   {
+    "text": "Projects",
+    "kind": "column",
+    "must": true
+   },
+   {
+    "text": "Last sign-in",
+    "kind": "column",
+    "must": true
+   },
+   {
+    "text": "Actions",
+    "kind": "column",
+    "must": true
+   },
+   {
+    "text": "Invite someone",
+    "kind": "heading",
+    "must": true
+   },
+   {
+    "text": "Email",
+    "kind": "label",
+    "must": true
+   },
+   {
+    "text": "Send invite",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "Pending invites",
+    "kind": "heading",
+    "must": true
+   }
+  ],
+  "design": "designs/admin/X1-Users.jpg"
+ },
+ {
+  "board": "X2-Products",
+  "title": "X2 · Products & shops",
+  "page": "Products and shops",
+  "items": [
+   {
+    "text": "Search admin",
+    "kind": "label",
+    "must": true
+   },
+   {
+    "text": "View app",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "Products & shops",
+    "kind": "title",
+    "must": true
+   },
+   {
+    "text": "Scrape a shop",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "Add shop",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "Shops",
+    "kind": "heading",
+    "must": true
+   },
+   {
+    "text": "Approve & scrape",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "Reject",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "Products · [PARTNER SHOP]",
+    "kind": "heading",
+    "must": true,
+    "match": "Products · .+"
+   },
+   {
+    "text": "All",
+    "kind": "control",
+    "must": false
+   },
+   {
+    "text": "Not linked to a scheme 38",
+    "kind": "control",
+    "must": false
+   },
+   {
+    "text": "Missing size 12",
+    "kind": "control",
+    "must": false
+   },
+   {
+    "text": "Product",
+    "kind": "column",
+    "must": true
+   },
+   {
+    "text": "Scheme it matches",
+    "kind": "column",
+    "must": true
+   },
+   {
+    "text": "Size",
+    "kind": "column",
+    "must": true
+   },
+   {
+    "text": "Price",
+    "kind": "column",
+    "must": true
+   },
+   {
+    "text": "Actions",
+    "kind": "column",
+    "must": true
+   }
+  ],
+  "design": "designs/admin/X2-Products.jpg"
+ },
+ {
+  "board": "X3-Settings",
+  "title": "X3 · CMS & settings",
+  "page": "CMS and settings",
+  "items": [
+   {
+    "text": "Search admin",
+    "kind": "label",
+    "must": true
+   },
+   {
+    "text": "View app",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "CMS & settings",
+    "kind": "title",
+    "must": true
+   },
+   {
+    "text": "Scan & review",
+    "kind": "heading",
+    "must": true
+   },
+   {
+    "text": "Checked against schema",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Auto-save when at least",
+    "kind": "label",
+    "must": true
+   },
+   {
+    "text": "Max pages per PDF",
+    "kind": "label",
+    "must": true
+   },
+   {
+    "text": "Spot-check sample",
+    "kind": "label",
+    "must": true
+   },
+   {
+    "text": "Undo a batch for",
+    "kind": "label",
+    "must": true
+   },
+   {
+    "text": "Show as JSON",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "Save",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "History",
+    "kind": "heading",
+    "must": true
+   }
+  ],
+  "design": "designs/admin/X3-Settings.jpg"
+ }
+]

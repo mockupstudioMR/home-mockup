@@ -1,0 +1,301 @@
+{
+ "_about": "Where the agent finds each design board in the app. role = who is signed in (null = signed out). seed = sample journey state put in the browser before the screen opens (see fixtures/).",
+ "viewport": {
+  "width": 1440,
+  "height": 1000
+ },
+ "journey": {
+  "Main": {
+   "route": "/journey",
+   "role": null,
+   "seed": null
+  },
+  "S1-Why": {
+   "route": "/journey/1/why",
+   "role": "user",
+   "seed": "journey-state.json"
+  },
+  "S1-Place": {
+   "route": "/journey/1/place",
+   "role": "user",
+   "seed": "journey-state.json"
+  },
+  "S1-Rooms": {
+   "route": "/journey/1/rooms",
+   "role": "user",
+   "seed": "journey-state.json"
+  },
+  "S1-Start": {
+   "route": "/journey/1/start",
+   "role": "user",
+   "seed": "journey-state.json"
+  },
+  "S1-State": {
+   "route": "/journey/1/state",
+   "role": "user",
+   "seed": "journey-state.json",
+   "patch": {
+    "houseState": "core-shell"
+   }
+  },
+  "S1-State-Empty": {
+   "route": "/journey/1/state",
+   "role": "user",
+   "seed": "journey-state.json",
+   "patch": {
+    "houseState": "empty"
+   }
+  },
+  "S1-State-Partial": {
+   "route": "/journey/1/state",
+   "role": "user",
+   "seed": "journey-state.json",
+   "patch": {
+    "houseState": "partial"
+   }
+  },
+  "S1-State-Redo": {
+   "route": "/journey/1/state",
+   "role": "user",
+   "seed": "journey-state.json",
+   "patch": {
+    "houseState": "redoing"
+   }
+  },
+  "S1-Summary": {
+   "route": "/journey/1/brief",
+   "role": "user",
+   "seed": "journey-state.json"
+  },
+  "S2-Vision": {
+   "route": "/journey/2/vision",
+   "role": "user",
+   "seed": "journey-state.json"
+  },
+  "S2-Upload": {
+   "route": "/journey/2/upload",
+   "role": "user",
+   "seed": "journey-state.json"
+  },
+  "S2-Analyzing": {
+   "route": "/journey/2/analyzing",
+   "role": "user",
+   "seed": "journey-state.json"
+  },
+  "S2-Matches": {
+   "route": "/journey/2/matches",
+   "role": "user",
+   "seed": "journey-state.json"
+  },
+  "S2-Moodboard": {
+   "route": "/journey/2/moodboard",
+   "role": "user",
+   "seed": "journey-state.json"
+  },
+  "S2-Preview": {
+   "route": "/journey/2/preview",
+   "role": "user",
+   "seed": "journey-state.json"
+  },
+  "S2-Adjust": {
+   "route": "/journey/2/adjust",
+   "role": "user",
+   "seed": "journey-state.json"
+  },
+  "S2-Summary": {
+   "route": "/journey/2/summary",
+   "role": "user",
+   "seed": "journey-state.json"
+  },
+  "S3-Activities": {
+   "route": "/journey/3/activities",
+   "role": "user",
+   "seed": "journey-state.json"
+  },
+  "S3-Priorities": {
+   "route": "/journey/3/priorities",
+   "role": "user",
+   "seed": "journey-state.json"
+  },
+  "S3-Existing": {
+   "route": "/journey/3/existing",
+   "role": "user",
+   "seed": "journey-state.json"
+  },
+  "S3-Fixed": {
+   "route": "/journey/3/fixed",
+   "role": "user",
+   "seed": "journey-state.json"
+  },
+  "S3-Summary": {
+   "route": "/journey/3/summary",
+   "role": "user",
+   "seed": "journey-state.json"
+  },
+  "S4-Input": {
+   "route": "/journey/4/input",
+   "role": "user",
+   "seed": "journey-state.json"
+  },
+  "S4-Measure": {
+   "route": "/journey/4/measure",
+   "role": "user",
+   "seed": "journey-state.json"
+  },
+  "S4-Layouts": {
+   "route": "/journey/4/layouts",
+   "role": "user",
+   "seed": "journey-state.json"
+  },
+  "S4-Summary": {
+   "route": "/journey/4/summary",
+   "role": "user",
+   "seed": "journey-state.json"
+  },
+  "S5-Shops": {
+   "route": "/journey/5/shops",
+   "role": "user",
+   "seed": "journey-state.json"
+  },
+  "S5-Anchor": {
+   "route": "/journey/5/anchor",
+   "role": "user",
+   "seed": "journey-state.json"
+  },
+  "S5-Summary": {
+   "route": "/journey/5/summary",
+   "role": "user",
+   "seed": "journey-state.json"
+  },
+  "S6-Palette": {
+   "route": "/journey/6/palette",
+   "role": "user",
+   "seed": "journey-state.json"
+  },
+  "S6-Summary": {
+   "route": "/journey/6/summary",
+   "role": "user",
+   "seed": "journey-state.json"
+  },
+  "S7-Lighting": {
+   "route": "/journey/7/lighting",
+   "role": "user",
+   "seed": "journey-state.json"
+  },
+  "S7-Summary": {
+   "route": "/journey/7/summary",
+   "role": "user",
+   "seed": "journey-state.json"
+  },
+  "S8-Walls": {
+   "route": "/journey/8/walls",
+   "role": "user",
+   "seed": "journey-state.json"
+  },
+  "S8-WallDetail": {
+   "route": "/journey/8/wall/D",
+   "role": "user",
+   "seed": "journey-state.json"
+  },
+  "S8-Summary": {
+   "route": "/journey/8/summary",
+   "role": "user",
+   "seed": "journey-state.json"
+  },
+  "S9-BuyList": {
+   "route": "/journey/9/buy",
+   "role": "user",
+   "seed": "journey-state.json"
+  },
+  "S9-Sizes": {
+   "route": "/journey/9/sizes",
+   "role": "user",
+   "seed": "journey-state.json"
+  },
+  "S9-Todo": {
+   "route": "/journey/9/todo",
+   "role": "user",
+   "seed": "journey-state.json"
+  },
+  "S9-Summary": {
+   "route": "/journey/9/summary",
+   "role": "user",
+   "seed": "journey-state.json"
+  },
+  "S10-Final": {
+   "route": "/journey/10/final",
+   "role": "user",
+   "seed": "journey-state.json"
+  }
+ },
+ "admin": {
+  "Main": {
+   "route": "/admin",
+   "role": "admin"
+  },
+  "A1-Scan": {
+   "route": "/admin?section=scan",
+   "role": "admin"
+  },
+  "A2-Setup": {
+   "route": "/admin?section=scan&view=setup&demo=1",
+   "role": "admin"
+  },
+  "A3-Detecting": {
+   "route": "/admin?section=scan&batch=b-demo-running",
+   "role": "admin"
+  },
+  "A4-Result": {
+   "route": "/admin?section=scan&batch=b-demo-done",
+   "role": "admin"
+  },
+  "B1-Queue": {
+   "route": "/admin?section=review",
+   "role": "admin"
+  },
+  "B2-Review": {
+   "route": "/admin?section=review&piece=p-demo-1",
+   "role": "admin"
+  },
+  "B3-SpotCheck": {
+   "route": "/admin?section=review&view=spotcheck",
+   "role": "admin"
+  },
+  "C1-Vocabulary": {
+   "route": "/admin?section=vocabulary&term=t-glass",
+   "role": "admin"
+  },
+  "D1-Schemes": {
+   "route": "/admin?section=schemes",
+   "role": "admin"
+  },
+  "D2-Combinations": {
+   "route": "/admin?section=schemes&tab=combinations",
+   "role": "admin"
+  },
+  "E1-Styles": {
+   "route": "/admin?section=styles",
+   "role": "admin"
+  },
+  "F1-Sizes": {
+   "route": "/admin?section=sizes",
+   "role": "admin"
+  },
+  "X2-Products": {
+   "route": "/admin?section=products",
+   "role": "admin"
+  },
+  "G1-Project": {
+   "route": "/admin?section=projects&project=pr-demo",
+   "role": "admin"
+  },
+  "X1-Users": {
+   "route": "/admin?section=users",
+   "role": "admin"
+  },
+  "X3-Settings": {
+   "route": "/admin?section=cms",
+   "role": "admin"
+  }
+ }
+}
