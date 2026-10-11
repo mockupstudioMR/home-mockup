@@ -49,3 +49,15 @@ export async function fetchWithTimeout(
     throw e;
   }
 }
+
+/**
+ * CORS headers for edge function responses.
+ *
+ * Defined here rather than imported from `@supabase/supabase-js/cors`: that
+ * subpath is not listed in the package's `exports` map (2.91+), so importing
+ * it makes the whole function fail to load at runtime.
+ */
+export const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
