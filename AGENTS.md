@@ -1,4 +1,4 @@
 # Architecture rules
 
 - Assemble generation moodboard references with the shared moodboard context helper, preserving role labels; attach images in priority order up to a memory-safe cap and name any remaining references in prompt text, because too many inline images exceed edge worker memory.
-- Prefix non-surgical generation prompts with the shared moodboard brief independently of editable prompt templates; this keeps user selections authoritative even when templates omit placeholders.
+- Prefix non-surgical generation prompts with the shared moodboard brief independently of editable prompt templates; this keeps user selections authoritative even when templates omit placeholders.- Translate UI by English source text: `src/i18n` applies the `ar.json` dictionary to rendered text and attributes and sets `dir`, and adds `uiLanguage` to function calls. Edge functions import `_shared/language.ts` first so chat answers follow it. This way every screen is covered without wiring each component; add new English strings to the dictionary.

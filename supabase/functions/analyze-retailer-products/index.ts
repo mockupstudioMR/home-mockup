@@ -1,3 +1,4 @@
+import "../_shared/language.ts";
 import { requireUser } from "../_shared/auth.ts";
 import { fetchWithTimeout } from "../_shared/http.ts";
 const corsHeaders = {
