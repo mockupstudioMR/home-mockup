@@ -107,7 +107,9 @@ const Start = () => {
       return raw ? JSON.parse(raw) as { name?: string; roomType?: string; vision?: string } : null;
     } catch { return null; }
   }, [location.state]);
-  const firstName = intro?.name?.split(/\s+/)[0];
+  // Saved profile name wins over any intro name so "Change name" applies everywhere.
+  const profileName = useProfileName();
+  const firstName = (profileName ?? intro?.name ?? "").split(/\s+/)[0] || undefined;
 
   useEffect(() => {
     if (!loading && !user) {
