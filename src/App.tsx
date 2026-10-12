@@ -13,6 +13,7 @@ import { ErrorBoundary, RouteErrorBoundary } from "@/components/ErrorBoundary";
 const DevRoleSwitcher = import.meta.env.DEV
   ? lazy(() => import("@/components/DevRoleSwitcher"))
   : () => null;
+import { LanguageSwitcher } from "@/i18n";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 
@@ -78,6 +79,7 @@ const App = () => (
         <TooltipProvider>
           <Toaster />
           <Sonner />
+          <LanguageSwitcher />
           <ErrorBoundary variant="app">
             <BrowserRouter>
               <Suspense fallback={null}>
