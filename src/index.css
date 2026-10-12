@@ -194,3 +194,10 @@
     color: black;
   }
 }
+
+/* Egyptian Arabic: an Arabic-friendly typeface, inherited everywhere including journey/admin screens. */
+html[lang="ar"] body,
+html[lang="ar"] body * {
+  font-family: "Cairo", "Inter", system-ui, sans-serif !important;
+  letter-spacing: normal !important;
+}
