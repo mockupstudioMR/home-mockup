@@ -45,7 +45,6 @@ const SKIP = new Set(["SCRIPT", "STYLE", "CODE", "PRE", "TEXTAREA", "NOSCRIPT"])
 const textOrig = new WeakMap<Text, { src: string; out: string }>();
 const attrOrig = new WeakMap<Element, Record<string, { src: string; out: string }>>();
 let observer: MutationObserver | null = null;
-const touched = new Set<WeakRef<Node>>();
 
 const skipEl = (el: Element | null) => {
   for (let e = el; e; e = e.parentElement) {
@@ -65,7 +64,6 @@ function translateText(n: Text) {
   const trail = /\s*$/.exec(src)![0];
   const out = lead + tr + trail;
   textOrig.set(n, { src, out });
-  touched.add(new WeakRef(n));
   n.data = out;
 }
 
@@ -79,7 +77,6 @@ function translateAttrs(el: Element) {
     if (!tr) continue;
     rec[a] = { src: v, out: tr };
     attrOrig.set(el, rec);
-    touched.add(new WeakRef(el));
     el.setAttribute(a, tr);
   }
 }
@@ -116,9 +113,8 @@ function start() {
 function stop() {
   observer?.disconnect();
   observer = null;
-  for (const ref of touched) {
-    const n = ref.deref();
-    if (!n) continue;
+  const tw = document.createTreeWalker(document.body, NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_TEXT);
+  for (let n = tw.nextNode(); n; n = tw.nextNode()) {
     if (n.nodeType === Node.TEXT_NODE) {
       const o = textOrig.get(n as Text);
       if (o && (n as Text).data === o.out) (n as Text).data = o.src;
@@ -129,7 +125,6 @@ function stop() {
       attrOrig.delete(n as Element);
     }
   }
-  touched.clear();
 }
 
 async function apply(l: Lang) {
