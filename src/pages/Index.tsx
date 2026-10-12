@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Sparkles, Palette, Home, Upload, Package, LogOut, User, ArrowRight } from "lucide-react";
 import Logo from "@/components/Logo";
+import AccountNameDialog from "@/components/AccountNameDialog";
 import heroBg from "@/assets/hero-bg.jpg";
 
 const Index = () => {

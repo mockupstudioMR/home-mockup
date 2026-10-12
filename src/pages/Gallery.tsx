@@ -22,6 +22,7 @@ import { exportRoomObj, exportRoomDxf } from "@/services/roomCadExport";
 import type { RoomSpec } from "@/types/roomSpec";
 import { trackEvent } from "@/lib/analytics";
 import { getThumbnailImageUrl } from "@/lib/imageOptimization";
+import AccountNameDialog from "@/components/AccountNameDialog";
 
 interface Design {
   id: string;
