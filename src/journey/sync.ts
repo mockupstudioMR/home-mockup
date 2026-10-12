@@ -60,7 +60,7 @@ export async function saveStep1(s: JourneyState): Promise<{ projectId: string; r
       if (error || !data) return null;
       projectId = data.id;
       try {
-        localStorage.setItem("hm_project_id", projectId);
+        localStorage.setItem("hm_project_id", projectId as string);
       } catch {
         /* ignore */
       }
@@ -86,7 +86,7 @@ export async function saveStep1(s: JourneyState): Promise<{ projectId: string; r
       await supabase.from("rooms").update({ current_step: 2 }).eq("id", roomId).lt("current_step", 2);
     }
     await supabase.from("step_progress").upsert({ project_id: projectId, step_no: 1, status: "completed" }, { onConflict: "project_id,room_id,step_no", ignoreDuplicates: true });
-    return { projectId, roomId };
+    return { projectId: projectId as string, roomId };
   } catch (e) {
     console.warn("[journey] could not save step 1", e);
     return null;
