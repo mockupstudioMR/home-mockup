@@ -74,6 +74,7 @@ const Index = () => {
                 <User className="w-4 h-4 mr-2" />
                 My HomeMockUps
               </Button>
+              <AccountNameDialog compact />
               <Button variant="ghost" size="sm" onClick={handleSignOut}>
                 <LogOut className="w-4 h-4 mr-2" />
                 Sign Out
