@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Home, Palette, Upload, Package, ArrowRight, Ruler, Sparkles, Briefcase, Building2, PenTool, Sofa, MoreHorizontal } from "lucide-react";
 import RetailerStyleFlow from "@/components/b2b/RetailerStyleFlow";
+import { useProfileName } from "@/components/AccountNameDialog";
 import Logo from "@/components/Logo";
 
 import { useQuiz } from "@/contexts/QuizContext";
