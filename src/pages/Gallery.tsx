@@ -22,6 +22,7 @@ import { exportRoomObj, exportRoomDxf } from "@/services/roomCadExport";
 import type { RoomSpec } from "@/types/roomSpec";
 import { trackEvent } from "@/lib/analytics";
 import { getThumbnailImageUrl } from "@/lib/imageOptimization";
+import AccountNameDialog from "@/components/AccountNameDialog";
 
 interface Design {
   id: string;
@@ -468,10 +469,13 @@ const Gallery = () => {
             </button>
             <h1 className="text-2xl font-bold">My HomeMockUps</h1>
           </div>
-          <Button onClick={() => navigate("/quiz")}>
-            <Plus className="w-4 h-4 mr-2" />
-            New Design
-          </Button>
+          <div className="flex items-center gap-2">
+            <AccountNameDialog compact />
+            <Button onClick={() => navigate("/quiz")}>
+              <Plus className="w-4 h-4 mr-2" />
+              New Design
+            </Button>
+          </div>
         </div>
 
         {/* Filter */}

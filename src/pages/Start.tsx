@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Home, Palette, Upload, Package, ArrowRight, Ruler, Sparkles, Briefcase, Building2, PenTool, Sofa, MoreHorizontal } from "lucide-react";
 import RetailerStyleFlow from "@/components/b2b/RetailerStyleFlow";
+import { useProfileName } from "@/components/AccountNameDialog";
 import Logo from "@/components/Logo";
 
 import { useQuiz } from "@/contexts/QuizContext";
@@ -107,7 +108,9 @@ const Start = () => {
       return raw ? JSON.parse(raw) as { name?: string; roomType?: string; vision?: string } : null;
     } catch { return null; }
   }, [location.state]);
-  const firstName = intro?.name?.split(/\s+/)[0];
+  // Saved profile name wins over any intro name so "Change name" applies everywhere.
+  const profileName = useProfileName();
+  const firstName = (profileName ?? intro?.name ?? "").split(/\s+/)[0] || undefined;
 
   useEffect(() => {
     if (!loading && !user) {
