@@ -88,6 +88,7 @@ const AccountNameDialog = ({ compact = false, onSaved }: AccountNameDialogProps)
           { onConflict: "user_id" }
         );
       if (error) throw error;
+      window.dispatchEvent(new CustomEvent(PROFILE_NAME_EVENT, { detail: trimmed }));
       toast({ title: "Name updated" });
       onSaved?.(trimmed);
       setOpen(false);
