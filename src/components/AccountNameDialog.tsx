@@ -20,6 +20,8 @@ import { UserRound, Pencil } from "lucide-react";
  * Account dialog: lets the signed-in user view and change the name
  * stored on their profile (profiles.display_name).
  */
+export const PROFILE_NAME_EVENT = "hmu:profile-name";
+
 export const useProfileName = () => {
   const { user } = useAuth();
   const [name, setName] = useState<string | null>(null);
@@ -35,8 +37,14 @@ export const useProfileName = () => {
         .maybeSingle();
       if (!cancelled) setName(data?.display_name ?? null);
     })();
+    const onSaved = (e: Event) => {
+      const detail = (e as CustomEvent<string>).detail;
+      if (typeof detail === "string") setName(detail);
+    };
+    window.addEventListener(PROFILE_NAME_EVENT, onSaved);
     return () => {
       cancelled = true;
+      window.removeEventListener(PROFILE_NAME_EVENT, onSaved);
     };
   }, [user]);
 
