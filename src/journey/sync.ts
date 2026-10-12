@@ -2,8 +2,8 @@
  * Mirrors journey answers to the database (projects, rooms, step progress). Best effort: when the
  * project tables are not in the database yet, nothing is written and the journey keeps working from this browser.
  */
-import { supabase } from "@/integrations/supabase/client";
-import type { Tables } from "@/integrations/supabase/types";
+import { supabase } from "@/lib/looseDb";
+import type { Tables } from "@/lib/looseDb";
 import { projectsReady } from "@/lib/projectStore";
 import { roomName } from "./data";
 import { orderedRooms, type JourneyState } from "./state";
@@ -60,7 +60,7 @@ export async function saveStep1(s: JourneyState): Promise<{ projectId: string; r
       if (error || !data) return null;
       projectId = data.id;
       try {
-        localStorage.setItem("hm_project_id", projectId);
+        localStorage.setItem("hm_project_id", projectId as string);
       } catch {
         /* ignore */
       }
@@ -86,7 +86,7 @@ export async function saveStep1(s: JourneyState): Promise<{ projectId: string; r
       await supabase.from("rooms").update({ current_step: 2 }).eq("id", roomId).lt("current_step", 2);
     }
     await supabase.from("step_progress").upsert({ project_id: projectId, step_no: 1, status: "completed" }, { onConflict: "project_id,room_id,step_no", ignoreDuplicates: true });
-    return { projectId, roomId };
+    return { projectId: projectId as string, roomId };
   } catch (e) {
     console.warn("[journey] could not save step 1", e);
     return null;

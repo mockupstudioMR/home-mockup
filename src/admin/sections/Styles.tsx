@@ -1,7 +1,7 @@
 /** E1 · Styles, palettes & compatibility rules */
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/looseDb";
 import { useToast } from "@/hooks/use-toast";
 import { Ic } from "@/journey/icons";
 import { facetLabel, useTerms, type Term } from "@/admin/data";
