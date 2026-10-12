@@ -2,7 +2,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/looseDb";
 import {
   DEFAULT_SHOP_CHOICE, addProjectShop, ensureProject, loadProjectShops, loadShopChoice, projectsReady, readShop, removeProjectShop, saveShopChoice,
   type ProjectShop, type ShopChoice,

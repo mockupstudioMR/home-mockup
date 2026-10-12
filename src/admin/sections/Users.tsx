@@ -1,8 +1,8 @@
 /** X1 · Users & invites */
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import type { Tables } from "@/integrations/supabase/types";
+import { supabase } from "@/lib/looseDb";
+import type { Tables } from "@/lib/looseDb";
 import { useToast } from "@/hooks/use-toast";
 import { A, AdminShell, Crumb } from "../ui";
 

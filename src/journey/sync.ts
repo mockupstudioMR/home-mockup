@@ -2,8 +2,8 @@
  * Mirrors journey answers to the database (projects, rooms, step progress). Best effort: when the
  * project tables are not in the database yet, nothing is written and the journey keeps working from this browser.
  */
-import { supabase } from "@/integrations/supabase/client";
-import type { Tables } from "@/integrations/supabase/types";
+import { supabase } from "@/lib/looseDb";
+import type { Tables } from "@/lib/looseDb";
 import { projectsReady } from "@/lib/projectStore";
 import { roomName } from "./data";
 import { orderedRooms, type JourneyState } from "./state";

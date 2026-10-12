@@ -1,8 +1,8 @@
 /** Projects support: the list, and G1 · one project, read-only */
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import type { Json, Tables } from "@/integrations/supabase/types";
+import { supabase } from "@/lib/looseDb";
+import type { Json, Tables } from "@/lib/looseDb";
 import { Ic } from "@/journey/icons";
 import { STEP_NAMES } from "@/journey/data";
 import { A, AdminShell, Crumb, useAdminNav } from "../ui";

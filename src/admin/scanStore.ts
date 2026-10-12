@@ -2,7 +2,7 @@
  * The files picked for a new scan batch, and the progress of batches being detected. Kept outside React,
  * so detection keeps running when the admin leaves the page ("Run in background").
  */
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/looseDb";
 
 type Listener = () => void;
 const listeners = new Set<Listener>();

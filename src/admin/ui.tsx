@@ -2,7 +2,7 @@
 import type { CSSProperties, ReactNode } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/looseDb";
 import { Ic, I } from "@/journey/icons";
 import type { Term } from "@/admin/data";
 import "@/journey/mu.css";
