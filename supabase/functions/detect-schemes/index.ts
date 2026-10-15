@@ -1,3 +1,4 @@
+import "../_shared/language.ts";
 // Admin scan pipeline: read one uploaded design (an ingest item), find every furniture piece,
 // map the AI's words to the shared vocabulary, save sure pieces as furniture schemes and send
 // the rest to the review queue. The admin page calls this once per image in a batch.

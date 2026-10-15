@@ -781,7 +781,8 @@ const Generate = () => {
     hasInitializedRef.current = true;
 
     // Check for existing design first, only generate if none exists
-    loadExistingOrGenerate();
+    // A fresh arrival (new quiz/moodboard) must create a new design, never reuse an old one.
+    loadExistingOrGenerate({ fresh: isNewQuiz });
   }, [user, loading, navigate, quizData, resumeDesignId]);
 
   const loadDesignById = async (designId: string) => {
@@ -857,7 +858,7 @@ const Generate = () => {
     }
   };
 
-  const loadExistingOrGenerate = async () => {
+  const loadExistingOrGenerate = async ({ fresh = false }: { fresh?: boolean } = {}) => {
     if (!user || !quizData) return;
 
     setGenerating(true);
@@ -878,7 +879,7 @@ const Generate = () => {
       // quiz row (which would look like "no design yet" and trigger a costly
       // re-generation), look the answers up in the database and reuse the row
       // that already has a stored design.
-      if (!currentQuizId) {
+      if (!currentQuizId && !fresh) {
         const { data: priorQuizzes } = await supabase
           .from("quiz_responses")
           .select("id, must_have_elements")

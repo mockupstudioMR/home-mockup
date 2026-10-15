@@ -1,7 +1,7 @@
 /** Data helpers shared by the admin screens: the vocabulary, scan images, slugs. */
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import type { Tables } from "@/integrations/supabase/types";
+import { supabase } from "@/lib/looseDb";
+import type { Tables } from "@/lib/looseDb";
 
 export type Term = Tables<"taxonomy_terms">;
 export type Facet = Term["facet"];

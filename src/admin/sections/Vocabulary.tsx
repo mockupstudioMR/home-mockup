@@ -2,7 +2,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/looseDb";
 import { useToast } from "@/hooks/use-toast";
 import { I, Ic } from "@/journey/icons";
 import { facetLabel, slugify, useTerms, type Facet, type Term } from "@/admin/data";

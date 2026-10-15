@@ -2,7 +2,7 @@
  * Standard sizes. The admin keeps them in furniture_specs (Curate › Sizes); the list below is only used
  * when the database has nothing for a piece yet, so a screen never shows an empty size.
  */
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/looseDb";
 
 export type SizeVariant = { label: string; w: number; d: number; h: number; extraLabel?: string; extra?: string; clearance?: number };
 

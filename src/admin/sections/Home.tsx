@@ -1,6 +1,6 @@
 /** A0 · Admin home */
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/looseDb";
 import { I } from "@/journey/icons";
 import { A, AdminShell, Bdg, NAV_ICON, ago, useCounts } from "../ui";
 import { SOURCE_LABEL } from "./Scan";

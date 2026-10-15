@@ -1,3 +1,4 @@
+import "../_shared/language.ts";
 // Step 2.7 "What should change?": reads a design image and sums it up in five parts
 // (interior finishes, furniture, colours & materials, decor, lighting), each with a short
 // description, keywords and where it sits in the image. The prompt is editable in
