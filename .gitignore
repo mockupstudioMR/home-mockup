@@ -23,3 +23,7 @@ dist-ssr
 *.sln
 *.sw?
 __pycache__/
+
+# Test data made by qa/test-data-agent (keep out of git)
+HomeMockUp-TestData/
+batch-*-seed*/
