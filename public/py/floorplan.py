@@ -23,6 +23,7 @@ import numpy as np
 
 MAX_SIDE = 1600          # plans are resized so the longer side is about this many pixels
 DOOR_M = 0.85            # a typical interior door leaf, for the scale estimate
+NECK_TRUST = 0.95        # how rectangular a doorway-split room must be to be taken as it is
 
 
 def _load(data):
@@ -121,20 +122,35 @@ def _wall_thickness(ink):
 
 
 def _walls(ink, t):
-    """Thick strokes only: an opening with a square about half a wall wide keeps walls and drops thin lines."""
-    k = max(3, int(round(t * 0.6)))
-    return cv2.morphologyEx(ink, cv2.MORPH_OPEN, cv2.getStructuringElement(cv2.MORPH_RECT, (k, k)))
+    """Wall strokes only. Inside walls are often about half as thick as outside ones, so the cut-off sits at
+    0.4 of the main wall thickness; text, furniture, door leaves and dimension lines are thinner still. Bold
+    labels that survive are dropped because they are short, while walls run on."""
+    k = max(3, int(round(t * 0.4)))
+    w = cv2.morphologyEx(ink, cv2.MORPH_OPEN, cv2.getStructuringElement(cv2.MORPH_RECT, (k, k)))
+    n, labels, stats, _ = cv2.connectedComponentsWithStats(w, connectivity=8)
+    keep = np.zeros(n, bool)
+    keep[1:] = np.maximum(stats[1:, cv2.CC_STAT_WIDTH], stats[1:, cv2.CC_STAT_HEIGHT]) >= 4 * t
+    return keep[labels].astype(np.uint8)
 
 
-def _close_gaps(walls, t, span):
+def _close_gaps(walls, t, span, long_k=1.6, corners=False):
     """Bridge door and window gaps along each wall, so rooms become enclosed. Horizontal walls are closed
-    only horizontally and vertical walls only vertically, so a narrow corridor between two walls stays open."""
-    long_ = max(int(1.6 * t), 9)
+    only horizontally and vertical walls only vertically, so a room between two parallel walls stays open."""
+    long_ = max(int(long_k * t), 7)
     horiz = cv2.morphologyEx(walls, cv2.MORPH_OPEN, cv2.getStructuringElement(cv2.MORPH_RECT, (long_, 1)))
     vert = cv2.morphologyEx(walls, cv2.MORPH_OPEN, cv2.getStructuringElement(cv2.MORPH_RECT, (1, long_)))
     horiz = cv2.morphologyEx(horiz, cv2.MORPH_CLOSE, cv2.getStructuringElement(cv2.MORPH_RECT, (span, 1)))
     vert = cv2.morphologyEx(vert, cv2.MORPH_CLOSE, cv2.getStructuringElement(cv2.MORPH_RECT, (1, span)))
     closed = walls | horiz | vert
+    if corners:
+        # doors next to a corner: the wall runs on one side only, the other side is a crossing wall's flank.
+        # Bridge from the end of a run to the next wall pixel in line with it, no further than the span.
+        for runs, k_reach, k_close in (
+            (cv2.morphologyEx(walls, cv2.MORPH_OPEN, cv2.getStructuringElement(cv2.MORPH_RECT, (long_, 1))), (span, 1), (span, 1)),
+            (cv2.morphologyEx(walls, cv2.MORPH_OPEN, cv2.getStructuringElement(cv2.MORPH_RECT, (1, long_))), (1, span), (1, span)),
+        ):
+            near = walls & cv2.dilate(runs, cv2.getStructuringElement(cv2.MORPH_RECT, k_reach))
+            closed |= cv2.morphologyEx(runs | near, cv2.MORPH_CLOSE, cv2.getStructuringElement(cv2.MORPH_RECT, k_close)) & cv2.dilate(runs, cv2.getStructuringElement(cv2.MORPH_RECT, k_reach))
     # a wall that stops short of a corner (a corner opening) still has to meet its neighbour
     return cv2.dilate(closed, cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3)))
 
@@ -152,6 +168,110 @@ def _rooms(closed, min_area):
         rooms.append({"label": i, "bbox": [int(x), int(y), int(bw), int(bh)], "area": int(area)})
     rooms.sort(key=lambda r: -r["area"])
     return labels, rooms
+
+
+def _rooms_by_necks(walls, t, min_area):
+    """Rooms as wide areas joined by narrow necks (doorways): a watershed on the distance to the nearest wall,
+    computed on a smaller copy, then neighbouring areas joined when the neck between them is nearly as wide as
+    the smaller area (an L-shaped room). Used when closing gaps along the walls doesn't enclose the room."""
+    import heapq
+    H0, W0 = walls.shape
+    f = min(1.0, 4.0 / max(1, t))
+    small = cv2.resize(walls, (max(1, int(W0 * f)), max(1, int(H0 * f))), interpolation=cv2.INTER_AREA) if f < 1 else walls
+    small = (small > 0).astype(np.uint8)
+    h, w = small.shape
+    free = 1 - small
+    dist = cv2.distanceTransform(free, cv2.DIST_L2, 5)
+    min_half = max(2.0, 1.0 * t * f)
+    k = int(2 * min_half) | 1
+    peaks = (dist >= cv2.dilate(dist, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (k, k))) - 0.6) & (dist >= min_half)
+    n, seeds = cv2.connectedComponents(peaks.astype(np.uint8), connectivity=8)
+    lab = seeds.astype(np.int32).ravel()
+    d = dist.ravel()
+    fr = free.ravel()
+    heap = []
+    for i in np.where(lab > 0)[0]:
+        heapq.heappush(heap, (-d[i], int(i)))
+    neck = {}
+    while heap:
+        _, i = heapq.heappop(heap)
+        y, x = divmod(i, w)
+        li = lab[i]
+        for j in (i - 1 if x > 0 else -1, i + 1 if x < w - 1 else -1, i - w if y > 0 else -1, i + w if y < h - 1 else -1):
+            if j < 0 or not fr[j]:
+                continue
+            lj = lab[j]
+            if lj == 0:
+                lab[j] = li
+                heapq.heappush(heap, (-d[j], j))
+            elif lj != li:
+                a, b = (li, lj) if li < lj else (lj, li)
+                v = min(d[i], d[j])
+                if v > neck.get((a, b), 0):
+                    neck[(a, b)] = v
+    peak = np.zeros(n, np.float32)
+    np.maximum.at(peak, lab, d)
+    parent = list(range(n))
+    def find(i):
+        while parent[i] != i:
+            parent[i] = parent[parent[i]]
+            i = parent[i]
+        return i
+    for (a, b), v in sorted(neck.items(), key=lambda kv: -kv[1]):
+        ra, rb = find(a), find(b)
+        if ra != rb and v >= 0.6 * min(peak[ra], peak[rb]):
+            parent[rb] = ra
+            peak[ra] = max(peak[ra], peak[rb])
+    root = np.array([find(i) for i in range(n)], np.int32)
+    lab = root[lab].reshape(h, w) * free
+    if f < 1:
+        lab = cv2.resize(lab.astype(np.float32), (W0, H0), interpolation=cv2.INTER_NEAREST).astype(np.int32)
+        full_free = (1 - walls).astype(np.int32)
+        lab = lab * full_free
+        for _ in range(int(np.ceil(1 / f)) + 2):
+            grown = cv2.dilate(lab.astype(np.float32), np.ones((3, 3), np.uint8)).astype(np.int32)
+            lab = np.where((lab == 0) & (full_free > 0), grown, lab)
+    rooms = []
+    for r in np.unique(lab):
+        if r == 0:
+            continue
+        ys, xs = np.where(lab == r)
+        if ys.size < min_area or xs.min() <= 1 or ys.min() <= 1 or xs.max() >= W0 - 2 or ys.max() >= H0 - 2:
+            continue
+        rooms.append({"label": int(r), "bbox": [int(xs.min()), int(ys.min()), int(xs.max() - xs.min() + 1), int(ys.max() - ys.min() + 1)], "area": int(ys.size)})
+    rooms.sort(key=lambda r: -r["area"])
+    return lab, rooms
+
+
+def _snap(walls, box, t):
+    """Move each edge the person dragged onto the nearest wall face (within two wall widths), so a rough drag
+    still measures the room to the pixel."""
+    x0, y0, x1, y1 = box
+    h, w = walls.shape
+    r = max(3, 2 * t)
+    def best(profile_before, profile_after, lo, hi, cur):
+        top, val = cur, 0.25
+        for p in range(max(1, lo), min(hi, len(profile_before))):
+            v = profile_before[p] - profile_after[p]
+            if v > val:
+                top, val = p, v
+        return top
+    xs = slice(x0 + (x1 - x0) // 6, x1 - (x1 - x0) // 6 + 1)
+    ys = slice(y0 + (y1 - y0) // 6, y1 - (y1 - y0) // 6 + 1)
+    rows = walls[:, xs].mean(axis=1) if x1 > x0 else np.zeros(h)
+    cols = walls[ys, :].mean(axis=0) if y1 > y0 else np.zeros(w)
+    # top edge: wall above, room below; bottom edge: room above, wall below (same for left/right)
+    above = np.concatenate(([1.0], rows[:-1]))
+    below = np.concatenate((rows[1:], [1.0]))
+    left = np.concatenate(([1.0], cols[:-1]))
+    right = np.concatenate((cols[1:], [1.0]))
+    ny0 = best(above, rows, y0 - r, y0 + r + 1, y0)
+    ny1 = best(below, rows, y1 - r, y1 + r + 1, y1 - 1) + 1
+    nx0 = best(left, cols, x0 - r, x0 + r + 1, x0)
+    nx1 = best(right, cols, x1 - r, x1 + r + 1, x1 - 1) + 1
+    if ny1 - ny0 < 2 * t or nx1 - nx0 < 2 * t:
+        return x0, y0, x1, y1
+    return nx0, ny0, nx1, ny1
 
 
 def _edges(mask):
@@ -275,11 +395,13 @@ def _openings(gray, walls, box, t):
     return found
 
 
-def read_plan(data, tap=None):
+def read_plan(data, tap=None, box=None):
     """Read one room of a plan.
 
     data: image bytes or a file path. tap: optional (x, y) in 0..1 of the original image — the room the
-    person tapped; without it the largest room is used. Returns a JSON-ready dict.
+    person tapped; without it the largest room is used. box: optional [x0, y0, x1, y1] in 0..1 — the room's
+    inside edges as the person set them on the plan; then only the openings and proportions are read.
+    Returns a JSON-ready dict.
     """
     gray0 = _load(data)
     gray, angle = _deskew(gray0)
@@ -290,23 +412,69 @@ def read_plan(data, tap=None):
         return {"ok": False, "reason": "no_walls", "message": "We couldn't find thick wall lines on this plan. A clearer, straight-on image helps."}
     walls = _walls(ink, t)
     h, w = gray.shape
-    span = int(max(25 * t, min(h, w) * 0.2))      # widest opening we bridge (a wide window or patio door)
-    closed = _close_gaps(walls, t, span)
-    labels, rooms = _rooms(closed, min_area=(h * w) // 400)
-    if not rooms:
-        return {"ok": False, "reason": "no_room", "message": "We found walls but no closed room. Try a plan that shows the whole room.", "wall_px": t}
-    pick, picked = rooms[0], "largest"
+    # Close door gaps along each wall so every room is enclosed. A doorway is a few wall-widths wide while a
+    # room is many, so start with a short bridge; if the room isn't closed off yet (a wide patio door, an
+    # opening without a door), try longer ones.
+    cx, cy = w / 2.0, h / 2.0
+    tap_px = None
     if tap is not None:
         # the tap is in the original image; the plan was straightened about its centre, so turn the point too
-        cx, cy = w / 2.0, h / 2.0
         px, py = tap[0] * w - cx, tap[1] * h - cy
         r = math.radians(angle)
-        tx, ty = int(cx + px * math.cos(r) + py * math.sin(r)), int(cy - px * math.sin(r) + py * math.cos(r))
-        hit = labels[min(h - 1, max(0, ty)), min(w - 1, max(0, tx))]
-        tapped = next((r for r in rooms if r["label"] == hit), None)
-        pick, picked = (tapped, "tap") if tapped else (pick, "tap_missed")
-    mask = (labels == pick["label"]).astype(np.uint8)
-    x0, y0, x1, y1 = _edges(mask)
+        tap_px = (int(cx + px * math.cos(r) + py * math.sin(r)), int(cy - px * math.sin(r) + py * math.cos(r)))
+    labels = rooms = None
+    pick, picked = None, "largest"
+    min_area = (h * w) // 400
+    if box is not None:
+        x0, y0, x1, y1 = int(box[0] * w), int(box[1] * h), int(box[2] * w), int(box[3] * h)
+        x0, x1 = sorted((max(0, x0), min(w, x1)))
+        y0, y1 = sorted((max(0, y0), min(h, y1)))
+        x0, y0, x1, y1 = _snap(walls, (x0, y0, x1, y1), t)
+        mask = np.zeros((h, w), np.uint8)
+        mask[y0:y1, x0:x1] = 1
+        rooms, picked = [], "box"
+    else:
+        # Several ways to enclose rooms (split at doorways, or bridge gaps of growing length). A plan is drawn
+        # with rooms as near-rectangles, so for the tapped spot keep the most rectangular room any of them gives.
+        best, mask, first_rooms, first_labels, cands = None, None, None, None, []
+        for mode in ("necks", 4, (4, True), 8, 16, 32):
+            if mode == "necks":
+                labels, rooms = _rooms_by_necks(_close_gaps(walls, t, int(2 * t)), t, min_area)
+            else:
+                mult, corners = mode if isinstance(mode, tuple) else (mode, False)
+                labels, rooms = _rooms(_close_gaps(walls, t, int(mult * t), corners=corners), min_area)
+            if not rooms:
+                continue
+            if first_rooms is None:
+                first_rooms, first_labels = rooms, labels
+            if tap_px is None:
+                break
+            hit = labels[min(h - 1, max(0, tap_px[1])), min(w - 1, max(0, tap_px[0]))]
+            tapped = next((r for r in rooms if r["label"] == hit), None)
+            if not tapped:
+                continue
+            m = (labels == tapped["label"]).astype(np.uint8)
+            cands.append((_shape(m, t)[2], tapped["area"], tapped, m))
+        if cands:
+            # drop pieces much smaller than the biggest reading (a wall bridged across the room), then keep the most
+            # rectangular of the rest
+            top = max(c[1] for c in cands)
+            fair = [c for c in cands if c[1] >= 0.55 * top]
+            first = cands[0]                       # split at doorways: trusted when it gives a clean room
+            if first[0] >= NECK_TRUST and first[1] >= 0.55 * top:
+                fill, _, tapped, mask = first
+            else:
+                fill, _, tapped, mask = max(fair, key=lambda c: (round(c[0], 2), c[1]))
+            best = (fill, tapped)
+        if first_rooms is None:
+            return {"ok": False, "reason": "no_room", "message": "We found walls but no closed room. Try a plan that shows the whole room.", "wall_px": t}
+        rooms = first_rooms
+        if best is not None:
+            pick, picked = best[1], "tap"
+        else:
+            pick, picked = first_rooms[0], ("largest" if tap_px is None else "tap_missed")
+            mask = (first_labels == pick["label"]).astype(np.uint8)
+        x0, y0, x1, y1 = _edges(mask)
     shape, poly, fill = _shape(mask, t)
     openings = _openings(gray, walls, (x0, y0, x1, y1), t)
     W, H = x1 - x0, y1 - y0
@@ -337,11 +505,12 @@ def read_plan(data, tap=None):
     }
 
 
-def read_plan_json(data, tap_x=None, tap_y=None):
+def read_plan_json(data, tap_x=None, tap_y=None, box=None):
     """Entry point for the browser: bytes in, a JSON string out (errors become ok:false)."""
     try:
         tap = (tap_x, tap_y) if tap_x is not None and tap_y is not None else None
-        return json.dumps(read_plan(data, tap))
+        bx = [float(v) for v in box] if box is not None else None
+        return json.dumps(read_plan(data, tap, bx))
     except Exception as e:  # noqa: BLE001 — the page shows the message and falls back to the AI reader
         return json.dumps({"ok": False, "reason": "error", "message": str(e)})
 

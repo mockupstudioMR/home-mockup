@@ -18,7 +18,8 @@ export function applyPlanRead(s: JourneyState, read: Extract<PlanRead, { ok: tru
     shape: read.shape,
     confidence: read.confidence,
     box: read.box,
-    rooms: read.rooms.map((r) => r.box),
+    // an outline the person set keeps the rooms found on the first reading, to tap later
+    rooms: read.picked === "box" ? s.room.planRead?.rooms ?? [] : read.rooms.map((r) => r.box),
     picked: read.picked,
     doors: doors.length,
     windows: windows.length,

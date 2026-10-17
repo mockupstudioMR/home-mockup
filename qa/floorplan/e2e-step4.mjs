@@ -55,12 +55,31 @@ console.log("fixed features:", (text.match(/(Window|Door) \d+ · [^\n]*/g) ?? []
 const state = await page.evaluate(() => JSON.parse(localStorage.getItem("hm_journey_v1")).room);
 console.log("room:", JSON.stringify({ w: state.widthM, l: state.lengthM, ratio: state.planRead?.ratio, rooms: state.planRead?.rooms?.length, doorM: state.doorM }));
 await page.screenshot({ path: path.join(out, "2-measure.png"), fullPage: true });
-if (await page.locator("text=Not this room?").count()) {
-  await page.locator('button[aria-label^="Room "]').first().click();
-  await page.waitForTimeout(6000);
+const plan = page.locator('img[alt="Your floor plan"]');
+if (await plan.count()) {
+  await plan.scrollIntoViewIfNeeded();
+  const box = await plan.boundingBox();
+  const tapAt = (process.env.TAP ?? "0.684,0.6").split(",").map(Number);
+  await page.mouse.click(box.x + box.width * tapAt[0], box.y + box.height * tapAt[1]);
+  await page.waitForFunction(() => document.body.innerText.includes("Measuring…"), null, { timeout: 10_000 }).catch(() => {});
+  await page.waitForFunction(() => !document.body.innerText.includes("Measuring…"), null, { timeout: 60_000 });
+  await page.waitForTimeout(500);
   const st2 = await page.evaluate(() => JSON.parse(localStorage.getItem("hm_journey_v1")).room);
-  console.log("after tapping the other room:", JSON.stringify({ w: st2.widthM, l: st2.lengthM, ratio: st2.planRead?.ratio }));
-  await page.screenshot({ path: path.join(out, "3-other-room.png"), fullPage: true });
+  console.log("after tapping a room:", JSON.stringify({ w: st2.widthM, l: st2.lengthM, ratio: st2.planRead?.ratio, box: st2.planRead?.box, picked: st2.planRead?.picked }));
+  await page.screenshot({ path: path.join(out, "3-tapped.png"), fullPage: true });
+  // drag the bottom edge up by 5 % of the plan, then let it snap
+  const bottom = page.locator('[aria-label="Bottom wall"]');
+  await bottom.scrollIntoViewIfNeeded();
+  const bb = await bottom.boundingBox();
+  await page.mouse.move(bb.x + bb.width / 2, bb.y + bb.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(bb.x + bb.width / 2, bb.y + bb.height / 2 - box.height * 0.05, { steps: 5 });
+  await page.mouse.up();
+  await page.waitForFunction(() => document.body.innerText.includes("Measuring…"), null, { timeout: 10_000 }).catch(() => {});
+  await page.waitForFunction(() => !document.body.innerText.includes("Measuring…"), null, { timeout: 60_000 });
+  const st3 = await page.evaluate(() => JSON.parse(localStorage.getItem("hm_journey_v1")).room);
+  console.log("after dragging the bottom edge:", JSON.stringify({ ratio: st3.planRead?.ratio, box: st3.planRead?.box, picked: st3.planRead?.picked }));
+  await page.screenshot({ path: path.join(out, "4-dragged.png"), fullPage: true });
 }
 // type a real measurement: wall A = 4.00 m
 await page.fill("#len", "4.00");

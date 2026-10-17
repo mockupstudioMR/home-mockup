@@ -20,7 +20,7 @@ export type PlanRead =
       scale: { m_per_px: number; from: "door"; width_m: number; length_m: number } | null;
       rooms: { box: [number, number, number, number]; area: number }[];
       confidence: number;
-      picked: "largest" | "tap" | "tap_missed";
+      picked: "largest" | "tap" | "tap_missed" | "box";
     }
   | { ok: false; reason: string; message: string };
 
@@ -83,8 +83,11 @@ export function onPlanReaderStatus(l: (s: string) => void) {
   return () => listeners.delete(l);
 }
 
-/** Read one room of a plan. `tap` = the point the person tapped (0–1 of the image) to choose the room. */
-export async function readPlan(file: Blob, tap?: [number, number], timeoutMs = 120_000): Promise<PlanRead> {
+/**
+ * Read one room of a plan. `tap` = the point the person tapped (0–1 of the image) to choose the room;
+ * `box` = the room's edges as the person set them (0–1), snapped to the walls by the reader.
+ */
+export async function readPlan(file: Blob, tap?: [number, number], timeoutMs = 120_000, box?: [number, number, number, number]): Promise<PlanRead> {
   const bytes = await file.arrayBuffer();
   const id = ++seq;
   const w = get();
@@ -103,6 +106,6 @@ export async function readPlan(file: Blob, tap?: [number, number], timeoutMs = 1
         fail(e);
       },
     });
-    w.postMessage({ type: "read", id, bytes, tap, indexURL: INDEX_URL, scriptURL: SCRIPT_URL }, [bytes]);
+    w.postMessage({ type: "read", id, bytes, tap, box, indexURL: INDEX_URL, scriptURL: SCRIPT_URL }, [bytes]);
   });
 }

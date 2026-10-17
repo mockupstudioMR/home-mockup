@@ -1,0 +1,26 @@
+{
+ "_about": "Real floor plans from public research repositories (not copied here: real_check.py clones them). Each room: where a person would tap it (0-1 of the image) and the size printed on the plan in metres.",
+ "plans": [
+  {"repo": "zlzeng/DeepFloorplan", "path": "demo/47541863.jpg", "style": "UK agent plan, black walls", "rooms": [
+   {"name": "Bedroom 15'9 x 10'0", "tap": [0.228, 0.367], "m": [4.81, 3.06]},
+   {"name": "Bedroom 12'6 x 8'0", "tap": [0.443, 0.356], "m": [3.82, 2.45]},
+   {"name": "Reception room", "tap": [0.709, 0.378], "m": [4.94, 4.53]},
+   {"name": "Hall 14'3 x 8'0", "tap": [0.443, 0.578], "m": [4.35, 2.45]},
+   {"name": "Bedroom 12'0 x 11'1", "tap": [0.684, 0.6], "m": [3.67, 3.39]},
+   {"name": "Kitchen", "tap": [0.22, 0.622], "m": [3.06, 2.62]}]},
+  {"repo": "zlzeng/DeepFloorplan", "path": "demo/45719584.jpg", "style": "UK agent plan, coloured walls, grey rooms", "rooms": [
+   {"name": "Reception room", "tap": [0.63, 0.222], "m": [4.76, 3.79]},
+   {"name": "Dining room", "tap": [0.307, 0.167], "m": [2.55, 2.50]},
+   {"name": "Kitchen", "tap": [0.307, 0.289], "m": [2.55, 2.23]},
+   {"name": "Bedroom 2", "tap": [0.27, 0.711], "m": [3.72, 3.00]},
+   {"name": "Master bedroom", "tap": [0.619, 0.711], "m": [3.97, 3.61]}]},
+  {"repo": "zlzeng/DeepFloorplan", "path": "demo/45765448.jpg", "style": "UK agent plan, period flat", "rooms": [
+   {"name": "Bedroom 16'11 x 11'5", "tap": [0.288, 0.239], "m": [5.16, 3.48]},
+   {"name": "Kitchen", "tap": [0.515, 0.239], "m": [4.50, 2.08]},
+   {"name": "Bedroom 12' x 8'6", "tap": [0.735, 0.333], "m": [3.66, 2.59]},
+   {"name": "Reception room", "tap": [0.363, 0.6], "m": [7.09, 5.08]},
+   {"name": "Bedroom 14'6 x 12'3", "tap": [0.735, 0.6], "m": [4.42, 3.73]},
+   {"name": "Bathroom 10' x 6'7", "tap": [0.914, 0.644], "m": [3.05, 2.01]},
+   {"name": "Bathroom 8'2 x 8'1", "tap": [0.17, 0.4], "m": [2.49, 2.46]}]}
+ ]
+}

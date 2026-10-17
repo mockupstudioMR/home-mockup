@@ -71,7 +71,7 @@ export type PlanReading = {
   /** The room on the straightened plan, 0–1, and the other rooms found (to pick a different one). */
   box: [number, number, number, number];
   rooms: [number, number, number, number][];
-  picked: "largest" | "tap" | "tap_missed";
+  picked: "largest" | "tap" | "tap_missed" | "box";
   doors: number;
   windows: number;
   /** Size guessed from the door width, before the person types a real measurement. */

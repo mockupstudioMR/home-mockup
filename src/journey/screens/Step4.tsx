@@ -186,51 +186,119 @@ function featureStyle(pl: Placement, W: number, H: number, t: number): CSSProper
   return [{ ...s, left: 6, top: along(big.l, H), width: big.t, height: big.l }];
 }
 
-/** Several rooms on the plan: tap the one being designed, and it is measured again. */
-function PlanRoomPicker() {
+/**
+ * The room as read on the plan: its edges on the plan image. The person can drag an edge onto the right wall
+ * (the reader snaps it to the wall face), or tap another room. Either way the room is measured again.
+ */
+function PlanOutline() {
   const { s, set } = useJourney();
   const { toast } = useToast();
   const [busy, setBusy] = useState(false);
   const pr = s.room.planRead!;
-  const pick = async (b: [number, number, number, number]) => {
+  const [box, setBox] = useState<[number, number, number, number]>(pr.box);
+  useEffect(() => setBox(pr.box), [pr.box]);
+  const frame = useRef<HTMLDivElement>(null);
+  const drag = useRef<{ edge: 0 | 1 | 2 | 3; moved: boolean } | null>(null);
+
+  const reread = async (opts: { tap?: [number, number]; box?: [number, number, number, number] }) => {
     setBusy(true);
     try {
       const img = lastPlan ?? (await (await fetch(s.room.planImage!)).blob());
       lastPlan = img;
-      const r = await readPlan(img, [(b[0] + b[2]) / 2, (b[1] + b[3]) / 2]);
-      if (!r.ok || r.picked !== "tap") throw new Error(r.ok ? "That room isn't closed off on the plan." : r.message);
+      const r = await readPlan(img, opts.tap, 120_000, opts.box);
+      if (!r.ok || r.picked === "tap_missed") throw new Error(r.ok ? "That room isn't closed off on the plan. Drag the edges onto its walls instead." : r.message);
       set((x) => {
         const next = applyPlanRead(x, r, EX_W);
         return { ...next, room: { ...next.room, planImage: x.room.planImage }, layouts: [], chosenLayout: undefined };
       });
     } catch (e) {
-      toast({ title: "We couldn't measure that room", description: (e as Error).message, variant: "destructive" });
+      setBox(pr.box);
+      toast({ title: "We couldn't measure that", description: (e as Error).message, variant: "destructive" });
     } finally {
       setBusy(false);
     }
   };
-  const same = (b: number[]) => b.every((v, i) => Math.abs(v - pr.box[i]) < 0.02);
+  const at = (e: { clientX: number; clientY: number }) => {
+    const r = frame.current!.getBoundingClientRect();
+    return [Math.min(1, Math.max(0, (e.clientX - r.left) / r.width)), Math.min(1, Math.max(0, (e.clientY - r.top) / r.height))] as const;
+  };
+  const onMove = (e: React.PointerEvent) => {
+    if (!drag.current) return;
+    const [x, y] = at(e);
+    drag.current.moved = true;
+    setBox((b) => {
+      const n = [...b] as [number, number, number, number];
+      const v = drag.current!.edge % 2 === 0 ? x : y;
+      n[drag.current!.edge] = v;
+      if (n[2] - n[0] < 0.03 || n[3] - n[1] < 0.03) return b;
+      return n;
+    });
+  };
+  const onUp = () => {
+    if (drag.current?.moved) void reread({ box });
+    drag.current = null;
+  };
+  const edge = (i: 0 | 1 | 2 | 3) => {
+    const vertical = i % 2 === 0;
+    const pos = box[i] * 100;
+    const style: CSSProperties = vertical
+      ? { left: `calc(${pos}% - 8px)`, top: `${box[1] * 100}%`, height: `${(box[3] - box[1]) * 100}%`, width: 16, cursor: "ew-resize" }
+      : { top: `calc(${pos}% - 8px)`, left: `${box[0] * 100}%`, width: `${(box[2] - box[0]) * 100}%`, height: 16, cursor: "ns-resize" };
+    return (
+      <span
+        key={i}
+        role="slider"
+        aria-label={["Left wall", "Top wall", "Right wall", "Bottom wall"][i]}
+        aria-valuenow={Math.round(pos)}
+        tabIndex={0}
+        onPointerDown={(e) => {
+          e.stopPropagation();
+          (e.target as HTMLElement).setPointerCapture(e.pointerId);
+          drag.current = { edge: i, moved: false };
+        }}
+        onKeyDown={(e) => {
+          const d = { ArrowLeft: -0.005, ArrowUp: -0.005, ArrowRight: 0.005, ArrowDown: 0.005 }[e.key];
+          if (d === undefined) return;
+          e.preventDefault();
+          const n = [...box] as [number, number, number, number];
+          n[i] = Math.min(1, Math.max(0, n[i] + d));
+          setBox(n);
+          void reread({ box: n });
+        }}
+        style={{ position: "absolute", ...style, display: "flex", alignItems: "center", justifyContent: "center", touchAction: "none", zIndex: 2 }}
+      >
+        <span style={vertical ? { width: 6, height: 28, borderRadius: 3, background: "#665A85" } : { height: 6, width: 28, borderRadius: 3, background: "#665A85" }} />
+      </span>
+    );
+  };
   return (
-    <div className="rail-card" style={{ marginTop: "20px", maxWidth: "560px" }}>
-      <h2 className="h3">Not this room?</h2>
+    <div className="rail-card" style={{ marginTop: "20px", maxWidth: "640px" }}>
+      <h2 className="h3">Your room on the plan</h2>
       <p className="small" style={{ margin: "0 0 12px" }}>
-        {busy ? "Measuring that room…" : "Your plan has more than one room. Tap the one we're designing."}
+        {busy
+          ? "Measuring…"
+          : "Check the outline sits on your room's walls. Drag an edge to the right wall — it snaps into place — or tap a different room."}
       </p>
-      <div style={{ position: "relative", borderRadius: 12, overflow: "hidden", opacity: busy ? 0.6 : 1 }}>
-        <img src={s.room.planImage} alt="Your floor plan" style={{ display: "block", width: "100%" }} />
-        {pr.rooms.map((b, i) => (
-          <button
-            key={i}
-            type="button"
-            aria-label={same(b) ? "The room we measured" : `Room ${i + 1} on the plan`}
-            disabled={busy || same(b)}
-            onClick={() => void pick(b)}
-            style={{
-              position: "absolute", left: `${b[0] * 100}%`, top: `${b[1] * 100}%`, width: `${(b[2] - b[0]) * 100}%`, height: `${(b[3] - b[1]) * 100}%`,
-              border: same(b) ? "3px solid #665A85" : "2px dashed rgba(102,90,133,.55)", background: same(b) ? "rgba(102,90,133,.12)" : "transparent", borderRadius: 4, cursor: "pointer",
-            }}
-          />
-        ))}
+      <div
+        ref={frame}
+        style={{ position: "relative", borderRadius: 12, overflow: "hidden", opacity: busy ? 0.6 : 1, userSelect: "none", touchAction: "none" }}
+        onPointerMove={onMove}
+        onPointerUp={onUp}
+        onClick={(e) => {
+          if (busy || drag.current) return;
+          const [x, y] = at(e);
+          const inside = x > box[0] && x < box[2] && y > box[1] && y < box[3];
+          if (!inside) void reread({ tap: [x, y] });
+        }}
+      >
+        <img src={s.room.planImage} alt="Your floor plan" draggable={false} style={{ display: "block", width: "100%" }} />
+        {pr.rooms
+          .filter((b) => !b.every((v, i) => Math.abs(v - pr.box[i]) < 0.02))
+          .map((b, i) => (
+            <span key={i} aria-hidden="true" style={{ position: "absolute", left: `${b[0] * 100}%`, top: `${b[1] * 100}%`, width: `${(b[2] - b[0]) * 100}%`, height: `${(b[3] - b[1]) * 100}%`, border: "2px dashed rgba(102,90,133,.45)", borderRadius: 4, pointerEvents: "none" }} />
+          ))}
+        <span aria-label="The room we measured" style={{ position: "absolute", left: `${box[0] * 100}%`, top: `${box[1] * 100}%`, width: `${(box[2] - box[0]) * 100}%`, height: `${(box[3] - box[1]) * 100}%`, border: "3px solid #665A85", background: "rgba(102,90,133,.12)", pointerEvents: "none" }} />
+        {([0, 1, 2, 3] as const).map(edge)}
       </div>
     </div>
   );
@@ -384,7 +452,7 @@ export function Measure() {
             <p className="small" style={{ margin: "0" }}>
               {example
                 ? s.room.planRead?.guessM
-                  ? `Measured from your plan's door width. Type one real length above to make it exact.`
+                  ? `A rough size from your plan's door width. Type one real length above to make it exact.`
                   : "Sizes shown are examples until you confirm them."
                 : "Sizes confirmed — layouts use them."}
             </p>
@@ -421,7 +489,7 @@ export function Measure() {
           </div>
         </aside>
       </div>
-      {s.room.input === "plan" && s.room.planImage && s.room.planRead && s.room.planRead.rooms.length > 1 && <PlanRoomPicker />}
+      {s.room.input === "plan" && s.room.planImage && s.room.planRead && <PlanOutline />}
       {s.room.input === "photos" && s.room.wallPhotos.length > 0 && (
         <div className="row" style={{ marginTop: "20px", gap: "10px" }}>
           {s.room.wallPhotos.map((src) => (

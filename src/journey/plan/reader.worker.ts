@@ -3,7 +3,7 @@
  * Runs public/py/floorplan.py in the browser: Pyodide (Python compiled to WebAssembly) with NumPy and OpenCV.
  * The first use downloads about 20 MB (cached by the browser afterwards), so the page warms it up early.
  */
-type Req = { type: "warm" } | { type: "read"; id: number; bytes: ArrayBuffer; tap?: [number, number] };
+type Req = { type: "warm" } | { type: "read"; id: number; bytes: ArrayBuffer; tap?: [number, number]; box?: [number, number, number, number] };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let ready: Promise<any> | null = null;
@@ -39,8 +39,10 @@ self.onmessage = async (e: MessageEvent<Req & { indexURL?: string; scriptURL?: s
     if (msg.type !== "read") return;
     const fn = py.globals.get("read_plan_json");
     const bytes = py.toPy(new Uint8Array(msg.bytes));
-    const out = fn(bytes, msg.tap?.[0] ?? null, msg.tap?.[1] ?? null);
+    const box = msg.box ? py.toPy(msg.box) : null;
+    const out = fn(bytes, msg.tap?.[0] ?? null, msg.tap?.[1] ?? null, box);
     bytes.destroy();
+    box?.destroy();
     fn.destroy();
     post({ type: "result", id: msg.id, json: out });
   } catch (err) {
