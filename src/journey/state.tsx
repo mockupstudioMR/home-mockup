@@ -62,7 +62,21 @@ export type WallPlan = {
 };
 export type FixedKind = "windows" | "doors" | "radiators" | "columns" | "sockets" | "builtins" | "water" | "stacks" | "ac" | "panels";
 /** One counted thing that can't move, placed on a wall of the plan. */
-export type Placement = { id: string; kind: FixedKind; n: number; wall?: Wall; pos?: number; photo?: string };
+export type Placement = { id: string; kind: FixedKind; n: number; wall?: Wall; pos?: number; photo?: string; /** "new": added by the plan reader; "placed": counted by the person, put on its wall by the reader */ fromPlan?: "new" | "placed" };
+/** What the plan reader measured on the uploaded plan (see src/journey/plan). */
+export type PlanReading = {
+  ratio: number;
+  shape: string;
+  confidence: number;
+  /** The room on the straightened plan, 0–1, and the other rooms found (to pick a different one). */
+  box: [number, number, number, number];
+  rooms: [number, number, number, number][];
+  picked: "largest" | "tap" | "tap_missed";
+  doors: number;
+  windows: number;
+  /** Size guessed from the door width, before the person types a real measurement. */
+  guessM?: [number, number];
+};
 
 export type JourneyState = {
   v: 1;
@@ -117,6 +131,10 @@ export type JourneyState = {
     ceilingM?: number;
     scaleRef?: string;
     confirmed?: boolean;
+    /** Read from the plan by the plan reader (geometry, not AI). */
+    planRead?: PlanReading;
+    /** The door width the current scale assumes, in metres. */
+    doorM?: number;
   };
   layouts: Layout[];
   chosenLayout?: number;

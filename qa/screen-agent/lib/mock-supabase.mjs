@@ -210,6 +210,10 @@ export async function installMock(page, { role, fixtures, log }) {
     }
     // Signed links point back here; a file named in storage.json is served from public/ so scans show a real picture.
     if (p.startsWith("/storage/v1/object/sign/") && method === "POST") return json({ signedURL: `${p.slice("/storage/v1".length)}?token=mock` });
+    if (p.startsWith("/storage/v1/object") && (method === "POST" || method === "PUT")) {
+      const key = p.slice("/storage/v1/object/".length);
+      return json({ Key: key, Id: `mock-${Date.now()}`, path: key.split("/").slice(1).join("/") });
+    }
     if (p.startsWith("/storage/v1/object")) {
       const file = fixtures.storage?.[decodeURIComponent(p).split("/").pop()];
       if (file && fs.existsSync(path.join(fixtures.publicDir, file))) return route.fulfill({ status: 200, contentType: "image/jpeg", body: fs.readFileSync(path.join(fixtures.publicDir, file)) });

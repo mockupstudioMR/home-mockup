@@ -7,11 +7,16 @@ import { roomName } from "../data";
 import { curRoom, uid, useJourney, type FixedKind, type JourneyState, type Layout, type Placement, type Wall } from "../state";
 import { StepSummary } from "../Summary";
 import { analyzePlan, makeLayout, uploadPhoto } from "../services";
+import { onPlanReaderStatus, readPlan, warmPlanReader, type PlanRead } from "../plan/reader";
+import { applyPlanRead } from "../plan/apply";
+import { pdfToImages } from "@/lib/pdfToImages";
 import { list, soFar } from "../story";
 import { saveStepDone } from "../sync";
 import { placementLabel } from "./Step3";
 
 const p = (d: string) => <path d={d} />;
+/** The last plan image, kept so the person can tap a different room on it without uploading again. */
+let lastPlan: Blob | null = null;
 const EX_W = 3.75;
 const EX_L = 4.9;
 export const roomSize = (s: JourneyState) => ({ w: s.room.widthM ?? EX_W, l: s.room.lengthM ?? EX_L, example: !s.room.confirmed });
@@ -30,14 +35,31 @@ export function RoomInput() {
     const f = files?.[0];
     if (!f) return;
     setBusy("Reading your plan…");
+    const stop = onPlanReaderStatus((t) => setBusy(t));
     try {
-      const url = await uploadPhoto(f);
-      const read = await analyzePlan(url).catch(() => null);
-      set((x) => ({ room: { ...x.room, input: "plan", planImage: url, ...(read ? { widthM: read.widthM, lengthM: read.lengthM } : {}), confirmed: false }, layouts: [], chosenLayout: undefined }));
+      // a PDF is read from its first page
+      const image = f.type === "application/pdf" || /\.pdf$/i.test(f.name) ? (await pdfToImages(f, 1))[0] : f;
+      lastPlan = image;
+      const [url, read] = await Promise.all([
+        uploadPhoto(image),
+        readPlan(image).catch((e: Error): PlanRead => ({ ok: false, reason: "error", message: e.message })),
+      ]);
+      if (read.ok) {
+        set((x) => {
+          const next = applyPlanRead(x, read, EX_W);
+          return { ...next, room: { ...next.room, planImage: url }, layouts: [], chosenLayout: undefined };
+        });
+      } else {
+        // the drawing couldn't be measured: fall back to the AI's estimate, which the person then checks
+        const est = await analyzePlan(url).catch(() => null);
+        set((x) => ({ room: { ...x.room, input: "plan", planImage: url, planRead: undefined, ...(est ? { widthM: est.widthM, lengthM: est.lengthM } : {}), confirmed: false }, layouts: [], chosenLayout: undefined }));
+        toast({ title: "We estimated this plan", description: `${read.message} Check the sizes and place the doors and windows yourself.` });
+      }
       go("S4-Measure");
     } catch (e) {
       toast({ title: "The plan didn't upload", description: (e as Error).message, variant: "destructive" });
     } finally {
+      stop();
       setBusy(null);
     }
   };
@@ -68,7 +90,15 @@ export function RoomInput() {
       <h1 className="h1">Show us the room</h1>
       <p className="sub">{busy ?? "Now we fit your direction to the real space. Pick whichever is easiest."}</p>
       <div className="g2" style={{ marginTop: "52px" }}>
-        <Opt tint="a" className="left-al ri" sel={(s.room.input ?? "plan") === "plan"} onClick={() => planIn.current?.click()}>
+        <Opt
+          tint="a"
+          className="left-al ri"
+          sel={(s.room.input ?? "plan") === "plan"}
+          onClick={() => {
+            warmPlanReader(); // start loading the reader while the file picker is open
+            planIn.current?.click();
+          }}
+        >
           <span className="tile">
             <Ic>{p("M3 3h18v18H3zM3 12h7v9M14 3v6h7")}</Ic>
           </span>
@@ -156,6 +186,56 @@ function featureStyle(pl: Placement, W: number, H: number, t: number): CSSProper
   return [{ ...s, left: 6, top: along(big.l, H), width: big.t, height: big.l }];
 }
 
+/** Several rooms on the plan: tap the one being designed, and it is measured again. */
+function PlanRoomPicker() {
+  const { s, set } = useJourney();
+  const { toast } = useToast();
+  const [busy, setBusy] = useState(false);
+  const pr = s.room.planRead!;
+  const pick = async (b: [number, number, number, number]) => {
+    setBusy(true);
+    try {
+      const img = lastPlan ?? (await (await fetch(s.room.planImage!)).blob());
+      lastPlan = img;
+      const r = await readPlan(img, [(b[0] + b[2]) / 2, (b[1] + b[3]) / 2]);
+      if (!r.ok || r.picked !== "tap") throw new Error(r.ok ? "That room isn't closed off on the plan." : r.message);
+      set((x) => {
+        const next = applyPlanRead(x, r, EX_W);
+        return { ...next, room: { ...next.room, planImage: x.room.planImage }, layouts: [], chosenLayout: undefined };
+      });
+    } catch (e) {
+      toast({ title: "We couldn't measure that room", description: (e as Error).message, variant: "destructive" });
+    } finally {
+      setBusy(false);
+    }
+  };
+  const same = (b: number[]) => b.every((v, i) => Math.abs(v - pr.box[i]) < 0.02);
+  return (
+    <div className="rail-card" style={{ marginTop: "20px", maxWidth: "560px" }}>
+      <h2 className="h3">Not this room?</h2>
+      <p className="small" style={{ margin: "0 0 12px" }}>
+        {busy ? "Measuring that room…" : "Your plan has more than one room. Tap the one we're designing."}
+      </p>
+      <div style={{ position: "relative", borderRadius: 12, overflow: "hidden", opacity: busy ? 0.6 : 1 }}>
+        <img src={s.room.planImage} alt="Your floor plan" style={{ display: "block", width: "100%" }} />
+        {pr.rooms.map((b, i) => (
+          <button
+            key={i}
+            type="button"
+            aria-label={same(b) ? "The room we measured" : `Room ${i + 1} on the plan`}
+            disabled={busy || same(b)}
+            onClick={() => void pick(b)}
+            style={{
+              position: "absolute", left: `${b[0] * 100}%`, top: `${b[1] * 100}%`, width: `${(b[2] - b[0]) * 100}%`, height: `${(b[3] - b[1]) * 100}%`,
+              border: same(b) ? "3px solid #665A85" : "2px dashed rgba(102,90,133,.55)", background: same(b) ? "rgba(102,90,133,.12)" : "transparent", borderRadius: 4, cursor: "pointer",
+            }}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 /** 4.2 · Room shape & scale */
 export function Measure() {
   const { s, set } = useJourney();
@@ -172,12 +252,13 @@ export function Measure() {
   const W = Math.round(w * k), H = Math.round(l * k);
 
   const setRoom = (patch: Partial<JourneyState["room"]>) => set((x) => ({ room: { ...x.room, ...patch }, layouts: [], chosenLayout: undefined }));
-  const known = ref === "Wall A length" ? s.room.widthM ?? EX_W : ref === "Wall B length" ? s.room.lengthM ?? EX_L : 0.9;
+  const doorM = s.room.doorM ?? 0.9;
+  const known = ref === "Wall A length" ? s.room.widthM ?? EX_W : ref === "Wall B length" ? s.room.lengthM ?? EX_L : doorM;
   const setKnown = (v: number) => {
     if (!v || v <= 0) return;
     if (ref === "Wall A length") setRoom({ lengthM: +(v * (l / w)).toFixed(2), widthM: v, confirmed: true });
     else if (ref === "Wall B length") setRoom({ widthM: +(v * (w / l)).toFixed(2), lengthM: v, confirmed: true });
-    else setRoom({ widthM: +((w * v) / 0.9).toFixed(2), lengthM: +((l * v) / 0.9).toFixed(2), confirmed: true });
+    else setRoom({ widthM: +((w * v) / doorM).toFixed(2), lengthM: +((l * v) / doorM).toFixed(2), doorM: v, confirmed: true });
   };
   const addTool = (kind: FixedKind) =>
     set((x) => {
@@ -212,7 +293,11 @@ export function Measure() {
           Check the shape, place what's fixed
         </h1>
         <p className="sub" style={{ fontSize: "19px" }}>
-          {s.room.input === "plan" ? "We traced your plan. Drag the features you counted onto the right walls." : "Here's your room's shape. Type its sizes and drag the features you counted onto the right walls."}
+          {s.room.input === "plan"
+            ? s.room.planRead
+              ? `We measured your plan and put ${s.room.planRead.doors} door${s.room.planRead.doors === 1 ? "" : "s"} and ${s.room.planRead.windows} window${s.room.planRead.windows === 1 ? "" : "s"} on its walls. Check them, then type one real measurement.`
+              : "We traced your plan. Drag the features you counted onto the right walls."
+            : "Here's your room's shape. Type its sizes and drag the features you counted onto the right walls."}
         </p>
       </div>
       <div className="split" style={{ marginTop: "32px" }}>
@@ -227,10 +312,10 @@ export function Measure() {
                 <span className="wl" style={{ left: "-54px", top: "45%" }}>D</span>
               </div>
               <span className="dim" style={{ left: "50%", top: `${Math.max(8, 330 - (H + 20) / 2 - 41)}px`, transform: "translateX(-50%)" }}>
-                {m(w)} m{example ? " · example" : ""}
+                {m(w)} m{example ? (s.room.planRead?.guessM ? " · from plan" : " · example") : ""}
               </span>
               <span className="dim" style={{ right: `calc(50% - ${(W + 20) / 2 + 110}px)`, top: "50%", transform: "translateY(-50%) rotate(90deg)" }}>
-                {m(l)} m{example ? " · example" : ""}
+                {m(l)} m{example ? (s.room.planRead?.guessM ? " · from plan" : " · example") : ""}
               </span>
             </div>
             {current && <span className="pin">Place {placementLabel(current, pl).toLowerCase()}</span>}
@@ -297,7 +382,11 @@ export function Measure() {
               </div>
             </div>
             <p className="small" style={{ margin: "0" }}>
-              {example ? "Sizes shown are examples until you confirm them." : "Sizes confirmed — layouts use them."}
+              {example
+                ? s.room.planRead?.guessM
+                  ? `Measured from your plan's door width. Type one real length above to make it exact.`
+                  : "Sizes shown are examples until you confirm them."
+                : "Sizes confirmed — layouts use them."}
             </p>
             <hr className="divider" />
             <h2 className="h3">Fixed features</h2>
@@ -332,6 +421,7 @@ export function Measure() {
           </div>
         </aside>
       </div>
+      {s.room.input === "plan" && s.room.planImage && s.room.planRead && s.room.planRead.rooms.length > 1 && <PlanRoomPicker />}
       {s.room.input === "photos" && s.room.wallPhotos.length > 0 && (
         <div className="row" style={{ marginTop: "20px", gap: "10px" }}>
           {s.room.wallPhotos.map((src) => (
