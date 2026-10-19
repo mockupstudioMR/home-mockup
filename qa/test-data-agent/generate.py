@@ -193,7 +193,15 @@ def story(person, project, rooms):
     trigger = random.Random(p["name"] + p["city"]).choice(P.TRIGGERS[project["intent"]])
     room_names = ", ".join(O.ROOMS[r].lower() for r in project["rooms"])
     tested = ", ".join(O.ROOMS[r["room"]].lower() for r in rooms)
-    styles = "; ".join(f"for the {O.ROOMS[r['room']].lower()} {pre(r)}" for r in rooms)
+    by_style = {}
+    for r in rooms:  # group rooms that share a style, so the story says it once
+        by_style.setdefault(r["style"], []).append(r)
+    parts = []
+    for st, rs in by_style.items():
+        names = ", ".join(O.ROOMS[r["room"]].lower() for r in rs)
+        how = "; ".join(f"{O.ROOMS[r['room']].lower()}: {HOW[r['visionMode']](r)}" for r in rs) if len(rs) > 1 else HOW[rs[0]["visionMode"]](rs[0])
+        parts.append(f"for the {names} {p['name']} {P.STYLE_STORIES[st]} ({how})")
+    styles = "; ".join(parts)
     s = (f"{p['name']} {p['initial']}. is based in {p['city']}, {p['country']} and {p['household']}{pet}. "
          f"{p['name']} {p['job']} and {trigger}. "
          f"State of the {O.PROPERTIES[project['propertyType']].lower()}: {O.HOUSE_STATES[project['houseState']].lower()}"
@@ -204,10 +212,12 @@ def story(person, project, rooms):
     return s
 
 
-def pre(r):
-    t = P.STYLE_STORIES[r["style"]]
-    return {"upload": f"{t} and uploads {len(r['photos']) or 'a few'} photos", "describe": f"{t} and describes it in words",
-            "discover": f"{t} but starts from Discover ({', '.join(r['discoverPicks'])})"}[r["visionMode"]]
+HOW = {
+    "upload": lambda r: f"uploads {len(r['photos']) or 'a few'} photos",
+    "describe": lambda r: "describes it in words",
+    "discover": lambda r: f"starts from Discover: {', '.join(r['discoverPicks'])}",
+}
+
 
 
 def readme(case_id, person, project, plan, rooms):
@@ -243,7 +253,7 @@ def readme(case_id, person, project, plan, rooms):
             if r["photos"]:
                 L.append(f"- Upload these {len(r['photos'])} photos from `{r['photoFolder']}/`: " + ", ".join(f"[{x['file']}]({r['photoFolder']}/{x['file']})" for x in r["photos"]))
             else:
-                L.append(f"- Photos: none downloaded yet — run without --offline (folder `{r.get('photoFolder')}/`)")
+                L.append(f"- Photos: still to add — upload 3–7 photos of a {r['style']} {O.ROOMS[r['room']].lower()} (folder `{r.get('photoFolder')}/`)")
         if r["discoverPicks"]:
             L.append(f"- Pick: **{', '.join(r['discoverPicks'])}**")
         if r["note"]:
