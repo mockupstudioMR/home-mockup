@@ -17,11 +17,8 @@ export function stepLine(s: JourneyState, step: number): string {
       return `${s.moodboard?.name ?? "Your"}${short ? `, ${short}` : " direction"}`;
     }
     case 3: {
-      const acts = s.activities.slice(0, 1);
-      const special = s.priorities.find((p) => /^Space to |^A |^Room to |^Clear /.test(p));
-      const what = [acts[0], special ? special.replace(/^Space to play the /, "").replace(/^(Space to|A|Room to|Clear) /, "") : null].filter(Boolean).join(" + ");
-      const keep = s.keeping.length ? `keeping the ${list(s.keeping.map((k) => k.name.toLowerCase().replace(/^upright /, "")))}` : "nothing kept";
-      return `${what || "Everyday life"}, ${keep}`;
+      const acts = s.activities.slice(0, 2);
+      return acts.length ? list(acts) : "Everyday life";
     }
     case 4: {
       const w = (s.room.widthM ?? 3.75).toFixed(2), l = (s.room.lengthM ?? 4.9).toFixed(2);
@@ -29,9 +26,10 @@ export function stepLine(s: JourneyState, step: number): string {
     }
     case 5: {
       const a = s.anchor;
-      if (!a) return "Main piece not chosen";
+      if (!a) return s.keeping.length ? `Keeping the ${list(s.keeping.map((k) => k.name.toLowerCase().replace(/^upright /, "")))}` : "Main piece not chosen";
       const colour = (a.material ?? "").split(" ")[0];
-      return `${a.shape} ${colour && colour !== a.material ? colour + " " : ""}${a.kind}`;
+      const keep = s.keeping.length ? `, keeping the ${list(s.keeping.map((k) => k.name.toLowerCase().replace(/^upright /, "")))}` : "";
+      return `${a.shape} ${colour && colour !== a.material ? colour + " " : ""}${a.kind}${keep}`;
     }
     case 6: {
       const n = s.moodboard?.palette.length ?? 0;

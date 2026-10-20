@@ -1,7 +1,7 @@
 import type { ComponentType } from "react";
 import type { ScreenId } from "../routes";
 import { Brief, Place, Rooms, StartRoom, StateOfPlace, WhoAreYou, Why } from "./Step1";
-import { Activities, Existing, Fixed, Priorities, Step3Summary } from "./Step3";
+import { Activities, Existing, Fixed, Step3Summary } from "./Step3";
 import { Layouts, Measure, RoomInput, Step4Summary } from "./Step4";
 import { Anchor, Shops, Step5Summary } from "./Step5";
 import { Lighting, Palette, Step6Summary, Step7Summary } from "./Step67";
@@ -26,7 +26,6 @@ export const SCREEN_COMPONENTS: Partial<Record<ScreenId, ComponentType<any>>> = 
   "S2-Preview": Preview,
   "S2-Summary": Step2Summary,
   "S3-Activities": Activities,
-  "S3-Priorities": Priorities,
   "S3-Existing": Existing,
   "S3-Fixed": Fixed,
   "S3-Summary": Step3Summary,

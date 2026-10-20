@@ -107,13 +107,8 @@
    "role": "user",
    "seed": "journey-state.json"
   },
-  "S3-Priorities": {
-   "route": "/journey/3/priorities",
-   "role": "user",
-   "seed": "journey-state.json"
-  },
   "S3-Existing": {
-   "route": "/journey/3/existing",
+   "route": "/journey/5/keeping",
    "role": "user",
    "seed": "journey-state.json"
   },

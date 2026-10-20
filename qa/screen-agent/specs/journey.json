@@ -1472,89 +1472,21 @@
     "must": true
    },
    {
-    "text": "Continue · 3 selected",
+    "text": "Finish step 3 · 3 selected",
     "kind": "button",
     "must": true,
-    "match": "Continue · \\d+ selected"
+    "match": "Finish step 3 · \\d+ selected"
    }
   ],
   "design": "designs/journey/S3-Activities.jpg"
  },
  {
-  "board": "S3-Priorities",
-  "title": "3.2 · Top priorities",
-  "page": "Top priorities",
-  "items": [
-   {
-    "text": "Step 3 of 10",
-    "kind": "progress",
-    "must": true
-   },
-   {
-    "text": "Save & exit",
-    "kind": "button",
-    "must": true
-   },
-   {
-    "text": "Design around your everyday life",
-    "kind": "eyebrow",
-    "must": true
-   },
-   {
-    "text": "What matters most?",
-    "kind": "title",
-    "must": true
-   },
-   {
-    "text": "Comfortable seating Deep seats, room to stretch out 1",
-    "kind": "control",
-    "must": false
-   },
-   {
-    "text": "Space to play the piano Bench room, good light, no glare 2",
-    "kind": "control",
-    "must": false
-   },
-   {
-    "text": "Seats for guests Enough places for 6+ people",
-    "kind": "control",
-    "must": false
-   },
-   {
-    "text": "Lots of storage Books, records, the everyday stuff",
-    "kind": "control",
-    "must": false
-   },
-   {
-    "text": "Calm, clutter-free Fewer, bigger pieces",
-    "kind": "control",
-    "must": false
-   },
-   {
-    "text": "Easy to keep clean Kids, pets, wipeable fabrics",
-    "kind": "control",
-    "must": false
-   },
-   {
-    "text": "Back",
-    "kind": "button",
-    "must": true
-   },
-   {
-    "text": "Continue",
-    "kind": "button",
-    "must": true
-   }
-  ],
-  "design": "designs/journey/S3-Priorities.jpg"
- },
- {
   "board": "S3-Existing",
-  "title": "3.3 · Pieces you're keeping",
+  "title": "5.1 · Pieces you're keeping",
   "page": "Pieces you're keeping",
   "items": [
    {
-    "text": "Step 3 of 10",
+    "text": "Step 5 of 10",
     "kind": "progress",
     "must": true
    },
@@ -1564,7 +1496,7 @@
     "must": true
    },
    {
-    "text": "Design around your everyday life",
+    "text": "Before we look for new pieces",
     "kind": "eyebrow",
     "must": true
    },
@@ -1699,7 +1631,7 @@
     "must": true
    },
    {
-    "text": "Continue",
+    "text": "Next: find new pieces",
     "kind": "button",
     "must": true
    }
@@ -1816,7 +1748,7 @@
  },
  {
   "board": "S3-Summary",
-  "title": "3.5 · Step 3 summary",
+  "title": "3.2 · Step 3 summary",
   "page": "Step 3 summary",
   "items": [
    {

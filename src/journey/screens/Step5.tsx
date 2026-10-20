@@ -266,7 +266,7 @@ export function Shops() {
         </div>
       </section>
       <div className="actions">
-        <Back to="S4-Summary" />
+        <Back to="S3-Existing" />
         <Go className="btn auto" to="S5-Anchor" style={{ marginLeft: "auto" }}>
           Show me furniture
           <I.next />
@@ -638,13 +638,32 @@ export function Step5Summary() {
     <StepSummary
       step={5}
       board="S5-Summary"
-      sub="The room has its anchor. Next we build the colours and materials around it."
+      sub="We know what you're keeping and the room has its anchor. Next we build the colours and materials around it."
       media={
         <div className="ph" style={{ margin: "18px 0 8px", aspectRatio: "16/9" }}>
           {a?.images[a.shape] && <img className="img" src={a.images[a.shape]} alt={`${label} on wall ${wallOf(s) ?? "A"}`} />}
         </div>
       }
       decisions={[
+        {
+          k: "Keeping",
+          v: s.keeping.length ? (
+            <>
+              {s.keeping.map((k, i) => (
+                <span key={k.id}>
+                  {i ? "; " : ""}
+                  <b>{k.name}</b>
+                  {k.extraLabel ? ` + ${k.extraLabel.toLowerCase()}` : ""} · {k.measured ? "measured" : "standard"} {dims(k)} cm · wall {k.wall ?? "B"} · {k.fixedSpot ? "fixed spot" : "may move"}
+                  {k.photos.length ? ` · ${k.photos.length} photo${k.photos.length > 1 ? "s" : ""}` : ""}{" "}
+                  {!k.measured && <span className="tag tbc">Not measured</span>}
+                </span>
+              ))}
+            </>
+          ) : (
+            "Nothing — everything is new"
+          ),
+          edit: "S3-Existing",
+        },
         {
           k: "Main piece",
           v: (
@@ -677,7 +696,11 @@ export function Step5Summary() {
           ),
         },
       ]}
-      open={[`Final ${a?.kind ?? "sofa"} size, once the room is measured`, "Doors, stairs and lift for delivery"]}
+      open={[
+        ...s.keeping.filter((k) => !k.measured).map((k) => `Measure the ${k.name.toLowerCase().replace(/^upright /, "")}${k.extraLabel ? ` and ${k.extraLabel.split(" ")[0].toLowerCase()}` : ""}`),
+        `Final ${a?.kind ?? "sofa"} size, once the room is measured`,
+        "Doors, stairs and lift for delivery",
+      ]}
       soFar={soFar(s, 5)}
       back="S5-Anchor"
       next="S6-Palette"

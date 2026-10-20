@@ -2,7 +2,7 @@
 export type ScreenId =
   | "Main" | "S1-Why" | "S1-Place" | "S1-Rooms" | "S1-Start" | "S1-State" | "S1-Summary"
   | "S2-Vision" | "S2-Upload" | "S2-Analyzing" | "S2-Matches" | "S2-Moodboard" | "S2-Preview" | "S2-Summary"
-  | "S3-Activities" | "S3-Priorities" | "S3-Existing" | "S3-Fixed" | "S3-Summary"
+  | "S3-Activities" | "S3-Existing" | "S3-Fixed" | "S3-Summary"
   | "S4-Input" | "S4-Measure" | "S4-Layouts" | "S4-Summary"
   | "S5-Shops" | "S5-Anchor" | "S5-Summary" | "S6-Palette" | "S6-Summary" | "S7-Lighting" | "S7-Summary"
   | "S8-Walls" | "S8-WallDetail" | "S8-Summary" | "S9-BuyList" | "S9-Sizes" | "S9-Todo" | "S9-Summary" | "S10-Final";
@@ -23,14 +23,13 @@ export const SCREENS: { id: ScreenId; path: string; step: number }[] = [
   { id: "S2-Preview", path: "2/preview", step: 2 },
   { id: "S2-Summary", path: "2/summary", step: 2 },
   { id: "S3-Activities", path: "3/activities", step: 3 },
-  { id: "S3-Priorities", path: "3/priorities", step: 3 },
-  { id: "S3-Existing", path: "3/existing", step: 3 },
   { id: "S3-Summary", path: "3/summary", step: 3 },
   { id: "S4-Input", path: "4/input", step: 4 },
   { id: "S4-Measure", path: "4/measure", step: 4 },
   { id: "S3-Fixed", path: "4/fixed", step: 4 },
   { id: "S4-Layouts", path: "4/layouts", step: 4 },
   { id: "S4-Summary", path: "4/summary", step: 4 },
+  { id: "S3-Existing", path: "5/keeping", step: 5 },
   { id: "S5-Shops", path: "5/shops", step: 5 },
   { id: "S5-Anchor", path: "5/anchor", step: 5 },
   { id: "S5-Summary", path: "5/summary", step: 5 },
@@ -55,6 +54,8 @@ export function screenFor(rest: string): { id: ScreenId; param?: string } | null
   const clean = rest.replace(/^\/+|\/+$/g, "");
   const exact = SCREENS.find((s) => s.path === clean);
   if (exact) return { id: exact.id };
+  if (clean === "3/existing") return { id: "S3-Existing" }; // "What are you keeping?" moved to the start of step 5
+  if (clean === "3/priorities") return { id: "S3-Activities" }; // "What matters most?" was removed
   if (clean === "2/adjust") return { id: "S2-Preview" }; // "What should change?" is now part of the preview
   if (clean === "3/fixed") return { id: "S3-Fixed" }; // old address: "what can't move" moved after the floor plan
   const wall = /^8\/wall\/([A-Za-z0-9]+)$/.exec(clean);

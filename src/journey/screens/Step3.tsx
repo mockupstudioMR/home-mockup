@@ -98,7 +98,7 @@ export function Activities() {
   };
   const n = s.activities.length;
   return (
-    <Screen board="S3-Activities" step={3} right="Question 1 of 3">
+    <Screen board="S3-Activities" step={3} right={roomName(curRoom(s))}>
       <p className="eyebrow">Design around your everyday life</p>
       <h1 className="h1">What happens in this room?</h1>
       <p className="sub">Pick everything you do here. Do you play an instrument, paint or work from the sofa? Add it.</p>
@@ -126,86 +126,17 @@ export function Activities() {
       </div>
       <div className="actions">
         <Back to="S2-Preview" />
-        <Go className={`btn auto${n ? "" : " dis"}`} to="S3-Priorities" style={{ marginLeft: "auto" }} onClick={() => n > 0}>
-          Continue · {n} selected
-          <I.next />
-        </Go>
-      </div>
-    </Screen>
-  );
-}
-
-type Prio = { title: string; text: string; icon: () => JSX.Element };
-const BASE_PRIOS: Prio[] = [
-  { title: "Comfortable seating", text: "Deep seats, room to stretch out", icon: ACT_ICON.relax },
-  { title: "Seats for guests", text: "Enough places for 6+ people", icon: ACT_ICON.host },
-  { title: "Lots of storage", text: "Books, records, the everyday stuff", icon: () => <Ic>{p("M3 7l9-4 9 4-9 4zM3 7v10l9 4 9-4V7M12 11v10")}</Ic> },
-  { title: "Calm, clutter-free", text: "Fewer, bigger pieces", icon: ACT_ICON.yoga },
-  { title: "Easy to keep clean", text: "Kids, pets, wipeable fabrics", icon: SCOPE_ICON.water },
-];
-/** Priorities that come from what the person does in the room. */
-function activityPrios(acts: string[]): Prio[] {
-  const out: Prio[] = [];
-  for (const a of acts) {
-    const n = a.toLowerCase();
-    const ins = /piano|guitar|instrument|music/.exec(n);
-    if (ins) out.push({ title: `Space to play the ${n.includes("play ") ? n.replace(/^play (the )?/, "") : "instrument"}`, text: "Bench room, good light, no glare", icon: ACT_ICON.music });
-    else if (/work|study/.test(n)) out.push({ title: "A proper place to work", text: "Desk, daylight and sockets", icon: ACT_ICON.work });
-    else if (/film|tv|movie/.test(n)) out.push({ title: "A great screen setup", text: "TV wall, no glare, good sound", icon: ACT_ICON.films });
-    else if (/read/.test(n)) out.push({ title: "A reading corner", text: "Chair, lamp, shelves in reach", icon: ACT_ICON.read });
-    else if (/paint|craft/.test(n)) out.push({ title: "Room to make things", text: "Table space, storage, wipeable floor", icon: ACT_ICON.craft });
-    else if (/kid/.test(n)) out.push({ title: "Space for the kids", text: "Open floor, safe corners, toy storage", icon: ACT_ICON.kids });
-    else if (/yoga|stretch/.test(n)) out.push({ title: "Clear floor space", text: "A mat-sized spot that stays clear", icon: ACT_ICON.yoga });
-    else if (/eat|dine/.test(n)) out.push({ title: "A place to eat", text: "Table and chairs for everyone", icon: ACT_ICON.eat });
-  }
-  return out;
-}
-
-/** 3.2 · Top priorities */
-export function Priorities() {
-  const { s, set } = useJourney();
-  const prios = useMemo(() => {
-    const extra = activityPrios(s.activities);
-    const out = [BASE_PRIOS[0], ...extra, ...BASE_PRIOS.slice(1)];
-    return out.filter((x, i) => out.findIndex((y) => y.title === x.title) === i);
-  }, [s.activities]);
-  const pick = (t: string) =>
-    set((x) => {
-      if (x.priorities.includes(t)) return { priorities: x.priorities.filter((y) => y !== t) };
-      return { priorities: x.priorities.length >= 2 ? [x.priorities[0], t] : [...x.priorities, t] };
-    });
-  return (
-    <Screen board="S3-Priorities" step={3} right="Question 2 of 3" wrapStyle={{ maxWidth: "1080px" }}>
-      <p className="eyebrow">Design around your everyday life</p>
-      <h1 className="h1">What matters most?</h1>
-      <p className="sub">Choose your top two, in order. When space is tight, these win.</p>
-      <div className="pri">
-        {prios.map((pr) => {
-          const rank = s.priorities.indexOf(pr.title) + 1;
-          const Icon = pr.icon;
-          return (
-            <button key={pr.title} className={`pr${rank ? " on" : ""}`} type="button" aria-pressed={!!rank} onClick={() => pick(pr.title)}>
-              <span className="ic-w">
-                <Icon />
-              </span>
-              <span>
-                {pr.title}
-                <small>{pr.text}</small>
-              </span>
-              <span className="rk" aria-hidden={!rank}>
-                {rank || ""}
-              </span>
-            </button>
-          );
-        })}
-      </div>
-      <p className="small" style={{ marginTop: "20px" }}>
-        {s.priorities.length} of 2 chosen · tap a chosen one to remove it.
-      </p>
-      <div className="actions">
-        <Back to="S3-Activities" />
-        <Go className="btn auto" to="S3-Existing" style={{ marginLeft: "auto" }}>
-          Continue
+        <Go
+          className={`btn auto${n ? "" : " dis"}`}
+          to="S3-Summary"
+          style={{ marginLeft: "auto" }}
+          onClick={() => {
+            if (!n) return false;
+            set((x) => ({ done: Array.from(new Set([...x.done, 3])) }));
+            void saveStepDone(s, 3);
+          }}
+        >
+          Finish step 3 · {n} selected
           <I.next />
         </Go>
       </div>
@@ -454,7 +385,7 @@ function KeepPanel({ item, update, remove, s }: { item: KeepItem; update: (k: Pa
             ))}
           </div>
           <p className="small" style={{ margin: "0" }}>
-            Drag the pin. A rough spot is fine — you'll fine-tune it on your real plan in Step 4.
+            Drag the pin onto the wall it stands against. A rough spot is fine.
           </p>
         </div>
       </div>
@@ -462,7 +393,7 @@ function KeepPanel({ item, update, remove, s }: { item: KeepItem; update: (k: Pa
   );
 }
 
-/** 3.3 · Pieces you're keeping */
+/** 5.1 · Pieces you're keeping — asked before we look for new furniture. */
 export function Existing() {
   const { s, set } = useJourney();
   const { toast } = useToast();
@@ -488,11 +419,11 @@ export function Existing() {
     }
   };
   return (
-    <Screen board="S3-Existing" step={3} right="Question 3 of 3" wrapStyle={{ maxWidth: "1240px" }}>
-      <p className="eyebrow">Design around your everyday life</p>
+    <Screen board="S3-Existing" step={5} right={roomName(curRoom(s))} wrapStyle={{ maxWidth: "1240px" }}>
+      <p className="eyebrow">Before we look for new pieces</p>
       <h1 className="h1">What are you keeping?</h1>
       <p className="sub">
-        Pieces marked <b style={{ color: "#3B3350" }}>Keep</b> become requirements. Snap a photo and show us where it is — the design has to make room for it.
+        Tell us what stays, so we only suggest what's missing. Snap a photo and show us where it stands — new pieces have to make room for it.
       </p>
       {s.keeping.map((it) => (
         <KeepPanel key={it.id} item={it} s={s} update={update(it.id)} remove={() => set((x) => ({ keeping: x.keeping.filter((i) => i.id !== it.id) }))} />
@@ -511,27 +442,12 @@ export function Existing() {
         <input ref={snap} type="file" accept="image/*" capture="environment" hidden onChange={(e) => void snapIt(e.target.files)} />
       </div>
       <div className="actions">
-        <Back to="S3-Priorities" />
-        <Go
-          className="link-btn"
-          to="S3-Summary"
-          style={{ marginLeft: "auto" }}
-          onClick={() => {
-            set((x) => ({ keeping: [], nothingKept: true, done: Array.from(new Set([...x.done, 3])) }));
-            void saveStepDone(s, 3);
-          }}
-        >
+        <Back to="S4-Summary" />
+        <Go className="link-btn" to="S5-Shops" style={{ marginLeft: "auto" }} onClick={() => void set({ keeping: [], nothingKept: true })}>
           I'm not keeping anything
         </Go>
-        <Go
-          className="btn auto"
-          to="S3-Summary"
-          onClick={() => {
-            set((x) => ({ done: Array.from(new Set([...x.done, 3])) }));
-            void saveStepDone(s, 3);
-          }}
-        >
-          Finish step 3
+        <Go className="btn auto" to="S5-Shops">
+          Next: find new pieces
           <I.next />
         </Go>
       </div>
@@ -835,60 +751,24 @@ export function fixedLine(s: JourneyState) {
   return out.join(" · ") || "Nothing fixed";
 }
 
-/** 3.5 · Step 3 summary */
+/** 3.2 · Step 3 summary */
 export function Step3Summary() {
   const { s } = useJourney();
   const open = [
-    ...s.keeping.filter((k) => !k.measured).map((k) => `Measure the ${k.name.toLowerCase().replace(/^upright /, "")}${k.extraLabel ? ` and ${k.extraLabel.split(" ")[0].toLowerCase()}` : ""}`),
     ...s.placements.filter((x) => !x.photo && x.kind === "panels").map(() => "Photo of the fuse box & meters"),
   ];
   return (
     <StepSummary
       step={3}
       board="S3-Summary"
-      sub="We know how you live in the room and what you're keeping. Next: your floor plan, and what can't move."
+      sub="We know how you live in the room. Next: your floor plan, and what can't move."
       decWrap
       decisions={[
         { k: "Activities", v: s.activities.join(" · ") || "None picked", edit: "S3-Activities" },
-        {
-          k: "Top priorities",
-          v: s.priorities.length ? (
-            <>
-              {s.priorities.map((x, i) => (
-                <span key={x}>
-                  {i ? " " : ""}
-                  <b>{i + 1}.</b> {x}
-                </span>
-              ))}
-            </>
-          ) : (
-            "Not chosen"
-          ),
-          edit: "S3-Priorities",
-        },
-        {
-          k: "Keeping",
-          v: s.keeping.length ? (
-            <>
-              {s.keeping.map((k, i) => (
-                <span key={k.id}>
-                  {i ? "; " : ""}
-                  <b>{k.name}</b>
-                  {k.extraLabel ? ` + ${k.extraLabel.toLowerCase()}` : ""} · {k.measured ? "measured" : "standard"} {dims(k)} cm · wall {k.wall ?? "B"} · {k.fixedSpot ? "fixed spot" : "may move"}
-                  {k.photos.length ? ` · ${k.photos.length} photo${k.photos.length > 1 ? "s" : ""}` : ""}{" "}
-                  {!k.measured && <span className="tag tbc">Not measured</span>}
-                </span>
-              ))}
-            </>
-          ) : (
-            "Nothing — everything is new"
-          ),
-          edit: "S3-Existing",
-        },
       ]}
       open={open}
       soFar={soFar(s, 3)}
-      back="S3-Existing"
+      back="S3-Activities"
       next="S4-Input"
     />
   );

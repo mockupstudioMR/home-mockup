@@ -28,7 +28,7 @@
   },
   "S3-Activities": {
    "match": {
-    "Continue · 3 selected": "Continue · \\d+ selected"
+    "Finish step 3 · 3 selected": "Finish step 3 · \\d+ selected"
    }
   },
   "S3-Existing": {
