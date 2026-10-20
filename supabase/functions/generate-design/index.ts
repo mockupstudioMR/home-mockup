@@ -574,9 +574,20 @@ Deno.serve(async (req) => {
         console.error(`AI gateway error body: ${errorText.slice(0, 1000)}`);
         
         if (response.status >= 500 && attempt < maxRetries) {
-          addDebug("Retrying", `Server error ${response.status}, waiting ${attempt}s`);
-          await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+          const waitMs = 3000 * attempt + Math.random() * 1500;
+          addDebug("Retrying", `Server error ${response.status}, waiting ${Math.round(waitMs / 1000)}s`);
+          await new Promise(resolve => setTimeout(resolve, waitMs));
           continue;
+        }
+        if (response.status >= 500) {
+          return new Response(
+            JSON.stringify({
+              error: "The image service is busy right now. Please wait a minute and try again.",
+              retryable: true,
+              debugSteps,
+            }),
+            { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
         }
         throw new Error(`AI gateway error: ${response.status}`);
       }
