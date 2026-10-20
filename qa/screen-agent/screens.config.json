@@ -97,11 +97,6 @@
    "role": "user",
    "seed": "journey-state.json"
   },
-  "S2-Adjust": {
-   "route": "/journey/2/adjust",
-   "role": "user",
-   "seed": "journey-state.json"
-  },
   "S2-Summary": {
    "route": "/journey/2/summary",
    "role": "user",

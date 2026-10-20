@@ -1,11 +1,11 @@
 /** Step 2 — Inspiration & moodboard: how to share a style, photos, reading them, style matches, moodboard, one preview, adjusting it, summary. */
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Back, Go, Opt, Screen, useGo } from "../Shell";
-import { I, Ic, SCOPE_ICON } from "../icons";
+import { I, Ic } from "../icons";
 import { roomName } from "../data";
 import { stepLine } from "../story";
-import { curRoom, uid, useJourney, type JourneyState, type ReadKey, type StyleMatch } from "../state";
+import { curRoom, uid, useJourney, type JourneyState, type StyleMatch } from "../state";
 import { StepSummary } from "../Summary";
 import { analyzeStyles, blendName, findStylePieces, generatePreview, paletteFrom, readDesign, uploadPhoto } from "../services";
 import { saveStepDone } from "../sync";
@@ -279,9 +279,10 @@ export function Analyzing() {
             };
           }),
         );
-        set({ styles, analysis: { colors: r.colors, cues: r.cues, materials: r.materials, description: r.description } });
+        const analysis = { colors: r.colors, cues: r.cues, materials: r.materials, description: r.description };
+        set((x) => ({ analysis, ...moodboardFrom({ ...x, analysis }, styles) }));
         setPct(100);
-        setTimeout(() => go("S2-Matches"), 500);
+        setTimeout(() => go("S2-Moodboard"), 500);
       } catch (e) {
         setErr((e as Error).message);
         toast({ title: "We couldn't read your references", description: (e as Error).message, variant: "destructive" });
@@ -347,7 +348,7 @@ export function Analyzing() {
         ) : (
           <>
             This usually takes under 20 seconds.{" "}
-            {s.styles.length > 0 && <Go to="S2-Matches">See results</Go>}
+            {s.moodboard && s.styles.length > 0 && <Go to="S2-Moodboard">See your moodboard</Go>}
           </>
         )}
       </p>
@@ -355,7 +356,36 @@ export function Analyzing() {
   );
 }
 
-/** 2.4 · Style matches */
+/**
+ * The moodboard from the styles we found. With photos there is no separate "Style matches" screen any more: the
+ * strongest style's words and pieces are picked for the person, and they adjust the result on the moodboard.
+ */
+function moodboardFrom(s: JourneyState, styles: StyleMatch[]): Pick<JourneyState, "styles" | "moodboard" | "preview"> {
+  const anyPicked = styles.some((st) => st.keywords.some((k) => k.on) || st.pieces.some((p) => p.added));
+  const ranked = [...styles].sort((a, b) => b.score - a.score);
+  const picked = anyPicked
+    ? styles
+    : styles.map((st) =>
+        ranked.indexOf(st) === 0 || (ranked.indexOf(st) === 1 && st.score >= 30)
+          ? { ...st, keywords: st.keywords.map((k, i) => ({ ...k, on: i < (ranked.indexOf(st) === 0 ? 5 : 2) })), pieces: st.pieces.map((p, i) => ({ ...p, added: i < 2 })) }
+          : st,
+      );
+  const words = picked.flatMap((st) => st.keywords.filter((k) => k.on));
+  const colors = s.analysis?.colors?.length ? s.analysis.colors : ["#5B2E45", "#2F5B4A", "#4A3022", "#B4975A", "#6B6862"];
+  return {
+    styles: picked,
+    moodboard: {
+      name: blendName(picked.filter((st) => st.keywords.some((k) => k.on) || st.pieces.some((p) => p.added))),
+      description: s.analysis?.description,
+      image: s.moodboard?.image,
+      palette: paletteFrom(colors),
+      feels: words.map((w) => w.word).slice(0, 8),
+    },
+    preview: undefined,
+  };
+}
+
+/** 2.4 · Discover styles — only for people without photos ("Just show me styles"). */
 export function Matches() {
   const { s, set } = useJourney();
   const { toast } = useToast();
@@ -391,18 +421,7 @@ export function Matches() {
   };
 
   const create = () => {
-    const top = [...s.styles].sort((a, b) => b.score - a.score);
-    const colors = s.analysis?.colors?.length ? s.analysis.colors : ["#5B2E45", "#2F5B4A", "#4A3022", "#B4975A", "#6B6862"];
-    set({
-      moodboard: {
-        name: blendName(top.filter((st) => st.keywords.some((k) => k.on) || st.pieces.some((p) => p.added))),
-        description: s.analysis?.description,
-        image: s.moodboard?.image,
-        palette: paletteFrom(colors),
-        feels: words.map((w) => w.word).slice(0, 8),
-      },
-      preview: undefined,
-    });
+    set(moodboardFrom(s, s.styles));
     return true;
   };
 
@@ -626,7 +645,7 @@ export function Moodboard() {
           </div>
         </div>
         <div className="actions">
-          <Go className="btn ghost auto" to="S2-Matches">
+          <Go className="btn ghost auto" to={s.visionMode === "discover" ? "S2-Matches" : "S2-Upload"}>
             Back
           </Go>
           <Go className="btn auto" to="S2-Preview" style={{ marginLeft: "auto" }}>
@@ -673,29 +692,38 @@ function usePreview() {
   return { busy, v };
 }
 
-const PART: Record<ReadKey, { title: string; icon: () => JSX.Element; n: number }> = {
-  finishes: { title: "Interior finishes", icon: SCOPE_ICON.walls, n: 1 },
-  furniture: { title: "Furniture", icon: SCOPE_ICON.furniture, n: 2 },
-  colours: {
-    title: "Colours, contrast & materials",
-    n: 3,
-    icon: () => (
-      <Ic>
-        <path d="M12 3a9 9 0 1 0 0 18c1.1 0 1.6-.8 1.6-1.6 0-.9-.6-1.3-.6-2.2 0-1 .8-1.7 1.8-1.7H17a4 4 0 0 0 4-4c0-4.7-4-8.5-9-8.5z" />
-        <circle cx="7.5" cy="11" r="1" />
-        <circle cx="10" cy="7" r="1" />
-        <circle cx="15" cy="7.5" r="1" />
-      </Ic>
-    ),
-  },
-  decor: { title: "Decor", n: 4, icon: () => <Ic><path d="M5 19c0-9 6-14 15-14 0 9-5 15-14 15M5 19l7-7" /></Ic> },
-  lighting: { title: "Lighting", icon: SCOPE_ICON.lighting, n: 5 },
-};
-
 /** 2.6 · One preview — keep or adjust */
 export function Preview() {
   const { s, set } = useJourney();
+  const { toast } = useToast();
   const { busy, v } = usePreview();
+  const [req, setReq] = useState("");
+  const [making, setMaking] = useState(false);
+  const pv = s.preview;
+  /** "Adjust it" happens right here: the request makes a new version, the old ones stay to go back to. */
+  const update = async (e: FormEvent) => {
+    e.preventDefault();
+    const change = req.trim();
+    if (!v || !change) {
+      toast({ title: "Say what should change first" });
+      return;
+    }
+    setMaking(true);
+    try {
+      const img = await generatePreview(s, { sourceImage: v.image, change });
+      set((p) => {
+        const versions = [...(p.preview?.versions ?? []), { id: uid(), image: img, request: change, createdAt: new Date().toISOString() }];
+        return { preview: { ...(p.preview ?? { versions: [], current: 0 }), versions, current: versions.length - 1, read: undefined, readOf: undefined } };
+      });
+      setReq("");
+      const read = await readDesign(img, s.moodboard?.name);
+      set((p) => ({ preview: { ...p.preview!, read, readOf: img } }));
+    } catch (err) {
+      toast({ title: "The preview couldn't be updated", description: (err as Error).message, variant: "destructive" });
+    } finally {
+      setMaking(false);
+    }
+  };
   const items = (s.preview?.read ?? []).flatMap((p) => (p.key === "furniture" ? p.keywords.slice(0, 2) : p.key === "colours" ? p.keywords.slice(0, 2) : p.keywords.slice(0, 1))).slice(0, 6);
   const n = (s.preview?.current ?? 0) + 1;
   return (
@@ -753,204 +781,45 @@ export function Preview() {
             <span className="p">Go straight to how you use the room and its layout.</span>
           </span>
         </Go>
-        <Go className="dc" to="S2-Adjust" onClick={() => !!v}>
+        <form className="dc" onSubmit={(e) => void update(e)}>
           <span className="tile">
             <Ic>
               <path d="M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16zM13 20h7" />
             </Ic>
           </span>
-          <span className="stack" style={{ gap: "6px" }}>
-            <span className="h3">Adjust it</span>
-            <span className="p">Say what to change — “lighter walls, but keep the sofa.”</span>
+          <span className="stack" style={{ gap: "10px", flex: 1, minWidth: 0 }}>
+            <label className="h3" htmlFor="adjust">
+              Adjust it
+            </label>
+            <input id="adjust" className="input" value={req} placeholder="e.g. lighter walls, but keep the sofa" onChange={(e) => setReq(e.target.value)} disabled={making} />
+            <button className={`btn ghost auto${making || !v ? " dis" : ""}`} type="submit" disabled={making || !v} style={{ alignSelf: "flex-start" }}>
+              <I.repeat />
+              {making ? "Updating… about a minute" : "Update preview"}
+            </button>
           </span>
-        </Go>
+        </form>
       </div>
+      {pv && pv.versions.length > 1 && (
+        <div className="row" style={{ marginTop: "20px", gap: "12px" }}>
+          <span className="lbl">Versions</span>
+          {pv.versions.map((ver, i) => (
+            <button
+              key={ver.id}
+              type="button"
+              aria-pressed={i === pv.current}
+              aria-label={`Version ${i + 1}${ver.request ? `: ${ver.request}` : ""}`}
+              onClick={() => set((p) => ({ preview: { ...p.preview!, current: i, read: undefined, readOf: undefined } }))}
+              style={{ width: "96px", height: "64px", padding: 0, borderRadius: "12px", overflow: "hidden", border: `2px solid ${i === pv.current ? "#665A85" : "transparent"}`, background: "none", position: "relative", cursor: "pointer" }}
+            >
+              <img className="img" src={ver.image} alt="" style={{ borderRadius: 0 }} />
+              <span style={{ position: "absolute", left: "6px", bottom: "6px", fontSize: "12px", fontWeight: 700, background: "rgba(251,248,246,.92)", padding: "2px 8px", borderRadius: "8px" }}>V{i + 1}</span>
+            </button>
+          ))}
+        </div>
+      )}
       <div className="actions" style={{ marginTop: "28px" }}>
         <Back to="S2-Moodboard" label="Back to moodboard" />
       </div>
-    </Screen>
-  );
-}
-
-/** The change request, built from what is kept and what changes. */
-function buildRequest(read: { key: ReadKey; keywords: string[] }[], changes: Partial<Record<ReadKey, string>>) {
-  const changed = (Object.entries(changes) as [ReadKey, string][]).filter(([, t]) => t?.trim()).map(([, t]) => t.trim().replace(/\.$/, ""));
-  const keep = read.filter((p) => changes[p.key] == null).flatMap((p) => p.keywords.slice(0, 1)).map((k) => `the ${k.toLowerCase()}`);
-  const parts = [...changed];
-  if (keep.length) parts.push(`Keep ${keep.length > 1 ? `${keep.slice(0, -1).join(", ")} and ${keep[keep.length - 1]}` : keep[0]}`);
-  return parts.length ? `${parts.join(". ")}.` : "";
-}
-
-/** 2.7 · What should change? */
-export function Adjust() {
-  const { s, set } = useJourney();
-  const go = useGo();
-  const { toast } = useToast();
-  const { busy } = usePreview();
-  const [making, setMaking] = useState(false);
-  const pv = s.preview;
-  const v = pv?.versions[pv.current];
-  const read = pv?.read ?? [];
-  const changes = pv?.changes ?? {};
-  const request = pv?.request ?? buildRequest(read, changes);
-  const setPv = (patch: Partial<NonNullable<JourneyState["preview"]>>) => set((p) => ({ preview: { ...(p.preview ?? { versions: [], current: 0 }), ...patch } }));
-  const setChange = (k: ReadKey, t: string | null) => {
-    const next = { ...changes };
-    if (t == null) delete next[k];
-    else next[k] = t;
-    setPv({ changes: next, request: buildRequest(read, next) });
-  };
-
-  const readAgain = async () => {
-    if (!v) return;
-    try {
-      const r = await readDesign(v.image, s.moodboard?.name);
-      setPv({ read: r, readOf: v.image, changes: {}, request: undefined });
-    } catch (e) {
-      toast({ title: "Couldn't read it again", description: (e as Error).message, variant: "destructive" });
-    }
-  };
-  const update = async () => {
-    if (!v || !request.trim()) {
-      toast({ title: "Say what should change first" });
-      return;
-    }
-    setMaking(true);
-    try {
-      const img = await generatePreview(s, { sourceImage: v.image, change: request });
-      const versions = [...(pv?.versions ?? []), { id: uid(), image: img, request, createdAt: new Date().toISOString() }];
-      setPv({ versions, current: versions.length - 1, read: undefined, readOf: undefined, changes: {}, request: undefined });
-      const r = await readDesign(img, s.moodboard?.name);
-      setPv({ read: r, readOf: img });
-      go("S2-Preview");
-    } catch (e) {
-      toast({ title: "The preview couldn't be updated", description: (e as Error).message, variant: "destructive" });
-    } finally {
-      setMaking(false);
-    }
-  };
-
-  return (
-    <Screen board="S2-Adjust" step={2} right={roomName(curRoom(s))} wrapClass="wrap wide">
-      <div className="left">
-        <p className="eyebrow">Adjust your direction</p>
-        <h1 className="h1" style={{ fontSize: "clamp(36px,4vw,56px)" }}>
-          What should change?
-        </h1>
-        <p className="sub" style={{ fontSize: "19px" }}>
-          We read the preview and summed it up in five parts. Keep what you like, change what you don't.
-        </p>
-      </div>
-      <div className="lay">
-        <div className="imgcol">
-          <div className="ph pv" style={{ borderRadius: "26px" }}>
-            {v && <img className="img" src={v.image} alt="Current inspired preview" style={{ borderRadius: "26px" }} />}
-            {read.map((p) => (
-              <span key={p.key} className={`hs${changes[p.key] != null ? " chg" : ""}`} style={{ left: `${p.x}%`, top: `${p.y}%` }} aria-label={`${PART[p.key].n} ${PART[p.key].title}`}>
-                {PART[p.key].n}
-              </span>
-            ))}
-          </div>
-          <span className="lbl" style={{ display: "block", marginTop: "18px" }}>
-            Versions
-          </span>
-          <div className="vers">
-            {(pv?.versions ?? []).map((ver, i) => (
-              <button
-                key={ver.id}
-                type="button"
-                className={`v${i === pv!.current ? " on" : ""}`}
-                style={{ padding: 0, background: "none" }}
-                onClick={() => setPv({ current: i, read: undefined, readOf: undefined, changes: {}, request: undefined })}
-                aria-label={`Version ${i + 1}`}
-              >
-                <img className="img" src={ver.image} alt={`Version ${i + 1}`} style={{ borderRadius: "0" }} />
-                <span>V{i + 1}</span>
-              </button>
-            ))}
-            <div className="v" style={{ border: "2px dashed #CFC3CF", display: "flex", alignItems: "center", justifyContent: "center", color: "#7C7090", fontSize: "13px", fontWeight: "600" }}>
-              {making ? "Making…" : `V${(pv?.versions.length ?? 0) + 1} next`}
-            </div>
-          </div>
-          <p className="small" style={{ marginTop: "14px" }}>
-            Each version gets its own read-out — pick a version to see what we saw in it.
-          </p>
-        </div>
-        <div className="rkcol">
-          <div className="ai">
-            <Ic>
-              <path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z" />
-              <path d="M19 3v4M17 5h4" />
-            </Ic>
-            {busy === "read" ? "Reading the preview…" : `Read by AI from version ${(pv?.current ?? 0) + 1}`}
-            <button type="button" onClick={readAgain}>
-              Read again
-            </button>
-          </div>
-          {read.map((p) => {
-            const chg = changes[p.key] != null;
-            const Icon = PART[p.key].icon;
-            return (
-              <article className={`rk${chg ? " chg" : ""}`} key={p.key}>
-                <div className="rk-h">
-                  <span className="n">{PART[p.key].n}</span>
-                  <Icon />
-                  <b>{PART[p.key].title}</b>
-                  <span className="seg-ctl">
-                    <a href="#keep" className={chg ? "" : "on"} onClick={(e) => (e.preventDefault(), setChange(p.key, null))}>
-                      Keep
-                    </a>
-                    <a href="#change" className={`c${chg ? " on" : ""}`} onClick={(e) => (e.preventDefault(), setChange(p.key, changes[p.key] ?? ""))}>
-                      Change
-                    </a>
-                  </span>
-                </div>
-                <p>{p.text}</p>
-                <div className="kw">
-                  {p.keywords.map((k) => (
-                    <span key={k}>{k}</span>
-                  ))}
-                </div>
-                {chg && (
-                  <>
-                    <label className="lbl" htmlFor={`c-${p.key}`} style={{ marginTop: "4px" }}>
-                      What should change?
-                    </label>
-                    <input id={`c-${p.key}`} className="input" value={changes[p.key]} placeholder="e.g. Lighter walls — warm greige." onChange={(e) => setChange(p.key, e.target.value)} autoFocus />
-                  </>
-                )}
-              </article>
-            );
-          })}
-        </div>
-      </div>
-      <section className="panel" style={{ marginTop: "32px", padding: "28px" }}>
-        <div className="row" style={{ gap: "24px", alignItems: "flex-end" }}>
-          <div className="field" style={{ flex: "1 1 520px" }}>
-            <label htmlFor="req">
-              Your change request <span style={{ fontWeight: "400", color: "#7C7090" }}>— built from your choices, edit freely</span>
-            </label>
-            <textarea id="req" className="textarea" style={{ minHeight: "88px" }} value={request} onChange={(e) => setPv({ request: e.target.value })} />
-          </div>
-          <div className="stack" style={{ gap: "10px", flex: "0 1 300px" }}>
-            <button className={`btn${making ? " dis" : ""}`} type="button" style={{ minHeight: "60px", fontSize: "18px" }} onClick={update}>
-              <I.repeat />
-              {making ? "Updating…" : "Update preview"}
-            </button>
-            <Go
-              className="link-btn"
-              to="S2-Summary"
-              style={{ justifyContent: "center" }}
-              onClick={() => {
-                set((p) => ({ preview: { ...p.preview!, kept: true }, done: Array.from(new Set([...p.done, 2])) }));
-                void saveStepDone(s, 2);
-              }}
-            >
-              Keep V{(pv?.current ?? 0) + 1} and finish step 2
-            </Go>
-          </div>
-        </div>
-      </section>
     </Screen>
   );
 }
@@ -987,7 +856,7 @@ export function Step2Summary() {
               {top.length > 1 ? ` — mix of ${top[0].name} (${top[0].score}%) and ${top[1].name} (${top[1].score}%)` : top.length ? ` — ${top[0].name} (${top[0].score}%)` : ""}
             </>
           ),
-          edit: "S2-Matches",
+          edit: s.visionMode === "discover" ? "S2-Matches" : "S2-Upload",
         },
         {
           k: "Palette",
@@ -1012,7 +881,7 @@ export function Step2Summary() {
           ) : (
             `Version ${(pv?.current ?? 0) + 1} kept`
           ),
-          edit: "S2-Adjust",
+          edit: "S2-Preview",
         },
         {
           k: "Feels like",
@@ -1032,7 +901,7 @@ export function Step2Summary() {
         ["1", stepLine(s, 1)],
         ["2", `${mb?.name ?? "Your"} direction`],
       ]}
-      back={pv?.versions.length && pv.versions.length > 1 ? "S2-Adjust" : "S2-Preview"}
+      back="S2-Preview"
       next="S3-Activities"
     />
   );

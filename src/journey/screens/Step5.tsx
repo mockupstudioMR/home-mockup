@@ -550,7 +550,7 @@ export function Anchor() {
               <I.check />
               Keep the {label.toLowerCase()}
             </Go>
-            <Go className="btn ghost auto" to="S2-Adjust">
+            <Go className="btn ghost auto" to="S2-Preview">
               <Ic>{p("M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16zM13 20h7")}</Ic>
               Adjust
             </Go>
