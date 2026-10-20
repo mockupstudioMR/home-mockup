@@ -640,8 +640,18 @@ export function Step5Summary() {
       board="S5-Summary"
       sub="We know what you're keeping and the room has its anchor. Next we build the colours and materials around it."
       media={
-        <div className="ph" style={{ margin: "18px 0 8px", aspectRatio: "16/9" }}>
-          {a?.images[a.shape] && <img className="img" src={a.images[a.shape]} alt={`${label} on wall ${wallOf(s) ?? "A"}`} />}
+        <div className="row" style={{ gap: "18px", flexWrap: "nowrap", alignItems: "flex-start" }}>
+          <div className="ph" style={{ flex: "2 1 0", aspectRatio: "16/10" }}>
+            {a?.images[a.shape] && <img className="img" src={a.images[a.shape]} alt={`${label} on wall ${wallOf(s) ?? "A"}`} />}
+          </div>
+          {s.keeping
+            .filter((k) => k.photos[0])
+            .slice(0, 2)
+            .map((k) => (
+              <div className="ph" key={k.id} style={{ flex: "1 1 0", aspectRatio: "4/5" }}>
+                <img className="img" src={k.photos[0]} alt={`Yours: ${k.name.toLowerCase()}`} />
+              </div>
+            ))}
         </div>
       }
       decisions={[

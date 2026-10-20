@@ -727,7 +727,7 @@
     "must": true
    },
    {
-    "text": "Continue to step 2: Inspiration",
+    "text": "Next: Inspiration",
     "kind": "button",
     "must": true
    }
@@ -1374,7 +1374,7 @@
     "must": true
    },
    {
-    "text": "Continue to step 3: How you use the space",
+    "text": "Next: How you use the space",
     "kind": "button",
     "must": true
    }
@@ -1837,7 +1837,7 @@
     "must": true
    },
    {
-    "text": "Continue to step 4: Your layout",
+    "text": "Next: Your layout",
     "kind": "button",
     "must": true
    }
@@ -2135,7 +2135,7 @@
     "must": true
    },
    {
-    "text": "Continue to step 5: Main furniture",
+    "text": "Next: Main furniture",
     "kind": "button",
     "must": true
    }
@@ -2435,7 +2435,7 @@
     "must": true
    },
    {
-    "text": "Continue to step 6: Colours & materials",
+    "text": "Next: Colours & materials",
     "kind": "button",
     "must": true
    }
@@ -2596,7 +2596,7 @@
     "must": true
    },
    {
-    "text": "Continue to step 7: Lighting",
+    "text": "Next: Lighting",
     "kind": "button",
     "must": true
    }
@@ -2757,7 +2757,7 @@
     "must": true
    },
    {
-    "text": "Continue to step 8: Finishing details",
+    "text": "Next: Finishing details",
     "kind": "button",
     "must": true
    }
@@ -3078,7 +3078,7 @@
     "must": true
    },
    {
-    "text": "Continue to step 9: Make it happen",
+    "text": "Next: Make it happen",
     "kind": "button",
     "must": true
    }
@@ -3485,7 +3485,7 @@
     "must": true
    },
    {
-    "text": "Continue to step 10: See everything together",
+    "text": "Next: See everything together",
     "kind": "button",
     "must": false
    }
