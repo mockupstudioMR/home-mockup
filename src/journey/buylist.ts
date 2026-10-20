@@ -56,12 +56,12 @@ export function composeBuyList(s: JourneyState): BuyRow[] {
     rows.push({
       id: `keep-${k.id}`,
       tab: "furniture",
-      name: `Existing ${k.name.toLowerCase().replace(/^upright /, "")}${set ? ` + ${k.extraLabel!.split(" ")[0].toLowerCase()}` : ""}`,
+      name: `${k.status === "buy" ? "Your pick:" : k.status === "bought" ? "Bought" : "Existing"} ${k.name.toLowerCase().replace(/^upright /, "")}${set ? ` + ${k.extraLabel!.split(" ")[0].toLowerCase()}` : ""}`,
       qty: set ? "1 set" : "1",
       size: k.measured ? `${dims(k)}` : "Measure actual W × D × H",
       wall: k.wall ?? keepWall,
-      action: "Keep",
-      status: "required",
+      action: k.status === "buy" ? "Buy" : "Keep",
+      status: k.status === "buy" ? "You buy it" : k.status === "bought" ? "Arriving" : "required",
       image: k.photos[0],
       colour: "#4A3022",
     });

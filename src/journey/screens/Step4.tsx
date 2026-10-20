@@ -9,6 +9,7 @@ import { StepSummary } from "../Summary";
 import { analyzePlan, makeLayout, uploadPhoto } from "../services";
 import { onPlanReaderStatus, readPlan, warmPlanReader, type PlanRead } from "../plan/reader";
 import { applyPlanRead } from "../plan/apply";
+import { layoutChecks, pieceInfo } from "../plan/layoutCheck";
 import { pdfToImages } from "@/lib/pdfToImages";
 import { list, soFar } from "../story";
 import { saveStepDone } from "../sync";
@@ -552,14 +553,79 @@ export function PlanDrawing({ layout, s, box = { w: 300, h: 392 }, t = 8, mini =
   );
 }
 
-/** 4.3 · Choose a layout */
+const TEX: Record<string, string> = { sofa: "t-sofa", chair: "t-chair", keep: "t-keep", table: "t-table", rug: "t-rug", storage: "t-shelf", bed: "t-bed", desk: "t-table", bench: "t-bench", other: "t-other" };
+
+/** One opening drawn on the big plan: a gap in the wall, plus the swing for a door. */
+function Opening({ p, W, L }: { p: Placement; W: number; L: number }) {
+  if (!p.wall || p.pos == null) return null;
+  const door = p.kind === "doors";
+  const widthM = door ? 0.85 : 1.2;
+  const along = p.wall === "A" || p.wall === "C" ? W : L;
+  const len = (widthM / along) * 100;
+  const at = Math.min(100 - len, Math.max(0, p.pos - len / 2));
+  const horiz = p.wall === "A" || p.wall === "C";
+  const gap: CSSProperties = horiz
+    ? { left: `${at}%`, width: `${len}%`, [p.wall === "A" ? "top" : "bottom"]: -12, height: 12 }
+    : { top: `${at}%`, height: `${len}%`, [p.wall === "D" ? "left" : "right"]: -12, width: 12 };
+  const swingSize = horiz ? { width: `${len}%`, aspectRatio: "1" } : { height: `${len}%`, aspectRatio: "1" };
+  const swing: CSSProperties = horiz ? { left: `${at}%`, [p.wall === "A" ? "top" : "bottom"]: 0, ...swingSize } : { top: `${at}%`, [p.wall === "D" ? "left" : "right"]: 0, ...swingSize };
+  return (
+    <>
+      <i className={door ? "lp-door" : "lp-win"} style={gap} />
+      {door && <i className={`lp-swing w${p.wall}`} style={swing} />}
+    </>
+  );
+}
+
+/** The chosen layout drawn to scale, each piece textured by material and numbered. */
+function LayoutPlan({ layout, s }: { layout: Layout; s: JourneyState }) {
+  const { w, l } = roomSize(s);
+  const maxW = 440, maxH = 560;
+  const scale = Math.min(maxW / w, maxH / l);
+  const W = Math.round(w * scale), H = Math.round(l * scale);
+  const pct = (v: number) => `${v}%`;
+  return (
+    <div className="lp" role="img" aria-label={`Floor plan, ${m(w)} by ${m(l)} metres: ${layout.items.map((i) => i.label || i.kind).filter(Boolean).join(", ")}`}>
+      <span className="lp-dim lp-dw">{m(w)} m</span>
+      <span className="lp-dim lp-dl">{m(l)} m</span>
+      <div className="lp-room" style={{ width: W, height: H }}>
+        {(["A", "B", "C", "D"] as Wall[]).map((x) => (
+          <b key={x} className={`lp-wl w${x}`}>
+            {x}
+          </b>
+        ))}
+        {s.placements
+          .filter((p) => p.kind === "doors" || p.kind === "windows")
+          .map((p) => (
+            <Opening key={p.id} p={p} W={w} L={l} />
+          ))}
+        {layout.items
+          .map((i, n) => ({ i, n }))
+          .sort((a, b) => Number(b.i.kind === "rug") - Number(a.i.kind === "rug"))
+          .map(({ i, n }) => (
+            <div key={n} className={`lp-f ${TEX[i.kind] ?? "t-other"}`} style={{ left: pct(i.x), top: pct(i.y), width: pct(i.w), height: pct(i.h) }}>
+              <span className={i.kind === "rug" ? "lp-n rug" : "lp-n"}>{n + 1}</span>
+            </div>
+          ))}
+        {layout.route && (
+          <svg className="lp-route" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+            <line x1={layout.route.x1} y1={layout.route.y1} x2={layout.route.x2} y2={layout.route.y2} vectorEffect="non-scaling-stroke" />
+          </svg>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/** 4.4 · Choose a layout — up to three options, the chosen one large and to scale, with fit checks and every piece. */
 export function Layouts() {
   const { s, set } = useJourney();
   const { toast } = useToast();
   const [busy, setBusy] = useState(false);
   const once = useRef(false);
   const { w, l, example } = roomSize(s);
-  const chosen = s.chosenLayout ?? 0;
+  const chosen = Math.min(s.chosenLayout ?? 0, Math.max(0, s.layouts.length - 1));
+  const lay = s.layouts[chosen];
 
   useEffect(() => {
     if (once.current || s.layouts.length >= 2) return;
@@ -580,13 +646,16 @@ export function Layouts() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  /** A third option is added; after that, a new one replaces the oldest option you haven't picked. */
   const another = async () => {
     setBusy(true);
     try {
-      const keep = s.layouts[chosen];
       const next = await makeLayout(s, { emphasis: s.layouts.length % 2, avoid: s.layouts.map((x) => x.name) });
-      const layouts = keep ? (chosen === 0 ? [keep, next] : [next, keep]) : [next];
-      set({ layouts, chosenLayout: keep ? chosen : 0 });
+      set((x) => {
+        if (x.layouts.length < 3) return { layouts: [...x.layouts, next] };
+        const drop = x.layouts.findIndex((_, i) => i !== chosen);
+        return { layouts: x.layouts.map((y, i) => (i === drop ? next : y)) };
+      });
     } catch (e) {
       toast({ title: "No other option yet", description: (e as Error).message, variant: "destructive" });
     } finally {
@@ -595,89 +664,140 @@ export function Layouts() {
   };
 
   const keepNames = s.keeping.map((k) => k.name.toLowerCase().replace(/^upright /, ""));
-  const kinds = new Set(s.layouts.flatMap((x) => x.items.map((i) => i.kind)));
   const words = ["", "One way", "Two ways", "Three ways"][s.layouts.length] ?? "Ways";
+  const checks = lay ? layoutChecks(s, lay.items, w, l) : [];
+  const pieces = lay ? pieceInfo(s, lay.items, w, l) : [];
+  const keptN = pieces.filter((x) => x.kept).length;
   return (
-    <Screen board="S4-Layouts" step={4} right={roomName(curRoom(s))} wrapStyle={{ maxWidth: "1200px" }}>
-      <p className="eyebrow">Choose where life happens</p>
-      <h1 className="h1">{s.layouts.length ? `${words} to live in it` : "Finding ways to live in it"}</h1>
-      <p className="sub">
-        {s.layouts.length > 1 ? "Both" : "It"} {keepNames.length ? `keep${s.layouts.length > 1 ? "" : "s"} your ${list(keepNames)} and ` : ""}leave{s.layouts.length > 1 ? "" : "s"} a clear route from the door. Pick one — furniture and details come next.
-      </p>
-      <div className="legend" style={{ justifyContent: "center", marginTop: "28px" }}>
-        {kinds.has("sofa") && (
-          <span>
-            <i style={{ background: "#6E3550" }} />
-            Sofa
-          </span>
-        )}
-        {kinds.has("chair") && (
-          <span>
-            <i style={{ background: "#2F5B4A" }} />
-            Chair
-          </span>
-        )}
-        {kinds.has("keep") &&
-          keepNames.slice(0, 1).map((k) => (
-            <span key={k}>
-              <i style={{ background: "#4A3022" }} />
-              {k[0].toUpperCase() + k.slice(1)} (keep)
-            </span>
-          ))}
-        {kinds.has("table") && (
-          <span>
-            <i style={{ background: "#8A6A4A" }} />
-            Tables
-          </span>
-        )}
-        <span>
-          <i style={{ borderTop: "3px dotted #B4572E", height: "0", borderRadius: "0" }} />
-          Walking route
-        </span>
+    <Screen board="S4-Layouts" step={4} right={`${roomName(curRoom(s))} · ${m(w)} × ${m(l)} m`} wrapClass="wrap wide">
+      <div className="ly-top">
+        <div className="stack" style={{ gap: "6px", maxWidth: "760px" }}>
+          <p className="ly-script">built from your real walls</p>
+          <h1 className="ly-h1">{s.layouts.length ? `${words} to live in your room` : "Finding ways to live in your room"}</h1>
+          <p className="ly-sub">
+            Each layout is checked against your door, window and walking route{keepNames.length ? `, and makes room for your ${list(keepNames)}` : ""}. Pick one — you can still change pieces later.
+          </p>
+        </div>
       </div>
-      <div className="g2" style={{ marginTop: "28px" }}>
-        {s.layouts.map((lay, i) => (
-          <section key={lay.id} className={`lay${i === chosen ? " sel" : ""}`} aria-label={`Layout ${i + 1}, ${lay.name}${i === chosen ? ", selected" : ""}`} onClick={() => set({ chosenLayout: i })} style={{ cursor: "pointer" }}>
-            {i === chosen && (
-              <span className="check">
-                <I.check />
-              </span>
-            )}
-            <div className="stack" style={{ gap: "6px" }}>
-              <span className="lbl">Layout {i + 1}</span>
-              <h2 className="h2" style={{ fontSize: "30px" }}>
-                {lay.name}
-              </h2>
-            </div>
-            <div className="plan">
-              <PlanDrawing layout={lay} s={s} />
-            </div>
-            <ul>
-              {lay.notes.map((n) => (
-                <li key={n.text} className={n.ok ? "" : "con"}>
-                  {n.ok ? <I.check /> : <Ic>{p("M12 8v5M12 16h.01")}<circle cx="12" cy="12" r="9" /></Ic>}
-                  {n.text}
-                </li>
-              ))}
-            </ul>
-          </section>
-        ))}
-        {busy &&
-          Array.from({ length: Math.max(0, 2 - s.layouts.length) || 1 }, (_, i) => (
-            <section key={`b${i}`} className="lay" style={{ minHeight: 560, alignItems: "center", justifyContent: "center", color: "#665A80" }}>
-              Planning a layout around your room…
+
+      <div className="ly-row">
+        <nav className="ly-opts" aria-label="Layout options">
+          {s.layouts.map((x, i) => {
+            const c = layoutChecks(s, x.items, w, l);
+            const bad = c.filter((k) => !k.ok).length;
+            return (
+              <button key={x.id} type="button" className={`ly-opt${i === chosen ? " sel" : ""}`} aria-pressed={i === chosen} onClick={() => set({ chosenLayout: i })}>
+                <span className="ly-mini" aria-hidden="true">
+                  <PlanDrawing layout={x} s={s} box={{ w: 62, h: 82 }} t={4} mini />
+                </span>
+                <span className="stack" style={{ gap: "4px", minWidth: 0, textAlign: "left" }}>
+                  <span className="ly-k">
+                    Layout {i + 1}
+                    {i === 0 ? " · best fit" : ""}
+                  </span>
+                  <b>{x.name}</b>
+                  {x.notes[0] && <span className="ly-n">{x.notes[0].text}</span>}
+                  <span className={bad ? "ly-flag warn" : "ly-flag"}>{bad ? `${bad} thing${bad > 1 ? "s" : ""} to check` : "Passes every check"}</span>
+                </span>
+              </button>
+            );
+          })}
+          {busy && <div className="ly-opt wait">Planning a layout around your room…</div>}
+          <button type="button" className="ly-more" onClick={another} disabled={busy}>
+            <I.repeat />
+            {s.layouts.length < 3 ? "Another option" : "Replace an option"}
+          </button>
+        </nav>
+
+        <section className="ly-plan" aria-label={lay ? `Layout ${chosen + 1} on your plan` : "Your plan"}>
+          {lay ? (
+            <>
+              <div className="stack" style={{ gap: "2px" }}>
+                <span className="ly-k">Layout {chosen + 1}</span>
+                <h2 className="ly-h2">{lay.name}</h2>
+              </div>
+              <LayoutPlan layout={lay} s={s} />
+              <div className="ly-legend">
+                <span>
+                  <i className="t-sofa" />
+                  New piece
+                </span>
+                {keptN > 0 && (
+                  <span>
+                    <i className="t-keep" />
+                    Yours, kept
+                  </span>
+                )}
+                <span>
+                  <i className="lg-route" />
+                  Walking route
+                </span>
+                <span>
+                  <i className="lg-door" />
+                  Door swing
+                </span>
+              </div>
+              {lay.notes.length > 0 && (
+                <ul className="ly-notes">
+                  {lay.notes.map((n) => (
+                    <li key={n.text} className={n.ok ? "" : "con"}>
+                      {n.ok ? <I.check /> : <Ic>{p("M12 8v5M12 16h.01")}<circle cx="12" cy="12" r="9" /></Ic>}
+                      {n.text}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </>
+          ) : (
+            <div className="ly-wait">Planning a layout around your room…</div>
+          )}
+        </section>
+
+        <aside className="ly-side">
+          {checks.length > 0 && (
+            <section className="ly-card">
+              <h2 className="ly-cap">Fit checks</h2>
+              <div className="ly-checks">
+                {checks.map((c) => (
+                  <div key={c.label} className={c.ok ? "ok" : "warn"}>
+                    <b>{c.value}</b>
+                    <span>{c.label}</span>
+                  </div>
+                ))}
+              </div>
             </section>
-          ))}
+          )}
+          {pieces.length > 0 && (
+            <section className="ly-card">
+              <div className="row between">
+                <h2 className="ly-cap">Pieces in this layout</h2>
+                <span className="small">
+                  {pieces.length} pieces{keptN ? ` · ${keptN} yours` : ""}
+                </span>
+              </div>
+              {pieces.map((x) => (
+                <article key={x.n} className="ly-piece">
+                  <span className={`ly-num ${TEX[x.item.kind] ?? "t-other"}`}>{x.n}</span>
+                  <div className="stack" style={{ gap: "3px", minWidth: 0 }}>
+                    <div className="row between" style={{ gap: "8px", flexWrap: "nowrap" }}>
+                      <b>{x.item.label || x.item.kind.replace(/^\w/, (c) => c.toUpperCase())}</b>
+                      <span className={x.kept ? "ly-tag kept" : "ly-tag"}>{x.kept ? "Yours · kept" : "New"}</span>
+                    </div>
+                    <span className="ly-size">
+                      {x.size} · {x.where}
+                    </span>
+                    <span className="ly-why">{x.why}</span>
+                  </div>
+                </article>
+              ))}
+            </section>
+          )}
+        </aside>
       </div>
-      <p className="small" style={{ textAlign: "center", marginTop: "20px" }}>
-        {example ? `Illustrative arrangements on example dimensions (${m(w)} × ${m(l)} m). Actual room fit: TBC until measured.` : `Arranged on your room (${m(w)} × ${m(l)} m).`}
-      </p>
-      <div className="actions">
+
+      <div className="ly-foot">
         <Back to="S3-Fixed" />
-        <button className="btn ghost auto" type="button" style={{ marginLeft: "auto" }} onClick={another} disabled={busy}>
-          <I.repeat />
-          Another option
-        </button>
+        <span className="small">{example ? `Sizes use example room measurements (${m(w)} × ${m(l)} m) until you confirm them.` : "Piece sizes are standard until you choose the actual pieces in step 5."}</span>
         <Go
           className={`btn auto${s.layouts.length ? "" : " dis"}`}
           to="S4-Summary"

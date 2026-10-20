@@ -125,7 +125,7 @@ export function Activities() {
         </div>
       </div>
       <div className="actions">
-        <Back to="S2-Preview" />
+        <Back to="S2-Moodboard" />
         <Go
           className={`btn auto${n ? "" : " dis"}`}
           to="S3-Summary"
@@ -393,15 +393,30 @@ function KeepPanel({ item, update, remove, s }: { item: KeepItem; update: (k: Pa
   );
 }
 
-/** 5.1 · Pieces you're keeping — asked before we look for new furniture. */
+const STATUS: { id: NonNullable<KeepItem["status"]>; label: string; tally: string }[] = [
+  { id: "have", label: "Have it", tally: "you have" },
+  { id: "bought", label: "Bought", tally: "bought" },
+  { id: "buy", label: "Will buy", tally: "you'll buy" },
+];
+const TILT = [-2, 1.5, -1, 2, -1.5, 1];
+
+/** 5.1 · What's already yours? — asked before we suggest new furniture: what they have, bought or will buy. */
 export function Existing() {
   const { s, set } = useJourney();
   const { toast } = useToast();
   const snap = useRef<HTMLInputElement>(null);
   const [naming, setNaming] = useState(false);
-  const addPiece = (name: string, photo?: string) =>
-    set((x) => ({ keeping: [...x.keeping, { id: uid(), name, photos: photo ? [photo] : [], measured: false, wall: "B", pos: 50, fixedSpot: false }], nothingKept: false }));
+  const [editing, setEditing] = useState<string | null>(null);
+  const addPiece = (name: string, photo?: string) => {
+    const id = uid();
+    set((x) => ({ keeping: [...x.keeping, { id, name, photos: photo ? [photo] : [], measured: false, wall: "B", pos: 50, fixedSpot: false, status: "have" }], nothingKept: false }));
+    return id;
+  };
   const update = (id: string) => (k: Partial<KeepItem>) => set((x) => ({ keeping: x.keeping.map((i) => (i.id === id ? { ...i, ...k } : i)) }));
+  const remove = (id: string) => {
+    set((x) => ({ keeping: x.keeping.filter((i) => i.id !== id) }));
+    if (editing === id) setEditing(null);
+  };
   const snapIt = async (files: FileList | null) => {
     const f = files?.[0];
     if (!f) return;
@@ -418,39 +433,138 @@ export function Existing() {
       setNaming(false);
     }
   };
+  const chips = s.keeping.length ? KEEP_CHIPS.filter((c) => !s.keeping.some((k) => k.name.toLowerCase().includes(c.toLowerCase()))) : ["Sofa", "Piano", "Rug", "Bookshelf", "TV", "Artwork"];
+  const edit = s.keeping.find((k) => k.id === editing);
+  const counts = STATUS.map((st) => ({ ...st, n: s.keeping.filter((k) => (k.status ?? "have") === st.id).length })).filter((x) => x.n);
+  const snapBtn = (
+    <button className="ex-snap" type="button" onClick={() => snap.current?.click()} disabled={naming}>
+      <I.camera />
+      {naming ? "Naming it…" : "Snap it — we'll name it"}
+    </button>
+  );
   return (
-    <Screen board="S3-Existing" step={5} right={roomName(curRoom(s))} wrapStyle={{ maxWidth: "1240px" }}>
-      <p className="eyebrow">Before we suggest new pieces</p>
-      <h1 className="h1">What do you already have?</h1>
-      <p className="sub">
-        We'll suggest new furniture next. First, tell us what's already covered — pieces you're keeping, have bought or plan to
-        buy yourself — so we only suggest what's missing.
-      </p>
-      {s.keeping.map((it) => (
-        <KeepPanel key={it.id} item={it} s={s} update={update(it.id)} remove={() => set((x) => ({ keeping: x.keeping.filter((i) => i.id !== it.id) }))} />
-      ))}
-      <div className="addrow">
-        <span style={{ fontWeight: "600", marginRight: "8px" }}>{s.keeping.length ? "Add another piece" : "Add a piece you have or plan to buy"}</span>
-        {(s.keeping.length ? KEEP_CHIPS : ["Upright piano", ...KEEP_CHIPS]).map((c) => (
-          <button key={c} className="chip" type="button" style={{ minHeight: "44px", fontSize: "15px" }} onClick={() => addPiece(c)}>
-            + {c}
-          </button>
-        ))}
-        <button className="chip add" type="button" style={{ minHeight: "44px", fontSize: "15px" }} onClick={() => snap.current?.click()}>
-          <I.camera />
-          {naming ? "Naming it…" : "Snap it — we'll name it"}
-        </button>
-        <input ref={snap} type="file" accept="image/*" capture="environment" hidden onChange={(e) => void snapIt(e.target.files)} />
+    <Screen board="S3-Existing" step={5} right={roomName(curRoom(s))} wrapStyle={{ maxWidth: "1100px" }}>
+      <div className="ex-head">
+        <p className="ex-script">before we suggest anything new</p>
+        <h1 className="ex-h1">
+          What's already <span className="brush">yours?</span>
+        </h1>
+        <p className="ex-sub">Add what's staying, what you've bought and what you'll buy yourself. We'll only suggest the rest.</p>
       </div>
-      <div className="actions">
-        <Back to="S4-Summary" />
-        <Go className="link-btn" to="S5-Shops" style={{ marginLeft: "auto" }} onClick={() => void set({ keeping: [], nothingKept: true })}>
-          Nothing yet — suggest everything
-        </Go>
-        <Go className="btn auto" to="S5-Shops">
-          Next: suggest new pieces
-          <I.next />
-        </Go>
+      <input ref={snap} type="file" accept="image/*" capture="environment" hidden onChange={(e) => void snapIt(e.target.files)} />
+
+      {s.keeping.length === 0 ? (
+        <div className="ex-empty">
+          <button className="ex-bigsnap" type="button" onClick={() => snap.current?.click()} disabled={naming}>
+            <span className="ex-bigsnap-in">
+              <span className="ex-cam">
+                <I.camera />
+              </span>
+              <span>Photo of a piece you have</span>
+            </span>
+            <span className="ex-hand">{naming ? "naming it…" : "snap it — we'll name it"}</span>
+          </button>
+          <span className="small">or add one by name</span>
+          <div className="ex-chips">
+            {chips.map((c) => (
+              <button key={c} className="ex-chip" type="button" onClick={() => addPiece(c === "Piano" ? "Upright piano" : c)}>
+                + {c}
+              </button>
+            ))}
+          </div>
+        </div>
+      ) : (
+        <>
+          <div className="ex-chips">
+            {snapBtn}
+            {chips.slice(0, 4).map((c) => (
+              <button key={c} className="ex-chip" type="button" onClick={() => setEditing(addPiece(c))}>
+                + {c}
+              </button>
+            ))}
+          </div>
+          <div className="ex-grid">
+            {s.keeping.map((k, i) => {
+              const st = k.status ?? "have";
+              const name = k.name.toLowerCase();
+              return (
+                <article key={k.id} className="ex-card" style={{ transform: `rotate(${TILT[i % TILT.length]}deg)${i % 2 ? " translateY(12px)" : ""}` }}>
+                  {k.photos[0] ? (
+                    <img src={k.photos[0]} alt={`Your ${name}`} />
+                  ) : (
+                    <div className="ex-sketch" role="img" aria-label={`No photo of the ${name} yet`}>
+                      <Ic>{p("M4 17h16M6 17v3M18 17v3M5 17V9a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v8M8 13h8")}</Ic>
+                    </div>
+                  )}
+                  <div className="row between" style={{ gap: "8px", flexWrap: "nowrap", alignItems: "baseline" }}>
+                    <h2 className="ex-name">{name}</h2>
+                    <button type="button" className="ex-x" aria-label={`Remove ${name}`} onClick={() => remove(k.id)}>
+                      <Ic>{p("M6 6l12 12M18 6L6 18")}</Ic>
+                    </button>
+                  </div>
+                  <div className="ex-seg" role="group" aria-label={`${k.name} status`}>
+                    {STATUS.map((x) => (
+                      <button key={x.id} type="button" className={`s-${x.id}`} aria-pressed={st === x.id} onClick={() => update(k.id)({ status: x.id })}>
+                        {x.label}
+                      </button>
+                    ))}
+                  </div>
+                  <button type="button" className="ex-meta" onClick={() => setEditing(editing === k.id ? null : k.id)} aria-expanded={editing === k.id}>
+                    <span>
+                      {k.w ? `${dims(k)} cm` : "Size not set"}
+                      {st === "buy" ? "" : ` · wall ${k.wall ?? "B"}`}
+                    </span>
+                    <b>{editing === k.id ? "Close" : "Edit"}</b>
+                  </button>
+                </article>
+              );
+            })}
+            <button type="button" className="ex-add" onClick={() => snap.current?.click()} disabled={naming}>
+              <span className="ex-plus">
+                <Ic>{p("M12 5v14M5 12h14")}</Ic>
+              </span>
+              <span className="ex-hand">{naming ? "naming it…" : "add another"}</span>
+            </button>
+          </div>
+          {edit && (
+            <section className="ex-edit" aria-label={`Details of the ${edit.name.toLowerCase()}`}>
+              <KeepPanel key={edit.id} item={edit} s={s} update={update(edit.id)} remove={() => remove(edit.id)} />
+              <button type="button" className="btn ghost auto" style={{ alignSelf: "flex-end", minHeight: "48px", fontSize: "16px" }} onClick={() => setEditing(null)}>
+                Done
+              </button>
+            </section>
+          )}
+        </>
+      )}
+
+      <div className="ex-foot">
+        {counts.length ? (
+          <p className="ex-tally">
+            {counts.map((c) => (
+              <span key={c.id}>
+                <i className={`d-${c.id}`} />
+                {c.n} {c.tally}
+              </span>
+            ))}
+            <span className="ex-hand sm">— we'll suggest the rest</span>
+          </p>
+        ) : (
+          <Back to="S4-Summary" />
+        )}
+        <div className="row" style={{ gap: "20px", alignItems: "center" }}>
+          {counts.length > 0 && <Back to="S4-Summary" />}
+          {s.keeping.length ? (
+            <Go className="btn auto" to="S5-Shops">
+              Next: suggest new pieces
+              <I.next />
+            </Go>
+          ) : (
+            <Go className="btn ghost auto" to="S5-Shops" onClick={() => void set({ keeping: [], nothingKept: true })}>
+              Nothing yet — suggest everything
+              <I.next />
+            </Go>
+          )}
+        </div>
       </div>
     </Screen>
   );

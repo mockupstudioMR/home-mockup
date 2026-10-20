@@ -1,7 +1,7 @@
 /** Every journey screen: its design board id, its address and its place in the 10 steps. */
 export type ScreenId =
   | "Main" | "S1-Why" | "S1-Place" | "S1-Rooms" | "S1-Start" | "S1-State" | "S1-Summary"
-  | "S2-Vision" | "S2-Upload" | "S2-Analyzing" | "S2-Matches" | "S2-Moodboard" | "S2-Preview" | "S2-Summary"
+  | "S2-Vision" | "S2-Upload" | "S2-Analyzing" | "S2-Matches" | "S2-Moodboard" | "S2-Summary"
   | "S3-Activities" | "S3-Existing" | "S3-Fixed" | "S3-Summary"
   | "S4-Input" | "S4-Measure" | "S4-Layouts" | "S4-Summary"
   | "S5-Shops" | "S5-Anchor" | "S5-Summary" | "S6-Palette" | "S6-Summary" | "S7-Lighting" | "S7-Summary"
@@ -20,7 +20,6 @@ export const SCREENS: { id: ScreenId; path: string; step: number }[] = [
   { id: "S2-Analyzing", path: "2/analyzing", step: 2 },
   { id: "S2-Matches", path: "2/matches", step: 2 },
   { id: "S2-Moodboard", path: "2/moodboard", step: 2 },
-  { id: "S2-Preview", path: "2/preview", step: 2 },
   { id: "S2-Summary", path: "2/summary", step: 2 },
   { id: "S3-Activities", path: "3/activities", step: 3 },
   { id: "S3-Summary", path: "3/summary", step: 3 },
@@ -56,7 +55,7 @@ export function screenFor(rest: string): { id: ScreenId; param?: string } | null
   if (exact) return { id: exact.id };
   if (clean === "3/existing") return { id: "S3-Existing" }; // "What are you keeping?" moved to the start of step 5
   if (clean === "3/priorities") return { id: "S3-Activities" }; // "What matters most?" was removed
-  if (clean === "2/adjust") return { id: "S2-Preview" }; // "What should change?" is now part of the preview
+  if (clean === "2/adjust" || clean === "2/preview") return { id: "S2-Moodboard" }; // preview and adjusting are part of "Your direction"
   if (clean === "3/fixed") return { id: "S3-Fixed" }; // old address: "what can't move" moved after the floor plan
   const wall = /^8\/wall\/([A-Za-z0-9]+)$/.exec(clean);
   if (wall) return { id: "S8-WallDetail", param: wall[1] };

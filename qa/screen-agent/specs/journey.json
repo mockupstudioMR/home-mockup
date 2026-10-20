@@ -1114,7 +1114,7 @@
  },
  {
   "board": "S2-Moodboard",
-  "title": "2.5 · Your moodboard",
+  "title": "2.4 · Your direction",
   "page": "Your moodboard",
   "items": [
    {
@@ -1128,48 +1128,13 @@
     "must": true
    },
    {
+    "text": "your direction, curated for you",
+    "kind": "eyebrow",
+    "must": true
+   },
+   {
     "text": "Eclectic Modern",
     "kind": "title",
-    "must": false
-   },
-   {
-    "text": "Palette",
-    "kind": "label",
-    "must": true
-   },
-   {
-    "text": "Feels like",
-    "kind": "label",
-    "must": true
-   },
-   {
-    "text": "velvet",
-    "kind": "content",
-    "must": false
-   },
-   {
-    "text": "jewel tones",
-    "kind": "content",
-    "must": false
-   },
-   {
-    "text": "curated",
-    "kind": "content",
-    "must": false
-   },
-   {
-    "text": "greenery",
-    "kind": "content",
-    "must": false
-   },
-   {
-    "text": "organic shapes",
-    "kind": "content",
-    "must": false
-   },
-   {
-    "text": "warm light",
-    "kind": "content",
     "must": false
    },
    {
@@ -1178,100 +1143,62 @@
     "must": true
    },
    {
-    "text": "Save image",
+    "text": "Save as image",
     "kind": "button",
     "must": true
    },
    {
-    "text": "Back",
+    "text": "Preview",
+    "kind": "control",
+    "must": true
+   },
+   {
+    "text": "Colors",
+    "kind": "control",
+    "must": true
+   },
+   {
+    "text": "Inspired preview · not to scale",
+    "kind": "label",
+    "must": true
+   },
+   {
+    "text": "Palette & materials",
+    "kind": "heading",
+    "must": true
+   },
+   {
+    "text": "Feels like",
+    "kind": "heading",
+    "must": true
+   },
+   {
+    "text": "From your photos",
+    "kind": "heading",
+    "must": true
+   },
+   {
+    "text": "Keep this direction",
     "kind": "button",
     "must": true
    },
    {
-    "text": "See it in a room",
+    "text": "Or adjust it",
+    "kind": "label",
+    "must": true
+   },
+   {
+    "text": "Update preview",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "Back to your photos",
     "kind": "button",
     "must": true
    }
   ],
   "design": "designs/journey/S2-Moodboard.jpg"
- },
- {
-  "board": "S2-Preview",
-  "title": "2.6 · One preview — keep or adjust",
-  "page": "One preview — keep or adjust",
-  "items": [
-   {
-    "text": "Step 2 of 10",
-    "kind": "progress",
-    "must": true
-   },
-   {
-    "text": "Save & exit",
-    "kind": "button",
-    "must": true
-   },
-   {
-    "text": "Your direction",
-    "kind": "eyebrow",
-    "must": true
-   },
-   {
-    "text": "One preview. Keep or adjust.",
-    "kind": "title",
-    "must": true
-   },
-   {
-    "text": "In this preview",
-    "kind": "label",
-    "must": true
-   },
-   {
-    "text": "Plum curved sofa",
-    "kind": "content",
-    "must": false
-   },
-   {
-    "text": "Green accent chair",
-    "kind": "content",
-    "must": false
-   },
-   {
-    "text": "Dark walnut",
-    "kind": "content",
-    "must": false
-   },
-   {
-    "text": "Brass",
-    "kind": "content",
-    "must": false
-   },
-   {
-    "text": "Plants",
-    "kind": "content",
-    "must": false
-   },
-   {
-    "text": "Textured walls",
-    "kind": "content",
-    "must": false
-   },
-   {
-    "text": "Keep this direction",
-    "kind": "heading",
-    "must": true
-   },
-   {
-    "text": "Adjust it",
-    "kind": "heading",
-    "must": true
-   },
-   {
-    "text": "Back to moodboard",
-    "kind": "button",
-    "must": true
-   }
-  ],
-  "design": "designs/journey/S2-Preview.jpg"
  },
  {
   "board": "S2-Summary",
@@ -1482,7 +1409,7 @@
  },
  {
   "board": "S3-Existing",
-  "title": "5.1 · Pieces you're keeping",
+  "title": "5.1 · What's already yours?",
   "page": "Pieces you're keeping",
   "items": [
    {
@@ -1496,137 +1423,52 @@
     "must": true
    },
    {
-    "text": "Before we suggest new pieces",
+    "text": "before we suggest anything new",
     "kind": "eyebrow",
     "must": true
    },
    {
-    "text": "What do you already have?",
+    "text": "What's already yours?",
     "kind": "title",
     "must": true
    },
    {
-    "text": "Upright piano",
-    "kind": "heading",
-    "must": false
-   },
-   {
-    "text": "Keep · required",
-    "kind": "content",
-    "must": false
-   },
-   {
-    "text": "Remove",
+    "text": "Snap it — we'll name it",
     "kind": "button",
     "must": true
    },
    {
-    "text": "Take photo",
+    "text": "Have it",
     "kind": "control",
-    "must": false
-   },
-   {
-    "text": "Upload",
-    "kind": "control",
-    "must": false
-   },
-   {
-    "text": "Type",
-    "kind": "label",
     "must": true
    },
    {
-    "text": "Width",
-    "kind": "label",
+    "text": "Bought",
+    "kind": "control",
     "must": true
    },
    {
-    "text": "Depth",
-    "kind": "label",
+    "text": "Will buy",
+    "kind": "control",
     "must": true
    },
    {
-    "text": "Height",
-    "kind": "label",
+    "text": "Edit",
+    "kind": "button",
     "must": true
    },
    {
-    "text": "Bench · standard",
-    "kind": "label",
-    "must": false
-   },
-   {
-    "text": "I've measured mine Standard · not measured yet",
-    "kind": "label",
-    "must": false
-   },
-   {
-    "text": "Standard · not measured yet",
-    "kind": "content",
-    "must": false
-   },
-   {
-    "text": "Against which wall?",
-    "kind": "label",
+    "text": "add another",
+    "kind": "button",
     "must": true
    },
    {
-    "text": "A",
-    "kind": "control",
-    "must": false
-   },
-   {
-    "text": "B",
-    "kind": "control",
-    "must": false
-   },
-   {
-    "text": "C",
-    "kind": "control",
-    "must": false
-   },
-   {
-    "text": "D",
-    "kind": "control",
-    "must": false
-   },
-   {
-    "text": "+ Sofa",
-    "kind": "content",
-    "must": false
-   },
-   {
-    "text": "+ Rug",
-    "kind": "content",
-    "must": false
-   },
-   {
-    "text": "+ Bookshelf",
-    "kind": "content",
-    "must": false
-   },
-   {
-    "text": "+ TV",
-    "kind": "content",
-    "must": false
-   },
-   {
-    "text": "+ Artwork",
-    "kind": "content",
-    "must": false
-   },
-   {
-    "text": "Snap it - we'll name it",
-    "kind": "content",
-    "must": false
+    "text": "we'll suggest the rest",
+    "kind": "label",
+    "must": true
    },
    {
     "text": "Back",
-    "kind": "button",
-    "must": true
-   },
-   {
-    "text": "Nothing yet — suggest everything",
     "kind": "button",
     "must": true
    },
@@ -1992,7 +1834,7 @@
  },
  {
   "board": "S4-Layouts",
-  "title": "4.3 · Choose a layout",
+  "title": "4.4 · Choose a layout",
   "page": "Choose a layout",
   "items": [
    {
@@ -2006,39 +1848,14 @@
     "must": true
    },
    {
-    "text": "Choose where life happens",
+    "text": "built from your real walls",
     "kind": "eyebrow",
     "must": true
    },
    {
-    "text": "Two ways to live in it",
+    "text": "Two ways to live in your room",
     "kind": "title",
     "must": false
-   },
-   {
-    "text": "Layout 1",
-    "kind": "label",
-    "must": true
-   },
-   {
-    "text": "Relax + piano",
-    "kind": "heading",
-    "must": false
-   },
-   {
-    "text": "Layout 2",
-    "kind": "label",
-    "must": true
-   },
-   {
-    "text": "More social seating",
-    "kind": "heading",
-    "must": false
-   },
-   {
-    "text": "Back",
-    "kind": "button",
-    "must": true
    },
    {
     "text": "Another option",
@@ -2046,10 +1863,34 @@
     "must": true
    },
    {
+    "text": "Fit checks",
+    "kind": "heading",
+    "must": true
+   },
+   {
+    "text": "Pieces in this layout",
+    "kind": "heading",
+    "must": true
+   },
+   {
+    "text": "Walking route",
+    "kind": "label",
+    "must": true
+   },
+   {
+    "text": "Door swing",
+    "kind": "label",
+    "must": true
+   },
+   {
+    "text": "Back",
+    "kind": "button",
+    "must": true
+   },
+   {
     "text": "Choose layout 1 and finish step 4",
     "kind": "button",
-    "must": true,
-    "match": "Choose layout \\d and finish step 4"
+    "must": true
    }
   ],
   "design": "designs/journey/S4-Layouts.jpg"

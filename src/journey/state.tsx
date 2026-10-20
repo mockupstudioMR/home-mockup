@@ -32,6 +32,8 @@ export type KeepItem = {
   /** Position along the wall, 0–100. */
   pos?: number;
   fixedSpot: boolean;
+  /** Already theirs, bought or ordered, or something they'll buy themselves (no status = have it). */
+  status?: "have" | "bought" | "buy";
 };
 export type LayoutItem = { label: string; kind: string; x: number; y: number; w: number; h: number; rotate?: number };
 export type Layout = {

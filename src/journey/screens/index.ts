@@ -7,7 +7,7 @@ import { Anchor, Shops, Step5Summary } from "./Step5";
 import { Lighting, Palette, Step6Summary, Step7Summary } from "./Step67";
 import { Step8Summary, WallDetail, Walls } from "./Step8";
 import { BuyList, Final, Sizes, Step9Summary, Todo } from "./Step910";
-import { Analyzing, Matches, Moodboard, Preview, Step2Summary, Upload, Vision } from "./Step2";
+import { Analyzing, Matches, Moodboard, Step2Summary, Upload, Vision } from "./Step2";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- screens take an optional route param
 export const SCREEN_COMPONENTS: Partial<Record<ScreenId, ComponentType<any>>> = {
@@ -23,7 +23,6 @@ export const SCREEN_COMPONENTS: Partial<Record<ScreenId, ComponentType<any>>> = 
   "S2-Analyzing": Analyzing,
   "S2-Matches": Matches,
   "S2-Moodboard": Moodboard,
-  "S2-Preview": Preview,
   "S2-Summary": Step2Summary,
   "S3-Activities": Activities,
   "S3-Existing": Existing,

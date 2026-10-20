@@ -5,7 +5,7 @@ import { Back, Go, Opt, Screen, useGo } from "../Shell";
 import { I, Ic } from "../icons";
 import { roomName } from "../data";
 import { stepLine } from "../story";
-import { curRoom, uid, useJourney, type JourneyState, type StyleMatch } from "../state";
+import { curRoom, uid, useJourney, type JourneyState, type ReadKey, type StyleMatch, type Swatch } from "../state";
 import { StepSummary } from "../Summary";
 import { analyzeStyles, blendName, findStylePieces, generatePreview, paletteFrom, readDesign, uploadPhoto } from "../services";
 import { saveStepDone } from "../sync";
@@ -525,17 +525,6 @@ export function Matches() {
   );
 }
 
-/** Six-dot sub-progress of step 2 shown on the moodboard. */
-function Dots({ at }: { at: number }) {
-  return (
-    <div className="dots" aria-label={`Moodboard page ${at} of 6`}>
-      {Array.from({ length: 6 }, (_, i) => (
-        <i key={i} className={i + 1 < at ? "done" : i + 1 === at ? "on" : ""} />
-      ))}
-    </div>
-  );
-}
-
 /** The moodboard picture: the saved image, or a collage of the chosen pieces and photos. */
 function Collage({ s, id }: { s: JourneyState; id?: string }) {
   if (s.moodboard?.image) return <img className="img" src={s.moodboard.image} alt="Your moodboard" />;
@@ -546,115 +535,6 @@ function Collage({ s, id }: { s: JourneyState; id?: string }) {
         <img key={src + i} src={src} alt="" crossOrigin="anonymous" style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "14px", gridColumn: i === 0 ? "span 2" : undefined, gridRow: i === 0 ? "span 2" : undefined }} />
       ))}
     </div>
-  );
-}
-
-/** 2.5 · Your moodboard */
-export function Moodboard() {
-  const { s } = useJourney();
-  const { toast } = useToast();
-  const mb = s.moodboard;
-  const share = async () => {
-    const text = `My ${roomName(curRoom(s)).toLowerCase()} moodboard: ${mb?.name}`;
-    try {
-      if (navigator.share) await navigator.share({ title: mb?.name, text, url: mb?.image });
-      else {
-        await navigator.clipboard.writeText(`${text}${mb?.image ? ` — ${mb.image}` : ""}`);
-        toast({ title: "Copied — paste it anywhere to share" });
-      }
-    } catch {
-      /* cancelled */
-    }
-  };
-  const save = async () => {
-    try {
-      let href = mb?.image;
-      if (!href) {
-        const el = document.getElementById("mb-collage");
-        if (!el) return;
-        const html2canvas = (await import("html2canvas")).default;
-        href = (await html2canvas(el, { useCORS: true, backgroundColor: "#F4EDE8" })).toDataURL("image/png");
-      }
-      const a = document.createElement("a");
-      a.href = href;
-      a.download = `${(mb?.name ?? "moodboard").replace(/\s+/g, "-").toLowerCase()}.png`;
-      a.target = "_blank";
-      a.click();
-    } catch {
-      toast({ title: "Couldn't save the image", variant: "destructive" });
-    }
-  };
-  return (
-    <Screen board="S2-Moodboard" step={2} right={roomName(curRoom(s))}>
-      <section className="panel" style={{ padding: "40px" }}>
-        <Dots at={2} />
-        <p className="script" style={{ marginTop: "20px" }}>
-          a moodboard, curated for you
-        </p>
-        <h1 className="h1" style={{ fontSize: "clamp(36px,4vw,56px)", marginTop: "6px" }}>
-          {mb?.name ?? "Your moodboard"}
-        </h1>
-        {mb?.description && (
-          <p className="sub" style={{ fontSize: "19px" }}>
-            {mb.description}
-          </p>
-        )}
-        <div className="mb">
-          <div className="mb-img">
-            <div className="ph">
-              <Collage s={s} id="mb-collage" />
-            </div>
-          </div>
-          <div className="mb-side">
-            <div className="card">
-              <span className="lbl">Palette</span>
-              <div style={{ marginTop: "8px" }}>
-                {(mb?.palette ?? []).map((c) => (
-                  <div className="col" key={c.hex + c.name}>
-                    <i style={{ background: c.hex }} />
-                    {c.name}
-                    <span>{c.use}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-            <div className="card">
-              <span className="lbl">Feels like</span>
-              <div className="chips" style={{ marginTop: "12px", gap: "8px" }}>
-                {(mb?.feels ?? []).map((f) => (
-                  <span className="tag" key={f}>
-                    {f}
-                  </span>
-                ))}
-              </div>
-            </div>
-            <div className="row" style={{ gap: "12px" }}>
-              <button className="btn ghost auto" type="button" style={{ flex: "1 1 auto", minHeight: "56px", fontSize: "16px" }} onClick={share}>
-                <Ic>
-                  <path d="M12 3v12M7 8l5-5 5 5M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6" />
-                </Ic>
-                Share
-              </button>
-              <button className="btn ghost auto" type="button" style={{ flex: "1 1 auto", minHeight: "56px", fontSize: "16px" }} onClick={save}>
-                <Ic>
-                  <path d="M12 4v11M7 10l5 5 5-5M4 20h16" />
-                </Ic>
-                Save image
-              </button>
-            </div>
-          </div>
-        </div>
-        <div className="actions">
-          <Go className="btn ghost auto" to={s.visionMode === "discover" ? "S2-Matches" : "S2-Upload"}>
-            Back
-          </Go>
-          <Go className="btn auto" to="S2-Preview" style={{ marginLeft: "auto" }}>
-            See it in a room
-            <I.next />
-          </Go>
-        </div>
-      </section>
-    </Screen>
   );
 }
 
@@ -692,15 +572,64 @@ function usePreview() {
   return { busy, v };
 }
 
-/** 2.6 · One preview — keep or adjust */
-export function Preview() {
+/** What each part of the read-out is called, numbered on the preview. */
+const PART_NAME: Record<ReadKey, string> = { finishes: "Finishes", furniture: "Furniture", colours: "Colours & materials", decor: "Decor", lighting: "Lighting" };
+const PART_N: Record<ReadKey, number> = { finishes: 1, furniture: 2, colours: 3, decor: 4, lighting: 5 };
+
+/** How much of the room each palette colour covers: walls the most, then in the palette's order. */
+function paletteShares(palette: Swatch[]) {
+  const rest = [22, 16, 12, 10, 8];
+  let k = 0;
+  return palette.map((c) => (/wall/i.test(c.use ?? "") ? 40 : rest[Math.min(k++, rest.length - 1)]));
+}
+
+/** Text colour that reads on a swatch. */
+const onColour = (hex: string) => {
+  const n = parseInt(hex.replace("#", "").padEnd(6, "0").slice(0, 6), 16);
+  const l = (0.299 * ((n >> 16) & 255) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255)) / 255;
+  return l > 0.6 ? "#2F2840" : "#FFFFFF";
+};
+
+/** 2.4 · Your direction — the moodboard and the one preview on one screen: keep it or say what to change. */
+export function Moodboard() {
   const { s, set } = useJourney();
   const { toast } = useToast();
   const { busy, v } = usePreview();
+  const [tab, setTab] = useState<"preview" | "colors">("preview");
   const [req, setReq] = useState("");
   const [making, setMaking] = useState(false);
+  const mb = s.moodboard;
   const pv = s.preview;
-  /** "Adjust it" happens right here: the request makes a new version, the old ones stay to go back to. */
+  const room = roomName(curRoom(s)).toLowerCase();
+  const palette = mb?.palette ?? [];
+  const shares = paletteShares(palette);
+  const total = shares.reduce((a, b) => a + b, 0) || 1;
+  const read = pv?.read ?? [];
+  const refs = (s.photos.length ? s.photos : s.styles.flatMap((st) => st.pieces.filter((p) => p.added).map((p) => p.image))).slice(0, 3);
+
+  const share = async () => {
+    const text = `My ${room} direction: ${mb?.name}`;
+    const url = v?.image ?? mb?.image;
+    try {
+      if (navigator.share) await navigator.share({ title: mb?.name, text, url });
+      else {
+        await navigator.clipboard.writeText(`${text}${url ? ` — ${url}` : ""}`);
+        toast({ title: "Copied — paste it anywhere to share" });
+      }
+    } catch {
+      /* cancelled */
+    }
+  };
+  const save = () => {
+    const href = v?.image ?? mb?.image;
+    if (!href) return;
+    const a = document.createElement("a");
+    a.href = href;
+    a.download = `${(mb?.name ?? "my-direction").replace(/\s+/g, "-").toLowerCase()}.png`;
+    a.target = "_blank";
+    a.click();
+  };
+  /** "Adjust it": the request makes a new version; earlier versions stay to go back to. */
   const update = async (e: FormEvent) => {
     e.preventDefault();
     const change = req.trim();
@@ -716,54 +645,194 @@ export function Preview() {
         return { preview: { ...(p.preview ?? { versions: [], current: 0 }), versions, current: versions.length - 1, read: undefined, readOf: undefined } };
       });
       setReq("");
-      const read = await readDesign(img, s.moodboard?.name);
-      set((p) => ({ preview: { ...p.preview!, read, readOf: img } }));
+      const r = await readDesign(img, mb?.name);
+      set((p) => ({ preview: { ...p.preview!, read: r, readOf: img } }));
     } catch (err) {
       toast({ title: "The preview couldn't be updated", description: (err as Error).message, variant: "destructive" });
     } finally {
       setMaking(false);
     }
   };
-  const items = (s.preview?.read ?? []).flatMap((p) => (p.key === "furniture" ? p.keywords.slice(0, 2) : p.key === "colours" ? p.keywords.slice(0, 2) : p.keywords.slice(0, 1))).slice(0, 6);
-  const n = (s.preview?.current ?? 0) + 1;
+
   return (
-    <Screen board="S2-Preview" step={2} right={roomName(curRoom(s))}>
-      <p className="eyebrow">Your direction</p>
-      <h1 className="h1">One preview. Keep or adjust.</h1>
-      <p className="sub">
-        Here's your {roomName(curRoom(s)).toLowerCase()}, inspired by your references. It's a direction — the real fit comes once we know the room.
-      </p>
-      <div className="ph hero" style={{ marginTop: "40px", borderRadius: "28px" }}>
-        {v ? (
-          <img className="img" src={v.image} alt={`Inspired ${roomName(curRoom(s)).toLowerCase()} preview`} style={{ borderRadius: "28px" }} />
-        ) : (
-          <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", color: "#665A80", fontSize: "20px" }}>
-            {busy === "make" ? "Painting your preview… about a minute" : "No preview yet"}
+    <Screen board="S2-Moodboard" step={2} right={roomName(curRoom(s))} wrapClass="wrap wide">
+      <div className="dr-top">
+        <div className="stack" style={{ gap: "6px", maxWidth: "720px" }}>
+          <p className="dr-script">your direction, curated for you</p>
+          <h1 className="dr-h1">
+            <span className="brush">{mb?.name ?? "Your direction"}</span>
+          </h1>
+          {mb?.description && <p className="dr-sub">{mb.description}</p>}
+        </div>
+        <div className="row" style={{ gap: "10px" }}>
+          <button className="dr-ghost" type="button" onClick={share}>
+            <Ic>
+              <path d="M12 15V3M7 8l5-5 5 5M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6" />
+            </Ic>
+            Share
+          </button>
+          <button className="dr-ghost" type="button" onClick={save} disabled={!v && !mb?.image}>
+            <Ic>
+              <path d="M12 3v12M7 10l5 5 5-5M5 21h14" />
+            </Ic>
+            Save as image
+          </button>
+        </div>
+      </div>
+
+      {palette.length > 0 && (
+        <section aria-label="Colour palette" className="dr-strip-wrap">
+          <div className="dr-strip">
+            {palette.map((c, i) => (
+              <div key={c.hex + c.name} style={{ flex: shares[i], background: c.hex, color: onColour(c.hex) }}>
+                <b>{c.name}</b>
+                <span>{c.hex.toUpperCase()}</span>
+              </div>
+            ))}
           </div>
-        )}
-        <span className="num">{n}</span>
-        <span className="badge">
-          <I.info />
-          Inspired preview · not to scale
-        </span>
+        </section>
+      )}
+
+      <div className="dr-row">
+        <section className="dr-main">
+          <div className="dr-tabs" role="tablist" aria-label="View">
+            <button type="button" role="tab" aria-selected={tab === "preview"} onClick={() => setTab("preview")}>
+              Preview
+            </button>
+            <button type="button" role="tab" aria-selected={tab === "colors"} onClick={() => setTab("colors")}>
+              Colors
+            </button>
+          </div>
+
+          {tab === "preview" ? (
+            <>
+              <figure className="dr-hero">
+                {v ? (
+                  <img src={v.image} alt={`Inspired ${room} preview`} />
+                ) : (
+                  <div className="dr-wait">{busy === "make" ? "Painting your preview… about a minute" : "No preview yet"}</div>
+                )}
+                <span className="dr-badge">
+                  <I.info />
+                  Inspired preview · not to scale
+                </span>
+                {v &&
+                  read.map((p) => (
+                    <span key={p.key} className="dr-dot" style={{ left: `${p.x}%`, top: `${p.y}%` }} aria-hidden="true">
+                      {PART_N[p.key]}
+                    </span>
+                  ))}
+              </figure>
+              <ol className="dr-key">
+                {read.length ? (
+                  [...read]
+                    .sort((a, b) => PART_N[a.key] - PART_N[b.key])
+                    .map((p) => (
+                      <li key={p.key}>
+                        <b>{PART_N[p.key]}</b>
+                        {p.keywords.slice(0, 2).join(", ") || PART_NAME[p.key]}
+                      </li>
+                    ))
+                ) : (
+                  <li className="muted">{busy === "read" ? "Reading the preview…" : "In this preview"}</li>
+                )}
+              </ol>
+              {pv && pv.versions.length > 1 && (
+                <div className="dr-vers">
+                  <span className="lbl">Versions</span>
+                  {pv.versions.map((ver, i) => (
+                    <button
+                      key={ver.id}
+                      type="button"
+                      aria-pressed={i === pv.current}
+                      aria-label={`Version ${i + 1}${ver.request ? `: ${ver.request}` : ""}`}
+                      onClick={() => set((p) => ({ preview: { ...p.preview!, current: i, read: undefined, readOf: undefined } }))}
+                    >
+                      <img src={ver.image} alt="" />
+                      <span>V{i + 1}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </>
+          ) : (
+            <div className="dr-colors">
+              <div className="row between">
+                <p className="dr-script" style={{ fontSize: "28px" }}>
+                  paint chips for your room
+                </p>
+                <span className="small">Taken from your preview and photos</span>
+              </div>
+              <div className="dr-chips">
+                {palette.map((c, i) => (
+                  <div key={c.hex + c.name} className="dr-chip" style={{ transform: `rotate(${[-3, 2, -1.5, 3, -2][i % 5]}deg)` }}>
+                    <i style={{ background: c.image ? `url(${c.image}) center/cover, ${c.hex}` : c.hex }} />
+                    <b>{c.name}</b>
+                    <span className="hex">{c.hex.toUpperCase()}</span>
+                    {c.use && <span>{c.use}</span>}
+                  </div>
+                ))}
+              </div>
+              <div className="stack" style={{ gap: "10px" }}>
+                <span className="lbl">How much of each</span>
+                <div className="dr-bar">
+                  {palette.map((c, i) => (
+                    <span key={c.hex + c.name} style={{ flex: shares[i], background: c.hex }} />
+                  ))}
+                </div>
+                <div className="dr-bar-l">
+                  {palette.map((c, i) => (
+                    <span key={c.hex + c.name} style={{ flex: shares[i] }}>
+                      {Math.round((shares[i] / total) * 100)}%
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+        </section>
+
+        <aside className="dr-side">
+          <div className="dr-card">
+            <h2 className="dr-h2">Palette &amp; materials</h2>
+            {palette.map((c) => (
+              <div className="dr-mat" key={c.hex + c.name}>
+                <i style={{ background: c.image ? `url(${c.image}) center/cover, ${c.hex}` : c.hex }} />
+                <b>{c.material ?? c.name}</b>
+                <span>{c.use}</span>
+              </div>
+            ))}
+          </div>
+          {(mb?.feels ?? []).length > 0 && (
+            <div className="dr-card">
+              <h2 className="dr-h2">Feels like</h2>
+              <div className="chips" style={{ gap: "8px" }}>
+                {(mb?.feels ?? []).map((f) => (
+                  <span className="tag" key={f}>
+                    {f}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+          {refs.length > 0 && (
+            <div className="dr-card">
+              <h2 className="dr-h2">From your photos</h2>
+              <div className="dr-polas">
+                {refs.map((src, i) => (
+                  <figure key={src + i} className="dr-pola" style={{ transform: `rotate(${[-4, 2.5, -1.5][i]}deg)` }}>
+                    <img src={src} alt={`Your reference ${i + 1}`} />
+                  </figure>
+                ))}
+              </div>
+            </div>
+          )}
+        </aside>
       </div>
-      <div className="row" style={{ marginTop: "20px", gap: "10px" }}>
-        <span className="lbl" style={{ marginRight: "4px" }}>
-          In this preview
-        </span>
-        {items.length ? (
-          items.map((t) => (
-            <span className="tag line" key={t}>
-              {t}
-            </span>
-          ))
-        ) : (
-          <span className="small">{busy === "read" ? "Reading the preview…" : "—"}</span>
-        )}
-      </div>
-      <div className="decide">
+
+      <section className="dr-decide" aria-label="Decide">
         <Go
-          className="dc pri"
+          className="dr-keep"
           to="S2-Summary"
           onClick={() => {
             if (!v) return false;
@@ -771,54 +840,27 @@ export function Preview() {
             void saveStepDone(s, 2);
           }}
         >
-          <span className="tile" style={{ background: "rgba(255,255,255,.16)", color: "#fff", boxShadow: "none" }}>
+          <span className="tile">
             <I.check />
           </span>
-          <span className="stack" style={{ gap: "6px" }}>
-            <span className="h3" style={{ color: "#fff" }}>
-              Keep this direction
-            </span>
-            <span className="p">Go straight to how you use the room and its layout.</span>
+          <span className="stack" style={{ gap: "2px" }}>
+            <b>Keep this direction</b>
+            <span>Next: how you use the room and its layout</span>
           </span>
         </Go>
-        <form className="dc" onSubmit={(e) => void update(e)}>
-          <span className="tile">
-            <Ic>
-              <path d="M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16zM13 20h7" />
-            </Ic>
-          </span>
-          <span className="stack" style={{ gap: "10px", flex: 1, minWidth: 0 }}>
-            <label className="h3" htmlFor="adjust">
-              Adjust it
-            </label>
+        <form className="dr-adjust" onSubmit={(e) => void update(e)}>
+          <label htmlFor="adjust">Or adjust it</label>
+          <div className="row" style={{ gap: "10px", flexWrap: "nowrap" }}>
             <input id="adjust" className="input" value={req} placeholder="e.g. lighter walls, but keep the sofa" onChange={(e) => setReq(e.target.value)} disabled={making} />
-            <button className={`btn ghost auto${making || !v ? " dis" : ""}`} type="submit" disabled={making || !v} style={{ alignSelf: "flex-start" }}>
-              <I.repeat />
+            <button className="dr-ghost pri" type="submit" disabled={making || !v}>
               {making ? "Updating… about a minute" : "Update preview"}
             </button>
-          </span>
+          </div>
         </form>
-      </div>
-      {pv && pv.versions.length > 1 && (
-        <div className="row" style={{ marginTop: "20px", gap: "12px" }}>
-          <span className="lbl">Versions</span>
-          {pv.versions.map((ver, i) => (
-            <button
-              key={ver.id}
-              type="button"
-              aria-pressed={i === pv.current}
-              aria-label={`Version ${i + 1}${ver.request ? `: ${ver.request}` : ""}`}
-              onClick={() => set((p) => ({ preview: { ...p.preview!, current: i, read: undefined, readOf: undefined } }))}
-              style={{ width: "96px", height: "64px", padding: 0, borderRadius: "12px", overflow: "hidden", border: `2px solid ${i === pv.current ? "#665A85" : "transparent"}`, background: "none", position: "relative", cursor: "pointer" }}
-            >
-              <img className="img" src={ver.image} alt="" style={{ borderRadius: 0 }} />
-              <span style={{ position: "absolute", left: "6px", bottom: "6px", fontSize: "12px", fontWeight: 700, background: "rgba(251,248,246,.92)", padding: "2px 8px", borderRadius: "8px" }}>V{i + 1}</span>
-            </button>
-          ))}
-        </div>
-      )}
-      <div className="actions" style={{ marginTop: "28px" }}>
-        <Back to="S2-Moodboard" label="Back to moodboard" />
+      </section>
+
+      <div className="actions" style={{ marginTop: "20px" }}>
+        <Back to={s.visionMode === "discover" ? "S2-Matches" : "S2-Upload"} label={s.visionMode === "discover" ? "Back to styles" : "Back to your photos"} />
       </div>
     </Screen>
   );
@@ -881,7 +923,7 @@ export function Step2Summary() {
           ) : (
             `Version ${(pv?.current ?? 0) + 1} kept`
           ),
-          edit: "S2-Preview",
+          edit: "S2-Moodboard",
         },
         {
           k: "Feels like",
@@ -901,7 +943,7 @@ export function Step2Summary() {
         ["1", stepLine(s, 1)],
         ["2", `${mb?.name ?? "Your"} direction`],
       ]}
-      back="S2-Preview"
+      back="S2-Moodboard"
       next="S3-Activities"
     />
   );
