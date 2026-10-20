@@ -123,7 +123,7 @@
    "seed": "journey-state.json"
   },
   "S3-Fixed": {
-   "route": "/journey/3/fixed",
+   "route": "/journey/4/fixed",
    "role": "user",
    "seed": "journey-state.json"
   },

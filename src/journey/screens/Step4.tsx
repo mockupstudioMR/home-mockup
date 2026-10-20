@@ -3,7 +3,7 @@ import { useEffect, useRef, useState, type CSSProperties, type MouseEvent } from
 import { useToast } from "@/hooks/use-toast";
 import { Back, Go, Opt, Screen, useGo } from "../Shell";
 import { I, Ic } from "../icons";
-import { roomName } from "../data";
+import { roomName, stateInfo } from "../data";
 import { curRoom, uid, useJourney, type FixedKind, type JourneyState, type Layout, type Placement, type Wall } from "../state";
 import { StepSummary } from "../Summary";
 import { analyzePlan, makeLayout, uploadPhoto } from "../services";
@@ -12,7 +12,7 @@ import { applyPlanRead } from "../plan/apply";
 import { pdfToImages } from "@/lib/pdfToImages";
 import { list, soFar } from "../story";
 import { saveStepDone } from "../sync";
-import { placementLabel } from "./Step3";
+import { fixedLine, placementLabel } from "./Step3";
 
 const p = (d: string) => <path d={d} />;
 /** The last plan image, kept so the person can tap a different room on it without uploading again. */
@@ -142,7 +142,7 @@ export function RoomInput() {
         <Ic style={{ marginLeft: "auto" }}>{p("M5 12h14M13 6l6 6-6 6")}</Ic>
       </Go>
       <div className="actions">
-        <Back to="S3-Fixed" />
+        <Back to="S3-Summary" />
       </div>
     </Screen>
   );
@@ -474,13 +474,13 @@ export function Measure() {
             </div>
             <Go
               className="btn"
-              to="S4-Layouts"
+              to="S3-Fixed"
               style={{ minHeight: "64px", fontSize: "19px" }}
               onClick={() => {
                 if (!shown.some((x) => x.kind === "doors" && x.wall)) toast({ title: "Tip: place at least one door", description: "Layouts keep a clear route from the door." });
               }}
             >
-              Show me layouts
+              Next: what can't move
               <I.next />
             </Go>
             <Go className="link-btn" to="S4-Input" style={{ justifyContent: "center" }}>
@@ -673,7 +673,7 @@ export function Layouts() {
         {example ? `Illustrative arrangements on example dimensions (${m(w)} × ${m(l)} m). Actual room fit: TBC until measured.` : `Arranged on your room (${m(w)} × ${m(l)} m).`}
       </p>
       <div className="actions">
-        <Back to="S4-Measure" />
+        <Back to="S3-Fixed" />
         <button className="btn ghost auto" type="button" style={{ marginLeft: "auto" }} onClick={another} disabled={busy}>
           <I.repeat />
           Another option
@@ -724,6 +724,8 @@ export function Step4Summary() {
   const { s } = useJourney();
   const { w, l, example } = roomSize(s);
   const lay = s.layouts[s.chosenLayout ?? 0];
+  const st = stateInfo(s.houseState);
+  const tbc = s.fixedTbc.map((k) => (k === "sockets" ? "Sockets & switches" : "water & drains"));
   const input = s.room.input === "plan" ? `Floorplan uploaded · scale set from ${(s.room.scaleRef ?? "Wall A length").replace(" length", "").toLowerCase().replace("wall", "wall")}` : s.room.input === "photos" ? `${s.room.wallPhotos.length} wall photos + measurements` : "Room drawn by hand";
   const open = [
     example ? "Measure the room — sizes are examples" : null,
@@ -752,6 +754,18 @@ export function Step4Summary() {
             </>
           ),
           edit: "S4-Measure",
+        },
+        { k: "Can't move", v: fixedLine(s), edit: "S3-Fixed" },
+        {
+          k: "In the walls",
+          v: tbc.length ? (
+            <>
+              {tbc.join(", ")} <span className="tag tbc">Not sure</span> — {st.id === "core-shell" || st.id === "redoing" ? `we'll plan these (${st.lbl.toLowerCase()})` : "kept where they are"}
+            </>
+          ) : (
+            "Known and counted"
+          ),
+          edit: "S3-Fixed",
         },
         {
           k: "Layout",

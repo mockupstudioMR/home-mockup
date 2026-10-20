@@ -5,7 +5,7 @@ import { invokeAi } from "@/lib/invokeAi";
 import { useToast } from "@/hooks/use-toast";
 import { Back, Go, Opt, Screen } from "../Shell";
 import { I, Ic, ROOM_ICON, SCOPE_ICON } from "../icons";
-import { stateInfo } from "../data";
+import { roomName, stateInfo } from "../data";
 import { curRoom, uid, useJourney, type FixedKind, type JourneyState, type KeepItem, type Placement, type Wall } from "../state";
 import { StepSummary } from "../Summary";
 import { uploadPhoto } from "../services";
@@ -98,7 +98,7 @@ export function Activities() {
   };
   const n = s.activities.length;
   return (
-    <Screen board="S3-Activities" step={3} right="Question 1 of 4">
+    <Screen board="S3-Activities" step={3} right="Question 1 of 3">
       <p className="eyebrow">Design around your everyday life</p>
       <h1 className="h1">What happens in this room?</h1>
       <p className="sub">Pick everything you do here. Do you play an instrument, paint or work from the sofa? Add it.</p>
@@ -175,7 +175,7 @@ export function Priorities() {
       return { priorities: x.priorities.length >= 2 ? [x.priorities[0], t] : [...x.priorities, t] };
     });
   return (
-    <Screen board="S3-Priorities" step={3} right="Question 2 of 4" wrapStyle={{ maxWidth: "1080px" }}>
+    <Screen board="S3-Priorities" step={3} right="Question 2 of 3" wrapStyle={{ maxWidth: "1080px" }}>
       <p className="eyebrow">Design around your everyday life</p>
       <h1 className="h1">What matters most?</h1>
       <p className="sub">Choose your top two, in order. When space is tight, these win.</p>
@@ -488,7 +488,7 @@ export function Existing() {
     }
   };
   return (
-    <Screen board="S3-Existing" step={3} right="Question 3 of 4" wrapStyle={{ maxWidth: "1240px" }}>
+    <Screen board="S3-Existing" step={3} right="Question 3 of 3" wrapStyle={{ maxWidth: "1240px" }}>
       <p className="eyebrow">Design around your everyday life</p>
       <h1 className="h1">What are you keeping?</h1>
       <p className="sub">
@@ -512,11 +512,26 @@ export function Existing() {
       </div>
       <div className="actions">
         <Back to="S3-Priorities" />
-        <Go className="link-btn" to="S3-Fixed" style={{ marginLeft: "auto" }} onClick={() => void set({ keeping: [], nothingKept: true })}>
+        <Go
+          className="link-btn"
+          to="S3-Summary"
+          style={{ marginLeft: "auto" }}
+          onClick={() => {
+            set((x) => ({ keeping: [], nothingKept: true, done: Array.from(new Set([...x.done, 3])) }));
+            void saveStepDone(s, 3);
+          }}
+        >
           I'm not keeping anything
         </Go>
-        <Go className="btn auto" to="S3-Fixed">
-          Continue
+        <Go
+          className="btn auto"
+          to="S3-Summary"
+          onClick={() => {
+            set((x) => ({ done: Array.from(new Set([...x.done, 3])) }));
+            void saveStepDone(s, 3);
+          }}
+        >
+          Finish step 3
           <I.next />
         </Go>
       </div>
@@ -555,7 +570,7 @@ function syncPlacements(counts: JourneyState["fixedCounts"], prev: Placement[]):
   return out;
 }
 
-/** 3.4 · Fixed features */
+/** 4.3 · Fixed features — asked after the floor plan, so doors and windows read from the plan are already here. */
 export function Fixed() {
   const { s, set } = useJourney();
   const { toast } = useToast();
@@ -601,8 +616,8 @@ export function Fixed() {
   const shots = [...pl.filter((x) => x.photo), ...needPhoto.slice(0, 2)];
 
   return (
-    <Screen board="S3-Fixed" step={3} right="Question 4 of 4" wrapStyle={{ maxWidth: "1080px" }}>
-      <p className="eyebrow">Design around your everyday life</p>
+    <Screen board="S3-Fixed" step={4} right={roomName(curRoom(s))} wrapStyle={{ maxWidth: "1080px" }}>
+      <p className="eyebrow">Your room, as it is</p>
       <h1 className="h1">What can't move?</h1>
       <p className="sub">Count what's built into the room, then snap a photo and show us where each one is.</p>
       <div className="fx">
@@ -655,7 +670,7 @@ export function Fixed() {
           <div className="stack" style={{ gap: "6px" }}>
             <h2 className="h3">Show us where they are</h2>
             <p className="p" style={{ fontSize: "16px" }}>
-              A photo of each, then a tap on the plan. Rough is fine — you'll refine it on your real plan in Step 4.
+              A photo of each, then a tap on the wall it sits on. Anything we read from your plan is already placed.
             </p>
           </div>
           <span className="tag">
@@ -784,17 +799,9 @@ export function Fixed() {
         </div>
       </section>
       <div className="actions">
-        <Back to="S3-Existing" />
-        <Go
-          className="btn auto"
-          to="S3-Summary"
-          style={{ marginLeft: "auto" }}
-          onClick={() => {
-            set((x) => ({ done: Array.from(new Set([...x.done, 3])) }));
-            void saveStepDone(s, 3);
-          }}
-        >
-          Finish step 3
+        <Back to="S4-Measure" />
+        <Go className="btn auto" to="S4-Layouts" style={{ marginLeft: "auto" }}>
+          Show me layouts
           <I.next />
         </Go>
       </div>
@@ -831,10 +838,7 @@ export function fixedLine(s: JourneyState) {
 /** 3.5 · Step 3 summary */
 export function Step3Summary() {
   const { s } = useJourney();
-  const st = stateInfo(s.houseState);
-  const tbc = s.fixedTbc.map((k) => (k === "sockets" ? "Sockets & switches" : "water & drains"));
   const open = [
-    ...s.placements.filter((x) => !x.wall).map((x) => `Place ${placementLabel(x, s.placements).toLowerCase()} on the plan`),
     ...s.keeping.filter((k) => !k.measured).map((k) => `Measure the ${k.name.toLowerCase().replace(/^upright /, "")}${k.extraLabel ? ` and ${k.extraLabel.split(" ")[0].toLowerCase()}` : ""}`),
     ...s.placements.filter((x) => !x.photo && x.kind === "panels").map(() => "Photo of the fuse box & meters"),
   ];
@@ -842,7 +846,7 @@ export function Step3Summary() {
     <StepSummary
       step={3}
       board="S3-Summary"
-      sub="We know how you live in the room and what has to stay. Next we fit it all onto your real floor plan."
+      sub="We know how you live in the room and what you're keeping. Next: your floor plan, and what can't move."
       decWrap
       decisions={[
         { k: "Activities", v: s.activities.join(" · ") || "None picked", edit: "S3-Activities" },
@@ -881,22 +885,10 @@ export function Step3Summary() {
           ),
           edit: "S3-Existing",
         },
-        { k: "Can't move", v: fixedLine(s), edit: "S3-Fixed" },
-        {
-          k: "In the walls",
-          v: tbc.length ? (
-            <>
-              {tbc.join(", ")} <span className="tag tbc">Not sure</span> — {st.id === "core-shell" || st.id === "redoing" ? `we'll plan these (${st.lbl.toLowerCase()})` : "kept where they are"}
-            </>
-          ) : (
-            "Known and counted"
-          ),
-          edit: "S3-Fixed",
-        },
       ]}
       open={open}
       soFar={soFar(s, 3)}
-      back="S3-Fixed"
+      back="S3-Existing"
       next="S4-Input"
     />
   );

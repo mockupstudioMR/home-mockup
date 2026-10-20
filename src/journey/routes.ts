@@ -26,10 +26,10 @@ export const SCREENS: { id: ScreenId; path: string; step: number }[] = [
   { id: "S3-Activities", path: "3/activities", step: 3 },
   { id: "S3-Priorities", path: "3/priorities", step: 3 },
   { id: "S3-Existing", path: "3/existing", step: 3 },
-  { id: "S3-Fixed", path: "3/fixed", step: 3 },
   { id: "S3-Summary", path: "3/summary", step: 3 },
   { id: "S4-Input", path: "4/input", step: 4 },
   { id: "S4-Measure", path: "4/measure", step: 4 },
+  { id: "S3-Fixed", path: "4/fixed", step: 4 },
   { id: "S4-Layouts", path: "4/layouts", step: 4 },
   { id: "S4-Summary", path: "4/summary", step: 4 },
   { id: "S5-Shops", path: "5/shops", step: 5 },
@@ -56,6 +56,7 @@ export function screenFor(rest: string): { id: ScreenId; param?: string } | null
   const clean = rest.replace(/^\/+|\/+$/g, "");
   const exact = SCREENS.find((s) => s.path === clean);
   if (exact) return { id: exact.id };
+  if (clean === "3/fixed") return { id: "S3-Fixed" }; // old address: "what can't move" moved after the floor plan
   const wall = /^8\/wall\/([A-Za-z0-9]+)$/.exec(clean);
   if (wall) return { id: "S8-WallDetail", param: wall[1] };
   return null;

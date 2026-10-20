@@ -1787,11 +1787,11 @@
  },
  {
   "board": "S3-Fixed",
-  "title": "3.4 · Fixed features",
+  "title": "4.3 · Fixed features",
   "page": "Fixed features",
   "items": [
    {
-    "text": "Step 3 of 10",
+    "text": "Step 4 of 10",
     "kind": "progress",
     "must": true
    },
@@ -1801,7 +1801,7 @@
     "must": true
    },
    {
-    "text": "Design around your everyday life",
+    "text": "Your room, as it is",
     "kind": "eyebrow",
     "must": true
    },
@@ -1886,7 +1886,7 @@
     "must": true
    },
    {
-    "text": "Finish step 3",
+    "text": "Show me layouts",
     "kind": "button",
     "must": true
    }
