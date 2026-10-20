@@ -1496,12 +1496,12 @@
     "must": true
    },
    {
-    "text": "Before we look for new pieces",
+    "text": "Before we suggest new pieces",
     "kind": "eyebrow",
     "must": true
    },
    {
-    "text": "What are you keeping?",
+    "text": "What do you already have?",
     "kind": "title",
     "must": true
    },
@@ -1626,12 +1626,12 @@
     "must": true
    },
    {
-    "text": "I'm not keeping anything",
+    "text": "Nothing yet — suggest everything",
     "kind": "button",
     "must": true
    },
    {
-    "text": "Next: find new pieces",
+    "text": "Next: suggest new pieces",
     "kind": "button",
     "must": true
    }

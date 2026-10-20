@@ -420,16 +420,17 @@ export function Existing() {
   };
   return (
     <Screen board="S3-Existing" step={5} right={roomName(curRoom(s))} wrapStyle={{ maxWidth: "1240px" }}>
-      <p className="eyebrow">Before we look for new pieces</p>
-      <h1 className="h1">What are you keeping?</h1>
+      <p className="eyebrow">Before we suggest new pieces</p>
+      <h1 className="h1">What do you already have?</h1>
       <p className="sub">
-        Tell us what stays, so we only suggest what's missing. Snap a photo and show us where it stands — new pieces have to make room for it.
+        We'll suggest new furniture next. First, tell us what's already covered — pieces you're keeping, have bought or plan to
+        buy yourself — so we only suggest what's missing.
       </p>
       {s.keeping.map((it) => (
         <KeepPanel key={it.id} item={it} s={s} update={update(it.id)} remove={() => set((x) => ({ keeping: x.keeping.filter((i) => i.id !== it.id) }))} />
       ))}
       <div className="addrow">
-        <span style={{ fontWeight: "600", marginRight: "8px" }}>{s.keeping.length ? "Add another piece" : "Add a piece you're keeping"}</span>
+        <span style={{ fontWeight: "600", marginRight: "8px" }}>{s.keeping.length ? "Add another piece" : "Add a piece you have or plan to buy"}</span>
         {(s.keeping.length ? KEEP_CHIPS : ["Upright piano", ...KEEP_CHIPS]).map((c) => (
           <button key={c} className="chip" type="button" style={{ minHeight: "44px", fontSize: "15px" }} onClick={() => addPiece(c)}>
             + {c}
@@ -444,10 +445,10 @@ export function Existing() {
       <div className="actions">
         <Back to="S4-Summary" />
         <Go className="link-btn" to="S5-Shops" style={{ marginLeft: "auto" }} onClick={() => void set({ keeping: [], nothingKept: true })}>
-          I'm not keeping anything
+          Nothing yet — suggest everything
         </Go>
         <Go className="btn auto" to="S5-Shops">
-          Next: find new pieces
+          Next: suggest new pieces
           <I.next />
         </Go>
       </div>
