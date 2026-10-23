@@ -37,7 +37,9 @@ const ShareNextSteps = ({ score, style, budget, productCount }: Props) => {
         await navigator.clipboard.writeText(window.location.href);
         toast({ title: "Link copied", description: "Share your design with anyone." });
       }
-    } catch {}
+    } catch {
+      // User cancelled the share sheet or clipboard access was denied — nothing to do.
+    }
   };
 
   return (

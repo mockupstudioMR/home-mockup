@@ -182,7 +182,7 @@ export default function RoomActivitiesManager() {
                         <Input
                           value={JSON.stringify(editData.opening_affinity || {})}
                           onChange={(e) => {
-                            try { setEditData((p) => ({ ...p, opening_affinity: JSON.parse(e.target.value) })); } catch {}
+                            try { setEditData((p) => ({ ...p, opening_affinity: JSON.parse(e.target.value) })); } catch { /* ignore partial JSON while the admin is still typing */ }
                           }}
                           placeholder='Opening affinity JSON: {"window": "near", "door": "away"}'
                           className="h-8 text-xs font-mono"

@@ -1080,7 +1080,7 @@ const FloorPlan = () => {
 
       if (!row) {
         // No explicit link yet — take the most recent design of this room type.
-        let q = supabase
+        const q = supabase
           .from("generated_designs")
           .select(columns)
           .eq("user_id", user.id)
