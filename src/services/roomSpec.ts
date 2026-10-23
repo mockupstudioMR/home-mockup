@@ -16,8 +16,12 @@ import {
   ROOM_SPEC_VERSION,
   RoomSpec,
   RoomLayout,
+  RoomLayoutFeedback,
+  RoomOpening,
+  RoomWall,
   emptyRoomSpec,
 } from "@/types/roomSpec";
+import type { Tables } from "@/integrations/supabase/types";
 
 const ACTIVE_ID_KEY = "room_spec_active_id";
 const ACTIVE_SPEC_KEY = "room_spec_active";
@@ -79,13 +83,41 @@ export function toLegacyFloorPlanContext(spec: RoomSpec) {
   try { sessionStorage.setItem(LEGACY_FLOOR_PLAN_KEY, JSON.stringify(ctx)); } catch { /* ignore */ }
 }
 
+/** Shape of the legacy `floor_plan_context` key (older writers may omit fields). */
+interface LegacyFloorPlanContext {
+  shape?: string;
+  dimensions?: Record<string, number>;
+  customWalls?: RoomSpec["custom_walls"];
+  roomType?: string;
+  furnitureItems?: string[];
+  walls?: Array<{
+    wall: string;
+    surface?: RoomWall["surface"];
+    openings?: Array<{ type: RoomOpening["type"]; position_pct?: number; position?: number }>;
+  }>;
+  style?: string;
+  referenceImageUrl?: string;
+  layout?: Partial<Pick<RoomLayout, "name" | "description" | "items">>;
+  feedback?: RoomLayoutFeedback[];
+}
+
+/** Shape of the legacy `quiz_data_cache` key. */
+interface LegacyQuizCache {
+  stylePreference?: string;
+  colorPalette?: string;
+  budgetFeel?: string;
+  mustHaveElements?: string[];
+  sourceImageUrl?: string;
+  roomType?: string;
+}
+
 /**
  * Build a RoomSpec from the legacy session-storage keys. Used by the export
  * button when the user hasn't explicitly saved a spec yet but data is in cache.
  */
 export function fromLegacySession(): RoomSpec | null {
-  let fpc: any = null;
-  let quiz: any = null;
+  let fpc: LegacyFloorPlanContext | null = null;
+  let quiz: LegacyQuizCache | null = null;
   try { fpc = JSON.parse(sessionStorage.getItem(LEGACY_FLOOR_PLAN_KEY) || "null"); } catch { /* ignore */ }
   try { quiz = JSON.parse(sessionStorage.getItem(LEGACY_QUIZ_KEY) || "null"); } catch { /* ignore */ }
   if (!fpc && !quiz) return null;
@@ -97,10 +129,10 @@ export function fromLegacySession(): RoomSpec | null {
     spec.custom_walls = fpc.customWalls;
     spec.room_type = fpc.roomType ?? spec.room_type;
     spec.furniture.selectedItems = fpc.furnitureItems ?? [];
-    spec.walls = (fpc.walls ?? []).map((w: any) => ({
+    spec.walls = (fpc.walls ?? []).map((w) => ({
       id: w.wall,
       surface: w.surface ?? "plain",
-      openings: (w.openings ?? []).map((o: any) => ({
+      openings: (w.openings ?? []).map((o) => ({
         type: o.type,
         position_pct: o.position_pct ?? o.position ?? 50,
       })),
@@ -109,8 +141,8 @@ export function fromLegacySession(): RoomSpec | null {
     if (fpc.referenceImageUrl) spec.style.referenceImageUrl = fpc.referenceImageUrl;
     if (fpc.layout) {
       spec.layout = {
-        name: fpc.layout.name,
-        description: fpc.layout.description,
+        name: fpc.layout.name ?? "",
+        description: fpc.layout.description ?? "",
         items: fpc.layout.items ?? [],
         feedback: fpc.feedback,
       };
@@ -210,25 +242,28 @@ export function exportRoomSpec(spec: RoomSpec, filename?: string) {
 
 /* ---------------- mappers ---------------- */
 
-function rowToSpec(row: any): RoomSpec {
+// The DB types JSON columns as `Json`; narrow them to the spec shapes we write in specToRow.
+function rowToSpec(row: Tables<"rooms">): RoomSpec {
+  const style = (row.style ?? {}) as Partial<RoomSpec["style"]>;
+  const furniture = (row.furniture ?? {}) as Partial<RoomSpec["furniture"]>;
   return {
     id: row.id,
     user_id: row.user_id,
     name: row.name,
     room_type: row.room_type,
     shape: row.shape,
-    dimensions: row.dimensions ?? {},
-    custom_walls: row.custom_walls ?? undefined,
-    walls: row.walls ?? [],
+    dimensions: (row.dimensions ?? {}) as RoomSpec["dimensions"],
+    custom_walls: (row.custom_walls ?? undefined) as RoomSpec["custom_walls"],
+    walls: (row.walls ?? []) as unknown as RoomWall[],
     style: {
-      preference: row.style?.preference ?? "",
-      colorPalette: row.style?.colorPalette ?? "neutral",
-      budgetFeel: row.style?.budgetFeel ?? "mid-range",
-      mustHaveElements: row.style?.mustHaveElements ?? [],
-      referenceImageUrl: row.style?.referenceImageUrl,
+      preference: style.preference ?? "",
+      colorPalette: style.colorPalette ?? "neutral",
+      budgetFeel: style.budgetFeel ?? "mid-range",
+      mustHaveElements: style.mustHaveElements ?? [],
+      referenceImageUrl: style.referenceImageUrl,
     },
-    furniture: { selectedItems: row.furniture?.selectedItems ?? [] },
-    layout: row.layout ?? undefined,
+    furniture: { selectedItems: furniture.selectedItems ?? [] },
+    layout: (row.layout ?? undefined) as unknown as RoomLayout | undefined,
     schema_version: row.schema_version ?? ROOM_SPEC_VERSION,
     created_at: row.created_at,
     updated_at: row.updated_at,

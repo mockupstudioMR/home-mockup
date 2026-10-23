@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import type { Json } from "@/integrations/supabase/types";
 
 /**
  * One always-current row per user in `journey_sessions`.
@@ -12,7 +13,7 @@ export type JourneyStage = "start" | "analyze" | "generate" | "done";
 export interface JourneySnapshot {
   stage: JourneyStage;
   sub_step: string | null;
-  payload: Record<string, any>;
+  payload: Record<string, unknown>;
 }
 
 export function useJourneySession() {
@@ -35,7 +36,7 @@ export function useJourneySession() {
       if (cancelled) return;
       setSnapshot(
         data
-          ? { stage: (data.stage as JourneyStage) ?? "start", sub_step: data.sub_step, payload: (data.payload as any) ?? {} }
+          ? { stage: (data.stage as JourneyStage) ?? "start", sub_step: data.sub_step, payload: (data.payload as JourneySnapshot["payload"] | null) ?? {} }
           : { stage: "start", sub_step: null, payload: {} },
       );
       setReady(true);
@@ -48,7 +49,7 @@ export function useJourneySession() {
     const next = pendingRef.current;
     pendingRef.current = null;
     await supabase.from("journey_sessions").upsert(
-      { user_id: user.id, stage: next.stage, sub_step: next.sub_step, payload: next.payload },
+      { user_id: user.id, stage: next.stage, sub_step: next.sub_step, payload: next.payload as Json },
       { onConflict: "user_id" },
     );
   }, [user]);
@@ -60,7 +61,7 @@ export function useJourneySession() {
     timerRef.current = window.setTimeout(() => { void flush(); }, 400);
   }, [flush]);
 
-  const patch = useCallback((partial: Partial<JourneySnapshot> & { payload?: Record<string, any> }) => {
+  const patch = useCallback((partial: Partial<JourneySnapshot> & { payload?: JourneySnapshot["payload"] }) => {
     setSnapshot((prev) => {
       const base: JourneySnapshot = prev ?? { stage: "start", sub_step: null, payload: {} };
       const merged: JourneySnapshot = {

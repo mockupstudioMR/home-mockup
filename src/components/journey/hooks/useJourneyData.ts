@@ -1,5 +1,8 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import type { Json, Tables } from "@/integrations/supabase/types";
+
+type DesignLink = Pick<Tables<"generated_designs">, "id" | "image_url" | "title" | "parent_design_id" | "created_at">;
 
 export interface JourneyData {
   loading: boolean;
@@ -10,7 +13,7 @@ export interface JourneyData {
     sourceImageUrl?: string | null;
     title?: string | null;
     prompt?: string;
-    extractedItems?: any;
+    extractedItems?: Json | null;
   };
   history: Array<{ id: string; label: string; image: string; description?: string }>;
 }
@@ -25,7 +28,7 @@ export const useJourneyData = (designId?: string): JourneyData => {
     }
     let cancelled = false;
     (async () => {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("generated_designs")
         .select("id, image_url, source_image_url, title, prompt, extracted_items, parent_design_id, created_at")
         .eq("id", designId)
@@ -42,9 +45,9 @@ export const useJourneyData = (designId?: string): JourneyData => {
         history.push({ id: "original", label: "Original", image: data.source_image_url });
       }
       let parentId = data.parent_design_id;
-      const chain: any[] = [];
+      const chain: DesignLink[] = [];
       while (parentId && chain.length < 6) {
-        const { data: p } = await (supabase as any)
+        const { data: p } = await supabase
           .from("generated_designs")
           .select("id, image_url, title, parent_design_id, created_at")
           .eq("id", parentId)
