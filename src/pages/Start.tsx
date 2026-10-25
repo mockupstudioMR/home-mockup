@@ -75,6 +75,10 @@ const Start = () => {
   const { user, loading } = useAuth();
   const { quizData, updateQuizData } = useQuiz();
   const isPro = new URLSearchParams(location.search).get("as") === "pro";
+  // "I'm designing my home" now runs as the journey built from the design boards (/journey).
+  // Professionals keep this page (?as=pro); the old fresh flow stays reachable with ?legacy=1.
+  const legacy = new URLSearchParams(location.search).get("legacy") === "1";
+  const toJourney = !isPro && !legacy;
   const [freshStage, setFreshStageState] = useState<FreshStage>(readFreshStage);
   const [groundStep, setGroundStep] = useState<string>("property");
   const [proStage, setProStage] = useState<ProStage>("role");
@@ -119,6 +123,9 @@ const Start = () => {
   }, [user, loading, navigate]);
 
   useEffect(() => {
+    // Signed-in home owners are sent on to /journey below. Rewriting the URL back to /start here
+    // would cancel that redirect and leave a blank page, so only the wizard handles this state.
+    if (toJourney) return;
     const state = location.state as StartLocationState | null;
     if (state?.resumeRoom) {
       updateQuizData({ roomType: state.resumeRoom });
@@ -130,7 +137,7 @@ const Start = () => {
       setFreshStage("intent");
       navigate(location.pathname, { replace: true, state: {} });
     }
-  }, [location.state, freshStage, location.pathname, navigate]);
+  }, [toJourney, location.state, freshStage, location.pathname, navigate]);
 
   useEffect(() => {
     if (quizData.intent && freshStage === "intent") {
@@ -200,10 +207,7 @@ const Start = () => {
     },
   ];
 
-  // "I'm designing my home" now runs as the journey built from the design boards (/journey).
-  // Professionals keep this page (?as=pro); the old fresh flow stays reachable with ?legacy=1.
-  const legacy = new URLSearchParams(location.search).get("legacy") === "1";
-  if (!isPro && !legacy && !loading && user) {
+  if (toJourney && !loading && user) {
     return <Navigate to="/journey" replace />;
   }
 
