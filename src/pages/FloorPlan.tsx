@@ -20,6 +20,8 @@ import RoomOpenings from "@/components/floorplan/RoomOpenings";
 import BuyListStep from "@/components/floorplan/BuyListStep";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { errorMessage, moodboardLabels, parseDesignItems, parseDetectedOpenings, parsePrefillOpenings } from "@/lib/floorPlanParsing";
+import type { RoomSpec } from "@/types/roomSpec";
 
 // Room shape definitions
 type ShapeId = "rectangle" | "l-shape" | "u-shape" | "open-plan" | "custom";
@@ -733,16 +735,8 @@ const FloorPlan = () => {
         try { sessionStorage.setItem("floor_plan_design_id", String(p.designId)); } catch { /* ignore */ }
       }
       if (Array.isArray(p?.openings) && p.openings.length > 0) {
-        const wallLabels: WallSide[] = ["top", "right", "bottom", "left"];
         setOpenings(
-          p.openings
-            .filter((o: any) => o && typeof o.wall_index === "number")
-            .map((o: any) => ({
-              id: crypto.randomUUID(),
-              type: (["door", "window", "balcony"].includes(o.type) ? o.type : "door") as OpeningType,
-              wall: wallLabels[Math.abs(Math.round(o.wall_index)) % wallLabels.length],
-              position: Math.min(100, Math.max(0, Math.round(Number(o.position_pct) || 50))),
-            })),
+          parsePrefillOpenings(p.openings),
         );
       }
       setStep(1);
@@ -795,15 +789,7 @@ const FloorPlan = () => {
 
         // Auto-import detected openings
         if (data.floorplan.openings?.length > 0) {
-          const wallLabels: WallSide[] = ["top", "right", "bottom", "left"];
-          const importedOpenings: RoomOpening[] = data.floorplan.openings
-            .filter((o: any) => o.wall_index < wallLabels.length)
-            .map((o: any) => ({
-              id: crypto.randomUUID(),
-              type: o.type as OpeningType,
-              wall: wallLabels[o.wall_index % wallLabels.length],
-              position: Math.round(o.position_pct),
-            }));
+          const importedOpenings: RoomOpening[] = parseDetectedOpenings(data.floorplan.openings);
           setOpenings(importedOpenings);
         }
 
@@ -812,8 +798,8 @@ const FloorPlan = () => {
       } else {
         throw new Error("Could not extract room shape from image");
       }
-    } catch (err: any) {
-      toast({ title: "Analysis failed", description: err.message || "Please try again", variant: "destructive" });
+    } catch (err) {
+      toast({ title: "Analysis failed", description: errorMessage(err, "Please try again"), variant: "destructive" });
     } finally {
       setFloorPlanUploading(false);
       setFloorPlanAnalyzing(false);
@@ -883,7 +869,7 @@ const FloorPlan = () => {
 
     try {
       const wallsData = buildWallsClockwise();
-      const body: Record<string, any> = {
+      const body: Record<string, unknown> = {
         shape: selectedShape.id,
         dimensions,
         roomType: selectedRoomType,
@@ -908,9 +894,9 @@ const FloorPlan = () => {
         throw new Error("Invalid layout response");
       }
       setStep(4);
-    } catch (e: any) {
+    } catch (e) {
       console.error("Layout generation error:", e);
-      toast({ title: "Layout Generation Failed", description: e.message || "Please try again.", variant: "destructive" });
+      toast({ title: "Layout Generation Failed", description: errorMessage(e, "Please try again."), variant: "destructive" });
     } finally {
     setGenerating(false);
   }
@@ -997,11 +983,11 @@ const FloorPlan = () => {
         shape: selectedShape.id,
         dimensions,
         custom_walls: (selectedShape.id === "custom" ? (existing?.custom_walls) : undefined),
-        walls: (wallsClockwise as any[]).map((w) => ({
+        walls: (wallsClockwise as Array<ReturnType<typeof buildWallsClockwise>[number] & { length_m?: number }>).map((w) => ({
           id: w.wall,
           length_m: w.length_m,
           surface: w.surface ?? "plain",
-          openings: (w.openings ?? []).map((o: any) => ({
+          openings: (w.openings ?? []).map((o: { type: string; position_pct?: number; position?: number }) => ({
             type: o.type,
             position_pct: o.position_pct ?? o.position ?? 50,
           })),
@@ -1024,7 +1010,7 @@ const FloorPlan = () => {
           })),
         },
       };
-      const saved = await saveRoomSpec(spec as any);
+      const saved = await saveRoomSpec(spec as RoomSpec);
       if (saved?.id) setSavedRoomId(saved.id);
 
       // Fix the relation: attach this room to the design the list is built from.
@@ -1066,7 +1052,16 @@ const FloorPlan = () => {
       try { designId = sessionStorage.getItem("floor_plan_design_id"); } catch { /* ignore */ }
 
       const columns = "id, title, image_url, full_description, prompt, extracted_items, moodboard, room_id, created_at";
-      let row: any = null;
+      let row: {
+        id: string;
+        title: string | null;
+        image_url: string | null;
+        full_description: string | null;
+        prompt: string | null;
+        extracted_items: unknown;
+        moodboard: unknown;
+        room_id: string | null;
+      } | null = null;
 
       if (designId) {
         const { data } = await supabase
@@ -1095,22 +1090,13 @@ const FloorPlan = () => {
 
       if (cancelled || !row) return;
 
-      const rawItems = Array.isArray(row.extracted_items) ? row.extracted_items : [];
       setLinkedDesign({
         id: row.id,
         title: row.title ?? null,
         imageUrl: row.image_url ?? null,
         description: row.full_description || "",
         prompt: row.prompt || "",
-        items: rawItems
-          .map((it: any) => ({
-            name: it?.item_name || it?.name || it?.label || "",
-            type: it?.item_type || it?.type,
-            color: it?.color,
-            material: it?.material,
-            style: it?.style,
-          }))
-          .filter((it: any) => it.name),
+        items: parseDesignItems(row.extracted_items),
         moodboard: (row.moodboard as Record<string, unknown> | null) ?? null,
         roomId: row.room_id ?? null,
       });
@@ -1163,8 +1149,8 @@ const FloorPlan = () => {
         }
         moodboard = {
           colors: c?.editableColors || [],
-          materials: (c?.moodboard?.materials || []).map((m: any) => m?.label).filter(Boolean),
-          mustInclude: (c?.moodboard?.mustInclude || []).map((m: any) => m?.label).filter(Boolean),
+          materials: moodboardLabels(c?.moodboard?.materials),
+          mustInclude: moodboardLabels(c?.moodboard?.mustInclude),
         };
       }
     } catch { /* ignore */ }
@@ -1174,12 +1160,12 @@ const FloorPlan = () => {
       if (raw) houseState = JSON.parse(raw)?.houseState || "";
     } catch { /* ignore */ }
 
-    const dbMb = linkedDesign?.moodboard as any;
+    const dbMb = linkedDesign?.moodboard as { editableColors?: unknown; colors?: unknown; materials?: unknown; mustInclude?: unknown } | null | undefined;
     if (dbMb) {
       moodboard = {
-        colors: dbMb.editableColors || dbMb.colors || (moodboard as any)?.colors || [],
-        materials: (dbMb.materials || []).map((m: any) => m?.label || m).filter(Boolean),
-        mustInclude: (dbMb.mustInclude || []).map((m: any) => m?.label || m).filter(Boolean),
+        colors: dbMb.editableColors || dbMb.colors || moodboard?.colors || [],
+        materials: moodboardLabels(dbMb.materials, true),
+        mustInclude: moodboardLabels(dbMb.mustInclude, true),
       };
     }
 
