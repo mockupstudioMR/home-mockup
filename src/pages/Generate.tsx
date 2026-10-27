@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import type { Json } from "@/integrations/supabase/types";
 import { invokeAi } from "@/lib/invokeAi";
 import { requireUserId } from "@/lib/requireUserId";
 import { invokeQueued } from "@/lib/aiQueue";
@@ -479,7 +480,7 @@ const Generate = () => {
       return { floorPlanContext: null, activeRoomId: null };
     }
 
-    let floorPlanContext: any = null;
+    let floorPlanContext: Record<string, unknown> | null = null;
     let activeRoomId: string | null = null;
 
     try {
@@ -589,7 +590,7 @@ const Generate = () => {
     persistedMoodboardKeyRef.current = key;
     supabase
       .from("generated_designs")
-      .update({ moodboard: currentMoodboard } as any)
+      .update({ moodboard: currentMoodboard as unknown as Json })
       .eq("id", designId)
       .then(({ error }) => {
         if (error) console.warn("[Generate] failed to persist moodboard", error);
@@ -618,7 +619,7 @@ const Generate = () => {
           .select("moodboard")
           .eq("id", designId)
           .maybeSingle();
-        const savedMb = !error ? ((data as any)?.moodboard as GenerateMoodboard | null | undefined) : undefined;
+        const savedMb = !error ? ((data?.moodboard as unknown) as GenerateMoodboard | null | undefined) : undefined;
         if (savedMb && Object.keys(savedMb).length > 0) {
           try { sessionStorage.setItem("generate_moodboard_cache", JSON.stringify(savedMb)); } catch { /* ignore */ }
           hydrateAnalyzeRoomCacheFromMoodboard(savedMb);
@@ -644,7 +645,7 @@ const Generate = () => {
       if (designId) {
         supabase
           .from("generated_designs")
-          .update({ moodboard: synthesized } as any)
+          .update({ moodboard: synthesized as unknown as Json })
           .eq("id", designId)
           .then(({ error }) => {
             if (error) console.warn("[Generate] failed to seed moodboard on back", error);
@@ -804,7 +805,7 @@ const Generate = () => {
 
       // Restore saved moodboard so "Back to Moodboard" opens the exact
       // curated inspiration this design was generated from.
-      const savedMoodboard = (existingDesign as any).moodboard as GenerateMoodboard | null | undefined;
+      const savedMoodboard = (existingDesign.moodboard as unknown) as GenerateMoodboard | null | undefined;
       if (savedMoodboard && typeof savedMoodboard === "object") {
         try {
           sessionStorage.setItem("generate_moodboard_cache", JSON.stringify(savedMoodboard));
@@ -813,15 +814,15 @@ const Generate = () => {
       }
 
       // Generate and persist a title if missing
-      const quizResp = existingDesign.quiz_responses as any;
-      let designTitle = (existingDesign as any).title as string | null;
+      const quizResp = existingDesign.quiz_responses as { style_preference?: string; room_type?: string } | null;
+      let designTitle = existingDesign.title;
       if (!designTitle) {
         designTitle = generateDesignTitle(
           quizResp?.style_preference || quizData?.stylePreference,
           quizResp?.room_type || quizData?.roomType
         );
         // Save it so it persists
-        await supabase.from("generated_designs").update({ title: designTitle } as any).eq("id", designId);
+        await supabase.from("generated_designs").update({ title: designTitle }).eq("id", designId);
       }
 
       setDesign({
@@ -952,7 +953,7 @@ const Generate = () => {
       }
 
       // Restore saved moodboard for this existing design so Back-to-Moodboard works.
-      const savedMoodboard = (existingDesign as any).moodboard as GenerateMoodboard | null | undefined;
+      const savedMoodboard = (existingDesign.moodboard as unknown) as GenerateMoodboard | null | undefined;
       if (savedMoodboard && typeof savedMoodboard === "object") {
         try {
           sessionStorage.setItem("generate_moodboard_cache", JSON.stringify(savedMoodboard));
@@ -961,10 +962,10 @@ const Generate = () => {
       }
 
       // Load existing design (same quiz session, returning user)
-      let designTitle = (existingDesign as any).title as string | null;
+      let designTitle = existingDesign.title;
       if (!designTitle) {
         designTitle = generateDesignTitle(quizData?.stylePreference, quizData?.roomType);
-        await supabase.from("generated_designs").update({ title: designTitle } as any).eq("id", existingDesign.id);
+        await supabase.from("generated_designs").update({ title: designTitle }).eq("id", existingDesign.id);
       }
       setDesign({
         id: existingDesign.id,
@@ -1122,7 +1123,7 @@ const Generate = () => {
             quiz_response_id: quizResponseId,
             title: designTitle,
             room_id: activeRoomId,
-          } as any)
+          })
           .select()
           .single();
 
@@ -1208,7 +1209,7 @@ const Generate = () => {
           quiz_response_id: quizResponseId,
           title: designTitle,
           room_id: activeRoomId,
-        } as any)
+        })
         .select()
         .single();
 
@@ -1310,7 +1311,7 @@ const Generate = () => {
             source_image_url: overriddenQuiz.sourceImageUrl,
             title: styleTitle,
             room_id: activeRoomId,
-          } as any)
+          })
           .select()
           .single();
 
@@ -2275,7 +2276,7 @@ RULES:
                         setDesign({ ...design, title: newTitle });
                         setEditingTitle(false);
                         if (!design.id.startsWith("design-")) {
-                          await supabase.from("generated_designs").update({ title: newTitle } as any).eq("id", design.id);
+                          await supabase.from("generated_designs").update({ title: newTitle }).eq("id", design.id);
                         }
                       } else if (e.key === "Escape") {
                         setEditingTitle(false);
@@ -2291,7 +2292,7 @@ RULES:
                       setDesign({ ...design, title: newTitle });
                       setEditingTitle(false);
                       if (!design.id.startsWith("design-")) {
-                        await supabase.from("generated_designs").update({ title: newTitle } as any).eq("id", design.id);
+                        await supabase.from("generated_designs").update({ title: newTitle }).eq("id", design.id);
                       }
                     }}
                   >
