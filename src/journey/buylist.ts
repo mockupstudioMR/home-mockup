@@ -1,6 +1,7 @@
 /** The buying list (step 9.1), put together from every decision made in steps 3–8. */
 import type { JourneyState, Wall } from "./state";
 import { dims } from "./sizes";
+import { KEEP_FLOOR, decorFor, surfacesFor } from "./finishes";
 
 export type Action = "Buy" | "Keep" | "Custom" | "Keep · yours" | "Own or buy" | "Buy or keep";
 export type BuyRow = {
@@ -80,18 +81,29 @@ export function composeBuyList(s: JourneyState): BuyRow[] {
   // Pieces swapped for the person's own on step 8.
   for (const [w, plan] of Object.entries(walls) as [Wall, { items?: { name: string; action: string }[] }][])
     for (const it of plan?.items ?? []) if (it.action === "Use mine") rows.push({ id: `mine-${w}-${it.name}`, tab: "furniture", name: it.name, qty: "1", size: /mirror/i.test(it.name) ? "Ø 80" : "Your own", wall: w, action: "Keep · yours", colour: "#C4A060" });
-  const decor = (s.preview?.read ?? []).find((r) => r.key === "decor")?.keywords.join(" ").toLowerCase() ?? "";
-  rows.push({ id: "art", tab: "furniture", name: "Artwork", qty: "1–2", size: "Example 80 × 100 each", wall: keepWall, action: "Own or buy", colour: "#2F5B4A" });
-  if (/cushion/.test(decor) || s.anchor?.kind === "sofa") rows.push({ id: "cushions", tab: "furniture", name: "Cushions", qty: "4", size: "45 × 45 or 50 × 50", wall: anchorWall, action: "Buy or keep", colour: "#6E3550" });
-  if (/plant/.test(decor) || /greenery|plant/.test(s.moodboard?.feels.join(" ") ?? "")) rows.push({ id: "plants", tab: "furniture", name: "Plants + pots", qty: "2–4", size: "Pot Ø 25–35, height TBC", wall: `${anchorWall}, ${windowWall}`, action: "Buy or keep", colour: "#4F7A4A" });
-  if (/ceramic|vase|object|book/.test(decor)) rows.push({ id: "ceramics", tab: "furniture", name: "Ceramics & decor", qty: "Small set", size: "Objects 15–30 high", wall: anchorWall, action: "Buy or keep", colour: "#B4572E" });
+  // Decor, as switched on in step 6.5
+  const DECOR: Record<string, { id: string; qty: string; size: string; wall: string; action: Action; colour: string }> = {
+    "Art & mirror": { id: "art", qty: "1–2", size: "Example 80 × 100 each", wall: keepWall, action: "Own or buy", colour: "#2F5B4A" },
+    Cushions: { id: "cushions", qty: "4", size: "45 × 45 or 50 × 50", wall: anchorWall, action: "Buy or keep", colour: "#6E3550" },
+    "Plants + pots": { id: "plants", qty: "2–4", size: "Pot Ø 25–35, height TBC", wall: `${anchorWall}, ${windowWall}`, action: "Buy or keep", colour: "#4F7A4A" },
+    "Ceramics & decor": { id: "ceramics", qty: "Small set", size: "Objects 15–30 high", wall: anchorWall, action: "Buy or keep", colour: "#B4572E" },
+    Curtains: { id: "curtains-d", qty: "1 pair", size: "Track width × drop TBC", wall: windowWall, action: "Buy", colour: "#9E8E7A" },
+    Rug: { id: "rug-d", qty: "1", size: "Example 200 × 300", wall: "Floor", action: "Buy", colour: "#C9B79A" },
+  };
+  for (const d of decorFor(s).filter((x) => x.on)) {
+    const k = DECOR[d.name];
+    rows.push(k ? { id: k.id, tab: "furniture", name: d.name === "Art & mirror" ? "Artwork" : d.name, qty: k.qty, size: k.size, wall: k.wall, action: k.action, colour: k.colour } : { id: `d-${d.name.toLowerCase().replace(/\W+/g, "-")}`, tab: "furniture", name: d.name, qty: "TBC", size: "Size TBC", wall: anchorWall, action: "Buy or keep", colour: "#9E8E7A" });
+  }
 
-  // Finishes, lighting & electrical
-  const wallMat = pal[wallI]?.material ?? pal[wallI]?.name ?? "Wall paint";
-  rows.push({ id: "f-wall", tab: "finishes", name: wallMat, qty: "m² TBC", size: "Wall area after survey", wall: "A, D", action: "Buy", status: "Measure first", ...sw(wallI) });
-  rows.push({ id: "f-wall2", tab: "finishes", name: "Wall paint · second colour", qty: "m² TBC", size: "Wall area after survey", wall: "B, C", action: "Buy", status: "Measure first", colour: "#B6AC9E" });
-  if (s.houseState === "core-shell" || s.houseState === "redoing")
-    rows.push({ id: "f-floor", tab: "finishes", name: `${cap((pal[woodI]?.material ?? "oak").split(" ").slice(-1)[0].toLowerCase())} flooring`, qty: "m² TBC", size: "Room area + 10%", wall: "Floor", action: "Buy", status: "Measure first", ...sw(woodI) });
+  // Finishes (step 6.4), lighting & electrical
+  const surf = surfacesFor(s);
+  const byMat = new Map<string, Wall[]>();
+  for (const w of ["A", "B", "C", "D"] as Wall[]) byMat.set(surf.walls[w], [...(byMat.get(surf.walls[w]) ?? []), w]);
+  Array.from(byMat.entries()).forEach(([mat, ws], i) => {
+    const pi = pal.findIndex((x) => (x.material ?? x.name) === mat);
+    rows.push({ id: i === 0 ? "f-wall" : `f-wall${i + 1}`, tab: "finishes", name: mat, qty: "m² TBC", size: "Wall area after survey", wall: ws.join(", "), action: "Buy", status: "Measure first", ...(pi >= 0 ? sw(pi) : { colour: "#B6AC9E" }) });
+  });
+  if (surf.floor !== KEEP_FLOOR) rows.push({ id: "f-floor", tab: "finishes", name: surf.floor, qty: "m² TBC", size: "Room area + 10%", wall: "Floor", action: "Buy", status: "Measure first", ...sw(woodI) });
   for (const l of s.lighting?.layers ?? []) rows.push({ id: `l-${l.key}`, tab: "finishes", name: l.decision === "change" && l.change ? l.change : l.name, qty: "1", size: l.key === "overall" ? "Drop TBC" : "Example size", wall: l.key === "overall" ? "Ceiling" : l.key === "task" ? s.accent?.wall ?? windowWall : keepWall, action: "Buy", status: "Spec TBC", ...sw(metalI) });
   if (Object.values(walls).some((w) => w?.items?.some((i) => i.name === "Wall sconce"))) rows.push({ id: "l-sconce", tab: "finishes", name: "Wall sconce", qty: "1", size: "Example size", wall: entryWall, action: "Buy", status: "Spec TBC", ...sw(metalI) });
   rows.push({ id: "e-sockets", tab: "finishes", name: "Sockets", qty: s.lighting?.sockets ? String(s.lighting.sockets) : "TBC", size: "Standard plate", wall: "All", action: "Buy", status: "Electrician", ...sw(metalI) });

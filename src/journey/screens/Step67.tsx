@@ -1,5 +1,6 @@
 /** Steps 6 and 7 — colours & materials, lighting & power, and their summaries. */
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useLocation } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { Back, Go, Screen } from "../Shell";
 import { Ic } from "../icons";
@@ -11,6 +12,8 @@ import { soFar } from "../story";
 import { saveStepDone } from "../sync";
 import { PlanDrawing, wallRoles } from "./Step4";
 import { openCount } from "./Step5";
+import { KEEP_FLOOR, PARTS, decorFor, partOf, surfacesFor, wallsLine } from "../finishes";
+import { RefineCrumbs } from "./RefineCrumbs";
 
 const p = (d: string) => <path d={d} />;
 
@@ -105,7 +108,19 @@ export function Palette() {
   const { s, set } = useJourney();
   const { toast } = useToast();
   const [swap, setSwap] = useState<number | null>(null);
+  const part = partOf(useLocation().search);
   const pal = s.moodboard?.palette ?? [];
+  const surfaces = surfacesFor(s);
+  const decor = decorFor(s);
+  const [newDecor, setNewDecor] = useState("");
+  const setWall = (w: Wall, name: string) => set((x) => ({ surfaces: { ...surfacesFor(x), walls: { ...surfacesFor(x).walls, [w]: name } } }));
+  const setFloor = (floor: string) => set((x) => ({ surfaces: { ...surfacesFor(x), floor } }));
+  const wallChoices = Array.from(new Set([...pal.filter((c) => groupOf(c.material ?? c.name) === "wall").map((c) => c.material ?? c.name), ...LIB.wall.map((m) => m.name), ...Object.values(surfaces.walls)]));
+  const floorChoices = Array.from(new Set([KEEP_FLOOR, ...LIB.wood.map((m) => `${m.name} flooring`), "Micro-cement", "Terrazzo", "Large-format stone tiles", surfaces.floor]));
+  const PART_ORDER = ["accents", "tables", "surfaces", "decor"] as const;
+  const nextPart = PART_ORDER[PART_ORDER.indexOf(part) + 1];
+  const prevPart = PART_ORDER[PART_ORDER.indexOf(part) - 1];
+  const markRefined = () => set((x) => ({ refined: Array.from(new Set([...(x.refined ?? []), part])) }));
   const base = accentFrom(s);
   const accent = s.accent ?? (base ? { ...base, decision: "keep" as const } : undefined);
   const supporting = s.supporting.length ? s.supporting : supportingFrom(s);
@@ -176,13 +191,7 @@ export function Palette() {
 
   return (
     <Screen board="S6-Palette" step={6} right={roomName(curRoom(s))} wrapClass="wrap wide" wrapStyle={{ paddingTop: "28px" }}>
-      <nav className="crumbs" aria-label="Refinement order">
-        <Go className="done" to="S5-Anchor">✓ Main furniture</Go>
-        <Go className="on" to="S6-Palette">2 · Accents</Go>
-        <Go to="S6-Palette">3 · Tables & chairs</Go>
-        <Go to="S8-Walls">4 · Walls & floors</Go>
-        <Go to="S8-Walls">5 · Decor</Go>
-      </nav>
+      <RefineCrumbs on={part} />
       <div className="split" style={{ marginTop: "28px" }}>
         <div className="main">
           <div className="left">
@@ -219,7 +228,8 @@ export function Palette() {
             ))}
           </div>
           <div className="two">
-            <section className="card">
+            {part === "accents" && (
+            <section className="card" id="accents">
               <div className="ph">
                 {accent?.image ? <img className="img" src={accent.image} alt={accent.name} /> : pics.accent === "failed" ? retry : pics.accent === "busy" ? <span className="small" style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", margin: 0 }}>Drawing the picture…</span> : null}
               </div>
@@ -247,7 +257,9 @@ export function Palette() {
                 <input className="input" style={{ marginTop: 12 }} placeholder="e.g. a rust leather chair instead" value={accent.change ?? ""} onChange={(e) => set((x) => ({ accent: { ...x.accent!, change: e.target.value } }))} />
               )}
             </section>
-            <section className="card">
+            )}
+            {part === "tables" && (
+            <section className="card" id="tables">
               <div className="ph">
                 {s.supportImage ? <img className="img" src={s.supportImage} alt={supporting.map((x) => x.name).join(", ")} /> : pics.support === "failed" ? retry : pics.support === "busy" ? <span className="small" style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", margin: 0 }}>Drawing the picture…</span> : null}
               </div>
@@ -264,6 +276,74 @@ export function Palette() {
                 ))}
               </div>
             </section>
+            )}
+            {part === "surfaces" && (
+              <section className="card" id="surfaces" style={{ gridColumn: "1 / -1" }}>
+                <div className="row between">
+                  <h2 className="h3">Walls &amp; floors</h2>
+                  <span className="tag">From your palette</span>
+                </div>
+                <p className="p" style={{ marginTop: "8px", fontSize: "16px" }}>
+                  Choose the finish for each wall and the floor. {wallRoles(s, s.layouts[s.chosenLayout ?? 0])}
+                </p>
+                <div className="g2" style={{ gap: "12px", marginTop: "14px" }}>
+                  {(["A", "B", "C", "D"] as Wall[]).map((w) => (
+                    <div className="field" key={w}>
+                      <label htmlFor={`wall-${w}`}>Wall {w}</label>
+                      <select id={`wall-${w}`} className="select" value={surfaces.walls[w]} onChange={(e) => setWall(w, e.target.value)}>
+                        {wallChoices.map((c) => (
+                          <option key={c}>{c}</option>
+                        ))}
+                      </select>
+                    </div>
+                  ))}
+                  <div className="field">
+                    <label htmlFor="floor">Floor</label>
+                    <select id="floor" className="select" value={surfaces.floor} onChange={(e) => setFloor(e.target.value)}>
+                      {floorChoices.map((c) => (
+                        <option key={c}>{c}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              </section>
+            )}
+            {part === "decor" && (
+              <section className="card" id="decor" style={{ gridColumn: "1 / -1" }}>
+                <div className="row between">
+                  <h2 className="h3">Decor</h2>
+                  <span className="tag">{decor.filter((d) => d.on).length} on your list</span>
+                </div>
+                <p className="p" style={{ marginTop: "8px", fontSize: "16px" }}>
+                  Suggested from your preview and moodboard. Switch off what you don't want, add your own.
+                </p>
+                <div style={{ marginTop: "8px" }}>
+                  {decor.map((d) => (
+                    <label className="ln" key={d.name} style={{ cursor: "pointer" }}>
+                      <input type="checkbox" checked={d.on} onChange={() => set((x) => ({ decor: decorFor(x).map((y) => (y.name === d.name ? { ...y, on: !y.on } : y)) }))} />
+                      {d.name}
+                      <span className={d.on ? "tag ok" : "tag line"}>{d.on ? "On the list" : "Not now"}</span>
+                    </label>
+                  ))}
+                </div>
+                <form
+                  className="row"
+                  style={{ gap: "8px", flexWrap: "nowrap", marginTop: "12px" }}
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    const name = newDecor.trim();
+                    if (!name) return;
+                    set((x) => ({ decor: [...decorFor(x).filter((y) => y.name.toLowerCase() !== name.toLowerCase()), { name, on: true }] }));
+                    setNewDecor("");
+                  }}
+                >
+                  <input className="input" aria-label="Add a decor piece" placeholder="e.g. Floor mirror, throw blanket" value={newDecor} onChange={(e) => setNewDecor(e.target.value)} />
+                  <button className="btn ghost auto" type="submit" style={{ minHeight: "48px", fontSize: "15px", padding: "0 18px" }}>
+                    Add
+                  </button>
+                </form>
+              </section>
+            )}
           </div>
           <section className="panel tint" style={{ marginTop: "24px", padding: "22px 26px" }}>
             <div className="row" style={{ gap: "16px" }}>
@@ -288,19 +368,34 @@ export function Palette() {
             </div>
           </section>
           <div className="actions">
-            <Back to="S5-Anchor" />
-            <Go
-              className="btn auto"
-              to="S6-Summary"
-              style={{ marginLeft: "auto" }}
-              onClick={() => {
-                set((x) => ({ done: Array.from(new Set([...x.done, 6])) }));
-                void saveStepDone(s, 6);
-              }}
-            >
-              Finish step 6
-              <Ic>{p("M5 12h14M13 6l6 6-6 6")}</Ic>
-            </Go>
+            {prevPart ? (
+              <Go to="S6-Palette" extra={`?part=${prevPart}`} className="back">
+                <Ic>{p("M19 12H5M11 6l-6 6 6 6")}</Ic>
+                Back
+              </Go>
+            ) : (
+              <Back to="S5-Anchor" />
+            )}
+            {nextPart ? (
+              <Go className="btn auto" to="S6-Palette" extra={`?part=${nextPart}`} style={{ marginLeft: "auto" }} onClick={markRefined}>
+                Next: {PARTS.find((x) => x.key === nextPart)!.label}
+                <Ic>{p("M5 12h14M13 6l6 6-6 6")}</Ic>
+              </Go>
+            ) : (
+              <Go
+                className="btn auto"
+                to="S6-Summary"
+                style={{ marginLeft: "auto" }}
+                onClick={() => {
+                  markRefined();
+                  set((x) => ({ done: Array.from(new Set([...x.done, 6])), surfaces: surfacesFor(x), decor: decorFor(x) }));
+                  void saveStepDone(s, 6);
+                }}
+              >
+                Finish step 6
+                <Ic>{p("M5 12h14M13 6l6 6-6 6")}</Ic>
+              </Go>
+            )}
           </div>
         </div>
         <MiniRail s={s} extra={[["Main piece", anchorLine(s)], ["Accent", accent && accent.decision !== "skip" ? accent.name.replace(" statement", "") : "None"]]} />
@@ -348,7 +443,9 @@ export function Step6Summary() {
           ),
           edit: "S6-Palette",
         },
-        { k: "Supporting pieces", v: s.supporting.map((x, i) => `${i ? lc(x.name) : x.name}: ${lc(x.material)}`).join(" · "), edit: "S6-Palette" },
+        { k: "Supporting pieces", v: s.supporting.map((x, i) => `${i ? lc(x.name) : x.name}: ${lc(x.material)}`).join(" · "), edit: "S6-Palette", editExtra: "?part=tables" },
+        { k: "Walls & floors", v: `${wallsLine(surfacesFor(s).walls)} · floor: ${lc(surfacesFor(s).floor)}`, edit: "S6-Palette", editExtra: "?part=surfaces" },
+        { k: "Decor", v: decorFor(s).filter((d) => d.on).map((d, i) => (i ? lc(d.name) : d.name)).join(" · ") || "None", edit: "S6-Palette", editExtra: "?part=decor" },
       ]}
       open={["Order real samples before buying", "Brands, finishes and product links"]}
       soFar={soFar(s, 6)}

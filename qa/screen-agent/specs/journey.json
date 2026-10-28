@@ -2321,7 +2321,7 @@
    {
     "text": "Supporting furniture",
     "kind": "heading",
-    "must": true
+    "must": false
    },
    {
     "text": "Coordinated",
@@ -2356,7 +2356,7 @@
    {
     "text": "Finish step 6",
     "kind": "button",
-    "must": true
+    "must": false
    },
    {
     "text": "Your room so far",

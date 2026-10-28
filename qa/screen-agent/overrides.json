@@ -53,8 +53,11 @@
   },
   "S6-Palette": {
    "soft": [
-    "Accent piece"
-   ]
+    "Accent piece",
+    "Supporting furniture",
+    "Finish step 6"
+   ],
+   "_why": "Step 6 was split into parts on 2026-10-29 (Accents, Tables & chairs, Walls & floors, Decor); supporting furniture and 'Finish step 6' are on later parts."
   },
   "S8-Walls": {
    "soft": [

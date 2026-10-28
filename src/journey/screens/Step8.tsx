@@ -56,7 +56,7 @@ export function composeWalls(s: JourneyState): Record<Wall, WallPlan> {
     // walls & finishes
     if (role === "Window") items.push({ group: "finishes", name: "Curtains + track", note: "Track width, drop TBC", action: "Buy" });
     if (role === "Entry") items.push({ group: "finishes", name: "Door frame + trim", note: "Opening size TBC", action: "Keep" });
-    items.push({ group: "finishes", name: wallFinish, note: w === "A" || w === "D" ? "Feature finish" : "Wall finish", action: "Buy" });
+    items.push({ group: "finishes", name: s.surfaces?.walls[w] ?? wallFinish, note: w === "A" || w === "D" ? "Feature finish" : "Wall finish", action: "Buy" });
     // lighting & electricity
     const light = L?.layers.find((l) => (l.key === "overall" && /sofa|bed/i.test(role)) || (l.key === "task" && role === "Window") || (l.key === "accent" && s.keeping.some((k) => (k.wall ?? "B") === w)));
     if (light) items.push({ group: "lighting", name: light.decision === "change" && light.change ? light.change : light.name, note: light.key === "overall" && L?.dimmer ? "On a dimmer" : cap(light.key), action: "Buy" });

@@ -17,6 +17,7 @@ import { dims, fallbackFor, sizeVariants, type SizeVariant } from "../sizes";
 import { soFar } from "../story";
 import { findShopPieces, type ShopPiece } from "../shopPieces";
 import { saveStepDone } from "../sync";
+import { RefineCrumbs } from "./RefineCrumbs";
 import { PlanDrawing, roomSize, wallRoles } from "./Step4";
 
 const p = (d: string) => <path d={d} />;
@@ -420,13 +421,7 @@ export function Anchor() {
           </span>
         ))}
       </div>
-      <nav className="crumbs" aria-label="Refinement order">
-        <Go className="on" to="S5-Anchor">1 · Main furniture</Go>
-        <Go to="S6-Palette">2 · Accents</Go>
-        <Go to="S6-Palette">3 · Tables & chairs</Go>
-        <Go to="S8-Walls">4 · Walls & floors</Go>
-        <Go to="S8-Walls">5 · Decor</Go>
-      </nav>
+      <RefineCrumbs on="main" />
       <div className="split" style={{ marginTop: "28px" }}>
         <div className="main">
           <div className="left">
