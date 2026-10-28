@@ -5,7 +5,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { requireUserId } from "@/lib/requireUserId";
 import { 
@@ -20,13 +19,17 @@ import {
   Filter
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useQuery } from "@tanstack/react-query";
 
 const DesignerDashboard = () => {
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
-  const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
+  const [showFilters, setShowFilters] = useState(false);
+  const [roomFilter, setRoomFilter] = useState("");
+  const [budgetFilter, setBudgetFilter] = useState("");
+  const [viewing, setViewing] = useState<string | null>(null);
 
   // Fetch business profile
   const { data: businessProfile } = useQuery({
@@ -80,18 +83,18 @@ const DesignerDashboard = () => {
     navigate("/");
   };
 
-  const handleSendOffer = (responseId: string) => {
-    toast({
-      title: "Credits Required",
-      description: "Enable payments to send personalized offers to users.",
-      variant: "destructive",
-    });
-  };
-
-  const filteredResponses = quizResponses?.filter((response) =>
-    response.style_preference.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    response.room_type.toLowerCase().includes(searchQuery.toLowerCase())
+  const q = searchQuery.trim().toLowerCase();
+  const filteredResponses = quizResponses?.filter(
+    (response) =>
+      (!q || response.style_preference.toLowerCase().includes(q) || response.room_type.toLowerCase().includes(q) || response.color_palette.toLowerCase().includes(q)) &&
+      (!roomFilter || response.room_type === roomFilter) &&
+      (!budgetFilter || response.budget_feel === budgetFilter),
   );
+  const roomTypes = Array.from(new Set((quizResponses ?? []).map((r) => r.room_type))).sort();
+  const budgets = Array.from(new Set((quizResponses ?? []).map((r) => r.budget_feel))).sort();
+  const viewed = quizResponses?.find((r) => r.id === viewing);
+  const label = (t: string) => t.replace(/[-_]/g, " ");
+  const OFFERS_NEED_CREDITS = "Sending offers uses credits. Buying credits isn't switched on yet.";
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-secondary/20 to-primary/10">
@@ -191,10 +194,35 @@ const DesignerDashboard = () => {
                   className="pl-10"
                 />
               </div>
-              <Button variant="outline" size="icon">
+              <Button variant={showFilters || roomFilter || budgetFilter ? "secondary" : "outline"} size="icon" aria-label="Filters" aria-expanded={showFilters} onClick={() => setShowFilters((v) => !v)}>
                 <Filter className="w-4 h-4" />
               </Button>
             </div>
+            {showFilters && (
+              <div className="flex flex-wrap items-center gap-3">
+                <select aria-label="Room type" className="h-10 rounded-md border border-input bg-background px-3 text-sm capitalize" value={roomFilter} onChange={(e) => setRoomFilter(e.target.value)}>
+                  <option value="">All rooms</option>
+                  {roomTypes.map((r) => (
+                    <option key={r} value={r}>
+                      {label(r)}
+                    </option>
+                  ))}
+                </select>
+                <select aria-label="Budget" className="h-10 rounded-md border border-input bg-background px-3 text-sm" value={budgetFilter} onChange={(e) => setBudgetFilter(e.target.value)}>
+                  <option value="">Any budget</option>
+                  {budgets.map((b) => (
+                    <option key={b} value={b}>
+                      {b}
+                    </option>
+                  ))}
+                </select>
+                {(roomFilter || budgetFilter) && (
+                  <Button variant="ghost" size="sm" onClick={() => (setRoomFilter(""), setBudgetFilter(""))}>
+                    Clear filters
+                  </Button>
+                )}
+              </div>
+            )}
 
             {responsesLoading ? (
               <p className="text-muted-foreground">Loading potential clients...</p>
@@ -233,20 +261,11 @@ const DesignerDashboard = () => {
                           )}
                         </div>
                         <div className="flex items-center gap-2">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleSendOffer(response.id)}
-                            disabled
-                          >
+                          <Button size="sm" variant="outline" onClick={() => setViewing(response.id)}>
                             <Eye className="w-4 h-4 mr-2" />
                             View
                           </Button>
-                          <Button
-                            size="sm"
-                            onClick={() => handleSendOffer(response.id)}
-                            disabled
-                          >
+                          <Button size="sm" disabled title={OFFERS_NEED_CREDITS}>
                             <Send className="w-4 h-4 mr-2" />
                             Send Offer
                           </Button>
@@ -344,8 +363,8 @@ const DesignerDashboard = () => {
                         <p className="text-3xl font-bold">{pkg.credits}</p>
                         <p className="text-sm text-muted-foreground mb-4">credits</p>
                         <p className="text-lg font-semibold mb-4">${pkg.price}</p>
-                        <Button className="w-full" disabled>
-                          Coming Soon
+                        <Button className="w-full" disabled title="Buying credits isn't switched on yet">
+                          Not available yet
                         </Button>
                       </CardContent>
                     </Card>
@@ -356,6 +375,35 @@ const DesignerDashboard = () => {
           </TabsContent>
         </Tabs>
       </main>
+      <Dialog open={!!viewed} onOpenChange={(o) => !o && setViewing(null)}>
+        <DialogContent>
+          {viewed && (
+            <>
+              <DialogHeader>
+                <DialogTitle className="capitalize">
+                  {label(viewed.style_preference)} {label(viewed.room_type)}
+                </DialogTitle>
+                <DialogDescription>Style brief from {new Date(viewed.created_at).toLocaleDateString()}.</DialogDescription>
+              </DialogHeader>
+              <dl className="grid grid-cols-[140px_1fr] gap-x-4 gap-y-2 text-sm">
+                <dt className="text-muted-foreground">Room</dt>
+                <dd className="capitalize">{label(viewed.room_type)}</dd>
+                <dt className="text-muted-foreground">Style</dt>
+                <dd className="capitalize">{label(viewed.style_preference)}</dd>
+                <dt className="text-muted-foreground">Budget</dt>
+                <dd>{viewed.budget_feel}</dd>
+                <dt className="text-muted-foreground">Colours</dt>
+                <dd>{viewed.color_palette}</dd>
+                <dt className="text-muted-foreground">Must have</dt>
+                <dd>{viewed.must_have_elements?.length ? viewed.must_have_elements.join(", ") : "—"}</dd>
+                <dt className="text-muted-foreground">Furniture from</dt>
+                <dd>{viewed.furniture_source ?? "—"}</dd>
+              </dl>
+              <p className="text-sm text-muted-foreground">{OFFERS_NEED_CREDITS}</p>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

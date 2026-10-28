@@ -41,7 +41,9 @@ export function composeBuyList(s: JourneyState): BuyRow[] {
 
   if (s.anchor) {
     const colour = word(s.anchor.material);
-    rows.push({ id: "anchor", tab: "furniture", name: cap(`${colour && colour !== s.anchor.shape.toLowerCase() ? colour + " " : ""}${s.anchor.shape.toLowerCase()} ${s.anchor.kind}`), qty: "1", size: dims(s.anchor), wall: anchorWall, action: "Buy", status: "Fit TBC", ...sw(0) });
+    const generic = cap(`${colour && colour !== s.anchor.shape.toLowerCase() ? colour + " " : ""}${s.anchor.shape.toLowerCase()} ${s.anchor.kind}`);
+    const product = s.anchor.product;
+    rows.push({ id: "anchor", tab: "furniture", name: product ? product.name : generic, qty: "1", size: dims(s.anchor), wall: anchorWall, action: "Buy", status: product ? "Chosen" : "Fit TBC", ...sw(0), ...(product?.image ? { image: product.image } : {}) });
   }
   if (s.accent && s.accent.decision !== "skip")
     rows.push({ id: "accent", tab: "furniture", name: s.accent.name.replace("statement", "accent"), qty: "1", size: "80 × 85 × 85", wall: s.accent.wall ?? windowWall, action: "Buy", status: "Fit TBC", ...sw(1) });

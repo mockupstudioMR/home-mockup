@@ -157,6 +157,8 @@ export type JourneyState = {
     material?: string; // "plum velvet"
     images: Record<string, string>;
     clearance?: number;
+    /** A real product picked from the shops (step 5.1). */
+    product?: { id: string; name: string; url?: string; image?: string; price?: number; currency?: string };
   };
   // Step 6 — colours & materials
   accent?: { name: string; wall?: Wall; decision: "keep" | "adjust" | "skip"; change?: string; image?: string };
@@ -180,7 +182,8 @@ export type JourneyState = {
   spaceAvail?: Record<string, string>;
   checks?: Record<string, boolean[]>;
   todo?: Record<string, boolean>;
-  team?: { role: string; email: string }[];
+  /** People asked to join. saved = added to the project in the database (not only in this browser). */
+  team?: { role: string; email: string; saved?: boolean }[];
   // Step 10 / more rooms
   /** The room being designed now (steps 2–10 repeat per room). Defaults to the start room. */
   current?: string;

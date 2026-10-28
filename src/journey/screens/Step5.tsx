@@ -15,6 +15,7 @@ import { StepSummary } from "../Summary";
 import { pieceVisual, uploadPhoto } from "../services";
 import { dims, fallbackFor, sizeVariants, type SizeVariant } from "../sizes";
 import { soFar } from "../story";
+import { findShopPieces, type ShopPiece } from "../shopPieces";
 import { saveStepDone } from "../sync";
 import { PlanDrawing, roomSize, wallRoles } from "./Step4";
 
@@ -380,6 +381,20 @@ export function Anchor() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [a.shape, !!s.moodboard]);
 
+  const [shopPieces, setShopPieces] = useState<ShopPiece[] | null>(null);
+  useEffect(() => {
+    let live = true;
+    setShopPieces(null);
+    findShopPieces(kind, [a.shape, ...(a.material ?? "").split(" "), ...(s.moodboard?.name ?? "").split(" ")])
+      .then((list) => live && setShopPieces(list))
+      .catch(() => live && setShopPieces([]));
+    return () => {
+      live = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [kind, a.shape]);
+  const price = (x: { price?: number; currency?: string }) => (x.price != null ? `${x.currency ?? "€"} ${Math.round(x.price).toLocaleString()}` : "Price on site");
+
   const fits = fitChecks({ ...s, anchor: a });
   const note = (name: string) => {
     const re = shapeRe(name);
@@ -537,6 +552,48 @@ export function Anchor() {
                 <span className={`tag ${f.ok ? "ok" : "tbc"}`}>{f.tag}</span>
               </div>
             ))}
+          </section>
+          <section className="card" style={{ marginTop: "24px" }} aria-label="From the shops">
+            <div className="row between">
+              <h2 className="h3">From the shops</h2>
+              <Go to="S5-Shops" className="link-btn">
+                Shop settings
+              </Go>
+            </div>
+            {shopPieces == null ? (
+              <p className="small">Looking for {kind}s that match…</p>
+            ) : shopPieces.length === 0 ? (
+              <p className="small">No matching {kind}s in the shops yet. Keep the standard size above and pick the actual piece later — the buying list will show it as “to choose”.</p>
+            ) : (
+              <div className="g2" style={{ gap: "12px", marginTop: "10px" }}>
+                {shopPieces.map((x) => {
+                  const on = a.product?.id === x.id;
+                  return (
+                    <div key={x.id} className="row" style={{ gap: "12px", flexWrap: "nowrap", padding: "10px", borderRadius: "14px", border: `${on ? 2 : 1}px solid ${on ? "#3E6B55" : "#E5DADF"}`, background: "#fff" }}>
+                      {x.image ? <img src={x.image} alt={x.name} style={{ width: 72, height: 72, objectFit: "cover", borderRadius: 10, flex: "none" }} /> : <span style={{ width: 72, height: 72, borderRadius: 10, background: "#F3ECE7", flex: "none" }} />}
+                      <span className="stack" style={{ gap: "4px", minWidth: 0 }}>
+                        <b style={{ fontSize: "15px" }}>{x.name}</b>
+                        <span className="small" style={{ margin: 0 }}>
+                          {price(x)}
+                          {x.own ? " · your shop" : ""}
+                          {x.url && (
+                            <>
+                              {" · "}
+                              <a href={x.url} target="_blank" rel="noreferrer">
+                                View
+                              </a>
+                            </>
+                          )}
+                        </span>
+                        <button type="button" className="link-btn" style={{ minHeight: 32, padding: 0, justifyContent: "flex-start" }} aria-pressed={on} onClick={() => setA({ product: on ? undefined : { id: x.id, name: x.name, url: x.url, image: x.image, price: x.price, currency: x.currency } })}>
+                          {on ? "✓ Chosen — tap to undo" : "Choose this one"}
+                        </button>
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </section>
           <div className="actions">
             <Go

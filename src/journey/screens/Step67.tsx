@@ -109,23 +109,59 @@ export function Palette() {
   const base = accentFrom(s);
   const accent = s.accent ?? (base ? { ...base, decision: "keep" as const } : undefined);
   const supporting = s.supporting.length ? s.supporting : supportingFrom(s);
-  const made = useRef(false);
+  // Pictures are drawn when the screen opens and again after every material swap (gen changes);
+  // a failed one shows "Try again" instead of an empty box.
+  const [gen, setGen] = useState(0);
+  const [pics, setPics] = useState<{ accent?: "busy" | "failed"; support?: "busy" | "failed" }>({});
+  const asking = useRef(new Set<string>()); // pictures being drawn, so one isn't asked for twice
+  const mounted = useRef(true);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
 
   useEffect(() => {
     if (!s.accent && accent) set({ accent });
     if (!s.supporting.length && supporting.length) set({ supporting });
-    if (made.current || !s.moodboard) return;
-    made.current = true;
-    if (accent && !accent.image)
-      void pieceVisual(s, accent.name, `${accent.name.toLowerCase()} in ${pal[1]?.material ?? "the accent colour"}, by the window`)
-        .then((img) => set((x) => ({ accent: { ...(x.accent ?? accent), image: img } })))
-        .catch(() => undefined);
-    if (!s.supportImage && supporting[supporting.length - 1])
-      void pieceVisual(s, supporting[supporting.length - 1].name, `${supporting[supporting.length - 1].material.toLowerCase()} ${supporting[supporting.length - 1].name.toLowerCase()}`)
-        .then((img) => set({ supportImage: img }))
-        .catch(() => undefined);
+    if (!s.moodboard) return;
+    const live = () => mounted.current;
+    const last = supporting[supporting.length - 1];
+    if (accent && !accent.image && !asking.current.has(`a:${accent.name}`)) {
+      const name = accent.name;
+      asking.current.add(`a:${name}`);
+      setPics((p) => ({ ...p, accent: "busy" }));
+      void pieceVisual(s, name, `${name.toLowerCase()} in ${pal[1]?.material ?? "the accent colour"}, by the window`)
+        .then((img) => {
+          // a newer swap may have changed the accent meanwhile: keep only a picture of the current one
+          set((x) => (x.accent && x.accent.name !== name ? {} : { accent: { ...(x.accent ?? accent), image: img } }));
+          if (live()) setPics((p) => ({ ...p, accent: undefined }));
+        })
+        .catch(() => live() && setPics((p) => ({ ...p, accent: "failed" })))
+        .finally(() => asking.current.delete(`a:${name}`));
+    }
+    if (!s.supportImage && last && !asking.current.has(`s:${last.name}`)) {
+      const key = `s:${last.name}`;
+      asking.current.add(key);
+      setPics((p) => ({ ...p, support: "busy" }));
+      void pieceVisual(s, last.name, `${last.material.toLowerCase()} ${last.name.toLowerCase()}`)
+        .then((img) => {
+          set({ supportImage: img });
+          if (live()) setPics((p) => ({ ...p, support: undefined }));
+        })
+        .catch(() => live() && setPics((p) => ({ ...p, support: "failed" })))
+        .finally(() => asking.current.delete(key));
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [gen]);
+  const retry = (
+    <span style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", margin: 0 }}>
+      <button type="button" className="link-btn" onClick={() => setGen((g) => g + 1)}>
+        The picture didn't come through — try again
+      </button>
+    </span>
+  );
 
   const swapTo = (i: number, m: Mat) => {
     set((x) => {
@@ -134,7 +170,7 @@ export function Palette() {
       return { moodboard: next.moodboard, supporting: supportingFrom(next), accent: x.accent ? { ...x.accent, name: accentFrom(next)?.name ?? x.accent.name, image: undefined } : x.accent, supportImage: undefined };
     });
     setSwap(null);
-    made.current = false;
+    setGen((g) => g + 1);
   };
   const setAccent = (decision: "keep" | "adjust" | "skip") => set((x) => ({ accent: { ...(x.accent ?? accent!), decision } }));
 
@@ -184,7 +220,9 @@ export function Palette() {
           </div>
           <div className="two">
             <section className="card">
-              <div className="ph">{accent?.image && <img className="img" src={accent.image} alt={accent.name} />}</div>
+              <div className="ph">
+                {accent?.image ? <img className="img" src={accent.image} alt={accent.name} /> : pics.accent === "failed" ? retry : pics.accent === "busy" ? <span className="small" style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", margin: 0 }}>Drawing the picture…</span> : null}
+              </div>
               <div className="row between" style={{ marginTop: "18px" }}>
                 <h2 className="h3">Accent piece</h2>
                 {accent?.wall && <span className="tag">Wall {accent.wall}</span>}
@@ -210,7 +248,9 @@ export function Palette() {
               )}
             </section>
             <section className="card">
-              <div className="ph">{s.supportImage && <img className="img" src={s.supportImage} alt={supporting.map((x) => x.name).join(", ")} />}</div>
+              <div className="ph">
+                {s.supportImage ? <img className="img" src={s.supportImage} alt={supporting.map((x) => x.name).join(", ")} /> : pics.support === "failed" ? retry : pics.support === "busy" ? <span className="small" style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", margin: 0 }}>Drawing the picture…</span> : null}
+              </div>
               <div className="row between" style={{ marginTop: "18px" }}>
                 <h2 className="h3">Supporting furniture</h2>
                 <span className="tag">Coordinated</span>

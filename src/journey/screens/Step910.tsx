@@ -195,7 +195,9 @@ export function Sizes() {
   const { toast } = useToast();
   const [open, setOpen] = useState<string | null>(null);
   const rows = useMemo(() => buyList(s), [s]);
-  const ex = rows.find((r) => r.id === "anchor") ?? rows[0];
+  const [rowId, setRowId] = useState<string | null>(null);
+  const ex = rows.find((r) => r.id === rowId) ?? rows.find((r) => r.id === "anchor") ?? rows[0];
+  const approved = ex?.id === "anchor" ? s.anchor?.product : undefined;
   const lists = checklists(s);
   const state = (id: string, n: number, auto?: boolean[]) => Array.from({ length: n }, (_, i) => s.checks?.[id]?.[i] ?? auto?.[i] ?? false);
   const toggle = (id: string, i: number, n: number, auto?: boolean[]) => {
@@ -212,7 +214,15 @@ export function Sizes() {
       <section className="panel" style={{ marginTop: "44px" }}>
         <div className="row between">
           <h2 className="h3">Every item keeps three sizes, separately</h2>
-          {ex && <span className="tag">Example · {ex.name}</span>}
+          {ex && (
+            <select className="select" aria-label="Item" style={{ maxWidth: "320px", minHeight: "44px" }} value={ex.id} onChange={(e) => setRowId(e.target.value)}>
+              {rows.map((r) => (
+                <option key={r.id} value={r.id}>
+                  {r.name}
+                </option>
+              ))}
+            </select>
+          )}
         </div>
         <div className="chain">
           <div className="cv a">
@@ -232,6 +242,7 @@ export function Sizes() {
               placeholder="Enter W × D × H in cm"
               aria-label={`Space available on wall ${ex?.wall ?? "A"}`}
               style={{ minHeight: "48px", marginTop: "4px" }}
+              key={ex?.id}
               defaultValue={ex ? s.spaceAvail?.[ex.id] ?? "" : ""}
               onBlur={(e) => ex && set((x) => ({ spaceAvail: { ...(x.spaceAvail ?? {}), [ex.id]: e.target.value } }))}
             />
@@ -241,7 +252,19 @@ export function Sizes() {
           </div>
           <div className="cv c">
             <span>3 · Approved product</span>
-            <b>Not chosen yet</b>
+            <b>
+              {approved ? (
+                approved.url ? (
+                  <a href={approved.url} target="_blank" rel="noreferrer">
+                    {approved.name}
+                  </a>
+                ) : (
+                  approved.name
+                )
+              ) : (
+                "Not chosen yet"
+              )}
+            </b>
             <small>The real product's drawing, once it fits.</small>
           </div>
         </div>
@@ -309,6 +332,24 @@ const STAGES = [
 ];
 const TEAM: [string, string][] = [["D", "Designer"], ["J", "Joiner"], ["E", "Electrician"], ["W", "Plumber"], ["AC", "AC installer"], ["F", "Flooring & curtains"], ["P", "Decorator"]];
 
+/** Opens the person's mail app with an invite to the project, written for the role. */
+function openInviteEmail(s: JourneyState, role: string, email: string) {
+  const project = s.projectName?.trim() || "my home";
+  const room = roomName(curRoom(s)).toLowerCase();
+  const subject = `Join ${project} on Home Mockup`;
+  const body = [
+    "Hi,",
+    "",
+    `I'm planning my ${room} with Home Mockup and would like you on board as ${role.toLowerCase()}.`,
+    `The plan, walls and buying list are here: ${window.location.origin}/project`,
+    "",
+    "Thanks!",
+  ].join("\n");
+  const a = document.createElement("a");
+  a.href = `mailto:${encodeURIComponent(email)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  a.click();
+}
+
 /** 9.3 · Make it real — to-do */
 export function Todo() {
   const { s, set } = useJourney();
@@ -325,13 +366,19 @@ export function Todo() {
   const invite = async (role: string) => {
     if (!/^\S+@\S+\.\S+$/.test(email)) return toast({ title: "Type an email address" });
     try {
-      await inviteCollaborator(s, role, email);
-      set((x) => ({ team: [...(x.team ?? []), { role, email }] }));
-      toast({ title: `Invite sent to ${email}` });
+      const saved = await inviteCollaborator(s, role, email);
+      set((x) => ({ team: [...(x.team ?? []).filter((m) => m.role !== role), { role, email, saved }] }));
+      // There's no email service yet: the person sends the invite from their own mail app.
+      openInviteEmail(s, role, email);
+      toast(
+        saved
+          ? { title: `${email} added to the project`, description: "We opened an email in your mail app — send it so they know." }
+          : { title: `${email} noted for this project`, description: "They can't be added to the project online yet, so we opened an email for you to send them." },
+      );
       setInviting(null);
       setEmail("");
     } catch (e) {
-      toast({ title: "Couldn't send the invite", description: (e as Error).message, variant: "destructive" });
+      toast({ title: "Couldn't add them", description: (e as Error).message, variant: "destructive" });
     }
   };
   return (
@@ -413,8 +460,8 @@ export function Todo() {
                       <i>{k}</i>
                       {role}
                       {invited ? (
-                        <span className="tag" style={{ marginLeft: "auto" }}>
-                          Invited
+                        <span className={invited.saved ? "tag ok" : "tag"} style={{ marginLeft: "auto" }} title={invited.email}>
+                          {invited.saved ? "Added" : "Emailed"}
                         </span>
                       ) : (
                         <a href="#invite" onClick={(e) => (e.preventDefault(), setInviting(inviting === role ? null : role))}>
@@ -433,7 +480,7 @@ export function Todo() {
                       >
                         <input className="input" style={{ minHeight: 44, fontSize: 15 }} type="email" placeholder={`${lc(role)}@email.com`} value={email} onChange={(e) => setEmail(e.target.value)} autoFocus />
                         <button className="btn auto" type="submit" style={{ minHeight: 44, fontSize: 15, padding: "0 14px" }}>
-                          Send
+                          Add &amp; email
                         </button>
                       </form>
                     )}
@@ -442,7 +489,7 @@ export function Todo() {
               })}
             </div>
             <p className="small" style={{ margin: "0" }}>
-              Invited people see the plan, walls and their part of the list.
+              We open an email in your mail app for you to send. People added to the project see the plan, walls and their part of the list.
             </p>
             <Go
               className="btn"
