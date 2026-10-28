@@ -86,6 +86,12 @@
    "match": {
     "Keep V1 and finish step 2": "Keep V\\d+ and finish step 2"
    }
+  },
+  "S2-Moodboard": {
+   "soft": [
+    "Colors"
+   ],
+   "_why": "The Colors tab was removed on 2026-10-28 (Monica); the palette strip and side card still show the colours."
   }
  },
  "admin": {

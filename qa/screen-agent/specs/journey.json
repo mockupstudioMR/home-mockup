@@ -1155,7 +1155,7 @@
    {
     "text": "Colors",
     "kind": "control",
-    "must": true
+    "must": false
    },
    {
     "text": "Inspired preview · not to scale",

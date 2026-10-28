@@ -595,7 +595,6 @@ export function Moodboard() {
   const { s, set } = useJourney();
   const { toast } = useToast();
   const { busy, v } = usePreview();
-  const [tab, setTab] = useState<"preview" | "colors">("preview");
   const [req, setReq] = useState("");
   const [making, setMaking] = useState(false);
   const mb = s.moodboard;
@@ -603,7 +602,6 @@ export function Moodboard() {
   const room = roomName(curRoom(s)).toLowerCase();
   const palette = mb?.palette ?? [];
   const shares = paletteShares(palette);
-  const total = shares.reduce((a, b) => a + b, 0) || 1;
   const read = pv?.read ?? [];
   const refs = (s.photos.length ? s.photos : s.styles.flatMap((st) => st.pieces.filter((p) => p.added).map((p) => p.image))).slice(0, 3);
 
@@ -695,99 +693,52 @@ export function Moodboard() {
 
       <div className="dr-row">
         <section className="dr-main">
-          <div className="dr-tabs" role="tablist" aria-label="View">
-            <button type="button" role="tab" aria-selected={tab === "preview"} onClick={() => setTab("preview")}>
-              Preview
-            </button>
-            <button type="button" role="tab" aria-selected={tab === "colors"} onClick={() => setTab("colors")}>
-              Colors
-            </button>
-          </div>
-
-          {tab === "preview" ? (
-            <>
-              <figure className="dr-hero">
-                {v ? (
-                  <img src={v.image} alt={`Inspired ${room} preview`} />
-                ) : (
-                  <div className="dr-wait">{busy === "make" ? "Painting your preview… about a minute" : "No preview yet"}</div>
-                )}
-                <span className="dr-badge">
-                  <I.info />
-                  Inspired preview · not to scale
+          <figure className="dr-hero">
+            {v ? (
+              <img src={v.image} alt={`Inspired ${room} preview`} />
+            ) : (
+              <div className="dr-wait">{busy === "make" ? "Painting your preview… about a minute" : "No preview yet"}</div>
+            )}
+            <span className="dr-badge">
+              <I.info />
+              Inspired preview · not to scale
+            </span>
+            {v &&
+              read.map((p) => (
+                <span key={p.key} className="dr-dot" style={{ left: `${p.x}%`, top: `${p.y}%` }} aria-hidden="true">
+                  {PART_N[p.key]}
                 </span>
-                {v &&
-                  read.map((p) => (
-                    <span key={p.key} className="dr-dot" style={{ left: `${p.x}%`, top: `${p.y}%` }} aria-hidden="true">
-                      {PART_N[p.key]}
-                    </span>
-                  ))}
-              </figure>
-              <ol className="dr-key">
-                {read.length ? (
-                  [...read]
-                    .sort((a, b) => PART_N[a.key] - PART_N[b.key])
-                    .map((p) => (
-                      <li key={p.key}>
-                        <b>{PART_N[p.key]}</b>
-                        {p.keywords.slice(0, 2).join(", ") || PART_NAME[p.key]}
-                      </li>
-                    ))
-                ) : (
-                  <li className="muted">{busy === "read" ? "Reading the preview…" : "In this preview"}</li>
-                )}
-              </ol>
-              {pv && pv.versions.length > 1 && (
-                <div className="dr-vers">
-                  <span className="lbl">Versions</span>
-                  {pv.versions.map((ver, i) => (
-                    <button
-                      key={ver.id}
-                      type="button"
-                      aria-pressed={i === pv.current}
-                      aria-label={`Version ${i + 1}${ver.request ? `: ${ver.request}` : ""}`}
-                      onClick={() => set((p) => ({ preview: { ...p.preview!, current: i, read: undefined, readOf: undefined } }))}
-                    >
-                      <img src={ver.image} alt="" />
-                      <span>V{i + 1}</span>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </>
-          ) : (
-            <div className="dr-colors">
-              <div className="row between">
-                <p className="dr-script" style={{ fontSize: "28px" }}>
-                  paint chips for your room
-                </p>
-                <span className="small">Taken from your preview and photos</span>
-              </div>
-              <div className="dr-chips">
-                {palette.map((c, i) => (
-                  <div key={c.hex + c.name} className="dr-chip" style={{ transform: `rotate(${[-3, 2, -1.5, 3, -2][i % 5]}deg)` }}>
-                    <i style={{ background: c.image ? `url(${c.image}) center/cover, ${c.hex}` : c.hex }} />
-                    <b>{c.name}</b>
-                    <span className="hex">{c.hex.toUpperCase()}</span>
-                    {c.use && <span>{c.use}</span>}
-                  </div>
-                ))}
-              </div>
-              <div className="stack" style={{ gap: "10px" }}>
-                <span className="lbl">How much of each</span>
-                <div className="dr-bar">
-                  {palette.map((c, i) => (
-                    <span key={c.hex + c.name} style={{ flex: shares[i], background: c.hex }} />
-                  ))}
-                </div>
-                <div className="dr-bar-l">
-                  {palette.map((c, i) => (
-                    <span key={c.hex + c.name} style={{ flex: shares[i] }}>
-                      {Math.round((shares[i] / total) * 100)}%
-                    </span>
-                  ))}
-                </div>
-              </div>
+              ))}
+          </figure>
+          <ol className="dr-key">
+            {read.length ? (
+              [...read]
+                .sort((a, b) => PART_N[a.key] - PART_N[b.key])
+                .map((p) => (
+                  <li key={p.key}>
+                    <b>{PART_N[p.key]}</b>
+                    {p.keywords.slice(0, 2).join(", ") || PART_NAME[p.key]}
+                  </li>
+                ))
+            ) : (
+              <li className="muted">{busy === "read" ? "Reading the preview…" : "In this preview"}</li>
+            )}
+          </ol>
+          {pv && pv.versions.length > 1 && (
+            <div className="dr-vers">
+              <span className="lbl">Versions</span>
+              {pv.versions.map((ver, i) => (
+                <button
+                  key={ver.id}
+                  type="button"
+                  aria-pressed={i === pv.current}
+                  aria-label={`Version ${i + 1}${ver.request ? `: ${ver.request}` : ""}`}
+                  onClick={() => set((p) => ({ preview: { ...p.preview!, current: i, read: undefined, readOf: undefined } }))}
+                >
+                  <img src={ver.image} alt="" />
+                  <span>V{i + 1}</span>
+                </button>
+              ))}
             </div>
           )}
         </section>
