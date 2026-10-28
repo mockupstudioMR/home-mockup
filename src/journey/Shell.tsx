@@ -2,15 +2,17 @@
 import type { CSSProperties, MouseEvent, ReactNode } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { I } from "./icons";
-import { STEP_TITLES } from "./data";
+import { STEP_NAMES, STEP_TITLES } from "./data";
 import { hrefOf, type ScreenId } from "./routes";
+import { useJourney } from "./state";
+import { STEP_FIRST, stepState } from "./stepNav";
 import "./mu.css";
 import "./boards.css";
 
 /** A link to another journey screen, styled by the caller (".back", ".btn", ".link-btn"…). */
 export function Go({
-  to, extra, className, style, children, onClick, ariaLabel,
-}: { to: ScreenId; extra?: string; className?: string; style?: CSSProperties; children: ReactNode; onClick?: (e: MouseEvent) => void | boolean; ariaLabel?: string }) {
+  to, extra, className, style, children, onClick, ariaLabel, title,
+}: { to: ScreenId; extra?: string; className?: string; style?: CSSProperties; children: ReactNode; onClick?: (e: MouseEvent) => void | boolean; ariaLabel?: string; title?: string }) {
   const navigate = useNavigate();
   const href = hrefOf(to, extra);
   return (
@@ -19,6 +21,7 @@ export function Go({
       className={className}
       style={style}
       aria-label={ariaLabel}
+      title={title}
       onClick={(e) => {
         if (onClick) {
           const r = onClick(e);
@@ -78,11 +81,7 @@ export function Screen({
               </span>
               {right != null && <span>{right}</span>}
             </div>
-            <div className="segs">
-              {Array.from({ length: 10 }, (_, i) => (
-                <span key={i} className={`seg${i + 1 < step ? " done" : i + 1 === step ? " now" : ""}`} />
-              ))}
-            </div>
+            <StepBar step={step} />
           </div>
         ) : (
           <div style={{ flex: "1 1 auto" }} />
@@ -108,6 +107,51 @@ export function Screen({
         {children}
       </main>
     </div>
+  );
+}
+
+/** The 10 steps as the thin bar in the top bar: every step can be clicked to go to its first screen. */
+function StepBar({ step }: { step: number }) {
+  const { s } = useJourney();
+  return (
+    <nav className="segs" aria-label="Steps">
+      {Array.from({ length: 10 }, (_, i) => {
+        const n = i + 1;
+        const st = stepState(s.done, n, step);
+        return (
+          <Go
+            key={n}
+            to={STEP_FIRST[n]}
+            className={`seg st-${st}`}
+            ariaLabel={`Step ${n}: ${STEP_TITLES[n]}${st === "done" ? " (done)" : st === "now" ? " (you are here)" : ""}`}
+            title={`${n} · ${STEP_NAMES[n]}`}
+          >
+            <span className="seg-tip" aria-hidden="true">
+              {n} · {STEP_NAMES[n]}
+            </span>
+          </Go>
+        );
+      })}
+    </nav>
+  );
+}
+
+/** The 10 steps as labelled pills (summaries): the same states and links as the top bar. */
+export function StepStrip({ step }: { step: number }) {
+  const { s } = useJourney();
+  return (
+    <nav className="sm-strip" aria-label="Your journey">
+      {STEP_NAMES.slice(1).map((name, i) => {
+        const n = i + 1;
+        const st = stepState(s.done, n, step);
+        return (
+          <Go key={n} to={STEP_FIRST[n]} className={`st-${st}`} ariaLabel={`Step ${n}: ${STEP_TITLES[n]}${st === "done" ? " (done)" : st === "now" ? " (you are here)" : ""}`}>
+            <i>{st === "done" ? "✓" : n}</i>
+            {name}
+          </Go>
+        );
+      })}
+    </nav>
   );
 }
 

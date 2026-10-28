@@ -1,8 +1,8 @@
 /** The end-of-step summary every step shares (2.8, 3.5, 4.4 … 9.4). */
 import type { ReactNode } from "react";
-import { Back, Go, Screen } from "./Shell";
+import { Back, Go, Screen, StepStrip } from "./Shell";
 import { I, ROOM_ICON_SM } from "./icons";
-import { STEP_NAMES, STEP_TITLES, roomName } from "./data";
+import { STEP_TITLES, roomName } from "./data";
 import { curRoom, orderedRooms, useJourney } from "./state";
 import type { ScreenId } from "./routes";
 
@@ -11,18 +11,9 @@ export type Decision = { k: string; v: ReactNode; edit?: ScreenId; editLabel?: s
 /** The 10-step strip: done steps ticked, this one highlighted, the next one dashed. */
 export function JourneyStrip({ step }: { step: number }) {
   return (
-    <nav className="jr" aria-label="Your journey">
-      {STEP_NAMES.slice(1).map((name, i) => {
-        const n = i + 1;
-        const cls = n < step ? "s done" : n === step ? "s now" : n === step + 1 ? "s next" : "s";
-        return (
-          <span key={n} className={cls}>
-            <i>{n <= step ? "✓" : n}</i>
-            {name}
-          </span>
-        );
-      })}
-    </nav>
+    <div style={{ marginTop: "32px" }}>
+      <StepStrip step={step} />
+    </div>
   );
 }
 
@@ -111,18 +102,7 @@ export function StepSummary({
           Here's where we <span className="brush">stand</span>
         </h1>
         <p className="sm-sub">{sub}</p>
-        <nav className="sm-strip" aria-label="Your journey">
-          {STEP_NAMES.slice(1).map((name, i) => {
-            const n = i + 1;
-            const cls = n < step ? "done" : n === step ? "now" : n === step + 1 ? "next" : "";
-            return (
-              <span key={n} className={cls}>
-                <i>{n <= step ? "✓" : n}</i>
-                {name}
-              </span>
-            );
-          })}
-        </nav>
+        <StepStrip step={step} />
         <div className="sm-cols">
           <section className="sm-main">
             <h2 className="sm-h2">{title ?? `What we decided in step ${step}`}</h2>
