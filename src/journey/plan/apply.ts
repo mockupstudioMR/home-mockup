@@ -49,8 +49,20 @@ export function applyPlanRead(s: JourneyState, read: Extract<PlanRead, { ok: tru
     counts[k] = Math.max(counts[k] ?? 0, placements.filter((p) => p.kind === k).length);
   }
   return {
-    room: { ...s.room, input: "plan", widthM, lengthM, confirmed: false, planRead, doorM: read.scale ? PLAN_DOOR_M : s.room.doorM },
+    room: { ...s.room, input: "plan", widthM, lengthM, confirmed: false, sizeFrom: undefined, planRead, doorM: read.scale ? PLAN_DOOR_M : s.room.doorM },
     placements,
     fixedCounts: counts,
   };
+}
+
+/**
+ * Sizes written on the plan (width × length as read) turned to the room's wall A × wall B,
+ * so they follow the drawing's proportions when the reader measured them (ratio = width / length).
+ */
+export function writtenSize(written: [number, number], ratio?: number): { widthM: number; lengthM: number } {
+  const [a, b] = written;
+  if (!ratio || !Number.isFinite(ratio) || ratio <= 0) return { widthM: a, lengthM: b };
+  const asIs = Math.abs(Math.log(a / b / ratio));
+  const swapped = Math.abs(Math.log(b / a / ratio));
+  return swapped < asIs ? { widthM: b, lengthM: a } : { widthM: a, lengthM: b };
 }

@@ -455,6 +455,17 @@ export function Brief() {
       <p className="sub">Check it looks right. Anything you're not sure about can stay open for now.</p>
       <JourneyStrip step={1} />
       <section className="panel" style={{ marginTop: "48px" }}>
+        <div className="field" style={{ marginBottom: "24px" }}>
+          <label htmlFor="pname">Project name</label>
+          <input
+            id="pname"
+            className="input"
+            maxLength={80}
+            placeholder="My home"
+            value={s.projectName ?? ""}
+            onChange={(e) => set({ projectName: e.target.value })}
+          />
+        </div>
         <div className="row between">
           <h2 className="h3">Project brief</h2>
           <Go className="link-btn" to="S1-Why">
@@ -587,7 +598,9 @@ export function Brief() {
           to="S2-Vision"
           style={{ marginLeft: "auto" }}
           onClick={() => {
-            void saveStep1(s).then((ids) => ids && set({ ...ids, done: Array.from(new Set([...s.done, 1])) }));
+            // Step 1 counts as done even when the project can't be saved to the database yet.
+            set((x) => ({ done: Array.from(new Set([...x.done, 1])) }));
+            void saveStep1(s).then((ids) => ids && set(ids));
           }}
         >
           Continue to step 2: Inspiration

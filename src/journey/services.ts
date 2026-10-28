@@ -179,14 +179,22 @@ export async function readDesign(imageUrl: string, style?: string): Promise<Read
 }
 
 /** Read an uploaded floor plan: the room's two side lengths, in metres. */
-export async function analyzePlan(imageUrl: string): Promise<{ widthM: number; lengthM: number; shape?: string } | null> {
-  const { data, error } = await invokeAi<{ floorplan?: { walls?: { length_m: number }[]; shape_description?: string } }>("analyze-floorplan", { body: { imageUrl }, timeoutMs: 60_000 });
+export async function analyzePlan(imageUrl: string): Promise<{ widthM: number; lengthM: number; shape?: string; written?: [number, number] } | null> {
+  const { data, error } = await invokeAi<{
+    floorplan?: { walls?: { length_m: number }[]; shape_description?: string; written_dimensions?: { width_m?: number; length_m?: number } | null };
+  }>("analyze-floorplan", { body: { imageUrl }, timeoutMs: 60_000 });
   if (error) throw new Error(getAiErrorMessage(error, "We couldn't read the plan. Try a clearer image."));
-  const walls = data?.floorplan?.walls ?? [];
-  if (walls.length < 2) return null;
   const round = (n: number) => Math.round(n * 100) / 100;
+  const wd = data?.floorplan?.written_dimensions;
+  const written = wd && isRoomSize(wd.width_m) && isRoomSize(wd.length_m) ? ([round(wd.width_m!), round(wd.length_m!)] as [number, number]) : undefined;
+  const walls = data?.floorplan?.walls ?? [];
+  if (written) return { widthM: written[0], lengthM: written[1], shape: data?.floorplan?.shape_description, written };
+  if (walls.length < 2) return null;
   return { widthM: round(walls[0].length_m), lengthM: round(walls[1].length_m), shape: data?.floorplan?.shape_description };
 }
+
+/** A believable room side in metres (rejects mm/cm left unconverted and misreads). */
+const isRoomSize = (n: unknown): n is number => typeof n === "number" && Number.isFinite(n) && n >= 1 && n <= 30;
 
 /** One layout for the room (step 4.3), built by generate-layout from everything known so far. */
 export async function makeLayout(s: JourneyState, opts: { emphasis?: number; avoid?: string[] } = {}) {

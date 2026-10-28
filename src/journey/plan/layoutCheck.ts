@@ -55,6 +55,10 @@ export function openingZone(p: Placement, W: number, L: number, width: number, d
   }
 }
 
+/** A rect 2 cm smaller on every side, so pieces that only touch don't count as overlapping. */
+const shrink = (r: Rect): Rect => ({ x: r.x + 2, y: r.y + 2, w: Math.max(0, r.w - 4), h: Math.max(0, r.h - 4) });
+const name = (i: LayoutItem) => (i.label || i.kind).replace(/^\w/, (c) => c.toUpperCase());
+
 const overlaps = (a: Rect, b: Rect) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
 
 /** Smallest gap between two rects in cm (0 when they touch or overlap). */
@@ -171,6 +175,9 @@ export function layoutChecks(s: JourneyState, items: LayoutItem[], wM: number, l
     const hit = solid.find(({ i, r }) => TALL.has(i.kind) && overlaps(r, z));
     out.push(hit ? { ok: false, value: "Blocked", label: `Window — the ${hit.i.label.toLowerCase() || hit.i.kind} stands in front` } : { ok: true, value: "Free", label: "Window kept clear" });
   }
+  // pieces standing on top of each other (a rug under them is fine)
+  const clash = solid.flatMap((a, n) => solid.slice(n + 1).filter((b) => overlaps(shrink(a.r), shrink(b.r))).map((b) => [a.i, b.i] as const))[0];
+  if (clash) out.push({ ok: false, value: "Overlap", label: `${name(clash[0])} and ${name(clash[1]).toLowerCase()} overlap` });
   const sofa = solid.find(({ i }) => i.kind === "sofa");
   const table = solid.find(({ i }) => i.kind === "table");
   if (sofa && table) {
@@ -184,5 +191,5 @@ export function layoutChecks(s: JourneyState, items: LayoutItem[], wM: number, l
   }
   const seats = items.filter((i) => i.kind === "sofa").length * 3 + items.filter((i) => i.kind === "chair").length;
   if (seats) out.push({ ok: true, value: `${seats} seats`, label: "Sofa counts as 3" });
-  return out.slice(0, 6);
+  return out.slice(0, 7);
 }

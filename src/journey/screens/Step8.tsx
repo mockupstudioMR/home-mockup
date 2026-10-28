@@ -64,8 +64,10 @@ export function composeWalls(s: JourneyState): Record<Wall, WallPlan> {
       items.push({ group: "lighting", name: "Wall sconce", note: "By the door", action: "Buy" });
       items.push({ group: "lighting", name: `Switch${L?.dimmer ? " + dimmer" : ""}`, note: "By the door", action: "Keep" });
     }
-    const sockets = /sofa|bed/i.test(role) ? 2 : 1;
-    items.push({ group: "lighting", name: role === "Entry" ? "Console socket" : `${sockets} socket${sockets > 1 ? "s" : ""}`, note: "Position TBC", action: "Keep" });
+    // sockets the person placed on this wall in 4.3 are known; otherwise suggest some
+    const placedSockets = s.placements.filter((p) => p.kind === "sockets" && p.wall === w).length;
+    const sockets = placedSockets || (/sofa|bed/i.test(role) ? 2 : 1);
+    items.push({ group: "lighting", name: role === "Entry" && !placedSockets ? "Console socket" : `${sockets} socket${sockets > 1 ? "s" : ""}`, note: placedSockets ? "Existing · kept" : "Position TBC", action: "Keep" });
     if (role === "Window" && L?.blind) items.push({ group: "lighting", name: "Blind power", note: "Optional", action: "Buy" });
     // inside the wall
     const inWalls = s.houseState === "core-shell" || s.houseState === "redoing" || s.allowInWalls;

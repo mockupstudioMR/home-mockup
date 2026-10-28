@@ -442,7 +442,7 @@ export function Lighting() {
                   {L[k] ? (
                     <span className="tag ok">{L[k]}</span>
                   ) : (
-                    <button className="tag tbc" type="button" style={{ border: 0, cursor: "pointer" }} onClick={() => setL({ [k]: k === "sockets" ? 4 : 1 })}>
+                    <button className="tag tbc" type="button" style={{ border: 0, cursor: "pointer" }} onClick={() => setL({ [k]: k === "sockets" ? s.fixedCounts.sockets || 4 : 1 })}>
                       Qty TBC
                     </button>
                   )}

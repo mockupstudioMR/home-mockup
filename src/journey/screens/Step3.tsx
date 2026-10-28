@@ -576,14 +576,19 @@ const FIXED: FixedDef[] = [
   { kind: "doors", title: "Doors", text: "And which way they open", one: "Door", mark: "D", color: "#665A85", icon: ROOM_ICON.hallway },
   { kind: "radiators", title: "Radiators", text: "Or other heaters", one: "Radiator", mark: "R", color: "#9E8E7A", icon: SCOPE_ICON.heating },
   { kind: "columns", title: "Columns", text: "Pillars, beams, boxed pipes", one: "Column", mark: "C", color: "#3B3350", icon: () => <Ic>{p("M7 3h10M7 21h10M9 3v18M15 3v18")}</Ic> },
-  { kind: "sockets", title: "Sockets & switches", text: "", one: "Sockets & switches", mark: "S", color: "#B4975A", icon: SCOPE_ICON.electrical, inWalls: true },
+  { kind: "sockets", title: "Sockets & switches", text: "Each socket or switch you want kept", one: "Socket", mark: "S", color: "#B4975A", icon: SCOPE_ICON.electrical, inWalls: true },
   { kind: "builtins", title: "Built-ins", text: "Fireplace, alcoves, fitted units", one: "Built-in", mark: "B", color: "#8A6A4A", icon: () => <Ic>{p("M3 3h18v18H3zM3 12h7v9M14 3v6h7")}</Ic> },
-  { kind: "water", title: "Water supply & drains", text: "", one: "Water point", mark: "W", color: "#5B8BA6", icon: SCOPE_ICON.water, inWalls: true },
-  { kind: "stacks", title: "Soil stack & risers", text: "Shared pipes that usually can't move", one: "Soil stack", mark: "S", color: "#6B6862", icon: () => <Ic>{p("M9 3h6M10 3v18M14 3v18M8 21h8M14 9h4a2 2 0 0 1 2 2v2")}</Ic> },
+  { kind: "water", title: "Water supply & drains", text: "Taps, drains, washing-machine points", one: "Water point", mark: "W", color: "#5B8BA6", icon: SCOPE_ICON.water, inWalls: true },
+  { kind: "stacks", title: "Soil stack & risers", text: "Shared pipes that usually can't move", one: "Soil stack", mark: "St", color: "#6B6862", icon: () => <Ic>{p("M9 3h6M10 3v18M14 3v18M8 21h8M14 9h4a2 2 0 0 1 2 2v2")}</Ic> },
   { kind: "ac", title: "AC units & vents", text: "Indoor units, grilles, extract fans", one: "AC unit", mark: "AC", color: "#7C9AA8", icon: SCOPE_ICON.ac },
   { kind: "panels", title: "Fuse box, meters & panels", text: "Need access, can't be covered", one: "Fuse box", mark: "F", color: "#3E6B55", icon: () => <Ic><rect x="5" y="3" width="14" height="18" rx="1" />{p("M9 7h6M9 11h6M12 15v2")}</Ic> },
 ];
 const fdef = (k: FixedKind) => FIXED.find((f) => f.kind === k)!;
+/** How a fixed feature is marked on a plan: its letter, colour and name. */
+export const fixedMark = (k: FixedKind) => {
+  const d = fdef(k);
+  return { mark: d.mark, color: d.color, name: d.one };
+};
 export const placementLabel = (pl: Placement, all: Placement[]) => {
   const d = fdef(pl.kind);
   const many = all.filter((x) => x.kind === pl.kind).length > 1;
@@ -594,7 +599,6 @@ export const placementLabel = (pl: Placement, all: Placement[]) => {
 function syncPlacements(counts: JourneyState["fixedCounts"], prev: Placement[]): Placement[] {
   const out: Placement[] = [];
   for (const d of FIXED) {
-    if (d.inWalls) continue;
     const n = counts[d.kind] ?? 0;
     for (let i = 1; i <= n; i++) out.push(prev.find((x) => x.kind === d.kind && x.n === i) ?? { id: uid(), kind: d.kind, n: i });
   }
@@ -655,33 +659,31 @@ export function Fixed() {
         {FIXED.map((d) => {
           const n = s.fixedCounts[d.kind] ?? 0;
           const Icon = d.icon;
-          if (d.inWalls) {
-            const tbc = s.fixedTbc.includes(d.kind);
-            return (
-              <div className="fr" key={d.kind}>
-                <span className="ic-w">
-                  <Icon />
-                </span>
-                <span>
-                  <b>{d.title}</b>
-                  <small>{plan ? `${st.lbl}: we'll plan these` : "Kept where they are"}</small>
-                </span>
-                <span className="step">
-                  <button className="ns" type="button" aria-pressed={tbc} onClick={() => set((x) => ({ fixedTbc: tbc ? x.fixedTbc.filter((t) => t !== d.kind) : [...x.fixedTbc, d.kind] }))}>
-                    {tbc ? "Not sure · TBC" : "Not sure · TBC"}
-                  </button>
-                </span>
-              </div>
-            );
-          }
+          const tbc = !!d.inWalls && s.fixedTbc.includes(d.kind);
           return (
-            <div className={`fr${n ? " set" : ""}`} key={d.kind}>
+            <div className={`fr${n ? " set" : ""}${d.inWalls ? " iw" : ""}`} key={d.kind}>
               <span className="ic-w">
                 <Icon />
               </span>
               <span>
                 <b>{d.title}</b>
-                <small>{d.text}</small>
+                <small>{d.inWalls && !n ? (tbc ? (plan ? `${st.lbl}: we'll plan these` : "Kept where they are") : d.text) : d.text}</small>
+                {d.inWalls && (
+                  <button
+                    className="ns inl"
+                    type="button"
+                    aria-pressed={tbc}
+                    onClick={() =>
+                      set((x) => {
+                        if (tbc) return { fixedTbc: x.fixedTbc.filter((t) => t !== d.kind) };
+                        const counts = { ...x.fixedCounts, [d.kind]: 0 };
+                        return { fixedTbc: [...x.fixedTbc, d.kind], fixedCounts: counts, placements: syncPlacements(counts, x.placements) };
+                      })
+                    }
+                  >
+                    Not sure · TBC
+                  </button>
+                )}
               </span>
               <span className="step">
                 <button type="button" aria-label={`Fewer ${d.title.toLowerCase()}`} onClick={() => setCount(d.kind, n - 1)}>
@@ -844,7 +846,7 @@ const wallsOf = (xs: Placement[]) => Array.from(new Set(xs.map((x) => x.wall).fi
 
 /** "1 window + 1 radiator (wall C) · 2 doors (wall D, 1 to place) · fuse box (wall D)" */
 export function fixedLine(s: JourneyState) {
-  const groups = FIXED.filter((d) => !d.inWalls && (s.fixedCounts[d.kind] ?? 0) > 0).map((d) => {
+  const groups = FIXED.filter((d) => (s.fixedCounts[d.kind] ?? 0) > 0).map((d) => {
     const xs = s.placements.filter((x) => x.kind === d.kind);
     const n = xs.length;
     const todo = xs.filter((x) => !x.wall).length;

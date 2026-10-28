@@ -4,23 +4,26 @@ import { useToast } from "@/hooks/use-toast";
 import { Back, Go, Opt, Screen, useGo } from "../Shell";
 import { I, Ic } from "../icons";
 import { roomName, stateInfo } from "../data";
-import { curRoom, uid, useJourney, type FixedKind, type JourneyState, type Layout, type Placement, type Wall } from "../state";
+import { curRoom, uid, useJourney, type FixedKind, type JourneyState, type Layout, type LayoutItem, type Placement, type Wall } from "../state";
+import { ADDABLE, newPiece, resizeCm, sizeCm, turn } from "../plan/editLayout";
 import { StepSummary } from "../Summary";
 import { analyzePlan, makeLayout, uploadPhoto } from "../services";
 import { onPlanReaderStatus, readPlan, warmPlanReader, type PlanRead } from "../plan/reader";
-import { applyPlanRead } from "../plan/apply";
+import { applyPlanRead, writtenSize } from "../plan/apply";
 import { layoutChecks, pieceInfo } from "../plan/layoutCheck";
 import { pdfToImages } from "@/lib/pdfToImages";
 import { list, soFar } from "../story";
 import { saveStepDone } from "../sync";
 import { fixedLine, placementLabel } from "./Step3";
+import { LayoutPlan, PlanDrawing, TEX } from "./LayoutPlan";
+
+export { PlanDrawing };
 
 const p = (d: string) => <path d={d} />;
 /** The last plan image, kept so the person can tap a different room on it without uploading again. */
 let lastPlan: Blob | null = null;
-const EX_W = 3.75;
-const EX_L = 4.9;
-export const roomSize = (s: JourneyState) => ({ w: s.room.widthM ?? EX_W, l: s.room.lengthM ?? EX_L, example: !s.room.confirmed });
+import { EX_L, EX_W, roomSize } from "../plan/room";
+export { roomSize };
 const m = (n: number) => n.toFixed(2);
 
 /** 4.1 · Show us the room */
@@ -50,11 +53,33 @@ export function RoomInput() {
           const next = applyPlanRead(x, read, EX_W);
           return { ...next, room: { ...next.room, planImage: url }, layouts: [], chosenLayout: undefined };
         });
+        // Sizes written on the plan beat the door-width guess. Read in the background; applied unless
+        // the person has already typed a measurement or uploaded another plan.
+        void analyzePlan(url)
+          .then((est) => {
+            if (!est?.written) return;
+            const size = writtenSize(est.written, read.ratio);
+            let applied = false;
+            set((x) => {
+              if (x.room.planImage !== url || x.room.confirmed) return {};
+              applied = true;
+              return { room: { ...x.room, ...size, confirmed: true, sizeFrom: "written" }, layouts: [], chosenLayout: undefined };
+            });
+            if (applied) toast({ title: "Sizes read from your plan", description: `${m(size.widthM)} × ${m(size.lengthM)} m — check them on the plan.` });
+          })
+          .catch(() => undefined);
       } else {
-        // the drawing couldn't be measured: fall back to the AI's estimate, which the person then checks
+        // the drawing couldn't be measured: fall back to the AI, which reads sizes written on the plan or estimates them
         const est = await analyzePlan(url).catch(() => null);
-        set((x) => ({ room: { ...x.room, input: "plan", planImage: url, planRead: undefined, ...(est ? { widthM: est.widthM, lengthM: est.lengthM } : {}), confirmed: false }, layouts: [], chosenLayout: undefined }));
-        toast({ title: "We estimated this plan", description: `${read.message} Check the sizes and place the doors and windows yourself.` });
+        set((x) => ({
+          room: { ...x.room, input: "plan", planImage: url, planRead: undefined, ...(est ? { widthM: est.widthM, lengthM: est.lengthM } : {}), confirmed: !!est?.written, sizeFrom: est?.written ? "written" : undefined },
+          layouts: [],
+          chosenLayout: undefined,
+        }));
+        toast({
+          title: est?.written ? "Sizes read from your plan" : "We estimated this plan",
+          description: est?.written ? `${m(est.widthM)} × ${m(est.lengthM)} m. ${read.message} Place the doors and windows yourself.` : `${read.message} Check the sizes and place the doors and windows yourself.`,
+        });
       }
       go("S4-Measure");
     } catch (e) {
@@ -320,11 +345,11 @@ export function Measure() {
   const k = Math.min(420 / w, 555 / l);
   const W = Math.round(w * k), H = Math.round(l * k);
 
-  const setRoom = (patch: Partial<JourneyState["room"]>) => set((x) => ({ room: { ...x.room, ...patch }, layouts: [], chosenLayout: undefined }));
+  const setRoom = (patch: Partial<JourneyState["room"]>) => set((x) => ({ room: { ...x.room, sizeFrom: undefined, ...patch }, layouts: [], chosenLayout: undefined }));
   const doorM = s.room.doorM ?? 0.9;
   const known = ref === "Wall A length" ? s.room.widthM ?? EX_W : ref === "Wall B length" ? s.room.lengthM ?? EX_L : doorM;
   const setKnown = (v: number) => {
-    if (!v || v <= 0) return;
+    if (!v || v <= 0 || (s.room.confirmed && Math.abs(v - known) < 0.005)) return; // unchanged: keep the layouts
     if (ref === "Wall A length") setRoom({ lengthM: +(v * (l / w)).toFixed(2), widthM: v, confirmed: true });
     else if (ref === "Wall B length") setRoom({ widthM: +(v * (w / l)).toFixed(2), lengthM: v, confirmed: true });
     else setRoom({ widthM: +((w * v) / doorM).toFixed(2), lengthM: +((l * v) / doorM).toFixed(2), doorM: v, confirmed: true });
@@ -381,10 +406,10 @@ export function Measure() {
                 <span className="wl" style={{ left: "-54px", top: "45%" }}>D</span>
               </div>
               <span className="dim" style={{ left: "50%", top: `${Math.max(8, 330 - (H + 20) / 2 - 41)}px`, transform: "translateX(-50%)" }}>
-                {m(w)} m{example ? (s.room.planRead?.guessM ? " · from plan" : " · example") : ""}
+                {m(w)} m{example ? (s.room.planRead?.guessM ? " · from plan" : " · example") : s.room.sizeFrom === "written" ? " · written on plan" : ""}
               </span>
               <span className="dim" style={{ right: `calc(50% - ${(W + 20) / 2 + 110}px)`, top: "50%", transform: "translateY(-50%) rotate(90deg)" }}>
-                {m(l)} m{example ? (s.room.planRead?.guessM ? " · from plan" : " · example") : ""}
+                {m(l)} m{example ? (s.room.planRead?.guessM ? " · from plan" : " · example") : s.room.sizeFrom === "written" ? " · written on plan" : ""}
               </span>
             </div>
             {current && <span className="pin">Place {placementLabel(current, pl).toLowerCase()}</span>}
@@ -436,7 +461,7 @@ export function Measure() {
                     key={`w${w}${l}`}
                     onBlur={(e) => {
                       const v = parseFloat(e.target.value.replace(",", "."));
-                      if (v > 0) setRoom(ref === "Wall B length" ? { widthM: v, confirmed: true } : { lengthM: v, confirmed: true });
+                      if (v > 0 && !(s.room.confirmed && Math.abs(v - (ref === "Wall B length" ? w : l)) < 0.005)) setRoom(ref === "Wall B length" ? { widthM: v, confirmed: true } : { lengthM: v, confirmed: true });
                     }}
                   />
                   <span>m</span>
@@ -451,7 +476,9 @@ export function Measure() {
               </div>
             </div>
             <p className="small" style={{ margin: "0" }}>
-              {example
+              {s.room.sizeFrom === "written"
+                ? "Read from the sizes written on your plan. Change them above if they're not right."
+                : example
                 ? s.room.planRead?.guessM
                   ? `A rough size from your plan's door width. Type one real length above to make it exact.`
                   : "Sizes shown are examples until you confirm them."
@@ -502,121 +529,6 @@ export function Measure() {
   );
 }
 
-const KIND_COLOR: Record<string, string> = { sofa: "#6E3550", chair: "#2F5B4A", keep: "#4A3022", table: "#8A6A4A", storage: "#7A6656", bed: "#6E3550", desk: "#8A6A4A", other: "#9E8E7A" };
-const KIND_CLASS: Record<string, string> = { sofa: "sofa", chair: "chair", keep: "piano", table: "ctbl", rug: "rug", bench: "bench" };
-
-/** A layout drawn on the room, in a box of the given size. */
-export function PlanDrawing({ layout, s, box = { w: 300, h: 392 }, t = 8, mini = false }: { layout: Layout; s: JourneyState; box?: { w: number; h: number }; t?: number; mini?: boolean }) {
-  const { w, l } = roomSize(s);
-  const W = box.w, H = Math.min(box.h, Math.round((box.w * l) / w));
-  const iw = W - 2 * t, ih = H - 2 * t;
-  const px = (v: number, of: number) => Math.round((v / 100) * of);
-  const win = s.placements.find((x) => x.kind === "windows" && x.wall);
-  const door = s.placements.find((x) => x.kind === "doors" && x.wall);
-  if (mini)
-    return (
-      <div className="r" style={{ width: W, height: H }}>
-        {layout.items
-          .filter((i) => i.kind !== "rug")
-          .slice(0, 6)
-          .map((i, n) => (
-            <i key={n} style={{ left: px(i.x, iw), top: px(i.y, ih), width: Math.max(8, px(i.w, iw)), height: Math.max(8, px(i.h, ih)), background: KIND_COLOR[i.kind] ?? KIND_COLOR.other }} />
-          ))}
-        {win && <div className="win" style={win.wall === "C" ? undefined : { display: "none" }} />}
-      </div>
-    );
-  return (
-    <div className="rm" style={{ width: W, height: H }}>
-      {layout.zones.map((z, n) => (
-        <div key={n} className={`zone ${z.tone === "green" ? "z2" : "z1"}`} style={{ left: px(z.x, iw), top: px(z.y, ih), width: px(z.w, iw), height: px(z.h, ih) }}>
-          {z.label}
-        </div>
-      ))}
-      {layout.items.map((i, n) => (
-        <div key={n} className={`f ${KIND_CLASS[i.kind] ?? ""}`} style={{ left: px(i.x, iw), top: px(i.y, ih), width: Math.max(10, px(i.w, iw)), height: Math.max(10, px(i.h, ih)), ...(KIND_CLASS[i.kind] ? {} : { background: KIND_COLOR[i.kind] ?? KIND_COLOR.other, borderRadius: 8 }) }}>
-          {i.kind === "rug" || px(i.w, iw) < 34 ? "" : i.label}
-        </div>
-      ))}
-      {win && <div className="win" style={win.wall !== "C" ? { display: "none" } : undefined} />}
-      {door && <div className="dr" style={door.wall !== "D" ? { display: "none" } : undefined} />}
-      {layout.route && (
-        <div
-          className="path"
-          style={{
-            left: px(Math.min(layout.route.x1, layout.route.x2), iw),
-            top: px(layout.route.y1, ih),
-            width: Math.max(20, px(Math.abs(layout.route.x2 - layout.route.x1), iw)),
-          }}
-        />
-      )}
-    </div>
-  );
-}
-
-const TEX: Record<string, string> = { sofa: "t-sofa", chair: "t-chair", keep: "t-keep", table: "t-table", rug: "t-rug", storage: "t-shelf", bed: "t-bed", desk: "t-table", bench: "t-bench", other: "t-other" };
-
-/** One opening drawn on the big plan: a gap in the wall, plus the swing for a door. */
-function Opening({ p, W, L }: { p: Placement; W: number; L: number }) {
-  if (!p.wall || p.pos == null) return null;
-  const door = p.kind === "doors";
-  const widthM = door ? 0.85 : 1.2;
-  const along = p.wall === "A" || p.wall === "C" ? W : L;
-  const len = (widthM / along) * 100;
-  const at = Math.min(100 - len, Math.max(0, p.pos - len / 2));
-  const horiz = p.wall === "A" || p.wall === "C";
-  const gap: CSSProperties = horiz
-    ? { left: `${at}%`, width: `${len}%`, [p.wall === "A" ? "top" : "bottom"]: -12, height: 12 }
-    : { top: `${at}%`, height: `${len}%`, [p.wall === "D" ? "left" : "right"]: -12, width: 12 };
-  const swingSize = horiz ? { width: `${len}%`, aspectRatio: "1" } : { height: `${len}%`, aspectRatio: "1" };
-  const swing: CSSProperties = horiz ? { left: `${at}%`, [p.wall === "A" ? "top" : "bottom"]: 0, ...swingSize } : { top: `${at}%`, [p.wall === "D" ? "left" : "right"]: 0, ...swingSize };
-  return (
-    <>
-      <i className={door ? "lp-door" : "lp-win"} style={gap} />
-      {door && <i className={`lp-swing w${p.wall}`} style={swing} />}
-    </>
-  );
-}
-
-/** The chosen layout drawn to scale, each piece textured by material and numbered. */
-function LayoutPlan({ layout, s }: { layout: Layout; s: JourneyState }) {
-  const { w, l } = roomSize(s);
-  const maxW = 440, maxH = 560;
-  const scale = Math.min(maxW / w, maxH / l);
-  const W = Math.round(w * scale), H = Math.round(l * scale);
-  const pct = (v: number) => `${v}%`;
-  return (
-    <div className="lp" role="img" aria-label={`Floor plan, ${m(w)} by ${m(l)} metres: ${layout.items.map((i) => i.label || i.kind).filter(Boolean).join(", ")}`}>
-      <span className="lp-dim lp-dw">{m(w)} m</span>
-      <span className="lp-dim lp-dl">{m(l)} m</span>
-      <div className="lp-room" style={{ width: W, height: H }}>
-        {(["A", "B", "C", "D"] as Wall[]).map((x) => (
-          <b key={x} className={`lp-wl w${x}`}>
-            {x}
-          </b>
-        ))}
-        {s.placements
-          .filter((p) => p.kind === "doors" || p.kind === "windows")
-          .map((p) => (
-            <Opening key={p.id} p={p} W={w} L={l} />
-          ))}
-        {layout.items
-          .map((i, n) => ({ i, n }))
-          .sort((a, b) => Number(b.i.kind === "rug") - Number(a.i.kind === "rug"))
-          .map(({ i, n }) => (
-            <div key={n} className={`lp-f ${TEX[i.kind] ?? "t-other"}`} style={{ left: pct(i.x), top: pct(i.y), width: pct(i.w), height: pct(i.h) }}>
-              <span className={i.kind === "rug" ? "lp-n rug" : "lp-n"}>{n + 1}</span>
-            </div>
-          ))}
-        {layout.route && (
-          <svg className="lp-route" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
-            <line x1={layout.route.x1} y1={layout.route.y1} x2={layout.route.x2} y2={layout.route.y2} vectorEffect="non-scaling-stroke" />
-          </svg>
-        )}
-      </div>
-    </div>
-  );
-}
-
 /** 4.4 · Choose a layout — up to three options, the chosen one large and to scale, with fit checks and every piece. */
 export function Layouts() {
   const { s, set } = useJourney();
@@ -626,6 +538,28 @@ export function Layouts() {
   const { w, l, example } = roomSize(s);
   const chosen = Math.min(s.chosenLayout ?? 0, Math.max(0, s.layouts.length - 1));
   const lay = s.layouts[chosen];
+  const [sel, setSel] = useState<number | null>(null);
+  useEffect(() => setSel(null), [chosen]);
+  const picked = lay && sel != null ? lay.items[sel] : undefined;
+
+  /** Changes the chosen layout's pieces; the suggestion is kept the first time, to reset to. */
+  const editItems = (fn: (items: LayoutItem[]) => LayoutItem[]) =>
+    set((x) => ({
+      layouts: x.layouts.map((L, i) => (i === chosen ? { ...L, original: L.original ?? L.items, items: fn(L.items) } : L)),
+    }));
+  const changeItem = (n: number, item: LayoutItem) => editItems((items) => items.map((it, i) => (i === n ? item : it)));
+  const addPiece = (k: (typeof ADDABLE)[number]) => {
+    if (!lay) return;
+    // drop it next to the picked piece, or in the middle of the room
+    const at = picked ? { x: Math.min(90, picked.x + picked.w + 6), y: picked.y + picked.h / 2 } : undefined;
+    const item = newPiece(k.kind, k.label, k.w, k.d, w, l, at);
+    editItems((items) => [...items, item]);
+    setSel(lay.items.length);
+  };
+  const removePiece = (n: number) => {
+    editItems((items) => items.filter((_, i) => i !== n));
+    setSel(null);
+  };
 
   useEffect(() => {
     if (once.current || s.layouts.length >= 2) return;
@@ -714,9 +648,49 @@ export function Layouts() {
             <>
               <div className="stack" style={{ gap: "2px" }}>
                 <span className="ly-k">Layout {chosen + 1}</span>
-                <h2 className="ly-h2">{lay.name}</h2>
+                <h2 className="ly-h2">
+                  {lay.name}
+                  {lay.original && <span className="tag" style={{ marginLeft: "10px", verticalAlign: "middle" }}>Edited by you</span>}
+                </h2>
               </div>
-              <LayoutPlan layout={lay} s={s} />
+              <div className="ly-tools" role="toolbar" aria-label="Edit this layout">
+                <span className="lbl">Add</span>
+                {ADDABLE.slice(0, 3).map((k) => (
+                  <button key={k.label} type="button" className="ly-add" onClick={() => addPiece(k)}>
+                    + {k.label}
+                  </button>
+                ))}
+                <select
+                  className="ly-add"
+                  aria-label="Add another piece"
+                  value=""
+                  onChange={(e) => {
+                    const k = ADDABLE.find((x) => x.label === e.target.value);
+                    if (k) addPiece(k);
+                  }}
+                >
+                  <option value="">More pieces…</option>
+                  {ADDABLE.slice(3).map((k) => (
+                    <option key={k.label} value={k.label}>
+                      {k.label}
+                    </option>
+                  ))}
+                </select>
+                {lay.original && (
+                  <button
+                    type="button"
+                    className="ly-reset"
+                    onClick={() => {
+                      set((x) => ({ layouts: x.layouts.map((L, i) => (i === chosen ? { ...L, items: L.original ?? L.items, original: undefined } : L)) }));
+                      setSel(null);
+                    }}
+                  >
+                    Undo my changes
+                  </button>
+                )}
+              </div>
+              <LayoutPlan layout={lay} s={s} edit={{ selected: sel, onSelect: setSel, onChange: changeItem }} />
+              <p className="small ly-hint">{picked ? "Drag to move · corner to resize · arrow keys nudge" : "Tap a piece to move, resize or remove it."}</p>
               <div className="ly-legend">
                 <span>
                   <i className="t-sofa" />
@@ -754,6 +728,62 @@ export function Layouts() {
         </section>
 
         <aside className="ly-side">
+          {picked && sel != null && (
+            <section className="ly-card ly-edit" aria-label={`Edit piece ${sel + 1}`}>
+              <div className="row between">
+                <h2 className="ly-cap">Piece {sel + 1}</h2>
+                <button type="button" className="link-btn" onClick={() => setSel(null)}>
+                  Done
+                </button>
+              </div>
+              <div className="field">
+                <label htmlFor="pc-name">Name</label>
+                <input id="pc-name" className="input" value={picked.label} onChange={(e) => changeItem(sel, { ...picked, label: e.target.value })} />
+              </div>
+              <div className="row" style={{ gap: "10px", flexWrap: "nowrap" }}>
+                {(["w", "d"] as const).map((k) => (
+                  <div className="field" key={k} style={{ flex: 1 }}>
+                    <label htmlFor={`pc-${k}`}>{k === "w" ? "Width" : "Depth"}</label>
+                    <div className="unit">
+                      <input
+                        id={`pc-${k}`}
+                        className="input"
+                        inputMode="numeric"
+                        key={`${sel}-${k}-${sizeCm(picked, w, l)[k]}`}
+                        defaultValue={sizeCm(picked, w, l)[k]}
+                        onBlur={(e) => {
+                          const v = parseInt(e.target.value, 10);
+                          if (!(v > 0)) return;
+                          const cur = sizeCm(picked, w, l);
+                          if (v !== cur[k]) changeItem(sel, resizeCm(picked, k === "w" ? v : cur.w, k === "d" ? v : cur.d, w, l));
+                        }}
+                      />
+                      <span>cm</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="row" style={{ gap: "8px" }}>
+                <button type="button" className="btn ghost sm" onClick={() => changeItem(sel, turn(picked, w, l))}>
+                  Turn 90°
+                </button>
+                <button
+                  type="button"
+                  className="btn ghost sm"
+                  onClick={() => {
+                    const { w: cw, d: cd } = sizeCm(picked, w, l);
+                    editItems((items) => [...items, newPiece(picked.kind, picked.label, cw, cd, w, l, { x: Math.min(95, picked.x + picked.w * 1.5 + 2), y: picked.y + picked.h / 2 })]);
+                    setSel(lay.items.length);
+                  }}
+                >
+                  Duplicate
+                </button>
+                <button type="button" className="btn ghost sm danger" onClick={() => removePiece(sel)}>
+                  Remove
+                </button>
+              </div>
+            </section>
+          )}
           {checks.length > 0 && (
             <section className="ly-card">
               <h2 className="ly-cap">Fit checks</h2>
@@ -776,7 +806,7 @@ export function Layouts() {
                 </span>
               </div>
               {pieces.map((x) => (
-                <article key={x.n} className="ly-piece">
+                <article key={x.n} className={`ly-piece${sel === x.n - 1 ? " sel" : ""}`} onClick={() => setSel(x.n - 1)} style={{ cursor: "pointer" }}>
                   <span className={`ly-num ${TEX[x.item.kind] ?? "t-other"}`}>{x.n}</span>
                   <div className="stack" style={{ gap: "3px", minWidth: 0 }}>
                     <div className="row between" style={{ gap: "8px", flexWrap: "nowrap" }}>

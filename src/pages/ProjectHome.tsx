@@ -7,7 +7,17 @@ import { Card, CardContent } from "@/components/ui/card";
 import ShopChoicePanel from "@/components/shop/ShopChoicePanel";
 import { ROOM_LABELS, ensureProject, projectDb, projectsReady } from "@/lib/projectStore";
 import { cn } from "@/lib/utils";
-import { resumeRoomInJourney } from "@/journey/state";
+import { STORAGE_KEY, resumeRoomInJourney } from "@/journey/state";
+
+/** The project name typed in the journey (step 1 summary), for when the database has none yet. */
+const localProjectName = (): string | undefined => {
+  try {
+    const name = (JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "{}") as { projectName?: string }).projectName?.trim();
+    return name || undefined;
+  } catch {
+    return undefined;
+  }
+};
 
 const STEP_NAMES = ["", "Project", "Inspiration", "Daily life", "Layout", "Furniture", "Colours", "Lighting", "Details", "Make it happen", "Together"];
 const STATE_LABEL: Record<string, string> = {
@@ -70,7 +80,7 @@ const ProjectHome = () => {
       <main className="mx-auto max-w-5xl space-y-10 px-4 pb-20">
         <div className="pt-6 text-center">
           <p className="text-xs uppercase tracking-[0.3em] text-muted-foreground">Your project</p>
-          <h1 className="mt-3 text-4xl font-extrabold tracking-tight md:text-6xl">{data?.ready ? data.project?.name ?? "My home" : "My home"}</h1>
+          <h1 className="mt-3 text-4xl font-extrabold tracking-tight md:text-6xl">{(data?.ready ? data.project?.name : undefined) ?? localProjectName() ?? "My home"}</h1>
           {data?.ready && rooms.length > 0 && (
             <p className="mx-auto mt-4 max-w-2xl text-lg text-muted-foreground">
               {done} of {rooms.length} rooms designed. Your project basics carry over; steps 2–10 repeat for each room.

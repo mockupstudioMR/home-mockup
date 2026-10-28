@@ -39,7 +39,7 @@ export async function saveStep1(s: JourneyState): Promise<{ projectId: string; r
     const [bmin, bmax] = BUDGET[s.brief.budget ?? ""] ?? [null, null];
     const fields = {
       owner_id: userId,
-      name: "My home",
+      name: s.projectName?.trim() || "My home",
       intent: s.intent ?? "exploring",
       property_type: s.propertyType ?? null,
       step1_completed_at: new Date().toISOString(),

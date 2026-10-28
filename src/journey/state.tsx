@@ -43,6 +43,8 @@ export type Layout = {
   zones: { label: string; x: number; y: number; w: number; h: number; tone?: string }[];
   route?: { x1: number; y1: number; x2: number; y2: number };
   notes: { ok: boolean; text: string }[];
+  /** The pieces as suggested, kept once the person edits the layout so it can be reset. */
+  original?: LayoutItem[];
 };
 export type WallItem = {
   n: number;
@@ -83,6 +85,8 @@ export type PlanReading = {
 export type JourneyState = {
   v: 1;
   // Step 1 — project
+  /** The name the person gave the project (step 1 summary). Empty = "My home". */
+  projectName?: string;
   intent?: Intent;
   propertyType?: Property;
   rooms: string[];
@@ -137,6 +141,8 @@ export type JourneyState = {
     planRead?: PlanReading;
     /** The door width the current scale assumes, in metres. */
     doorM?: number;
+    /** "written": the size was read from the measurements written on the uploaded plan. */
+    sizeFrom?: "written";
   };
   layouts: Layout[];
   chosenLayout?: number;

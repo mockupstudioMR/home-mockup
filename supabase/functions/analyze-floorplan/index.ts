@@ -34,6 +34,8 @@ For each wall segment, provide:
 - length_m: estimated length in meters (use scale bars if visible, otherwise estimate from common room sizes)
 - angle_deg: the TURNING angle at the END of this wall (exterior angle, positive = turn right/clockwise, negative = turn left/counter-clockwise). The angles must sum to 360 for a convex shape or handle concave shapes correctly.
 
+If the plan has sizes WRITTEN on it (dimension lines or labels such as "3.75 x 4.90", "375", "3,75 m", "12'3"", "4900 mm"), those are the real sizes: use them for length_m, and also return them as "written_dimensions" converted to metres — width_m is the horizontal size of the room as drawn, length_m the vertical size. Ignore total-flat sizes and sizes of other rooms. If no sizes are written, leave "written_dimensions" out and do not invent them.
+
 Also extract any visible openings (doors, windows, balconies) with their wall index (0-based) and approximate position along that wall (0-100%).
 
 Start the first wall from the top-left corner going RIGHT (east).
@@ -43,6 +45,8 @@ Return a JSON object with:
 - "openings": array of { "type": "door"|"window"|"balcony", "wall_index": number, "position_pct": number }
 - "estimated_area_sqm": estimated total area
 - "shape_description": short description like "rectangular room" or "L-shaped room with alcove"
+- "written_dimensions": { "width_m": number, "length_m": number } — only when sizes are written on the plan
+- "dimensions_source": "written" | "scale_bar" | "estimated"
 
 For a simple rectangle 5m x 4m, walls would be:
 [{length_m: 5, angle_deg: 90}, {length_m: 4, angle_deg: 90}, {length_m: 5, angle_deg: 90}, {length_m: 4, angle_deg: 90}]`;
@@ -99,6 +103,15 @@ For a simple rectangle 5m x 4m, walls would be:
                   },
                   estimated_area_sqm: { type: "number" },
                   shape_description: { type: "string" },
+                  written_dimensions: {
+                    type: "object",
+                    properties: {
+                      width_m: { type: "number" },
+                      length_m: { type: "number" },
+                    },
+                    required: ["width_m", "length_m"],
+                  },
+                  dimensions_source: { type: "string", enum: ["written", "scale_bar", "estimated"] },
                 },
                 required: ["walls", "shape_description"],
               },
