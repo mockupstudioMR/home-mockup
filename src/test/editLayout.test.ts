@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { ADDABLE, keepInside, moveBy, newPiece, resizeCm, sizeCm, turn } from "@/journey/plan/editLayout";
-import { writtenSize } from "@/journey/plan/apply";
+import { withWritten } from "@/journey/plan/apply";
 import { layoutChecks } from "@/journey/plan/layoutCheck";
 import { EMPTY } from "@/journey/state";
 
@@ -36,11 +36,13 @@ describe("editing a layout", () => {
 });
 
 describe("sizes written on the plan", () => {
-  it("follows the drawing's proportions", () => {
-    // reader: the room is wider than long (ratio 1.3); the plan says 3.6 × 4.7
-    expect(writtenSize([3.6, 4.7], 1.3)).toEqual({ widthM: 4.7, lengthM: 3.6 });
-    expect(writtenSize([4.7, 3.6], 1.3)).toEqual({ widthM: 4.7, lengthM: 3.6 });
-    expect(writtenSize([3.6, 4.7])).toEqual({ widthM: 3.6, lengthM: 4.7 });
+  const guess = { widthM: 3.2, lengthM: 4.0 }; // door-width guess from the drawing
+  it("overrule the estimate side by side; only the missing side is estimated", () => {
+    expect(withWritten(guess, { width: 3.75, length: 4.9 })).toMatchObject({ widthM: 3.75, lengthM: 4.9, confirmed: true });
+    expect(withWritten(guess, { width: 3.75 })).toMatchObject({ widthM: 3.75, lengthM: 4.69, confirmed: false, sizeSource: { width: "written", length: "estimated" } });
+  });
+  it("leave the estimate alone when nothing is printed", () => {
+    expect(withWritten(guess, {})).toMatchObject({ widthM: 3.2, lengthM: 4, confirmed: false, sizeSource: undefined });
   });
 });
 

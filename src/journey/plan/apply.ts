@@ -2,10 +2,11 @@
 import type { FixedKind, JourneyState, Placement, PlanReading } from "../state";
 import { uid } from "../state";
 import { PLAN_DOOR_M, type PlanRead } from "./reader";
+import { mergeSize, type Written } from "../../../supabase/functions/_shared/dimensions";
 
 const KIND: Record<"door" | "window", FixedKind> = { door: "doors", window: "windows" };
 
-export function applyPlanRead(s: JourneyState, read: Extract<PlanRead, { ok: true }>, fallbackW = 3.75): Pick<JourneyState, "room" | "placements" | "fixedCounts"> {
+export function applyPlanRead(s: JourneyState, read: Extract<PlanRead, { ok: true }>, fallbackW = 3.75, written?: Written): Pick<JourneyState, "room" | "placements" | "fixedCounts"> {
   const r2 = (n: number) => Math.round(n * 100) / 100;
   // Size: the reader's proportions are exact; the metres are a first guess from the door until the person types one
   // real measurement on the next screen.
@@ -49,20 +50,25 @@ export function applyPlanRead(s: JourneyState, read: Extract<PlanRead, { ok: tru
     counts[k] = Math.max(counts[k] ?? 0, placements.filter((p) => p.kind === k).length);
   }
   return {
-    room: { ...s.room, input: "plan", widthM, lengthM, confirmed: false, sizeFrom: undefined, planRead, doorM: read.scale ? PLAN_DOOR_M : s.room.doorM },
+    room: { ...s.room, input: "plan", ...withWritten({ widthM, lengthM }, written), planRead, doorM: read.scale ? PLAN_DOOR_M : s.room.doorM },
     placements,
     fixedCounts: counts,
   };
 }
 
 /**
- * Sizes written on the plan (width × length as read) turned to the room's wall A × wall B,
- * so they follow the drawing's proportions when the reader measured them (ratio = width / length).
+ * The room size once the sizes printed on the plan are known: printed numbers overrule the estimate side by side,
+ * and only what isn't printed stays estimated (from the drawing's proportions or a printed area).
+ * Confirmed only when neither side is an estimate.
  */
-export function writtenSize(written: [number, number], ratio?: number): { widthM: number; lengthM: number } {
-  const [a, b] = written;
-  if (!ratio || !Number.isFinite(ratio) || ratio <= 0) return { widthM: a, lengthM: b };
-  const asIs = Math.abs(Math.log(a / b / ratio));
-  const swapped = Math.abs(Math.log(b / a / ratio));
-  return swapped < asIs ? { widthM: b, lengthM: a } : { widthM: a, lengthM: b };
+export function withWritten(estimate: { widthM: number; lengthM: number }, written?: Written): Pick<JourneyState["room"], "widthM" | "lengthM" | "confirmed" | "written" | "sizeSource"> {
+  if (!written || !Object.keys(written).length) return { ...estimate, confirmed: false, written: undefined, sizeSource: undefined };
+  const size = mergeSize(written, { width: estimate.widthM, length: estimate.lengthM });
+  return {
+    widthM: size.width,
+    lengthM: size.length,
+    confirmed: size.source.width !== "estimated" && size.source.length !== "estimated",
+    written,
+    sizeSource: size.source,
+  };
 }

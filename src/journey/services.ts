@@ -8,6 +8,7 @@ import { getAiErrorMessage } from "@/lib/aiErrorMessage";
 import { getAiOptimizedImageUrl, optimizeImageFileSafe } from "@/lib/imageOptimization";
 import { getStyleMoodboardUrls } from "@/lib/styleMoodboards";
 import { trackEvent } from "@/lib/analytics";
+import { mergeSize, parseArea, parseLength, readWritten, type Written, type WrittenText } from "../../supabase/functions/_shared/dimensions";
 import { curRoom, uid, type JourneyState, type Layout, type Piece, type StyleMatch, type Swatch } from "./state";
 
 const userId = async () => (await supabase.auth.getUser()).data.user?.id ?? null;
@@ -179,22 +180,35 @@ export async function readDesign(imageUrl: string, style?: string): Promise<Read
 }
 
 /** Read an uploaded floor plan: the room's two side lengths, in metres. */
-export async function analyzePlan(imageUrl: string): Promise<{ widthM: number; lengthM: number; shape?: string; written?: [number, number] } | null> {
+export async function analyzePlan(imageUrl: string): Promise<{ widthM: number; lengthM: number; shape?: string; written?: Written } | null> {
   const { data, error } = await invokeAi<{
-    floorplan?: { walls?: { length_m: number }[]; shape_description?: string; written_dimensions?: { width_m?: number; length_m?: number } | null };
-  }>("analyze-floorplan", { body: { imageUrl }, timeoutMs: 60_000 });
+    floorplan?: {
+      walls?: { length_m: number }[];
+      shape_description?: string;
+      written_dimensions?: { width_m?: number; length_m?: number; area_sqm?: number } | null;
+      /** What the model copied from the plan, as printed. */
+      printed_text?: WrittenText | null;
+    };
+  }>("analyze-floorplan", { body: { imageUrl }, timeoutMs: 120_000 });
   if (error) throw new Error(getAiErrorMessage(error, "We couldn't read the plan. Try a clearer image."));
   const round = (n: number) => Math.round(n * 100) / 100;
-  const wd = data?.floorplan?.written_dimensions;
-  const written = wd && isRoomSize(wd.width_m) && isRoomSize(wd.length_m) ? ([round(wd.width_m!), round(wd.length_m!)] as [number, number]) : undefined;
-  const walls = data?.floorplan?.walls ?? [];
-  if (written) return { widthM: written[0], lengthM: written[1], shape: data?.floorplan?.shape_description, written };
-  if (walls.length < 2) return null;
-  return { widthM: round(walls[0].length_m), lengthM: round(walls[1].length_m), shape: data?.floorplan?.shape_description };
+  const fp = data?.floorplan;
+  // Printed numbers, read again here from the copied text so a function that hasn't been redeployed still works.
+  const fromText = readWritten(fp?.printed_text);
+  const wd = fp?.written_dimensions;
+  const written: Written = {
+    width: fromText.width ?? parseLength(wd?.width_m),
+    length: fromText.length ?? parseLength(wd?.length_m),
+    area: fromText.area ?? parseArea(wd?.area_sqm),
+  };
+  for (const k of Object.keys(written) as (keyof Written)[]) if (written[k] == null) delete written[k];
+  const walls = fp?.walls ?? [];
+  const hasWritten = Object.keys(written).length > 0;
+  if (walls.length < 2 && !hasWritten) return null;
+  const est = walls.length >= 2 ? { width: round(walls[0].length_m), length: round(walls[1].length_m) } : { width: 3.75, length: 4.9 };
+  const size = mergeSize(written, est);
+  return { widthM: size.width, lengthM: size.length, shape: fp?.shape_description, written: hasWritten ? written : undefined };
 }
-
-/** A believable room side in metres (rejects mm/cm left unconverted and misreads). */
-const isRoomSize = (n: unknown): n is number => typeof n === "number" && Number.isFinite(n) && n >= 1 && n <= 30;
 
 /** One layout for the room (step 4.3), built by generate-layout from everything known so far. */
 export async function makeLayout(s: JourneyState, opts: { emphasis?: number; avoid?: string[] } = {}) {

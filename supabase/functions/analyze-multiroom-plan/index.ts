@@ -1,6 +1,7 @@
 import "../_shared/language.ts";
 import { requireUser } from "../_shared/auth.ts";
 import { fetchWithTimeout } from "../_shared/http.ts";
+import { WRITTEN_RULES, WRITTEN_SCHEMA, mergeSize, readWritten } from "../_shared/dimensions.ts";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
@@ -29,11 +30,12 @@ Deno.serve(async (req) => {
 
     const systemPrompt = `You are an architectural floor plan reader. You receive a photo, scan or sketch of an apartment/house floor plan that may contain MULTIPLE rooms.
 
-SCALE RULE (non-negotiable):
-- Ignore any printed dimensions or scale bars for scaling. Instead, find a standard interior DOOR opening in the plan and treat its clear opening width as EXACTLY 1.0 metre.
-- Measure that door's width in image pixels, then derive metres_per_pixel = 1.0 / door_width_px. Use that single factor to size EVERY room.
+SIZES (non-negotiable): numbers printed on the plan always beat estimates.
+- For EVERY room, copy its printed sizes into "written" (see the rules below). These are used as they are.
+- Only for what isn't printed, estimate from a door: find a standard interior DOOR opening and treat its clear opening width as EXACTLY 1.0 metre. Measure that door's width in image pixels, then derive metres_per_pixel = 1.0 / door_width_px. If several doors exist, use the median width of the normal interior doors (exclude wide sliding/double doors and balcony doors).
 - Report door_width_px and metres_per_pixel so the client can verify.
-- If several doors exist, use the median width of the normal interior doors (exclude wide sliding/double doors and balcony doors).
+
+${WRITTEN_RULES}
 
 STEP 1 — find the walls first. Before naming any room, trace the wall network: exterior walls (thickest), interior partitions (thinner), and every corner where walls meet. A room is the empty area fully enclosed by those wall lines. Never guess a room from furniture or text placement.
 
@@ -41,7 +43,8 @@ STEP 2 — for EVERY enclosed room return:
 - "name": the label printed on the plan, or a sensible name ("Living Room", "Bedroom 1", "Kitchen", "Bathroom", "Hallway")
 - "room_type": one of living-room, bedroom, kitchen, bathroom, office, hallway, dining-room, other
 - "polygon_px": the room outline in IMAGE PIXELS ({"x","y"} points, clockwise). Also report image_width_px / image_height_px so the pixels can be converted. Use pixels, not percentages, so you can read the drawing precisely.
-- "width_m", "length_m": the room's bounding footprint in metres, derived from the door scale, rounded to 2 decimals
+- "written": the room's sizes copied exactly as printed (width_text, length_text, pair_text, area_text, unit) — empty fields when nothing is printed
+- "width_m", "length_m": the room's bounding footprint in metres — the printed sizes when there are any, otherwise from the door scale, rounded to 2 decimals
 - "area_sqm": floor area in m² (rounded to 2 decimals)
 - "confidence": 0-1
 - "openings": EVERY door AND window (and balcony/terrace door) on that room's walls.
@@ -98,6 +101,7 @@ Be precise and consistent: rooms must not overlap, and the sum of room areas mus
                     width_m: { type: "number" },
                     length_m: { type: "number" },
                     area_sqm: { type: "number" },
+                    written: WRITTEN_SCHEMA,
                     confidence: { type: "number" },
                     polygon_px: pointSchema,
                     openings: {
@@ -127,7 +131,7 @@ Be precise and consistent: rooms must not overlap, and the sum of room areas mus
     ];
 
     const userText =
-      "Read this floor plan. First trace the wall network, then return every enclosed room with a precise outline in image pixels (a vertex at every wall corner — no crude rectangles for non-rectangular rooms), its real-world sizes scaled from a standard interior door = 1.0 m, and EVERY door and window you can see (windows are thin parallel lines in the wall with no swing arc — do not miss any).";
+      "Read this floor plan. First trace the wall network, then return every enclosed room with a precise outline in image pixels (a vertex at every wall corner — no crude rectangles for non-rectangular rooms), the sizes printed for it copied exactly, its real-world sizes (printed numbers first, a standard interior door = 1.0 m only for the rest), and EVERY door and window you can see (windows are thin parallel lines in the wall with no swing arc — do not miss any).";
 
     // Geometry reading needs the strongest available vision model; fall back if unavailable.
     const MODELS = ["google/gemini-2.5-pro", "google/gemini-2.5-flash"];
@@ -277,22 +281,45 @@ Be precise and consistent: rooms must not overlap, and the sum of room areas mus
       return Math.abs(a) / 2; // in percent²
     };
 
-    const mpp = num(raw.metres_per_pixel);
-    const rooms = rawRooms.map((r: any, i: number) => {
+    // Each room's outline box in image pixels, and the sizes printed for it (in metres).
+    const boxes = rawRooms.map((_r, i: number) => {
       const polygon = polys[i] || [];
       const xs = polygon.map((p) => p.x);
       const ys = polygon.map((p) => p.y);
-      // Real-world size of the outline's bounding box, from the door-derived scale.
-      const bboxW = xs.length ? ((Math.max(...xs) - Math.min(...xs)) / 100) * canvasW : 0;
-      const bboxH = ys.length ? ((Math.max(...ys) - Math.min(...ys)) / 100) * canvasH : 0;
+      return {
+        w: xs.length ? ((Math.max(...xs) - Math.min(...xs)) / 100) * canvasW : 0,
+        h: ys.length ? ((Math.max(...ys) - Math.min(...ys)) / 100) * canvasH : 0,
+      };
+    });
+    const writtenByRoom = rawRooms.map((r) => readWritten(r.written));
+    // The scale for estimating: from the printed sizes when there are any (median metres per pixel over every
+    // printed side), otherwise from the 1 m door.
+    const fromPrinted = writtenByRoom
+      .flatMap((w, i) => [w.width && boxes[i].w > 0 ? w.width / boxes[i].w : NaN, w.length && boxes[i].h > 0 ? w.length / boxes[i].h : NaN])
+      .filter((v) => isFinite(v) && v > 0)
+      .sort((a, b) => a - b);
+    const doorMpp = num(raw.metres_per_pixel);
+    const mpp = !looksPercent && fromPrinted.length ? fromPrinted[Math.floor(fromPrinted.length / 2)] : doorMpp;
+    const scaleFrom = !looksPercent && fromPrinted.length ? "printed sizes" : "door";
+    const rooms = rawRooms.map((r: any, i: number) => {
+      const polygon = polys[i] || [];
+      const { w: bboxW, h: bboxH } = boxes[i];
       const scaled = !looksPercent && mpp > 0;
-      const width_m = num(r.width_m) > 0 ? Number(r.width_m) : scaled ? Math.round(bboxW * mpp * 100) / 100 : 0;
-      const length_m = num(r.length_m) > 0 ? Number(r.length_m) : scaled ? Math.round(bboxH * mpp * 100) / 100 : 0;
-      // Use the true polygon area (not w×h) so L-shapes are not over-counted.
+      // Estimate first (outline × scale, or the model's own numbers), then printed numbers overrule it.
+      const estimate = {
+        width: scaled ? Math.round(bboxW * mpp * 100) / 100 : num(r.width_m) > 0 ? Number(r.width_m) : 0,
+        length: scaled ? Math.round(bboxH * mpp * 100) / 100 : num(r.length_m) > 0 ? Number(r.length_m) : 0,
+      };
+      const size = mergeSize(writtenByRoom[i], estimate);
+      const width_m = size.width;
+      const length_m = size.length;
+      // Use the true polygon area (not w×h) so L-shapes are not over-counted, scaled to this room's own sizes.
       const polyAreaPx = shoelaceArea(polygon) * (canvasW / 100) * (canvasH / 100);
-      const area_sqm =
-        scaled && polyAreaPx > 0
-          ? Math.round(polyAreaPx * mpp * mpp * 100) / 100
+      const sx = bboxW > 0 ? width_m / bboxW : mpp, sy = bboxH > 0 ? length_m / bboxH : mpp;
+      const area_sqm = writtenByRoom[i].area
+        ? writtenByRoom[i].area!
+        : !looksPercent && polyAreaPx > 0 && sx > 0 && sy > 0
+          ? Math.round(polyAreaPx * sx * sy * 100) / 100
           : num(r.area_sqm) > 0
             ? Number(r.area_sqm)
             : Math.round(width_m * length_m * 100) / 100;
@@ -319,6 +346,9 @@ Be precise and consistent: rooms must not overlap, and the sum of room areas mus
         width_m,
         length_m,
         area_sqm,
+        /** Where each size came from: "written" on the plan, "estimated" from the scale, or "from area". */
+        size_source: size.source,
+        written: r.written ?? null,
         polygon,
         openings,
       };
@@ -326,7 +356,7 @@ Be precise and consistent: rooms must not overlap, and the sum of room areas mus
       // A room needs a usable outline.
       .filter((r: any) => r.polygon.length >= 3);
 
-      return { rooms, canvasW, canvasH, mpp, door_width_px: num(raw.door_width_px), notes: raw.notes };
+      return { rooms, canvasW, canvasH, mpp, scale_from: scaleFrom, door_width_px: num(raw.door_width_px), notes: raw.notes };
     };
 
     // Overlapping outlines mean walls were misread — measure it so we can ask for a correction.

@@ -141,8 +141,10 @@ export type JourneyState = {
     planRead?: PlanReading;
     /** The door width the current scale assumes, in metres. */
     doorM?: number;
-    /** "written": the size was read from the measurements written on the uploaded plan. */
-    sizeFrom?: "written";
+    /** Sizes printed on the uploaded plan, in metres (only what is printed). They always beat estimates. */
+    written?: { width?: number; length?: number; area?: number };
+    /** Where each side's size came from: printed on the plan, worked out from a printed area, or estimated. */
+    sizeSource?: { width: "written" | "estimated" | "from area"; length: "written" | "estimated" | "from area" };
   };
   layouts: Layout[];
   chosenLayout?: number;
@@ -163,6 +165,12 @@ export type JourneyState = {
   // Step 6 — colours & materials
   accent?: { name: string; wall?: Wall; decision: "keep" | "adjust" | "skip"; change?: string; image?: string };
   supporting: { name: string; material: string }[];
+  /** Step 6.4 — the finish on each wall and the floor ("Keep the current floor" keeps it). */
+  surfaces?: { walls: Record<Wall, string>; floor: string };
+  /** Step 6.5 — decor pieces, switched on or off; custom ones can be added. */
+  decor?: { name: string; on: boolean }[];
+  /** Step 6 refinement parts finished ("accents", "tables", "surfaces", "decor"). */
+  refined?: string[];
   supportImage?: string;
   samplesAdded?: boolean;
   // Step 7 — lighting & power
@@ -270,7 +278,7 @@ export const curRoom = (s: JourneyState) => s.current ?? s.startRoom;
 export const ROOM_KEYS: (keyof JourneyState)[] = [
   "visionMode", "photos", "pinterest", "note", "quickNotes", "analysis", "styles", "moodboard", "preview",
   "activities", "priorities", "keeping", "nothingKept", "fixedCounts", "fixedTbc", "placements", "fixedPhotos",
-  "room", "layouts", "chosenLayout", "anchor", "accent", "supporting", "supportImage", "samplesAdded", "lighting", "walls",
+  "room", "layouts", "chosenLayout", "anchor", "accent", "supporting", "supportImage", "samplesAdded", "surfaces", "decor", "refined", "lighting", "walls",
   "buyEdits", "spaceAvail", "checks", "todo",
 ];
 export const uid = () => Math.random().toString(36).slice(2, 10);

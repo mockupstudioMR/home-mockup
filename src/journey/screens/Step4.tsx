@@ -9,7 +9,7 @@ import { ADDABLE, newPiece, resizeCm, sizeCm, turn } from "../plan/editLayout";
 import { StepSummary } from "../Summary";
 import { analyzePlan, makeLayout, uploadPhoto } from "../services";
 import { onPlanReaderStatus, readPlan, warmPlanReader, type PlanRead } from "../plan/reader";
-import { applyPlanRead, writtenSize } from "../plan/apply";
+import { applyPlanRead, withWritten } from "../plan/apply";
 import { layoutChecks, pieceInfo } from "../plan/layoutCheck";
 import { pdfToImages } from "@/lib/pdfToImages";
 import { list, soFar } from "../story";
@@ -25,6 +25,21 @@ let lastPlan: Blob | null = null;
 import { EX_L, EX_W, roomSize } from "../plan/room";
 export { roomSize };
 const m = (n: number) => n.toFixed(2);
+/** "3.75 × 4.90 m, both written on your plan" / "…, 3.75 written, 4.90 estimated". */
+const sizeLine = (r: JourneyState["room"]) => {
+  const w = r.widthM ?? EX_W, l = r.lengthM ?? EX_L, src = r.sizeSource;
+  if (!src) return `${m(w)} × ${m(l)} m`;
+  const word = (x: string) => (x === "written" ? "written on the plan" : x === "from area" ? "from the printed area" : "estimated");
+  return src.width === src.length ? `${m(w)} × ${m(l)} m, ${word(src.width)}` : `${m(w)} m ${word(src.width)}, ${m(l)} m ${word(src.length)}`;
+};
+/** The note after one side's size on the plan drawing. */
+const sideNote = (r: JourneyState["room"], side: "width" | "length", example: boolean) => {
+  const src = r.sizeSource?.[side];
+  if (src === "written") return " · written on plan";
+  if (src === "from area") return " · from printed area";
+  if (src === "estimated") return " · estimated";
+  return example ? (r.planRead?.guessM ? " · from plan" : " · example") : "";
+};
 
 /** 4.1 · Show us the room */
 export function RoomInput() {
@@ -58,27 +73,31 @@ export function RoomInput() {
         void analyzePlan(url)
           .then((est) => {
             if (!est?.written) return;
-            const size = writtenSize(est.written, read.ratio);
-            let applied = false;
+            let applied: JourneyState["room"] | null = null;
             set((x) => {
-              if (x.room.planImage !== url || x.room.confirmed) return {};
-              applied = true;
-              return { room: { ...x.room, ...size, confirmed: true, sizeFrom: "written" }, layouts: [], chosenLayout: undefined };
+              // a size the person typed in the meantime wins; another plan uploaded meanwhile is left alone
+              if (x.room.planImage !== url || (x.room.confirmed && !x.room.sizeSource)) return {};
+              const room = { ...x.room, ...withWritten({ widthM: x.room.widthM ?? EX_W, lengthM: x.room.lengthM ?? EX_L }, est.written) };
+              applied = room;
+              return { room, layouts: [], chosenLayout: undefined };
             });
-            if (applied) toast({ title: "Sizes read from your plan", description: `${m(size.widthM)} × ${m(size.lengthM)} m — check them on the plan.` });
+            if (applied) toast({ title: "Sizes read from your plan", description: sizeLine(applied) });
           })
           .catch(() => undefined);
       } else {
         // the drawing couldn't be measured: fall back to the AI, which reads sizes written on the plan or estimates them
         const est = await analyzePlan(url).catch(() => null);
-        set((x) => ({
-          room: { ...x.room, input: "plan", planImage: url, planRead: undefined, ...(est ? { widthM: est.widthM, lengthM: est.lengthM } : {}), confirmed: !!est?.written, sizeFrom: est?.written ? "written" : undefined },
-          layouts: [],
-          chosenLayout: undefined,
-        }));
+        const room: JourneyState["room"] = {
+          ...s.room,
+          input: "plan",
+          planImage: url,
+          planRead: undefined,
+          ...(est ? withWritten({ widthM: est.widthM, lengthM: est.lengthM }, est.written) : { confirmed: false, written: undefined, sizeSource: undefined }),
+        };
+        set({ room, layouts: [], chosenLayout: undefined });
         toast({
           title: est?.written ? "Sizes read from your plan" : "We estimated this plan",
-          description: est?.written ? `${m(est.widthM)} × ${m(est.lengthM)} m. ${read.message} Place the doors and windows yourself.` : `${read.message} Check the sizes and place the doors and windows yourself.`,
+          description: est?.written ? `${sizeLine(room)}. ${read.message} Place the doors and windows yourself.` : `${read.message} Check the sizes and place the doors and windows yourself.`,
         });
       }
       go("S4-Measure");
@@ -234,7 +253,8 @@ function PlanOutline() {
       const r = await readPlan(img, opts.tap, 120_000, opts.box);
       if (!r.ok || r.picked === "tap_missed") throw new Error(r.ok ? "That room isn't closed off on the plan. Drag the edges onto its walls instead." : r.message);
       set((x) => {
-        const next = applyPlanRead(x, r, EX_W);
+        // the printed sizes belong to the room first read: kept when its outline is adjusted, dropped for another room
+        const next = applyPlanRead(x, r, EX_W, opts.tap ? undefined : x.room.written);
         return { ...next, room: { ...next.room, planImage: x.room.planImage }, layouts: [], chosenLayout: undefined };
       });
     } catch (e) {
@@ -345,13 +365,15 @@ export function Measure() {
   const k = Math.min(420 / w, 555 / l);
   const W = Math.round(w * k), H = Math.round(l * k);
 
-  const setRoom = (patch: Partial<JourneyState["room"]>) => set((x) => ({ room: { ...x.room, sizeFrom: undefined, ...patch }, layouts: [], chosenLayout: undefined }));
+  const setRoom = (patch: Partial<JourneyState["room"]>) => set((x) => ({ room: { ...x.room, sizeSource: undefined, ...patch }, layouts: [], chosenLayout: undefined }));
+  // a side printed on the plan isn't rescaled when the other side is typed
+  const printedW = s.room.sizeSource?.width === "written", printedL = s.room.sizeSource?.length === "written";
   const doorM = s.room.doorM ?? 0.9;
   const known = ref === "Wall A length" ? s.room.widthM ?? EX_W : ref === "Wall B length" ? s.room.lengthM ?? EX_L : doorM;
   const setKnown = (v: number) => {
     if (!v || v <= 0 || (s.room.confirmed && Math.abs(v - known) < 0.005)) return; // unchanged: keep the layouts
-    if (ref === "Wall A length") setRoom({ lengthM: +(v * (l / w)).toFixed(2), widthM: v, confirmed: true });
-    else if (ref === "Wall B length") setRoom({ widthM: +(v * (w / l)).toFixed(2), lengthM: v, confirmed: true });
+    if (ref === "Wall A length") setRoom({ lengthM: printedL ? l : +(v * (l / w)).toFixed(2), widthM: v, confirmed: true });
+    else if (ref === "Wall B length") setRoom({ widthM: printedW ? w : +(v * (w / l)).toFixed(2), lengthM: v, confirmed: true });
     else setRoom({ widthM: +((w * v) / doorM).toFixed(2), lengthM: +((l * v) / doorM).toFixed(2), doorM: v, confirmed: true });
   };
   const addTool = (kind: FixedKind) =>
@@ -406,10 +428,10 @@ export function Measure() {
                 <span className="wl" style={{ left: "-54px", top: "45%" }}>D</span>
               </div>
               <span className="dim" style={{ left: "50%", top: `${Math.max(8, 330 - (H + 20) / 2 - 41)}px`, transform: "translateX(-50%)" }}>
-                {m(w)} m{example ? (s.room.planRead?.guessM ? " · from plan" : " · example") : s.room.sizeFrom === "written" ? " · written on plan" : ""}
+                {m(w)} m{sideNote(s.room, "width", example)}
               </span>
               <span className="dim" style={{ right: `calc(50% - ${(W + 20) / 2 + 110}px)`, top: "50%", transform: "translateY(-50%) rotate(90deg)" }}>
-                {m(l)} m{example ? (s.room.planRead?.guessM ? " · from plan" : " · example") : s.room.sizeFrom === "written" ? " · written on plan" : ""}
+                {m(l)} m{sideNote(s.room, "length", example)}
               </span>
             </div>
             {current && <span className="pin">Place {placementLabel(current, pl).toLowerCase()}</span>}
@@ -476,8 +498,10 @@ export function Measure() {
               </div>
             </div>
             <p className="small" style={{ margin: "0" }}>
-              {s.room.sizeFrom === "written"
-                ? "Read from the sizes written on your plan. Change them above if they're not right."
+              {s.room.sizeSource
+                ? s.room.confirmed
+                  ? "Read from the sizes written on your plan. Change them above if they're not right."
+                  : "One side is written on your plan; the other is estimated from the drawing. Type it above to make it exact."
                 : example
                 ? s.room.planRead?.guessM
                   ? `A rough size from your plan's door width. Type one real length above to make it exact.`

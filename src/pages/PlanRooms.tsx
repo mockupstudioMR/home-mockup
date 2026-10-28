@@ -30,9 +30,17 @@ interface PlanRoom {
   length_m: number;
   area_sqm: number;
   confidence?: number;
+  /** Where each size came from: printed on the plan, estimated from the scale, or worked out from a printed area. */
+  size_source?: { width: "written" | "estimated" | "from area"; length: "written" | "estimated" | "from area" };
   polygon: { x: number; y: number }[];
   openings: PlanOpening[];
 }
+
+/** "from the plan" / "1 side from the plan" / "estimated", for the room's sizes. */
+const sizeNote = (r: PlanRoom) => {
+  const n = [r.size_source?.width, r.size_source?.length].filter((x) => x === "written").length;
+  return n === 2 ? "sizes from the plan" : n === 1 ? "1 side from the plan, 1 estimated" : r.size_source ? "estimated" : "";
+};
 
 interface PlanResult {
   rooms: PlanRoom[];
@@ -483,6 +491,7 @@ const PlanRooms = () => {
                     </div>
                     <p className="text-sm text-muted-foreground mt-1">
                       {room.width_m.toFixed(2)} × {room.length_m.toFixed(2)} m · {room.area_sqm.toFixed(2)} m²
+                      {sizeNote(room) && ` · ${sizeNote(room)}`}
                     </p>
                     <p className="text-xs text-muted-foreground mt-1 capitalize">
                       {room.room_type.replace(/[-_]/g, " ")}
