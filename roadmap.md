@@ -1,7 +1,7 @@
 # Roadmap
 
 ## Now
-- [ ] Get `npm run lint` green on main (161 errors left: ~100 `any` in the web app, 61 in edge functions, 7 `@ts-nocheck` admin screens). Work through it file by file, biggest first: `components/admin/AdminProductManagement.tsx`, `components/floorplan/BuyListStep.tsx`, `pages/ShopDashboard.tsx`, `components/generate/ShopExistingProducts.tsx`.
+- [ ] Get `npm run lint` green on main (130 errors left: ~70 `any` in the web app, 61 in edge functions, 7 `@ts-nocheck` admin screens). Work through it file by file, biggest first: `components/admin/AdminProductManagement.tsx`, `supabase/functions/analyze-multiroom-plan/index.ts`, `supabase/functions/search-products/index.ts`, `components/generate/FloorPlanComparison.tsx`, `components/b2b/RetailerPostsPanel.tsx`.
 - [ ] Style quiz (needs Unsplash allowed in this agent's network settings — blocked on 2026-10-25 and 2026-10-27): check the six inspiration photos in `quiz/steps/ImageStep.tsx` match their labels (e.g. "Bohemian"), move them into `public/images/quiz/` and record credits in `public/images/CREDITS.md`.
 
 ## Next
@@ -18,6 +18,7 @@
 - [ ] Accessibility pass: alt text on generated images, focus order in the journey steps.
 
 ## Done
+- [x] Lint: `floorplan/BuyListStep.tsx`, `generate/ShopExistingProducts.tsx` and `pages/ShopDashboard.tsx` lint-clean (31 errors removed, 161 → 130); palette parsing moved to `lib/paletteFromPayload.ts` with 5 tests (2026-10-30).
 - [x] Clickable step bar everywhere; step 9 invites honest; step 6 pictures redraw after swaps; step 5 real shop pieces; designer filter + View (2026-10-28).
 - [x] Layout editing on 4.4 (add seats/pieces, move, resize, turn, remove, undo), one plan drawing everywhere, sockets/water on 4.3, sizes read from plans, editable project name, moodboard Colors tab removed (2026-10-28).
 - [x] Lint: `pages/FloorPlan.tsx` and `pages/Generate.tsx` now lint-clean (35 errors removed); floor-plan data parsing moved to `lib/floorPlanParsing.ts` with 7 tests (2026-10-27).

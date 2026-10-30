@@ -8,6 +8,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { ExternalLink, Store, X, CheckCircle2, Sparkles, Plus, Bug, ChevronDown, ChevronRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import type { Tables } from "@/integrations/supabase/types";
+import type { PostgrestError } from "@supabase/supabase-js";
 import { toast } from "sonner";
 import { DEFAULT_WEIGHTS, type MatchingWeights } from "@/components/admin/ProductMatchingWeights";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -24,6 +26,8 @@ interface DesignItem {
   style?: string;
   priority: "essential" | "recommended" | "optional";
 }
+
+type ShopProductRow = Tables<"shop_products">;
 
 interface MatchedProduct {
   id: string;
@@ -317,7 +321,7 @@ const dedupeProducts = (items: MatchedProduct[]): MatchedProduct[] => {
 };
 
 const computeMatchReasons = (
-  product: any,
+  product: ShopProductRow,
   item: DesignItem,
   w: MatchingWeights = DEFAULT_WEIGHTS
 ): { reasons: string[]; score: number } => {
@@ -326,7 +330,7 @@ const computeMatchReasons = (
 
   const itemName = item.item_name.toLowerCase();
   const itemType = (item.item_type || "").toLowerCase();
-  const prodType = ((product as any).type || "").toLowerCase();
+  const prodType = (product.type || "").toLowerCase();
   const prodName = (product.name || "").toLowerCase();
   const prodDesc = (product.description || "").toLowerCase();
   const prodAiDesc = (product.ai_image_description || "").toLowerCase();
@@ -399,7 +403,7 @@ const computeMatchReasons = (
     }
     // Also check AI-extracted color names from product metadata
     if (!colorMatched) {
-      const extractedColors = (product.metadata as any)?.extracted_colors as Array<{ name: string }> | undefined;
+      const extractedColors = (product.metadata as { extracted_colors?: Array<{ name: string }> } | null)?.extracted_colors;
       if (extractedColors?.length) {
         const extractedColorNames = extractedColors.map(c => c.name.toLowerCase());
         if (extractedColorNames.some(cn => cn.includes(itemColor) || itemColor.includes(cn))) {
@@ -464,16 +468,16 @@ const AddProductDialog = ({ item, onProductAdded }: { item: DesignItem; onProduc
         image_urls: form.image_url ? [form.image_url] : [],
         shop_id: user.id,
         is_active: true,
-      } as any);
+      });
 
       if (error) throw error;
 
       toast.success("Product added to catalog!");
       setOpen(false);
       onProductAdded();
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Error adding product:", err);
-      toast.error(err.message || "Failed to add product");
+      toast.error((err as { message?: string } | null)?.message || "Failed to add product");
     } finally {
       setSaving(false);
     }
@@ -638,8 +642,8 @@ const ShopExistingProducts = ({ item, onClose }: ShopExistingProductsProps) => {
         debug.expandedKeywords = [...expandedSearchKeywords];
 
         // First try: search by keywords (including synonyms) in name/type/description
-        let data: any[] = [];
-        let error: any = null;
+        let data: ShopProductRow[] = [];
+        let error: PostgrestError | null = null;
 
         if (expandedSearchKeywords.length > 0) {
           const orFilter = expandedSearchKeywords
@@ -677,10 +681,10 @@ const ShopExistingProducts = ({ item, onClose }: ShopExistingProductsProps) => {
         // Fallback: if no targeted results, fetch by type
         if (data.length === 0) {
           const expectedType = typeFromItemType(item.item_type);
-          const result = await (supabase
+          const result = await supabase
             .from("shop_products")
             .select("*")
-            .eq("is_active", true) as any)
+            .eq("is_active", true)
             .eq("type", expectedType)
             .limit(50);
 

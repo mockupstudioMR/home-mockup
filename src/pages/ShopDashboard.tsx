@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import type { Tables } from "@/integrations/supabase/types";
 import { requireUserId } from "@/lib/requireUserId";
 import { 
   Store, 
@@ -112,14 +113,14 @@ const ShopDashboard = () => {
       const { data, error } = await supabase
         .from("shop_products")
         .insert({
-          shop_id: user?.id,
+          shop_id: requireUserId(user?.id),
           name: product.name,
           description: product.description,
           type: product.type,
           style: product.style,
           price: product.price ? parseFloat(product.price) : null,
           source_url: product.source_url || null,
-        } as any)
+        })
         .select()
         .single();
       
@@ -230,7 +231,7 @@ const ShopDashboard = () => {
     productList, 
     loading 
   }: { 
-    productList: any[] | undefined; 
+    productList: Tables<"shop_products">[] | undefined; 
     loading: boolean 
   }) => {
     const pagination = usePagination({
@@ -297,7 +298,7 @@ const ShopDashboard = () => {
                       )}
                       
                       <div className="flex items-center gap-2 flex-wrap">
-                        <Badge variant="secondary">{(product as any).type}</Badge>
+                        <Badge variant="secondary">{product.type}</Badge>
                         {product.price && (
                           <Badge variant="outline">
                             €{product.price}
@@ -306,16 +307,16 @@ const ShopDashboard = () => {
                       </div>
 
                       {/* AI Generated Tags & Description */}
-                      {((product as any).ai_style_tags?.length > 0 || (product as any).ai_image_description) && (
+                      {((product.ai_style_tags?.length ?? 0) > 0 || product.ai_image_description) && (
                         <div className="mt-3 pt-3 border-t border-border space-y-2">
-                          {(product as any).ai_style_tags?.length > 0 && (
+                          {(product.ai_style_tags?.length ?? 0) > 0 && (
                             <>
                               <div className="flex items-center gap-1">
                                 <Sparkles className="w-3 h-3 text-primary" />
                                 <span className="text-xs text-muted-foreground">AI Style Tags</span>
                               </div>
                               <div className="flex flex-wrap gap-1">
-                                {(product as any).ai_style_tags.slice(0, 3).map((tag: string, i: number) => (
+                                {(product.ai_style_tags ?? []).slice(0, 3).map((tag: string, i: number) => (
                                   <Badge key={i} variant="outline" className="text-xs bg-primary/5">
                                     {tag}
                                   </Badge>
@@ -324,11 +325,11 @@ const ShopDashboard = () => {
                             </>
                           )}
                           
-                          {(product as any).ai_image_description && (
+                          {product.ai_image_description && (
                             <div className="mt-2">
                               <span className="text-xs text-muted-foreground">AI Description</span>
                               <p className="text-xs text-foreground/80 line-clamp-2 mt-0.5">
-                                {(product as any).ai_image_description}
+                                {product.ai_image_description}
                               </p>
                             </div>
                           )}
@@ -677,7 +678,7 @@ const ShopDashboard = () => {
                       >
                         <div>
                           <p className="font-medium">
-                            {(match.shop_products as any)?.name || "Product"}
+                            {match.shop_products?.name || "Product"}
                           </p>
                           <p className="text-sm text-muted-foreground">
                             Match score: {Math.round(match.match_score * 100)}%
