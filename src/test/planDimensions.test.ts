@@ -64,3 +64,19 @@ describe("printed numbers beat estimates", () => {
     expect(mergeSize({}, est)).toMatchObject({ width: 3.2, length: 4, source: { width: "estimated", length: "estimated" } });
   });
 });
+
+describe("printed sizes in the forms real plans use", () => {
+  it.each([
+    ["ca. 3,75", 3.75], ["L = 3,75", 3.75], ["B: 4,90 m", 4.9], ["Länge 3,75", 3.75], ["Breite: 4,90", 4.9], ["approx. 12 ft", 3.66],
+    ["≈ 3.75", 3.75], ["1,20 + 2,55", 3.75], ["120 + 255 cm", 3.75], ["12'-6\"", 3.81], ["12' - 6\"", 3.81],
+  ])("%s → %s m", (t, m) => expect(parseLength(t)).toBe(m));
+
+  it.each(["H 2,50", "RH 2,60", "BRH 0,90", "1,20 2,55", "D1", "3,75 x 4,90"])("%s is not one room side", (t) => expect(parseLength(t)).toBeUndefined());
+
+  it("reads a pair wherever it was copied", () => {
+    expect(readWritten({ width_text: "3.75x4.90" })).toEqual({ width: 3.75, length: 4.9 });
+    expect(readWritten({ pair_text: "3,75m x 4,90m" })).toEqual({ width: 3.75, length: 4.9 });
+    expect(readWritten({ pair_text: "approx. 3,75 x 4,90" })).toEqual({ width: 3.75, length: 4.9 });
+    expect(readWritten({ pair_text: "3,75 x 4,90 = 18,38 m²" })).toEqual({ width: 3.75, length: 4.9 });
+  });
+});

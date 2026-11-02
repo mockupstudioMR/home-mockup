@@ -27,21 +27,48 @@ const SUP = "⁰¹²³⁴⁵⁶⁷⁸⁹";
 /** German/Austrian plans print centimetres raised after the metres: "3⁷⁵" = 3.75 m. */
 const supToDecimal = (t: string) => t.replace(/(\d+)([⁰¹²³⁴⁵⁶⁷⁸⁹]+)/g, (_, m: string, sup: string) => `${m}.${[...sup].map((c) => SUP.indexOf(c)).join("")}`);
 
+/** Words printed before a size: "ca. 3,75", "L = 3,75", "Breite: 4,90 m", "approx. 12 ft". */
+const LABEL = /^(?:(?:ca|circa|approx|approximately|about|appr|etwa|rd|~|≈|±)\.?\s*)?(?:(?:length|width|depth|länge|laenge|breite|tiefe|lichte?\s*(?:weite|breite|länge)?|wall|wand|seite|side|len|lw|(?:l|b|w|d|t)(?=\s*[:=]|\s+\d+[.,]\d))\s*[:=]?\s*)?(?:(?:ca|circa|approx|etwa)\.?\s*)?/;
+/** A height isn't a room side: "H 2,50", "RH 2,60", "BRH 0,90", "Höhe 2,50". */
+const HEIGHT = /^(?:h|rh|brh|stuh|sth|höhe|hoehe|height|ceiling|raumhöhe)\s*[:=.]?\s*\d/;
+
 /**
  * One printed length in metres, or undefined when it can't be a room side.
  * Units printed win; without a unit the size decides: ≤ 30 metres, ≤ 3000 centimetres, ≤ 30000 millimetres.
+ * A chain of segments along one wall ("1,20 + 2,55", "1,20 2,55") is added up.
  */
 export function parseLength(text: unknown, unitHint?: string): number | undefined {
   if (typeof text === "number") return parseLength(String(text), unitHint);
   if (typeof text !== "string" || !text.trim()) return undefined;
-  const t = supToDecimal(text).toLowerCase().replace(/[’′]/g, "'").replace(/[”″]/g, '"').trim();
+  let t = supToDecimal(text).toLowerCase().replace(/[’′]/g, "'").replace(/[”″]/g, '"').replace(/\s+/g, " ").trim();
+  if (HEIGHT.test(t)) return undefined;
+  t = t.replace(LABEL, "").trim();
+  // two sizes in one label ("3,75 x 4,90") aren't one length; readWritten reads them as a pair
+  if (/\d\s*(?:mm|cm|m)?\s*(?:x|×|\*)\s*\d/.test(t)) return undefined;
   // only numbers and units: "D1", "WC 2" or "Bad" aren't sizes
   if (/[a-z]/.test(t.replace(/(mm|cm|meters?|metres?|m|ft|feet|inch(es)?|in)(?![a-z])/g, ""))) return undefined;
-  // feet and inches: 12'3", 12' 3", 12 ft 3 in
-  const ft = /(\d+(?:[.,]\d+)?)\s*(?:'|ft|feet)\s*(?:(\d+(?:[.,]\d+)?)\s*(?:"|in|inch(?:es)?)?)?/.exec(t);
+  // a dimension chain: segments joined by "+" add up to the wall
+  const parts = t.split(/\s*\+\s*/).filter(Boolean);
+  if (parts.length > 1) {
+    const unit = /(mm|cm|m)\s*$/.exec(t)?.[1] ?? unitHint;
+    const sides = parts.map((p) => parseSingle(p, unit, true));
+    if (sides.some((x) => x == null)) return undefined;
+    const sum = sides.reduce((a, b) => a! + b!, 0)!;
+    return ok(sum) ? r2(sum) : undefined;
+  }
+  // several decimal sizes side by side ("1,20 2,55") could be a chain or two walls: don't guess
+  if (/\d[.,]\d+\s*(?:mm|cm|m)?\s+\d+[.,]\d/.test(t)) return undefined;
+  return parseSingle(t, unitHint);
+}
+
+/** One number with an optional unit. A segment of a chain may be shorter than a room side. */
+function parseSingle(t: string, unitHint?: string, segment = false): number | undefined {
+  const fits = (m: number) => (segment ? Number.isFinite(m) && m > 0 && m <= MAX_M : ok(m));
+  // feet and inches: 12'3", 12' 3", 12'-6", 12 ft 3 in
+  const ft = /(\d+(?:[.,]\d+)?)\s*(?:'|ft|feet)\s*-?\s*(?:(\d+(?:[.,]\d+)?)\s*(?:"|in|inch(?:es)?)?)?/.exec(t);
   if (ft) {
     const m = toNumber(ft[1]) * 0.3048 + (ft[2] ? toNumber(ft[2]) * 0.0254 : 0);
-    return ok(m) ? r2(m) : undefined;
+    return fits(m) ? r2(m) : undefined;
   }
   const m = /(\d[\d.,\s]*\d|\d)\s*(mm|cm|m(?![²2])|meter|metre)?/.exec(t);
   if (!m) return undefined;
@@ -53,7 +80,7 @@ export function parseLength(text: unknown, unitHint?: string): number | undefine
   else if (unit === "cm") metres = v / 100;
   else if (unit.startsWith("m")) metres = v;
   else metres = v <= MAX_M ? v : v <= 3000 ? v / 100 : v / 1000;
-  return ok(metres) ? r2(metres) : undefined;
+  return fits(metres) ? (segment ? Math.round(metres * 1000) / 1000 : r2(metres)) : undefined;
 }
 
 /** A printed area in m² ("14,2 m²", "14.2 sqm", "14.2"), or undefined. */
@@ -75,7 +102,8 @@ export function parseArea(text: unknown): number | undefined {
 /** "3,75 x 4,90" / "375/490" / "3.75 × 4.90 m" → both sides, in the order printed. */
 export function parsePair(text: unknown, unitHint?: string): [number, number] | undefined {
   if (typeof text !== "string") return undefined;
-  const parts = text.split(/\s*(?:x|×|\*|\/|by)\s*/i).filter(Boolean);
+  // "3,75 x 4,90 = 18,38 m²": the area after "=" isn't a side
+  const parts = text.split("=")[0].split(/\s*(?:×|\*|\/|(?<![a-ln-wyz])x(?![a-z])|\bby\b)\s*/i).filter(Boolean);
   if (parts.length !== 2) return undefined;
   // a unit written once at the end applies to both ("3,75 x 4,90 m")
   const unit = /(mm|cm|m)\s*$/i.exec(parts[1])?.[1] ?? unitHint;
@@ -102,7 +130,8 @@ export type Written = { width?: number; length?: number; area?: number };
 export function readWritten(w: WrittenText | null | undefined): Written {
   if (!w) return {};
   const unit = w.unit ?? undefined;
-  const pair = parsePair(w.pair_text ?? undefined, unit);
+  // a label with both sizes is sometimes copied into a single side's field
+  const pair = parsePair(w.pair_text ?? undefined, unit) ?? parsePair(w.width_text ?? undefined, unit) ?? parsePair(w.length_text ?? undefined, unit);
   const out: Written = {
     width: parseLength(w.width_text, unit) ?? pair?.[0],
     length: parseLength(w.length_text, unit) ?? pair?.[1],
@@ -161,5 +190,7 @@ export const WRITTEN_SCHEMA = {
 /** Prompt text explaining how to copy printed sizes. */
 export const WRITTEN_RULES = `PRINTED SIZES (most important — numbers on the plan always beat estimates):
 - Look carefully for every number printed on or next to the room: dimension lines with ticks or arrows along its walls, labels inside the room such as "3,75 x 4,90", "375/490" or "3.75 × 4.90", single numbers along one wall, and the floor area such as "18,4 m²".
-- Copy each one EXACTLY as printed (keep commas, units and spaces; don't convert or round): width_text = the size along the horizontal walls as the plan is drawn, length_text = the size along the vertical walls, pair_text = a label with both, area_text = the printed area, unit = the unit stated in a legend or title block.
+- Copy each one EXACTLY as printed (keep commas, units, raised digits and words like "ca."; don't convert or round): width_text = the size along the horizontal walls as the plan is drawn, length_text = the size along the vertical walls, pair_text = a label with both, area_text = the printed area, unit = the unit stated in a legend or title block.
+- Sizes along vertical walls are often printed rotated 90°; read them too. Small raised digits after a number are centimetres ("3⁷⁵" = 3,75): copy them as raised digits.
+- When a wall has one overall dimension line, copy that. When it only has a chain of segments, copy every segment joined with " + " (e.g. "1,20 + 2,55"). Ignore heights (H, RH, BRH, Höhe) and the sizes of doors and windows.
 - Leave a field empty when nothing is printed for it. Never invent a number, and don't copy sizes of other rooms, the whole flat, furniture, doors or windows.`;
