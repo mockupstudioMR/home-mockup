@@ -57,7 +57,7 @@ ${WRITTEN_RULES}
 - Give one entry per room that has sizes printed for it (a plan with one room has one entry). For each, give the position of the ROOM's centre (not the label's) as x_pct / y_pct: 0–100 % of the image width from the left and of the image height from the top.
 - Each room's sizes are the ones printed inside it or on dimension lines along its own walls. Don't give one room the sizes of a neighbour or of the whole flat.`;
 
-    const ask = async (model: string, system: string, text: string, tool: { name: string; description: string; parameters: unknown }) => {
+    const ask = async (model: string, system: string, text: string, tool: { name: string; description: string; parameters: unknown }, timeoutMs = 100_000) => {
       const response = await fetchWithTimeout("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
         headers: {
@@ -79,7 +79,7 @@ ${WRITTEN_RULES}
           tools: [{ type: "function", function: tool }],
           tool_choice: { type: "function", function: { name: tool.name } },
         }),
-      });
+      }, timeoutMs);
       if (!response.ok) {
         const errText = await response.text();
         console.error("AI gateway error:", model, response.status, errText);
@@ -128,28 +128,42 @@ ${WRITTEN_RULES}
     };
     const readTool = { name: "copy_printed_sizes", description: "Copy every room's sizes exactly as printed on the plan, with where each room is", parameters: PRINTED_ROOMS_SCHEMA };
 
-    // Reading small printed numbers needs the strongest vision model; fall back if it isn't available.
+    // Reading small printed numbers needs the strongest vision model, but it can be slow. Both models start at once
+    // and everything stays inside the ~150 s edge-function limit: the strong model's answer is used when it comes
+    // within its budget, otherwise the fast one's. (Trying them one after the other could pass the limit, the
+    // function was killed and the app silently kept the door-width guess.)
+    const tryRead = (model: string, ms: number) =>
+      ask(model, readPrompt, "Copy the sizes printed for every room, exactly as written, with each room's position.", readTool, ms).catch((e) => {
+        console.warn("analyze-floorplan: printed-size read failed on", model, (e as Error).message);
+        return null;
+      });
     const readSizes = async () => {
-      for (const model of ["google/gemini-2.5-pro", "google/gemini-2.5-flash"]) {
-        try {
-          return await ask(model, readPrompt, "Copy the sizes printed for every room, exactly as written, with each room's position.", readTool);
-        } catch (e) {
-          console.warn("analyze-floorplan: printed-size read failed on", model, (e as Error).message);
-        }
-      }
-      return null;
+      const strong = tryRead("google/gemini-2.5-pro", 95_000);
+      const fast = tryRead("google/gemini-2.5-flash", 60_000);
+      const hasRooms = (r: { rooms?: unknown[] } | null) => !!r && Array.isArray(r.rooms) && r.rooms.length > 0;
+      const first = await strong;
+      if (hasRooms(first)) return first;
+      const second = await fast;
+      return hasRooms(second) ? second : first ?? second;
     };
 
-    const [parsed, printed] = await Promise.all([
-      ask("google/gemini-2.5-flash", systemPrompt, "Analyze this floor plan image and extract the room shape as wall segments with angles. Be precise about proportions.", shapeTool),
+    // The shape pass failing must not lose the printed sizes (and the other way round).
+    const [shapeRes, printed] = await Promise.all([
+      ask("google/gemini-2.5-flash", systemPrompt, "Analyze this floor plan image and extract the room shape as wall segments with angles. Be precise about proportions.", shapeTool, 90_000).catch((e) => {
+        console.warn("analyze-floorplan: shape pass failed", (e as Error).message);
+        return null;
+      }),
       readSizes(),
     ]);
+    if (!shapeRes && !printed) throw new Error("We couldn't read the plan. Try again or use a clearer image.");
+    const parsed = shapeRes ?? { walls: [], openings: [], shape_description: "" };
 
     // The room asked about (focus = its outline on the plan, 0–1) or else the largest printed room.
     const printedRooms: PrintedRoom[] = Array.isArray(printed?.rooms) ? printed.rooms : [];
     const writtenText = pickPrinted(printedRooms, Array.isArray(focus) ? focus : null, printed?.unit) ?? null;
     // Printed numbers beat the shape pass's estimate; only what isn't printed stays estimated.
     const written = readWritten(writtenText);
+    console.log("analyze-floorplan: printed rooms", JSON.stringify(printedRooms).slice(0, 2000), "focus", JSON.stringify(focus ?? null), "→", JSON.stringify(written));
     const walls: { length_m: number; angle_deg: number }[] = Array.isArray(parsed.walls) ? parsed.walls : [];
     if (walls.length >= 2 && Object.keys(written).length) {
       const est = { width: Number(walls[0].length_m) || 0, length: Number(walls[1].length_m) || 0 };

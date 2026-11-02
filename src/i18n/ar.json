@@ -4157,5 +4157,9 @@
   "Wall A is written on your plan; the other side comes from your measurement.": "حيطة A مكتوبة على المسقط؛ الجنب التاني من المقاس بتاعك.",
   "Wall B is written on your plan; the other side comes from your measurement.": "حيطة B مكتوبة على المسقط؛ الجنب التاني من المقاس بتاعك.",
   "Worked out from the area written on your plan. Type one wall above to make it exact.": "محسوبة من المساحة المكتوبة على المسقط. اكتب طول حيطة واحدة فوق علشان تبقى مظبوطة.",
-  "Sizes from the printed plan are used; the 1 m door only fills in rooms without printed sizes. Saved for next time.": "اتاخدت المقاسات المكتوبة على المسقط؛ الباب 1 م بيكمّل بس الأوض اللي مالهاش مقاسات. اتحفظ للمرة الجاية."
+  "Sizes from the printed plan are used; the 1 m door only fills in rooms without printed sizes. Saved for next time.": "اتاخدت المقاسات المكتوبة على المسقط؛ الباب 1 م بيكمّل بس الأوض اللي مالهاش مقاسات. اتحفظ للمرة الجاية.",
+  "No sizes found written for this room": "مالقيناش مقاسات مكتوبة للأوضة دي",
+  "The size shown is a rough guess from the door width. Type one wall's real length to make it exact.": "المقاس اللي ظاهر تقدير تقريبي من عرض الباب. اكتب الطول الحقيقي لحيطة واحدة علشان يبقى مظبوط.",
+  "We couldn't read the sizes written on your plan": "ماعرفناش نقرا المقاسات المكتوبة على المسقط",
+  "The size shown is a rough guess from the door width. Type one wall's real length, or upload the plan again.": "المقاس اللي ظاهر تقدير تقريبي من عرض الباب. اكتب الطول الحقيقي لحيطة واحدة، أو ارفع المسقط تاني."
 }

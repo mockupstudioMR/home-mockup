@@ -76,26 +76,45 @@ export function RoomInput() {
         // used (and picked again when the person taps another room).
         void analyzePlan(url, read.box)
           .then((est) => {
-            if (!est) return;
+            // what came back, for checking a plan whose sizes aren't picked up (browser console)
+            console.info("[plan] printed sizes", { rooms: est?.printedRooms ?? null, written: est?.written ?? null, box: read.box });
             let applied: JourneyState["room"] | null = null;
             let replaced = false;
+            let stale = false;
             set((x) => {
-              if (x.room.planImage !== url) return {};
-              const printedRooms = est.printedRooms ?? x.room.printedRooms;
-              const written = est.printedRooms ? writtenFor(est.printedRooms, x.room.planRead?.box) : est.written;
+              if (x.room.planImage !== url) {
+                stale = true;
+                return {};
+              }
+              const printedRooms = est?.printedRooms ?? x.room.printedRooms;
+              const written = est?.printedRooms ? writtenFor(est.printedRooms, x.room.planRead?.box) : est?.written;
               if (!written) return printedRooms ? { room: { ...x.room, printedRooms } } : {};
               replaced = !!x.room.confirmed && !x.room.sizeSource;
               const room = { ...x.room, printedRooms, ...withWritten({ widthM: x.room.widthM ?? EX_W, lengthM: x.room.lengthM ?? EX_L }, written) };
               applied = room;
               return { room, layouts: [], chosenLayout: undefined };
             });
+            if (stale) return;
             if (applied)
               toast({
                 title: "Sizes read from your plan",
                 description: `${sizeLine(applied)}${replaced ? ". The sizes written on the plan replace the measurement you set." : ""}`,
               });
+            else
+              toast({
+                title: "No sizes found written for this room",
+                description: "The size shown is a rough guess from the door width. Type one wall's real length to make it exact.",
+              });
           })
-          .catch(() => undefined);
+          .catch((e: Error) => {
+            // don't fail silently: without this the door-width guess just stayed on screen
+            console.warn("[plan] reading the printed sizes failed", e);
+            toast({
+              title: "We couldn't read the sizes written on your plan",
+              description: "The size shown is a rough guess from the door width. Type one wall's real length, or upload the plan again.",
+              variant: "destructive",
+            });
+          });
       } else {
         // the drawing couldn't be measured: fall back to the AI, which reads sizes written on the plan or estimates them
         const est = await analyzePlan(url).catch(() => null);
