@@ -3549,6 +3549,13 @@ export type Database = {
         }
         Returns: string
       }
+      term: {
+        Args: {
+          _facet: Database["public"]["Enums"]["term_facet"]
+          _slug: string
+        }
+        Returns: string
+      }
     }
     Enums: {
       app_role: "admin" | "designer" | "furniture_shop" | "user"
