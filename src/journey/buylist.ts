@@ -77,7 +77,14 @@ export function composeBuyList(s: JourneyState): BuyRow[] {
   }
   const lay = s.layouts[s.chosenLayout ?? 0];
   if (lay?.items.some((i) => i.kind === "rug")) rows.push({ id: "rug", tab: "furniture", name: "Rug", qty: "1", size: "240 × 340", wall: "Centre", action: "Buy", status: "Layout TBC", colour: "#A4462F" });
-  if (s.placements.some((p) => p.kind === "windows")) rows.push({ id: "curtains", tab: "furniture", name: "Curtains + track", qty: "1 set", size: "Track width, drop, fullness TBC", wall: windowWall, action: "Buy", status: "Measure first", ...sw(0) });
+  // Decor, as switched on in step 6.5 — computed before the curtain row so the same window
+  // can't produce both "Curtains + track" and a second decor "Curtains" line.
+  const decorOn = decorFor(s).filter((x) => x.on);
+  const curtainsFromDecor = decorOn.some((d) => d.name === "Curtains");
+  if (s.placements.some((p) => p.kind === "windows")) {
+    const rows0 = rows;
+    if (!curtainsFromDecor) rows0.push({ id: "curtains", tab: "furniture", name: "Curtains + track", qty: "1 set", size: "Track width, drop, fullness TBC", wall: windowWall, action: "Buy", status: "Measure first", ...sw(0) });
+  }
   // Pieces swapped for the person's own on step 8.
   for (const [w, plan] of Object.entries(walls) as [Wall, { items?: { name: string; action: string }[] }][])
     for (const it of plan?.items ?? []) if (it.action === "Use mine") rows.push({ id: `mine-${w}-${it.name}`, tab: "furniture", name: it.name, qty: "1", size: /mirror/i.test(it.name) ? "Ø 80" : "Your own", wall: w, action: "Keep · yours", colour: "#C4A060" });
