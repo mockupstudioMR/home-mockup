@@ -122,6 +122,116 @@ export type Database = {
         }
         Relationships: []
       }
+      combination_signals: {
+        Row: {
+          combination_id: string
+          created_at: string
+          design_id: string | null
+          id: string
+          note: string | null
+          room_id: string | null
+          signal: Database["public"]["Enums"]["combination_signal"]
+          user_id: string | null
+        }
+        Insert: {
+          combination_id: string
+          created_at?: string
+          design_id?: string | null
+          id?: string
+          note?: string | null
+          room_id?: string | null
+          signal: Database["public"]["Enums"]["combination_signal"]
+          user_id?: string | null
+        }
+        Update: {
+          combination_id?: string
+          created_at?: string
+          design_id?: string | null
+          id?: string
+          note?: string | null
+          room_id?: string | null
+          signal?: Database["public"]["Enums"]["combination_signal"]
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "combination_signals_combination_id_fkey"
+            columns: ["combination_id"]
+            isOneToOne: false
+            referencedRelation: "mv_combination_scores"
+            referencedColumns: ["combination_id"]
+          },
+          {
+            foreignKeyName: "combination_signals_combination_id_fkey"
+            columns: ["combination_id"]
+            isOneToOne: false
+            referencedRelation: "scheme_combinations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "combination_signals_design_id_fkey"
+            columns: ["design_id"]
+            isOneToOne: false
+            referencedRelation: "generated_designs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "combination_signals_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      compatibility_rules: {
+        Row: {
+          created_at: string
+          id: string
+          reason: string | null
+          source: string
+          strength: number
+          term_a_id: string
+          term_b_id: string
+          verdict: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          reason?: string | null
+          source?: string
+          strength?: number
+          term_a_id: string
+          term_b_id: string
+          verdict: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          reason?: string | null
+          source?: string
+          strength?: number
+          term_a_id?: string
+          term_b_id?: string
+          verdict?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "compatibility_rules_term_a_id_fkey"
+            columns: ["term_a_id"]
+            isOneToOne: false
+            referencedRelation: "taxonomy_terms"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compatibility_rules_term_b_id_fkey"
+            columns: ["term_b_id"]
+            isOneToOne: false
+            referencedRelation: "taxonomy_terms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       credit_transactions: {
         Row: {
           amount: number
@@ -169,6 +279,7 @@ export type Database = {
           material: string | null
           priority: string | null
           product_photo_url: string | null
+          scheme_id: string | null
           style: string | null
           wall_type: string | null
         }
@@ -188,6 +299,7 @@ export type Database = {
           material?: string | null
           priority?: string | null
           product_photo_url?: string | null
+          scheme_id?: string | null
           style?: string | null
           wall_type?: string | null
         }
@@ -207,6 +319,7 @@ export type Database = {
           material?: string | null
           priority?: string | null
           product_photo_url?: string | null
+          scheme_id?: string | null
           style?: string | null
           wall_type?: string | null
         }
@@ -223,6 +336,20 @@ export type Database = {
             columns: ["matched_product_id"]
             isOneToOne: false
             referencedRelation: "shop_products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "design_items_scheme_id_fkey"
+            columns: ["scheme_id"]
+            isOneToOne: false
+            referencedRelation: "furniture_schemes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "design_items_scheme_id_fkey"
+            columns: ["scheme_id"]
+            isOneToOne: false
+            referencedRelation: "v_furniture_schemes"
             referencedColumns: ["id"]
           },
         ]
@@ -330,6 +457,82 @@ export type Database = {
           },
         ]
       }
+      design_scheme_links: {
+        Row: {
+          combination_id: string | null
+          confidence: number | null
+          created_at: string
+          design_id: string
+          design_item_id: string | null
+          direction: string
+          id: string
+          scheme_id: string | null
+        }
+        Insert: {
+          combination_id?: string | null
+          confidence?: number | null
+          created_at?: string
+          design_id: string
+          design_item_id?: string | null
+          direction: string
+          id?: string
+          scheme_id?: string | null
+        }
+        Update: {
+          combination_id?: string | null
+          confidence?: number | null
+          created_at?: string
+          design_id?: string
+          design_item_id?: string | null
+          direction?: string
+          id?: string
+          scheme_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "design_scheme_links_combination_id_fkey"
+            columns: ["combination_id"]
+            isOneToOne: false
+            referencedRelation: "mv_combination_scores"
+            referencedColumns: ["combination_id"]
+          },
+          {
+            foreignKeyName: "design_scheme_links_combination_id_fkey"
+            columns: ["combination_id"]
+            isOneToOne: false
+            referencedRelation: "scheme_combinations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "design_scheme_links_design_id_fkey"
+            columns: ["design_id"]
+            isOneToOne: false
+            referencedRelation: "generated_designs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "design_scheme_links_design_item_id_fkey"
+            columns: ["design_item_id"]
+            isOneToOne: false
+            referencedRelation: "design_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "design_scheme_links_scheme_id_fkey"
+            columns: ["scheme_id"]
+            isOneToOne: false
+            referencedRelation: "furniture_schemes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "design_scheme_links_scheme_id_fkey"
+            columns: ["scheme_id"]
+            isOneToOne: false
+            referencedRelation: "v_furniture_schemes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       floor_plan_analyses: {
         Row: {
           created_at: string
@@ -366,9 +569,127 @@ export type Database = {
         }
         Relationships: []
       }
+      furniture_scheme_tags: {
+        Row: {
+          scheme_id: string
+          term_id: string
+        }
+        Insert: {
+          scheme_id: string
+          term_id: string
+        }
+        Update: {
+          scheme_id?: string
+          term_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "furniture_scheme_tags_scheme_id_fkey"
+            columns: ["scheme_id"]
+            isOneToOne: false
+            referencedRelation: "furniture_schemes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "furniture_scheme_tags_scheme_id_fkey"
+            columns: ["scheme_id"]
+            isOneToOne: false
+            referencedRelation: "v_furniture_schemes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "furniture_scheme_tags_term_id_fkey"
+            columns: ["term_id"]
+            isOneToOne: false
+            referencedRelation: "taxonomy_terms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      furniture_schemes: {
+        Row: {
+          category_facet: Database["public"]["Enums"]["term_facet"]
+          category_id: string
+          color_facet: Database["public"]["Enums"]["term_facet"]
+          color_id: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          label: string | null
+          material_facet: Database["public"]["Enums"]["term_facet"]
+          material_id: string | null
+          source: string
+          style_facet: Database["public"]["Enums"]["term_facet"]
+          style_id: string | null
+          tag_signature: string
+        }
+        Insert: {
+          category_facet?: Database["public"]["Enums"]["term_facet"]
+          category_id: string
+          color_facet?: Database["public"]["Enums"]["term_facet"]
+          color_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          label?: string | null
+          material_facet?: Database["public"]["Enums"]["term_facet"]
+          material_id?: string | null
+          source?: string
+          style_facet?: Database["public"]["Enums"]["term_facet"]
+          style_id?: string | null
+          tag_signature?: string
+        }
+        Update: {
+          category_facet?: Database["public"]["Enums"]["term_facet"]
+          category_id?: string
+          color_facet?: Database["public"]["Enums"]["term_facet"]
+          color_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          label?: string | null
+          material_facet?: Database["public"]["Enums"]["term_facet"]
+          material_id?: string | null
+          source?: string
+          style_facet?: Database["public"]["Enums"]["term_facet"]
+          style_id?: string | null
+          tag_signature?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "furniture_schemes_category_id_category_facet_fkey"
+            columns: ["category_id", "category_facet"]
+            isOneToOne: false
+            referencedRelation: "taxonomy_terms"
+            referencedColumns: ["id", "facet"]
+          },
+          {
+            foreignKeyName: "furniture_schemes_color_id_color_facet_fkey"
+            columns: ["color_id", "color_facet"]
+            isOneToOne: false
+            referencedRelation: "taxonomy_terms"
+            referencedColumns: ["id", "facet"]
+          },
+          {
+            foreignKeyName: "furniture_schemes_material_id_material_facet_fkey"
+            columns: ["material_id", "material_facet"]
+            isOneToOne: false
+            referencedRelation: "taxonomy_terms"
+            referencedColumns: ["id", "facet"]
+          },
+          {
+            foreignKeyName: "furniture_schemes_style_id_style_facet_fkey"
+            columns: ["style_id", "style_facet"]
+            isOneToOne: false
+            referencedRelation: "taxonomy_terms"
+            referencedColumns: ["id", "facet"]
+          },
+        ]
+      }
       furniture_specs: {
         Row: {
           category: string | null
+          category_term_id: string | null
           companion_of: string | null
           created_at: string
           default_orientation: string
@@ -388,6 +709,7 @@ export type Database = {
         }
         Insert: {
           category?: string | null
+          category_term_id?: string | null
           companion_of?: string | null
           created_at?: string
           default_orientation?: string
@@ -407,6 +729,7 @@ export type Database = {
         }
         Update: {
           category?: string | null
+          category_term_id?: string | null
           companion_of?: string | null
           created_at?: string
           default_orientation?: string
@@ -424,7 +747,15 @@ export type Database = {
           variant?: string
           width_cm?: number
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "furniture_specs_category_term_id_fkey"
+            columns: ["category_term_id"]
+            isOneToOne: false
+            referencedRelation: "taxonomy_terms"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       generated_designs: {
         Row: {
@@ -697,6 +1028,7 @@ export type Database = {
           label: string
           label_key: string | null
           style_slug: string
+          term_id: string | null
           updated_at: string
         }
         Insert: {
@@ -708,6 +1040,7 @@ export type Database = {
           label: string
           label_key?: string | null
           style_slug: string
+          term_id?: string | null
           updated_at?: string
         }
         Update: {
@@ -719,9 +1052,18 @@ export type Database = {
           label?: string
           label_key?: string | null
           style_slug?: string
+          term_id?: string | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "material_visuals_term_id_fkey"
+            columns: ["term_id"]
+            isOneToOne: false
+            referencedRelation: "taxonomy_terms"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       measurement_checks: {
         Row: {
@@ -1036,6 +1378,77 @@ export type Database = {
         }
         Relationships: []
       }
+      palette_colors: {
+        Row: {
+          color_facet: Database["public"]["Enums"]["term_facet"]
+          color_id: string
+          palette_id: string
+          position: number
+          role: string | null
+        }
+        Insert: {
+          color_facet?: Database["public"]["Enums"]["term_facet"]
+          color_id: string
+          palette_id: string
+          position: number
+          role?: string | null
+        }
+        Update: {
+          color_facet?: Database["public"]["Enums"]["term_facet"]
+          color_id?: string
+          palette_id?: string
+          position?: number
+          role?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "palette_colors_color_id_color_facet_fkey"
+            columns: ["color_id", "color_facet"]
+            isOneToOne: false
+            referencedRelation: "taxonomy_terms"
+            referencedColumns: ["id", "facet"]
+          },
+          {
+            foreignKeyName: "palette_colors_palette_id_fkey"
+            columns: ["palette_id"]
+            isOneToOne: false
+            referencedRelation: "palettes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      palettes: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          source: string
+          style_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          source?: string
+          style_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          source?: string
+          style_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "palettes_style_id_fkey"
+            columns: ["style_id"]
+            isOneToOne: false
+            referencedRelation: "taxonomy_terms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       product_matches: {
         Row: {
           created_at: string
@@ -1097,6 +1510,7 @@ export type Database = {
           metadata: Json
           name: string
           price: number | null
+          scheme_id: string | null
           shop_id: string | null
           shop_name: string
           source_url: string | null
@@ -1119,6 +1533,7 @@ export type Database = {
           metadata?: Json
           name: string
           price?: number | null
+          scheme_id?: string | null
           shop_id?: string | null
           shop_name?: string
           source_url?: string | null
@@ -1141,6 +1556,7 @@ export type Database = {
           metadata?: Json
           name?: string
           price?: number | null
+          scheme_id?: string | null
           shop_id?: string | null
           shop_name?: string
           source_url?: string | null
@@ -1161,6 +1577,20 @@ export type Database = {
             columns: ["design_item_id"]
             isOneToOne: false
             referencedRelation: "design_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "products_scheme_id_fkey"
+            columns: ["scheme_id"]
+            isOneToOne: false
+            referencedRelation: "furniture_schemes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "products_scheme_id_fkey"
+            columns: ["scheme_id"]
+            isOneToOne: false
+            referencedRelation: "v_furniture_schemes"
             referencedColumns: ["id"]
           },
         ]
@@ -1878,6 +2308,7 @@ export type Database = {
           quantity_note: string | null
           room_id: string
           rotation_deg: number | null
+          scheme_id: string | null
           shop_product_id: string | null
           sort_order: number
           source: Database["public"]["Enums"]["item_source"]
@@ -1907,6 +2338,7 @@ export type Database = {
           quantity_note?: string | null
           room_id: string
           rotation_deg?: number | null
+          scheme_id?: string | null
           shop_product_id?: string | null
           sort_order?: number
           source?: Database["public"]["Enums"]["item_source"]
@@ -1936,6 +2368,7 @@ export type Database = {
           quantity_note?: string | null
           room_id?: string
           rotation_deg?: number | null
+          scheme_id?: string | null
           shop_product_id?: string | null
           sort_order?: number
           source?: Database["public"]["Enums"]["item_source"]
@@ -1964,6 +2397,20 @@ export type Database = {
             columns: ["room_id"]
             isOneToOne: false
             referencedRelation: "rooms"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "room_items_scheme_id_fkey"
+            columns: ["scheme_id"]
+            isOneToOne: false
+            referencedRelation: "furniture_schemes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "room_items_scheme_id_fkey"
+            columns: ["scheme_id"]
+            isOneToOne: false
+            referencedRelation: "v_furniture_schemes"
             referencedColumns: ["id"]
           },
           {
@@ -2028,9 +2475,11 @@ export type Database = {
       room_materials: {
         Row: {
           applies_to: string[]
+          color_term_id: string | null
           hex: string | null
           id: string
           label: string
+          material_term_id: string | null
           material_visual_id: string | null
           room_id: string
           sample_status: Database["public"]["Enums"]["sample_status"]
@@ -2038,9 +2487,11 @@ export type Database = {
         }
         Insert: {
           applies_to?: string[]
+          color_term_id?: string | null
           hex?: string | null
           id?: string
           label: string
+          material_term_id?: string | null
           material_visual_id?: string | null
           room_id: string
           sample_status?: Database["public"]["Enums"]["sample_status"]
@@ -2048,15 +2499,31 @@ export type Database = {
         }
         Update: {
           applies_to?: string[]
+          color_term_id?: string | null
           hex?: string | null
           id?: string
           label?: string
+          material_term_id?: string | null
           material_visual_id?: string | null
           room_id?: string
           sample_status?: Database["public"]["Enums"]["sample_status"]
           slot?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "room_materials_color_term_id_fkey"
+            columns: ["color_term_id"]
+            isOneToOne: false
+            referencedRelation: "taxonomy_terms"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "room_materials_material_term_id_fkey"
+            columns: ["material_term_id"]
+            isOneToOne: false
+            referencedRelation: "taxonomy_terms"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "room_materials_material_visual_id_fkey"
             columns: ["material_visual_id"]
@@ -2347,6 +2814,113 @@ export type Database = {
           },
         ]
       }
+      scheme_combination_members: {
+        Row: {
+          combination_id: string
+          role: string
+          scheme_id: string
+        }
+        Insert: {
+          combination_id: string
+          role?: string
+          scheme_id: string
+        }
+        Update: {
+          combination_id?: string
+          role?: string
+          scheme_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scheme_combination_members_combination_id_fkey"
+            columns: ["combination_id"]
+            isOneToOne: false
+            referencedRelation: "mv_combination_scores"
+            referencedColumns: ["combination_id"]
+          },
+          {
+            foreignKeyName: "scheme_combination_members_combination_id_fkey"
+            columns: ["combination_id"]
+            isOneToOne: false
+            referencedRelation: "scheme_combinations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "scheme_combination_members_scheme_id_fkey"
+            columns: ["scheme_id"]
+            isOneToOne: false
+            referencedRelation: "furniture_schemes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "scheme_combination_members_scheme_id_fkey"
+            columns: ["scheme_id"]
+            isOneToOne: false
+            referencedRelation: "v_furniture_schemes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      scheme_combinations: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          member_count: number
+          member_signature: string
+          name: string | null
+          notes: string | null
+          room_type_facet: Database["public"]["Enums"]["term_facet"]
+          room_type_id: string | null
+          source: string
+          style_facet: Database["public"]["Enums"]["term_facet"]
+          style_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          member_count?: number
+          member_signature?: string
+          name?: string | null
+          notes?: string | null
+          room_type_facet?: Database["public"]["Enums"]["term_facet"]
+          room_type_id?: string | null
+          source?: string
+          style_facet?: Database["public"]["Enums"]["term_facet"]
+          style_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          member_count?: number
+          member_signature?: string
+          name?: string | null
+          notes?: string | null
+          room_type_facet?: Database["public"]["Enums"]["term_facet"]
+          room_type_id?: string | null
+          source?: string
+          style_facet?: Database["public"]["Enums"]["term_facet"]
+          style_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scheme_combinations_room_type_id_room_type_facet_fkey"
+            columns: ["room_type_id", "room_type_facet"]
+            isOneToOne: false
+            referencedRelation: "taxonomy_terms"
+            referencedColumns: ["id", "facet"]
+          },
+          {
+            foreignKeyName: "scheme_combinations_style_id_style_facet_fkey"
+            columns: ["style_id", "style_facet"]
+            isOneToOne: false
+            referencedRelation: "taxonomy_terms"
+            referencedColumns: ["id", "facet"]
+          },
+        ]
+      }
       scope_defaults: {
         Row: {
           area: string
@@ -2381,6 +2955,7 @@ export type Database = {
           metadata: Json | null
           name: string
           price: number | null
+          scheme_id: string | null
           shop_id: string
           source_url: string | null
           style: string | null
@@ -2399,6 +2974,7 @@ export type Database = {
           metadata?: Json | null
           name: string
           price?: number | null
+          scheme_id?: string | null
           shop_id: string
           source_url?: string | null
           style?: string | null
@@ -2417,13 +2993,29 @@ export type Database = {
           metadata?: Json | null
           name?: string
           price?: number | null
+          scheme_id?: string | null
           shop_id?: string
           source_url?: string | null
           style?: string | null
           type?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "shop_products_scheme_id_fkey"
+            columns: ["scheme_id"]
+            isOneToOne: false
+            referencedRelation: "furniture_schemes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shop_products_scheme_id_fkey"
+            columns: ["scheme_id"]
+            isOneToOne: false
+            referencedRelation: "v_furniture_schemes"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       shopping_lists: {
         Row: {
@@ -2482,6 +3074,21 @@ export type Database = {
           },
         ]
       }
+      signal_weights: {
+        Row: {
+          signal: Database["public"]["Enums"]["combination_signal"]
+          weight: number
+        }
+        Insert: {
+          signal: Database["public"]["Enums"]["combination_signal"]
+          weight: number
+        }
+        Update: {
+          signal?: Database["public"]["Enums"]["combination_signal"]
+          weight?: number
+        }
+        Relationships: []
+      }
       step_progress: {
         Row: {
           completed_at: string | null
@@ -2536,6 +3143,48 @@ export type Database = {
           },
         ]
       }
+      style_definitions: {
+        Row: {
+          default_palette_id: string | null
+          description: string | null
+          mood_keywords: string[]
+          prompt_fragment: string | null
+          style_facet: Database["public"]["Enums"]["term_facet"]
+          style_id: string
+        }
+        Insert: {
+          default_palette_id?: string | null
+          description?: string | null
+          mood_keywords?: string[]
+          prompt_fragment?: string | null
+          style_facet?: Database["public"]["Enums"]["term_facet"]
+          style_id: string
+        }
+        Update: {
+          default_palette_id?: string | null
+          description?: string | null
+          mood_keywords?: string[]
+          prompt_fragment?: string | null
+          style_facet?: Database["public"]["Enums"]["term_facet"]
+          style_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "style_definitions_default_palette_id_fkey"
+            columns: ["default_palette_id"]
+            isOneToOne: false
+            referencedRelation: "palettes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "style_definitions_style_id_style_facet_fkey"
+            columns: ["style_id", "style_facet"]
+            isOneToOne: false
+            referencedRelation: "taxonomy_terms"
+            referencedColumns: ["id", "facet"]
+          },
+        ]
+      }
       style_matches: {
         Row: {
           created_at: string
@@ -2547,6 +3196,7 @@ export type Database = {
           room_id: string
           style_label: string
           style_slug: string
+          style_term_id: string | null
         }
         Insert: {
           created_at?: string
@@ -2558,6 +3208,7 @@ export type Database = {
           room_id: string
           style_label: string
           style_slug: string
+          style_term_id?: string | null
         }
         Update: {
           created_at?: string
@@ -2569,6 +3220,7 @@ export type Database = {
           room_id?: string
           style_label?: string
           style_slug?: string
+          style_term_id?: string | null
         }
         Relationships: [
           {
@@ -2576,6 +3228,13 @@ export type Database = {
             columns: ["room_id"]
             isOneToOne: false
             referencedRelation: "rooms"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "style_matches_style_term_id_fkey"
+            columns: ["style_term_id"]
+            isOneToOne: false
+            referencedRelation: "taxonomy_terms"
             referencedColumns: ["id"]
           },
         ]
@@ -2623,6 +3282,50 @@ export type Database = {
             columns: ["session_id"]
             isOneToOne: false
             referencedRelation: "journey_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      taxonomy_terms: {
+        Row: {
+          created_at: string
+          facet: Database["public"]["Enums"]["term_facet"]
+          hex: string | null
+          id: string
+          is_active: boolean
+          label: string
+          parent_id: string | null
+          slug: string
+          synonyms: string[]
+        }
+        Insert: {
+          created_at?: string
+          facet: Database["public"]["Enums"]["term_facet"]
+          hex?: string | null
+          id?: string
+          is_active?: boolean
+          label: string
+          parent_id?: string | null
+          slug: string
+          synonyms?: string[]
+        }
+        Update: {
+          created_at?: string
+          facet?: Database["public"]["Enums"]["term_facet"]
+          hex?: string | null
+          id?: string
+          is_active?: boolean
+          label?: string
+          parent_id?: string | null
+          slug?: string
+          synonyms?: string[]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "taxonomy_terms_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "taxonomy_terms"
             referencedColumns: ["id"]
           },
         ]
@@ -2692,6 +3395,70 @@ export type Database = {
       }
     }
     Views: {
+      mv_combination_scores: {
+        Row: {
+          combination_id: string | null
+          last_signal_at: string | null
+          member_count: number | null
+          name: string | null
+          negative: number | null
+          positive: number | null
+          score: number | null
+          users: number | null
+        }
+        Relationships: []
+      }
+      mv_scheme_pair_scores: {
+        Row: {
+          combinations: number | null
+          negative: number | null
+          positive: number | null
+          scheme_a: string | null
+          scheme_b: string | null
+          score: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scheme_combination_members_scheme_id_fkey"
+            columns: ["scheme_a"]
+            isOneToOne: false
+            referencedRelation: "furniture_schemes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "scheme_combination_members_scheme_id_fkey"
+            columns: ["scheme_b"]
+            isOneToOne: false
+            referencedRelation: "furniture_schemes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "scheme_combination_members_scheme_id_fkey"
+            columns: ["scheme_a"]
+            isOneToOne: false
+            referencedRelation: "v_furniture_schemes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "scheme_combination_members_scheme_id_fkey"
+            columns: ["scheme_b"]
+            isOneToOne: false
+            referencedRelation: "v_furniture_schemes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mv_term_pair_scores: {
+        Row: {
+          combinations: number | null
+          negative: number | null
+          positive: number | null
+          score: number | null
+          term_a: string | null
+          term_b: string | null
+        }
+        Relationships: []
+      }
       v_buying_list: {
         Row: {
           action: Database["public"]["Enums"]["item_action"] | null
@@ -2735,6 +3502,21 @@ export type Database = {
           },
         ]
       }
+      v_furniture_schemes: {
+        Row: {
+          category: string | null
+          color: string | null
+          descriptor: string | null
+          hex: string | null
+          id: string | null
+          label: string | null
+          material: string | null
+          other_tags: string[] | null
+          source: string | null
+          style: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       accept_invite: { Args: { invite_token: string }; Returns: boolean }
@@ -2759,6 +3541,14 @@ export type Database = {
       }
       is_privileged_caller: { Args: never; Returns: boolean }
       is_project_owner: { Args: { _project_id: string }; Returns: boolean }
+      refresh_scheme_scores: { Args: never; Returns: undefined }
+      resolve_term: {
+        Args: {
+          _facet: Database["public"]["Enums"]["term_facet"]
+          _text: string
+        }
+        Returns: string
+      }
     }
     Enums: {
       app_role: "admin" | "designer" | "furniture_shop" | "user"
@@ -2771,6 +3561,16 @@ export type Database = {
         | "flooring_curtains"
         | "decorator"
         | "other"
+      combination_signal:
+        | "curated"
+        | "generated"
+        | "kept_in_design"
+        | "changed_in_design"
+        | "liked"
+        | "disliked"
+        | "bought_together"
+        | "expert_approved"
+        | "expert_rejected"
       deliverable_kind:
         | "design_review"
         | "buying_pack"
@@ -2836,6 +3636,17 @@ export type Database = {
       size_status: "standard" | "edited" | "measured" | "approved"
       step_status: "not_started" | "in_progress" | "completed" | "skipped"
       task_status: "todo" | "in_progress" | "done" | "blocked"
+      term_facet:
+        | "category"
+        | "color"
+        | "style"
+        | "material"
+        | "finish"
+        | "shape"
+        | "pattern"
+        | "mood"
+        | "room_type"
+        | "other"
       wall_review_status: "to_review" | "kept" | "changed"
     }
     CompositeTypes: {
@@ -2975,6 +3786,17 @@ export const Constants = {
         "decorator",
         "other",
       ],
+      combination_signal: [
+        "curated",
+        "generated",
+        "kept_in_design",
+        "changed_in_design",
+        "liked",
+        "disliked",
+        "bought_together",
+        "expert_approved",
+        "expert_rejected",
+      ],
       deliverable_kind: [
         "design_review",
         "buying_pack",
@@ -3047,6 +3869,18 @@ export const Constants = {
       size_status: ["standard", "edited", "measured", "approved"],
       step_status: ["not_started", "in_progress", "completed", "skipped"],
       task_status: ["todo", "in_progress", "done", "blocked"],
+      term_facet: [
+        "category",
+        "color",
+        "style",
+        "material",
+        "finish",
+        "shape",
+        "pattern",
+        "mood",
+        "room_type",
+        "other",
+      ],
       wall_review_status: ["to_review", "kept", "changed"],
     },
   },

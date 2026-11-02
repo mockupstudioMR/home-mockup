@@ -57,6 +57,13 @@
       "when": 1793636206724,
       "tag": "0007_reference_data",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1793636245975,
+      "tag": "0008_furniture_schemes",
+      "breakpoints": true
     }
   ]
 }
