@@ -94,7 +94,8 @@ export function composeBuyList(s: JourneyState): BuyRow[] {
     Curtains: { id: "curtains-d", qty: "1 pair", size: "Track width × drop TBC", wall: windowWall, action: "Buy", colour: "#9E8E7A" },
     Rug: { id: "rug-d", qty: "1", size: "Example 200 × 300", wall: "Floor", action: "Buy", colour: "#C9B79A" },
   };
-  for (const d of decorFor(s).filter((x) => x.on)) {
+  for (const d of decorOn) {
+    if (d.name === "Curtains" && hasWindows) continue; // already covered by "Curtains + track" above
     const k = DECOR[d.name];
     rows.push(k ? { id: k.id, tab: "furniture", name: d.name === "Art & mirror" ? "Artwork" : d.name, qty: k.qty, size: k.size, wall: k.wall, action: k.action, colour: k.colour } : { id: `d-${d.name.toLowerCase().replace(/\W+/g, "-")}`, tab: "furniture", name: d.name, qty: "TBC", size: "Size TBC", wall: anchorWall, action: "Buy or keep", colour: "#9E8E7A" });
   }
