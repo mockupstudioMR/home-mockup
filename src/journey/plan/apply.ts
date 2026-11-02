@@ -2,6 +2,7 @@
 import type { FixedKind, JourneyState, Placement, PlanReading } from "../state";
 import { uid } from "../state";
 import { PLAN_DOOR_M, type PlanRead } from "./reader";
+import { printedForBox } from "./printedText";
 import { mergeSize, pickPrinted, readWritten, type PrintedRoom, type Written } from "../../../supabase/functions/_shared/dimensions";
 
 /**
@@ -13,13 +14,26 @@ export function writtenFor(rooms: PrintedRoom[] | undefined, box: readonly numbe
   return Object.keys(w).length ? w : undefined;
 }
 
+/**
+ * Everything known to be printed for the room inside `box`: the text read in the browser (exactly what is printed
+ * at that spot, so it wins) and the AI's reading (fills what the text reading missed). An AI reading without room
+ * positions only counts for the room first read, never for a room tapped later.
+ */
+export function printedForRoom(room: JourneyState["room"], box: readonly number[] | undefined, firstRoom: boolean): Written | undefined {
+  const ai = room.printedRooms ? writtenFor(room.printedRooms, box) : firstRoom ? room.aiWritten : undefined;
+  const ocr = readWritten(printedForBox(room.planText, box));
+  const w = { ...(ai ?? {}), ...ocr };
+  return Object.keys(w).length ? w : undefined;
+}
+
 const KIND: Record<"door" | "window", FixedKind> = { door: "doors", window: "windows" };
 
 export function applyPlanRead(s: JourneyState, read: Extract<PlanRead, { ok: true }>, fallbackW = 3.75, written?: Written): Pick<JourneyState, "room" | "placements" | "fixedCounts"> {
   const r2 = (n: number) => Math.round(n * 100) / 100;
   // Size: the reader's proportions are exact; the metres are a first guess from the door until the person types one
   // real measurement on the next screen.
-  const widthM = read.scale ? read.scale.width_m : r2(s.room.widthM ?? fallbackW);
+  // without a door scale the width stays as it was, unless it was printed for the room read before
+  const widthM = read.scale ? read.scale.width_m : r2((s.room.sizeSource ? undefined : s.room.widthM) ?? fallbackW);
   const lengthM = read.scale ? read.scale.length_m : r2(widthM / read.ratio);
   const doors = read.openings.filter((o) => o.type === "door");
   const windows = read.openings.filter((o) => o.type === "window");

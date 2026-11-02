@@ -9,7 +9,8 @@ import { ADDABLE, newPiece, resizeCm, sizeCm, turn } from "../plan/editLayout";
 import { StepSummary } from "../Summary";
 import { analyzePlan, makeLayout, uploadPhoto } from "../services";
 import { onPlanReaderStatus, readPlan, warmPlanReader, type PlanRead } from "../plan/reader";
-import { applyPlanRead, fromReference, withWritten, writtenFor, type ScaleRef } from "../plan/apply";
+import { applyPlanRead, fromReference, printedForRoom, withWritten, type ScaleRef } from "../plan/apply";
+import { readPlanText } from "../plan/printedText";
 import { layoutChecks, pieceInfo } from "../plan/layoutCheck";
 import { pdfToImages } from "@/lib/pdfToImages";
 import { list, soFar } from "../story";
@@ -39,7 +40,8 @@ const sideNote = (r: JourneyState["room"], side: "width" | "length", example: bo
   if (src === "from area") return " · from printed area";
   // a side worked out from a measurement the person typed isn't an estimate any more
   if (src === "estimated") return r.confirmed ? "" : " · estimated";
-  return example ? (r.planRead?.guessM ? " · from plan" : " · example") : "";
+  // the reader's size from the plan's door width: say it's a guess, not something read from the plan
+  return example ? (r.planRead?.guessM ? " · door-width guess" : " · example") : "";
 };
 
 /** 4.1 · Show us the room */
@@ -68,53 +70,75 @@ export function RoomInput() {
         set((x) => {
           const next = applyPlanRead(x, read, EX_W);
           // a new plan: the previous plan's printed sizes don't apply to it
-          return { ...next, room: { ...next.room, planImage: url, printedRooms: undefined, written: undefined }, layouts: [], chosenLayout: undefined };
+          return {
+            ...next,
+            room: { ...next.room, planImage: url, printedRooms: undefined, planText: undefined, aiWritten: undefined, written: undefined },
+            layouts: [],
+            chosenLayout: undefined,
+          };
         });
-        // Sizes written on the plan beat the door-width guess and any scale reference set while they were
-        // being read (door width, a wall typed from the reference box). Only another plan uploaded meanwhile is left alone.
-        // The AI copies every room's printed sizes with its position; the ones for the room the reader picked are
-        // used (and picked again when the person taps another room).
-        void analyzePlan(url, read.box)
-          .then((est) => {
-            // what came back, for checking a plan whose sizes aren't picked up (browser console)
-            console.info("[plan] printed sizes", { rooms: est?.printedRooms ?? null, written: est?.written ?? null, box: read.box });
-            let applied: JourneyState["room"] | null = null;
-            let replaced = false;
-            let stale = false;
-            set((x) => {
-              if (x.room.planImage !== url) {
-                stale = true;
-                return {};
-              }
-              const printedRooms = est?.printedRooms ?? x.room.printedRooms;
-              const written = est?.printedRooms ? writtenFor(est.printedRooms, x.room.planRead?.box) : est?.written;
-              if (!written) return printedRooms ? { room: { ...x.room, printedRooms } } : {};
-              replaced = !!x.room.confirmed && !x.room.sizeSource;
-              const room = { ...x.room, printedRooms, ...withWritten({ widthM: x.room.widthM ?? EX_W, lengthM: x.room.lengthM ?? EX_L }, written) };
-              applied = room;
-              return { room, layouts: [], chosenLayout: undefined };
+        // Sizes written on the plan beat the door-width guess and any scale reference set while they were being
+        // read. Two readers run in the background: the text on the plan read here in the browser, and the AI. Each
+        // keeps where the sizes are on the plan, so the ones for the room picked now (or tapped later) are used.
+        let shown = false;
+        const applyReading = (patch: Partial<JourneyState["room"]>) => {
+          let applied: JourneyState["room"] | null = null;
+          let replaced = false;
+          set((x) => {
+            if (x.room.planImage !== url) return {}; // another plan was uploaded meanwhile
+            const room0 = { ...x.room, ...patch };
+            const pr = room0.planRead;
+            const written = printedForRoom(room0, pr?.box, pr?.picked !== "tap");
+            if (!written || JSON.stringify(written) === JSON.stringify(x.room.written)) return { room: room0 };
+            replaced = !!x.room.confirmed && !x.room.sizeSource;
+            // the reader's door-scaled guess keeps the room's proportions for a side that isn't printed
+            const est = pr?.guessM ? { widthM: pr.guessM[0], lengthM: pr.guessM[1] } : { widthM: x.room.widthM ?? EX_W, lengthM: x.room.lengthM ?? EX_L };
+            applied = { ...room0, ...withWritten(est, written) };
+            return { room: applied, layouts: [], chosenLayout: undefined };
+          });
+          if (applied) {
+            shown = true;
+            toast({
+              title: "Sizes read from your plan",
+              description: `${sizeLine(applied)}${replaced ? ". The sizes written on the plan replace the measurement you set." : ""}`,
             });
-            if (stale) return;
-            if (applied)
-              toast({
-                title: "Sizes read from your plan",
-                description: `${sizeLine(applied)}${replaced ? ". The sizes written on the plan replace the measurement you set." : ""}`,
-              });
-            else
-              toast({
-                title: "No sizes found written for this room",
-                description: "The size shown is a rough guess from the door width. Type one wall's real length to make it exact.",
-              });
-          })
-          .catch((e: Error) => {
-            // don't fail silently: without this the door-width guess just stayed on screen
-            console.warn("[plan] reading the printed sizes failed", e);
+          }
+        };
+        const byText = readPlanText(image).then(
+          (planText) => {
+            console.info("[plan] text on the plan", planText);
+            applyReading({ planText });
+          },
+          (e: Error) => {
+            console.warn("[plan] reading the text on the plan failed", e);
+            throw e;
+          },
+        );
+        const byAi = analyzePlan(url, read.box).then(
+          (est) => {
+            console.info("[plan] AI printed sizes", { rooms: est?.printedRooms ?? null, written: est?.written ?? null, box: read.box });
+            applyReading({ printedRooms: est?.printedRooms, aiWritten: est?.printedRooms ? undefined : est?.written });
+          },
+          (e: Error) => {
+            console.warn("[plan] the AI couldn't read the plan", e);
+            throw e;
+          },
+        );
+        // don't fail silently: say when nothing printed was found, or neither reader worked
+        void Promise.allSettled([byText, byAi]).then((r) => {
+          if (shown) return;
+          if (r.every((x) => x.status === "rejected"))
             toast({
               title: "We couldn't read the sizes written on your plan",
               description: "The size shown is a rough guess from the door width. Type one wall's real length, or upload the plan again.",
               variant: "destructive",
             });
-          });
+          else
+            toast({
+              title: "No sizes found written for this room",
+              description: "The size shown is a rough guess from the door width. Type one wall's real length to make it exact.",
+            });
+        });
       } else {
         // the drawing couldn't be measured: fall back to the AI, which reads sizes written on the plan or estimates them
         const est = await analyzePlan(url).catch(() => null);
@@ -285,9 +309,8 @@ function PlanOutline() {
       const r = await readPlan(img, opts.tap, 120_000, opts.box);
       if (!r.ok || r.picked === "tap_missed") throw new Error(r.ok ? "That room isn't closed off on the plan. Drag the edges onto its walls instead." : r.message);
       set((x) => {
-        // the sizes printed for the room now picked: from every room's printed sizes when the plan gave them,
-        // otherwise the first room's kept while its outline is adjusted and dropped for another room
-        const written = x.room.printedRooms ? writtenFor(x.room.printedRooms, r.box) : opts.tap ? undefined : x.room.written;
+        // the sizes printed for the room now picked (its outline may have moved, or it's another room)
+        const written = printedForRoom(x.room, r.box, !opts.tap);
         const next = applyPlanRead(x, r, EX_W, written);
         return { ...next, room: { ...next.room, planImage: x.room.planImage }, layouts: [], chosenLayout: undefined };
       });
