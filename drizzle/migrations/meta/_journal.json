@@ -43,6 +43,13 @@
       "when": 1791760720908,
       "tag": "0005_admin_read_policies_for_support_screens",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1793636184764,
+      "tag": "0006_designing_my_home_v2",
+      "breakpoints": true
     }
   ]
 }

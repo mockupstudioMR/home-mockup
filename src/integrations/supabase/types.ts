@@ -277,6 +277,59 @@ export type Database = {
           },
         ]
       }
+      design_remarks: {
+        Row: {
+          category: Database["public"]["Enums"]["remark_category"]
+          change_note: string | null
+          created_at: string
+          decision: Database["public"]["Enums"]["keep_change"]
+          design_id: string
+          id: string
+          keywords: string[]
+          model: string | null
+          pin_x_pct: number | null
+          pin_y_pct: number | null
+          remark: string
+          updated_at: string
+        }
+        Insert: {
+          category: Database["public"]["Enums"]["remark_category"]
+          change_note?: string | null
+          created_at?: string
+          decision?: Database["public"]["Enums"]["keep_change"]
+          design_id: string
+          id?: string
+          keywords?: string[]
+          model?: string | null
+          pin_x_pct?: number | null
+          pin_y_pct?: number | null
+          remark: string
+          updated_at?: string
+        }
+        Update: {
+          category?: Database["public"]["Enums"]["remark_category"]
+          change_note?: string | null
+          created_at?: string
+          decision?: Database["public"]["Enums"]["keep_change"]
+          design_id?: string
+          id?: string
+          keywords?: string[]
+          model?: string | null
+          pin_x_pct?: number | null
+          pin_y_pct?: number | null
+          remark?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "design_remarks_design_id_fkey"
+            columns: ["design_id"]
+            isOneToOne: false
+            referencedRelation: "generated_designs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       floor_plan_analyses: {
         Row: {
           created_at: string
@@ -315,54 +368,74 @@ export type Database = {
       }
       furniture_specs: {
         Row: {
+          category: string | null
           companion_of: string | null
           created_at: string
           default_orientation: string
           depth_cm: number
+          extra_dims: Json
           grouping_key: string | null
+          height_cm: number | null
           id: string
+          is_default: boolean
           min_clearance_cm: number
           must_against_wall: boolean
           name: string
+          source: string | null
           updated_at: string
+          variant: string
           width_cm: number
         }
         Insert: {
+          category?: string | null
           companion_of?: string | null
           created_at?: string
           default_orientation?: string
           depth_cm?: number
+          extra_dims?: Json
           grouping_key?: string | null
+          height_cm?: number | null
           id?: string
+          is_default?: boolean
           min_clearance_cm?: number
           must_against_wall?: boolean
           name: string
+          source?: string | null
           updated_at?: string
+          variant?: string
           width_cm?: number
         }
         Update: {
+          category?: string | null
           companion_of?: string | null
           created_at?: string
           default_orientation?: string
           depth_cm?: number
+          extra_dims?: Json
           grouping_key?: string | null
+          height_cm?: number | null
           id?: string
+          is_default?: boolean
           min_clearance_cm?: number
           must_against_wall?: boolean
           name?: string
+          source?: string | null
           updated_at?: string
+          variant?: string
           width_cm?: number
         }
         Relationships: []
       }
       generated_designs: {
         Row: {
+          change_request: string | null
           created_at: string
           extracted_items: Json | null
           full_description: string | null
           id: string
           image_url: string
           is_favorite: boolean | null
+          is_kept: boolean
           is_locked: boolean | null
           locked_at: string | null
           modification_history: Json | null
@@ -374,14 +447,17 @@ export type Database = {
           source_image_url: string | null
           title: string | null
           user_id: string
+          version_no: number | null
         }
         Insert: {
+          change_request?: string | null
           created_at?: string
           extracted_items?: Json | null
           full_description?: string | null
           id?: string
           image_url: string
           is_favorite?: boolean | null
+          is_kept?: boolean
           is_locked?: boolean | null
           locked_at?: string | null
           modification_history?: Json | null
@@ -393,14 +469,17 @@ export type Database = {
           source_image_url?: string | null
           title?: string | null
           user_id: string
+          version_no?: number | null
         }
         Update: {
+          change_request?: string | null
           created_at?: string
           extracted_items?: Json | null
           full_description?: string | null
           id?: string
           image_url?: string
           is_favorite?: boolean | null
+          is_kept?: boolean
           is_locked?: boolean | null
           locked_at?: string | null
           modification_history?: Json | null
@@ -412,6 +491,7 @@ export type Database = {
           source_image_url?: string | null
           title?: string | null
           user_id?: string
+          version_no?: number | null
         }
         Relationships: [
           {
@@ -552,6 +632,7 @@ export type Database = {
           position_x: number | null
           position_y: number | null
           room_dimensions: Json | null
+          room_id: string | null
           room_shape: string | null
           room_type: string | null
           user_id: string
@@ -570,6 +651,7 @@ export type Database = {
           position_x?: number | null
           position_y?: number | null
           room_dimensions?: Json | null
+          room_id?: string | null
           room_shape?: string | null
           room_type?: string | null
           user_id: string
@@ -588,13 +670,22 @@ export type Database = {
           position_x?: number | null
           position_y?: number | null
           room_dimensions?: Json | null
+          room_id?: string | null
           room_shape?: string | null
           room_type?: string | null
           user_id?: string
           user_note?: string | null
           width_pct?: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "layout_feedback_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "rooms"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       material_visuals: {
         Row: {
@@ -631,6 +722,127 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      measurement_checks: {
+        Row: {
+          check_group: string
+          check_key: string
+          done_at: string | null
+          id: string
+          is_done: boolean
+          item_id: string | null
+          label: string
+          room_id: string
+          unit: string | null
+          value_numeric: number | null
+        }
+        Insert: {
+          check_group: string
+          check_key: string
+          done_at?: string | null
+          id?: string
+          is_done?: boolean
+          item_id?: string | null
+          label: string
+          room_id: string
+          unit?: string | null
+          value_numeric?: number | null
+        }
+        Update: {
+          check_group?: string
+          check_key?: string
+          done_at?: string | null
+          id?: string
+          is_done?: boolean
+          item_id?: string | null
+          label?: string
+          room_id?: string
+          unit?: string | null
+          value_numeric?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "measurement_checks_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "room_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "measurement_checks_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "v_buying_list"
+            referencedColumns: ["item_id"]
+          },
+          {
+            foreignKeyName: "measurement_checks_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      media_assets: {
+        Row: {
+          ai_analysis: Json | null
+          capture: string
+          created_at: string
+          id: string
+          owner_id: string
+          project_id: string
+          room_id: string | null
+          sort_order: number
+          storage_bucket: string
+          storage_path: string
+          subject: Database["public"]["Enums"]["media_subject"]
+          subject_id: string | null
+        }
+        Insert: {
+          ai_analysis?: Json | null
+          capture?: string
+          created_at?: string
+          id?: string
+          owner_id: string
+          project_id: string
+          room_id?: string | null
+          sort_order?: number
+          storage_bucket?: string
+          storage_path: string
+          subject: Database["public"]["Enums"]["media_subject"]
+          subject_id?: string | null
+        }
+        Update: {
+          ai_analysis?: Json | null
+          capture?: string
+          created_at?: string
+          id?: string
+          owner_id?: string
+          project_id?: string
+          room_id?: string | null
+          sort_order?: number
+          storage_bucket?: string
+          storage_path?: string
+          subject?: Database["public"]["Enums"]["media_subject"]
+          subject_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "media_assets_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "media_assets_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "rooms"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       moodboard_assets: {
         Row: {
@@ -989,6 +1201,216 @@ export type Database = {
         }
         Relationships: []
       }
+      project_collaborators: {
+        Row: {
+          accepted_at: string | null
+          email: string | null
+          id: string
+          invite_status: Database["public"]["Enums"]["invite_status"]
+          invite_token: string | null
+          invited_at: string
+          project_id: string
+          role: Database["public"]["Enums"]["collaborator_role"]
+          user_id: string | null
+        }
+        Insert: {
+          accepted_at?: string | null
+          email?: string | null
+          id?: string
+          invite_status?: Database["public"]["Enums"]["invite_status"]
+          invite_token?: string | null
+          invited_at?: string
+          project_id: string
+          role: Database["public"]["Enums"]["collaborator_role"]
+          user_id?: string | null
+        }
+        Update: {
+          accepted_at?: string | null
+          email?: string | null
+          id?: string
+          invite_status?: Database["public"]["Enums"]["invite_status"]
+          invite_token?: string | null
+          invited_at?: string
+          project_id?: string
+          role?: Database["public"]["Enums"]["collaborator_role"]
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_collaborators_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_deliverables: {
+        Row: {
+          generated_at: string | null
+          id: string
+          kind: Database["public"]["Enums"]["deliverable_kind"]
+          project_id: string
+          room_id: string | null
+          status: Database["public"]["Enums"]["deliverable_status"]
+          storage_path: string | null
+        }
+        Insert: {
+          generated_at?: string | null
+          id?: string
+          kind: Database["public"]["Enums"]["deliverable_kind"]
+          project_id: string
+          room_id?: string | null
+          status?: Database["public"]["Enums"]["deliverable_status"]
+          storage_path?: string | null
+        }
+        Update: {
+          generated_at?: string | null
+          id?: string
+          kind?: Database["public"]["Enums"]["deliverable_kind"]
+          project_id?: string
+          room_id?: string | null
+          status?: Database["public"]["Enums"]["deliverable_status"]
+          storage_path?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_deliverables_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_deliverables_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_tasks: {
+        Row: {
+          collaborator_id: string | null
+          created_at: string
+          due_date: string | null
+          id: string
+          owner_role: Database["public"]["Enums"]["collaborator_role"] | null
+          project_id: string
+          room_id: string | null
+          sort_order: number
+          stage_no: number
+          status: Database["public"]["Enums"]["task_status"]
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          collaborator_id?: string | null
+          created_at?: string
+          due_date?: string | null
+          id?: string
+          owner_role?: Database["public"]["Enums"]["collaborator_role"] | null
+          project_id: string
+          room_id?: string | null
+          sort_order?: number
+          stage_no: number
+          status?: Database["public"]["Enums"]["task_status"]
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          collaborator_id?: string | null
+          created_at?: string
+          due_date?: string | null
+          id?: string
+          owner_role?: Database["public"]["Enums"]["collaborator_role"] | null
+          project_id?: string
+          room_id?: string | null
+          sort_order?: number
+          stage_no?: number
+          status?: Database["public"]["Enums"]["task_status"]
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_tasks_collaborator_id_fkey"
+            columns: ["collaborator_id"]
+            isOneToOne: false
+            referencedRelation: "project_collaborators"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_tasks_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_tasks_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      projects: {
+        Row: {
+          archived_at: string | null
+          budget_max: number | null
+          budget_min: number | null
+          city_or_postcode: string | null
+          created_at: string
+          currency: string
+          id: string
+          intent: Database["public"]["Enums"]["project_intent"]
+          name: string
+          owner_id: string
+          property_type: Database["public"]["Enums"]["property_type"] | null
+          renovation_restriction: string | null
+          step1_completed_at: string | null
+          target_timing: string | null
+          updated_at: string
+        }
+        Insert: {
+          archived_at?: string | null
+          budget_max?: number | null
+          budget_min?: number | null
+          city_or_postcode?: string | null
+          created_at?: string
+          currency?: string
+          id?: string
+          intent: Database["public"]["Enums"]["project_intent"]
+          name?: string
+          owner_id: string
+          property_type?: Database["public"]["Enums"]["property_type"] | null
+          renovation_restriction?: string | null
+          step1_completed_at?: string | null
+          target_timing?: string | null
+          updated_at?: string
+        }
+        Update: {
+          archived_at?: string | null
+          budget_max?: number | null
+          budget_min?: number | null
+          city_or_postcode?: string | null
+          created_at?: string
+          currency?: string
+          id?: string
+          intent?: Database["public"]["Enums"]["project_intent"]
+          name?: string
+          owner_id?: string
+          property_type?: Database["public"]["Enums"]["property_type"] | null
+          renovation_restriction?: string | null
+          step1_completed_at?: string | null
+          target_timing?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       prompt_templates: {
         Row: {
           created_at: string
@@ -1246,6 +1668,107 @@ export type Database = {
         }
         Relationships: []
       }
+      room_activity_choices: {
+        Row: {
+          activity_id: string | null
+          created_at: string
+          custom_label: string | null
+          id: string
+          room_id: string
+        }
+        Insert: {
+          activity_id?: string | null
+          created_at?: string
+          custom_label?: string | null
+          id?: string
+          room_id: string
+        }
+        Update: {
+          activity_id?: string | null
+          created_at?: string
+          custom_label?: string | null
+          id?: string
+          room_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "room_activity_choices_activity_id_fkey"
+            columns: ["activity_id"]
+            isOneToOne: false
+            referencedRelation: "room_activities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "room_activity_choices_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      room_features: {
+        Row: {
+          created_at: string
+          id: string
+          is_movable: boolean
+          is_placed: boolean | null
+          kind: Database["public"]["Enums"]["feature_kind"]
+          label: string
+          plan_x_pct: number | null
+          plan_y_pct: number | null
+          position_pct: number | null
+          room_id: string
+          source: string
+          status: Database["public"]["Enums"]["point_status"]
+          updated_at: string
+          wall_id: string | null
+          width_cm: number | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_movable?: boolean
+          is_placed?: boolean | null
+          kind: Database["public"]["Enums"]["feature_kind"]
+          label: string
+          plan_x_pct?: number | null
+          plan_y_pct?: number | null
+          position_pct?: number | null
+          room_id: string
+          source?: string
+          status?: Database["public"]["Enums"]["point_status"]
+          updated_at?: string
+          wall_id?: string | null
+          width_cm?: number | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_movable?: boolean
+          is_placed?: boolean | null
+          kind?: Database["public"]["Enums"]["feature_kind"]
+          label?: string
+          plan_x_pct?: number | null
+          plan_y_pct?: number | null
+          position_pct?: number | null
+          room_id?: string
+          source?: string
+          status?: Database["public"]["Enums"]["point_status"]
+          updated_at?: string
+          wall_id?: string | null
+          width_cm?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "room_features_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       room_furniture_config: {
         Row: {
           created_at: string
@@ -1276,56 +1799,553 @@ export type Database = {
         }
         Relationships: []
       }
+      room_item_sizes: {
+        Row: {
+          depth_cm: number | null
+          diameter_cm: number | null
+          extra: Json
+          height_cm: number | null
+          item_id: string
+          kind: Database["public"]["Enums"]["size_kind"]
+          measured_at: string | null
+          measured_by: string | null
+          status: Database["public"]["Enums"]["size_status"]
+          updated_at: string
+          width_cm: number | null
+        }
+        Insert: {
+          depth_cm?: number | null
+          diameter_cm?: number | null
+          extra?: Json
+          height_cm?: number | null
+          item_id: string
+          kind: Database["public"]["Enums"]["size_kind"]
+          measured_at?: string | null
+          measured_by?: string | null
+          status?: Database["public"]["Enums"]["size_status"]
+          updated_at?: string
+          width_cm?: number | null
+        }
+        Update: {
+          depth_cm?: number | null
+          diameter_cm?: number | null
+          extra?: Json
+          height_cm?: number | null
+          item_id?: string
+          kind?: Database["public"]["Enums"]["size_kind"]
+          measured_at?: string | null
+          measured_by?: string | null
+          status?: Database["public"]["Enums"]["size_status"]
+          updated_at?: string
+          width_cm?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "room_item_sizes_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "room_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "room_item_sizes_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "v_buying_list"
+            referencedColumns: ["item_id"]
+          },
+        ]
+      }
+      room_items: {
+        Row: {
+          action: Database["public"]["Enums"]["item_action"]
+          created_at: string
+          currency: string
+          decision: Database["public"]["Enums"]["keep_change"]
+          delivery_notes: string | null
+          furniture_spec_id: string | null
+          id: string
+          item_type: string
+          label: string
+          lead_time_days: number | null
+          light_layer: Database["public"]["Enums"]["light_layer"] | null
+          material_label: string | null
+          plan_x_pct: number | null
+          plan_y_pct: number | null
+          position_fixed: boolean
+          product_id: string | null
+          quantity: number
+          quantity_note: string | null
+          room_id: string
+          rotation_deg: number | null
+          shop_product_id: string | null
+          sort_order: number
+          source: Database["public"]["Enums"]["item_source"]
+          supplier: string | null
+          unit_price: number | null
+          updated_at: string
+          wall_id: string | null
+        }
+        Insert: {
+          action?: Database["public"]["Enums"]["item_action"]
+          created_at?: string
+          currency?: string
+          decision?: Database["public"]["Enums"]["keep_change"]
+          delivery_notes?: string | null
+          furniture_spec_id?: string | null
+          id?: string
+          item_type: string
+          label: string
+          lead_time_days?: number | null
+          light_layer?: Database["public"]["Enums"]["light_layer"] | null
+          material_label?: string | null
+          plan_x_pct?: number | null
+          plan_y_pct?: number | null
+          position_fixed?: boolean
+          product_id?: string | null
+          quantity?: number
+          quantity_note?: string | null
+          room_id: string
+          rotation_deg?: number | null
+          shop_product_id?: string | null
+          sort_order?: number
+          source?: Database["public"]["Enums"]["item_source"]
+          supplier?: string | null
+          unit_price?: number | null
+          updated_at?: string
+          wall_id?: string | null
+        }
+        Update: {
+          action?: Database["public"]["Enums"]["item_action"]
+          created_at?: string
+          currency?: string
+          decision?: Database["public"]["Enums"]["keep_change"]
+          delivery_notes?: string | null
+          furniture_spec_id?: string | null
+          id?: string
+          item_type?: string
+          label?: string
+          lead_time_days?: number | null
+          light_layer?: Database["public"]["Enums"]["light_layer"] | null
+          material_label?: string | null
+          plan_x_pct?: number | null
+          plan_y_pct?: number | null
+          position_fixed?: boolean
+          product_id?: string | null
+          quantity?: number
+          quantity_note?: string | null
+          room_id?: string
+          rotation_deg?: number | null
+          shop_product_id?: string | null
+          sort_order?: number
+          source?: Database["public"]["Enums"]["item_source"]
+          supplier?: string | null
+          unit_price?: number | null
+          updated_at?: string
+          wall_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "room_items_furniture_spec_id_fkey"
+            columns: ["furniture_spec_id"]
+            isOneToOne: false
+            referencedRelation: "furniture_specs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "room_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "room_items_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "rooms"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "room_items_shop_product_id_fkey"
+            columns: ["shop_product_id"]
+            isOneToOne: false
+            referencedRelation: "shop_products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      room_layout_options: {
+        Row: {
+          cons: string[]
+          created_at: string
+          description: string | null
+          id: string
+          is_chosen: boolean
+          items: Json
+          name: string
+          option_no: number
+          pros: string[]
+          room_id: string
+          seats: number | null
+        }
+        Insert: {
+          cons?: string[]
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_chosen?: boolean
+          items?: Json
+          name: string
+          option_no: number
+          pros?: string[]
+          room_id: string
+          seats?: number | null
+        }
+        Update: {
+          cons?: string[]
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_chosen?: boolean
+          items?: Json
+          name?: string
+          option_no?: number
+          pros?: string[]
+          room_id?: string
+          seats?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "room_layout_options_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      room_materials: {
+        Row: {
+          applies_to: string[]
+          hex: string | null
+          id: string
+          label: string
+          material_visual_id: string | null
+          room_id: string
+          sample_status: Database["public"]["Enums"]["sample_status"]
+          slot: number
+        }
+        Insert: {
+          applies_to?: string[]
+          hex?: string | null
+          id?: string
+          label: string
+          material_visual_id?: string | null
+          room_id: string
+          sample_status?: Database["public"]["Enums"]["sample_status"]
+          slot: number
+        }
+        Update: {
+          applies_to?: string[]
+          hex?: string | null
+          id?: string
+          label?: string
+          material_visual_id?: string | null
+          room_id?: string
+          sample_status?: Database["public"]["Enums"]["sample_status"]
+          slot?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "room_materials_material_visual_id_fkey"
+            columns: ["material_visual_id"]
+            isOneToOne: false
+            referencedRelation: "material_visuals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "room_materials_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      room_priorities: {
+        Row: {
+          label: string | null
+          priority_key: string
+          rank: number
+          room_id: string
+        }
+        Insert: {
+          label?: string | null
+          priority_key: string
+          rank: number
+          room_id: string
+        }
+        Update: {
+          label?: string | null
+          priority_key?: string
+          rank?: number
+          room_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "room_priorities_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      room_scope: {
+        Row: {
+          allow_changes: boolean
+          area: string
+          mode: Database["public"]["Enums"]["scope_mode"]
+          note: string | null
+          room_id: string
+        }
+        Insert: {
+          allow_changes?: boolean
+          area: string
+          mode: Database["public"]["Enums"]["scope_mode"]
+          note?: string | null
+          room_id: string
+        }
+        Update: {
+          allow_changes?: boolean
+          area?: string
+          mode?: Database["public"]["Enums"]["scope_mode"]
+          note?: string | null
+          room_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "room_scope_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      room_service_points: {
+        Row: {
+          confirmed_by: Database["public"]["Enums"]["collaborator_role"] | null
+          created_at: string
+          height_cm: number | null
+          id: string
+          notes: string | null
+          point_code: string | null
+          point_type: string
+          position_pct: number | null
+          quantity: number
+          room_id: string
+          serves_item_id: string | null
+          service: Database["public"]["Enums"]["service_kind"]
+          status: Database["public"]["Enums"]["point_status"]
+          updated_at: string
+          wall_id: string | null
+        }
+        Insert: {
+          confirmed_by?: Database["public"]["Enums"]["collaborator_role"] | null
+          created_at?: string
+          height_cm?: number | null
+          id?: string
+          notes?: string | null
+          point_code?: string | null
+          point_type: string
+          position_pct?: number | null
+          quantity?: number
+          room_id: string
+          serves_item_id?: string | null
+          service: Database["public"]["Enums"]["service_kind"]
+          status?: Database["public"]["Enums"]["point_status"]
+          updated_at?: string
+          wall_id?: string | null
+        }
+        Update: {
+          confirmed_by?: Database["public"]["Enums"]["collaborator_role"] | null
+          created_at?: string
+          height_cm?: number | null
+          id?: string
+          notes?: string | null
+          point_code?: string | null
+          point_type?: string
+          position_pct?: number | null
+          quantity?: number
+          room_id?: string
+          serves_item_id?: string | null
+          service?: Database["public"]["Enums"]["service_kind"]
+          status?: Database["public"]["Enums"]["point_status"]
+          updated_at?: string
+          wall_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "room_service_points_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "rooms"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "room_service_points_serves_item_id_fkey"
+            columns: ["serves_item_id"]
+            isOneToOne: false
+            referencedRelation: "room_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "room_service_points_serves_item_id_fkey"
+            columns: ["serves_item_id"]
+            isOneToOne: false
+            referencedRelation: "v_buying_list"
+            referencedColumns: ["item_id"]
+          },
+        ]
+      }
+      room_walls: {
+        Row: {
+          change_note: string | null
+          elevation_ready: boolean
+          finish: string | null
+          name: string | null
+          reviewed_at: string | null
+          room_id: string
+          status: Database["public"]["Enums"]["wall_review_status"]
+          wall_id: string
+        }
+        Insert: {
+          change_note?: string | null
+          elevation_ready?: boolean
+          finish?: string | null
+          name?: string | null
+          reviewed_at?: string | null
+          room_id: string
+          status?: Database["public"]["Enums"]["wall_review_status"]
+          wall_id: string
+        }
+        Update: {
+          change_note?: string | null
+          elevation_ready?: boolean
+          finish?: string | null
+          name?: string | null
+          reviewed_at?: string | null
+          room_id?: string
+          status?: Database["public"]["Enums"]["wall_review_status"]
+          wall_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "room_walls_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       rooms: {
         Row: {
+          ceiling_height_cm: number | null
           created_at: string
+          current_step: number
           custom_walls: Json | null
           dimensions: Json
+          floor_plan_analysis_id: string | null
           furniture: Json
           id: string
+          inspiration_note: string | null
           layout: Json | null
           name: string
+          project_id: string | null
           room_type: string
+          scale_reference: Json | null
           schema_version: number
+          sequence_no: number | null
           shape: string
+          starting_state:
+            | Database["public"]["Enums"]["room_starting_state"]
+            | null
           style: Json
           updated_at: string
           user_id: string
           walls: Json
         }
         Insert: {
+          ceiling_height_cm?: number | null
           created_at?: string
+          current_step?: number
           custom_walls?: Json | null
           dimensions?: Json
+          floor_plan_analysis_id?: string | null
           furniture?: Json
           id?: string
+          inspiration_note?: string | null
           layout?: Json | null
           name?: string
+          project_id?: string | null
           room_type?: string
+          scale_reference?: Json | null
           schema_version?: number
+          sequence_no?: number | null
           shape?: string
+          starting_state?:
+            | Database["public"]["Enums"]["room_starting_state"]
+            | null
           style?: Json
           updated_at?: string
           user_id: string
           walls?: Json
         }
         Update: {
+          ceiling_height_cm?: number | null
           created_at?: string
+          current_step?: number
           custom_walls?: Json | null
           dimensions?: Json
+          floor_plan_analysis_id?: string | null
           furniture?: Json
           id?: string
+          inspiration_note?: string | null
           layout?: Json | null
           name?: string
+          project_id?: string | null
           room_type?: string
+          scale_reference?: Json | null
           schema_version?: number
+          sequence_no?: number | null
           shape?: string
+          starting_state?:
+            | Database["public"]["Enums"]["room_starting_state"]
+            | null
           style?: Json
           updated_at?: string
           user_id?: string
           walls?: Json
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "rooms_floor_plan_analysis_id_fkey"
+            columns: ["floor_plan_analysis_id"]
+            isOneToOne: false
+            referencedRelation: "floor_plan_analyses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rooms_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       shop_products: {
         Row: {
@@ -1434,6 +2454,104 @@ export type Database = {
           },
           {
             foreignKeyName: "shopping_lists_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      step_progress: {
+        Row: {
+          completed_at: string | null
+          id: string
+          project_id: string
+          room_id: string | null
+          started_at: string | null
+          status: Database["public"]["Enums"]["step_status"]
+          step_no: number
+          sub_step: string | null
+          summary: Json
+          updated_at: string
+        }
+        Insert: {
+          completed_at?: string | null
+          id?: string
+          project_id: string
+          room_id?: string | null
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["step_status"]
+          step_no: number
+          sub_step?: string | null
+          summary?: Json
+          updated_at?: string
+        }
+        Update: {
+          completed_at?: string | null
+          id?: string
+          project_id?: string
+          room_id?: string | null
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["step_status"]
+          step_no?: number
+          sub_step?: string | null
+          summary?: Json
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "step_progress_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "step_progress_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      style_matches: {
+        Row: {
+          created_at: string
+          id: string
+          is_selected: boolean
+          kept_keywords: string[]
+          keywords: string[]
+          match_pct: number
+          room_id: string
+          style_label: string
+          style_slug: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_selected?: boolean
+          kept_keywords?: string[]
+          keywords?: string[]
+          match_pct: number
+          room_id: string
+          style_label: string
+          style_slug: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_selected?: boolean
+          kept_keywords?: string[]
+          keywords?: string[]
+          match_pct?: number
+          room_id?: string
+          style_label?: string
+          style_slug?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "style_matches_room_id_fkey"
             columns: ["room_id"]
             isOneToOne: false
             referencedRelation: "rooms"
@@ -1553,10 +2671,55 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      v_buying_list: {
+        Row: {
+          action: Database["public"]["Enums"]["item_action"] | null
+          appr_d: number | null
+          appr_h: number | null
+          appr_w: number | null
+          avail_d: number | null
+          avail_h: number | null
+          avail_w: number | null
+          currency: string | null
+          item_id: string | null
+          item_type: string | null
+          label: string | null
+          lead_time_days: number | null
+          project_id: string | null
+          quantity: number | null
+          quantity_note: string | null
+          room_id: string | null
+          size_status: Database["public"]["Enums"]["size_status"] | null
+          std_d: number | null
+          std_h: number | null
+          std_w: number | null
+          supplier: string | null
+          unit_price: number | null
+          wall_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "room_items_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "rooms"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rooms_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       accept_invite: { Args: { invite_token: string }; Returns: boolean }
+      can_access_project: { Args: { _project_id: string }; Returns: boolean }
+      can_access_room: { Args: { _room_id: string }; Returns: boolean }
+      can_edit_room: { Args: { _room_id: string }; Returns: boolean }
       deduct_credits: {
         Args: { _amount: number; _user_id: string }
         Returns: boolean
@@ -1572,12 +2735,86 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_privileged_caller: { Args: never; Returns: boolean }
+      is_project_owner: { Args: { _project_id: string }; Returns: boolean }
     }
     Enums: {
       app_role: "admin" | "designer" | "furniture_shop" | "user"
+      collaborator_role:
+        | "designer"
+        | "joiner"
+        | "electrician"
+        | "plumber"
+        | "ac_installer"
+        | "flooring_curtains"
+        | "decorator"
+        | "other"
+      deliverable_kind:
+        | "design_review"
+        | "buying_pack"
+        | "installation_pack"
+        | "project_checklist"
+        | "moodboard"
+      deliverable_status:
+        | "ready"
+        | "needs_sizes"
+        | "after_survey"
+        | "generating"
+      feature_kind:
+        | "window"
+        | "door"
+        | "balcony_door"
+        | "archway"
+        | "radiator"
+        | "column"
+        | "built_in"
+        | "socket_switch"
+        | "water_supply_drain"
+        | "soil_stack"
+        | "ac_unit_vent"
+        | "fuse_box_meter"
+        | "other"
       invite_status: "pending" | "accepted" | "expired"
+      item_action: "buy" | "keep" | "custom" | "own_or_buy" | "buy_or_keep"
+      item_source: "existing_kept" | "proposed" | "user_added"
+      keep_change: "keep" | "change" | "skip"
+      light_layer: "overall" | "task" | "accent"
+      media_subject:
+        | "room"
+        | "inspiration"
+        | "room_item"
+        | "room_feature"
+        | "room_wall"
+        | "room_service"
       notification_preference: "email" | "whatsapp" | "both"
       offer_status: "pending" | "sent" | "viewed" | "accepted" | "rejected"
+      point_status: "existing" | "proposed" | "tbc" | "confirmed"
+      project_intent: "new_space" | "redesign" | "exploring"
+      property_type: "apartment" | "house" | "studio" | "loft"
+      remark_category:
+        | "interior_finishes"
+        | "furniture"
+        | "colours_materials"
+        | "decor"
+        | "lighting"
+      room_starting_state:
+        | "core_shell"
+        | "empty"
+        | "partially_furnished"
+        | "redo_all"
+      sample_status: "none" | "requested" | "received" | "approved"
+      scope_mode: "in_scope" | "on_request" | "kept_as_is"
+      service_kind:
+        | "electrical"
+        | "water"
+        | "ac_ventilation"
+        | "heating"
+        | "data_tv_sound"
+      size_kind: "standard" | "available" | "approved"
+      size_status: "standard" | "edited" | "measured" | "approved"
+      step_status: "not_started" | "in_progress" | "completed" | "skipped"
+      task_status: "todo" | "in_progress" | "done" | "blocked"
+      wall_review_status: "to_review" | "kept" | "changed"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1706,9 +2943,89 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "designer", "furniture_shop", "user"],
+      collaborator_role: [
+        "designer",
+        "joiner",
+        "electrician",
+        "plumber",
+        "ac_installer",
+        "flooring_curtains",
+        "decorator",
+        "other",
+      ],
+      deliverable_kind: [
+        "design_review",
+        "buying_pack",
+        "installation_pack",
+        "project_checklist",
+        "moodboard",
+      ],
+      deliverable_status: [
+        "ready",
+        "needs_sizes",
+        "after_survey",
+        "generating",
+      ],
+      feature_kind: [
+        "window",
+        "door",
+        "balcony_door",
+        "archway",
+        "radiator",
+        "column",
+        "built_in",
+        "socket_switch",
+        "water_supply_drain",
+        "soil_stack",
+        "ac_unit_vent",
+        "fuse_box_meter",
+        "other",
+      ],
       invite_status: ["pending", "accepted", "expired"],
+      item_action: ["buy", "keep", "custom", "own_or_buy", "buy_or_keep"],
+      item_source: ["existing_kept", "proposed", "user_added"],
+      keep_change: ["keep", "change", "skip"],
+      light_layer: ["overall", "task", "accent"],
+      media_subject: [
+        "room",
+        "inspiration",
+        "room_item",
+        "room_feature",
+        "room_wall",
+        "room_service",
+      ],
       notification_preference: ["email", "whatsapp", "both"],
       offer_status: ["pending", "sent", "viewed", "accepted", "rejected"],
+      point_status: ["existing", "proposed", "tbc", "confirmed"],
+      project_intent: ["new_space", "redesign", "exploring"],
+      property_type: ["apartment", "house", "studio", "loft"],
+      remark_category: [
+        "interior_finishes",
+        "furniture",
+        "colours_materials",
+        "decor",
+        "lighting",
+      ],
+      room_starting_state: [
+        "core_shell",
+        "empty",
+        "partially_furnished",
+        "redo_all",
+      ],
+      sample_status: ["none", "requested", "received", "approved"],
+      scope_mode: ["in_scope", "on_request", "kept_as_is"],
+      service_kind: [
+        "electrical",
+        "water",
+        "ac_ventilation",
+        "heating",
+        "data_tv_sound",
+      ],
+      size_kind: ["standard", "available", "approved"],
+      size_status: ["standard", "edited", "measured", "approved"],
+      step_status: ["not_started", "in_progress", "completed", "skipped"],
+      task_status: ["todo", "in_progress", "done", "blocked"],
+      wall_review_status: ["to_review", "kept", "changed"],
     },
   },
 } as const
