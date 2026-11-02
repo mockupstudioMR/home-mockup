@@ -3,6 +3,7 @@
  * the layout page (editable there) and the small plans on the summaries and in steps 5–7 — so they always match.
  */
 import { useRef, useState, type CSSProperties, type KeyboardEvent, type PointerEvent } from "react";
+import { backSide, facingOf } from "../plan/facing";
 import type { JourneyState, Layout, LayoutItem, Placement, Wall } from "../state";
 import { roomSize } from "../plan/room";
 import { keepInside, moveBy } from "../plan/editLayout";
@@ -147,9 +148,24 @@ export function LayoutPlan({ layout, s, max = { w: 440, h: 560 }, compact = fals
             const sel = edit?.selected === n;
             const st: CSSProperties = { left: pct(i.x), top: pct(i.y), width: pct(i.w), height: pct(i.h) };
             const num = !compact && <span className={i.kind === "rug" ? "lp-n rug" : "lp-n"}>{n + 1}</span>;
+            // the piece's back (backrest, headboard) on the side away from where it faces
+            const dir = facingOf(i, w, l);
+            const back = dir && (
+              <>
+                <span className={`lp-back b-${backSide(dir)}`} aria-hidden="true" />
+                {i.kind === "bed" && (
+                  <span className={`lp-pil b-${backSide(dir)}`} aria-hidden="true">
+                    <i />
+                    {/* two pillows on a double bed: its head end is 1.4 m or wider */}
+                    {((backSide(dir) === "top" || backSide(dir) === "bottom" ? i.w * w : i.h * l) / 100 >= 1.4) && <i />}
+                  </span>
+                )}
+              </>
+            );
             if (!edit)
               return (
                 <div key={n} className={`lp-f ${TEX[i.kind] ?? "t-other"}`} style={st}>
+                  {back}
                   {num}
                 </div>
               );
@@ -166,6 +182,7 @@ export function LayoutPlan({ layout, s, max = { w: 440, h: 560 }, compact = fals
                 onKeyDown={(e) => key(e, n)}
                 onFocus={() => edit.onSelect(n)}
               >
+                {back}
                 {num}
                 {sel && <span className="lp-h" aria-hidden="true" onPointerDown={(e) => begin(e, n, "size")} />}
               </div>

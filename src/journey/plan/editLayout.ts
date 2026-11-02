@@ -4,6 +4,7 @@
  * size in metres to keep real proportions.
  */
 import type { LayoutItem } from "../state";
+import { turnDir } from "./facing";
 
 /** Pieces that can be added from the layout page, with a typical size in cm (width along the wall × depth). */
 export const ADDABLE: { kind: string; label: string; w: number; d: number }[] = [
@@ -53,6 +54,11 @@ export function resizeCm(i: LayoutItem, wCm: number, dCm: number, roomW: number,
 
 /** Turns a piece a quarter turn around its centre (its real width and depth swap). */
 export function turn(i: LayoutItem, roomW: number, roomL: number): LayoutItem {
+  // its front turns with it (a sofa that faced down now faces left)
+  if (i.facing) return { ...turnPiece(i, roomW, roomL), facing: turnDir(i.facing) };
+  return turnPiece(i, roomW, roomL);
+}
+function turnPiece(i: LayoutItem, roomW: number, roomL: number): LayoutItem {
   const { w, d } = sizeCm(i, roomW, roomL);
   return resizeCm(i, d, w, roomW, roomL);
 }

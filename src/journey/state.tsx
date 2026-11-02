@@ -35,7 +35,19 @@ export type KeepItem = {
   /** Already theirs, bought or ordered, or something they'll buy themselves (no status = have it). */
   status?: "have" | "bought" | "buy";
 };
-export type LayoutItem = { label: string; kind: string; x: number; y: number; w: number; h: number; rotate?: number };
+export type LayoutItem = {
+  label: string;
+  kind: string;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  rotate?: number;
+  /** Which way the piece's front points on the plan (its back is the other side). None for tables, rugs, lamps. */
+  facing?: "up" | "down" | "left" | "right";
+  /** The furniture grouping it was placed with (furniture_groupings.key). */
+  group?: string;
+};
 export type Layout = {
   id: string;
   name: string;

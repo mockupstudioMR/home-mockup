@@ -1,10 +1,13 @@
-// Journey step 4.3 "Choose a layout": one layout per call, built from the room, what the person does in it,
-// what they keep and what can't move — and, unlike the older floor-plan mode, from the admin's data:
-// standard sizes (furniture_specs), door and window rules (opening_rules) and room activities (room_activities).
+// Journey step 4.3 "Choose a layout": one layout per call. The AI only chooses which furniture groupings suit the
+// room and the person (sofa + coffee table + TV, bed + nightstands, table + chairs …) and where they go: which wall
+// and how far along it, or a spot for a free-standing table. The pieces are then placed by rules — the size table
+// (furniture_specs), the groupings' offsets (furniture_groupings) and _shared/arrange.ts — so every piece has its
+// real size, faces the right way and keeps doors, windows and radiators clear.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { fetchWithTimeout } from "../_shared/http.ts";
+import { arrange, fallbackGroups, type GroupRequest, type Wall } from "../_shared/arrange.ts";
+import { groupingsFor, mergeGroupings, mergeSpecs, type Grouping, type Spec } from "../_shared/layoutRules.ts";
 
-type Wall = "A" | "B" | "C" | "D";
 export type JourneyLayoutRequest = {
   journey: true;
   roomType: string;
@@ -15,6 +18,8 @@ export type JourneyLayoutRequest = {
   style?: string;
   keep?: { name: string; w: number; d: number; wall?: Wall; fixedSpot?: boolean }[];
   fixed?: { kind: string; wall?: Wall; pos?: number }[];
+  /** The groupings the app offers for this room, with the floor each needs. */
+  groupings?: { key: string; name: string; place: string; activities: string[]; width_cm?: number; depth_cm?: number }[];
   /** Earlier layouts, so the next one is genuinely different. */
   avoid?: string[];
   /** Which priority this layout should favour (0 = first). */
@@ -22,45 +27,58 @@ export type JourneyLayoutRequest = {
 };
 
 const SYSTEM = `You are an interior designer planning ONE furniture layout for a single room, seen from above.
-Coordinates: the room is a rectangle; x and y are percent of its width (wall A at the top, wall C at the bottom, wall D on the left, wall B on the right).
+The room is a rectangle: wall A at the top, wall C at the bottom, wall D on the left, wall B on the right.
+You don't draw the furniture. You choose GROUPINGS from the list you are given (each is a set of pieces that belong
+together, e.g. a sofa with its coffee table and TV) and say where each goes. The pieces are then placed at their
+real sizes by the app, facing the right way.
+- For a grouping placed against a wall: give the wall (A, B, C or D) its main piece stands against, and "along" =
+  where its middle is along that wall in percent (walls A and C from the left, B and D from the top).
+- For a free-standing grouping (e.g. a dining table): give cx, cy = its centre in percent of the room's width and depth.
 Rules:
-- Keep every door clear: respect each opening's clearance and keep a walking route from the main door across the room.
-- Pieces the owner keeps MUST appear with their real size; if their spot is fixed, keep them on their wall.
-- Use the standard sizes given (in cm) and convert them to percent of the room.
-- Group pieces into zones that match what the owner does in the room (e.g. RELAX, MUSIC, DINING).
-- Favour the owner's priority you are told to favour; mention the trade-off honestly.
+- Choose 1 to 4 groupings that serve the owner's activities, favouring the priority you are told to favour. Never
+  two groupings with the same main piece (not two sofas, not two beds).
+- Keep doors clear and leave a walking route from the main door. Don't put a bed's head or tall storage under a window.
+- A sofa usually backs onto the wall opposite the TV or focal point; a bed's head goes on a solid wall, ideally not
+  facing the door directly; a desk often sits beside or facing a window.
+- Check each grouping's floor need against the wall length and the room before choosing it.
 Return through the tool:
 - name: 2–4 words, plain (e.g. "Relax + piano", "More social seating")
-- items: each { label, kind: sofa|chair|keep|table|rug|storage|bed|desk|other, x, y, w, h (percent), rotate: 0|90 }
-- zones: each { label (one word, upper case), x, y, w, h, tone: plum|green }
-- route: { x1, y1, x2, y2 } a straight dotted walking line in percent
+- groups: [{ key, wall, along } or { key, cx, cy }], optionally zone: one upper-case word
 - notes: exactly 3, each { ok: true|false, text } — two strengths and one honest limitation, max 9 words each, plain English.`;
 
 export async function journeyLayout(body: JourneyLayoutRequest, apiKey: string) {
   const url = Deno.env.get("SUPABASE_URL");
   const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-  let specs = "";
+  let specs: Spec[] = mergeSpecs(null);
+  let groupings: Grouping[] = mergeGroupings(null);
   let rules = "";
-  let acts = "";
   if (url && key) {
     const db = createClient(url, key);
-    const [{ data: s }, { data: r }, { data: a }] = await Promise.all([
-      db.from("furniture_specs").select("name, variant, width_cm, depth_cm, min_clearance_cm, must_against_wall").eq("is_default", true).limit(80),
+    const [{ data: s }, { data: g }, { data: m }, { data: r }] = await Promise.all([
+      db.from("furniture_specs").select("*"),
+      db.from("furniture_groupings").select("*"),
+      db.from("furniture_grouping_members").select("*").order("sort"),
       db.from("opening_rules").select("opening_type, clearance_cm, attracts_furniture, repels_furniture"),
-      db.from("room_activities").select("activity_name, furniture_items, preferred_zone, advisory_text").eq("room_type", body.roomType.replace(/-/g, "_")),
     ]);
-    if (s?.length) specs = "\nStandard sizes (cm, from the size database):\n" + s.map((x) => `- ${x.name}${x.variant ? ` (${x.variant})` : ""}: ${x.width_cm}×${x.depth_cm}, clearance ${x.min_clearance_cm}${x.must_against_wall ? ", against a wall" : ""}`).join("\n");
+    specs = mergeSpecs(s as Partial<Spec>[] | null);
+    if (g?.length) {
+      const by = new Map<string, unknown[]>();
+      for (const x of m ?? []) by.set(x.grouping_id, [...(by.get(x.grouping_id) ?? []), x]);
+      groupings = mergeGroupings(g.map((x) => ({ ...x, members: by.get(x.id) ?? [] })) as never);
+    }
     if (r?.length) rules = "\nDoor and window rules:\n" + r.map((x) => `- ${x.opening_type}: keep ${x.clearance_cm} cm clear${x.repels_furniture?.length ? `; not in front: ${x.repels_furniture.join(", ")}` : ""}${x.attracts_furniture?.length ? `; good near: ${x.attracts_furniture.join(", ")}` : ""}`).join("\n");
-    const chosen = (a ?? []).filter((x) => (body.activities ?? []).some((y) => y.toLowerCase() === String(x.activity_name).toLowerCase()));
-    if (chosen.length) acts = "\nWhat each activity needs:\n" + chosen.map((x) => `- ${x.activity_name}: ${(x.furniture_items ?? []).join(", ")}${x.preferred_zone ? `; zone ${x.preferred_zone}` : ""}${x.advisory_text ? `; ${x.advisory_text}` : ""}`).join("\n");
   }
+  const options = body.groupings?.length ? body.groupings : groupingsFor(groupings, body.roomType, body.activities).map((g) => ({ key: g.key, name: g.name, place: g.anchor_place, activities: g.activities }));
+  const W = Math.round(body.widthM * 100), L = Math.round(body.lengthM * 100);
   const fav = body.priorities?.[body.emphasis ?? 0];
   const user = `Room: ${body.roomType.replace(/-/g, " ")}, ${body.widthM} m wide (walls A/C) × ${body.lengthM} m deep (walls B/D).
 Style: ${body.style ?? "not set"}.
 Activities: ${(body.activities ?? []).join(", ") || "not set"}.
 Priorities in order: ${(body.priorities ?? []).join(", ") || "not set"}. Favour: ${fav ?? "a balanced plan"}.
-Keeping: ${(body.keep ?? []).map((k) => `${k.name} ${k.w}×${k.d} cm${k.wall ? ` on wall ${k.wall}` : ""}${k.fixedSpot ? " (fixed spot)" : " (may move)"}`).join("; ") || "nothing"}.
-Can't move: ${(body.fixed ?? []).map((f) => `${f.kind}${f.wall ? ` on wall ${f.wall}` : ""}${f.pos != null ? ` at ${f.pos}%` : ""}`).join("; ") || "nothing"}.${specs}${rules}${acts}
+Keeping (placed first): ${(body.keep ?? []).map((k) => `${k.name} ${k.w}×${k.d} cm${k.wall ? ` on wall ${k.wall}` : ""}${k.fixedSpot ? " (fixed spot)" : ""}`).join("; ") || "nothing"}.
+Can't move: ${(body.fixed ?? []).map((f) => `${f.kind}${f.wall ? ` on wall ${f.wall}` : ""}${f.pos != null ? ` at ${f.pos}%` : ""}`).join("; ") || "nothing"}.${rules}
+Groupings you can choose from (key — name — against a wall or free-standing — floor it needs — serves):
+${options.map((o) => `- ${o.key} — ${o.name} — ${o.place === "floating" ? "free-standing" : "against a wall"}${o.width_cm ? ` — ${o.width_cm}×${o.depth_cm} cm` : ""} — ${o.activities.join(", ")}`).join("\n")}
 ${body.avoid?.length ? `Make it clearly different from: ${body.avoid.join("; ")}.` : ""}`;
 
   const res = await fetchWithTimeout("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -73,26 +91,60 @@ ${body.avoid?.length ? `Make it clearly different from: ${body.avoid.join("; ")}
         type: "function",
         function: {
           name: "layout",
-          description: "One furniture layout for the room",
+          description: "Which furniture groupings go where in the room",
           parameters: {
             type: "object",
             properties: {
               name: { type: "string" },
-              items: { type: "array", items: { type: "object", properties: { label: { type: "string" }, kind: { type: "string" }, x: { type: "number" }, y: { type: "number" }, w: { type: "number" }, h: { type: "number" }, rotate: { type: "number" } }, required: ["label", "kind", "x", "y", "w", "h"] } },
-              zones: { type: "array", items: { type: "object", properties: { label: { type: "string" }, x: { type: "number" }, y: { type: "number" }, w: { type: "number" }, h: { type: "number" }, tone: { type: "string" } }, required: ["label", "x", "y", "w", "h"] } },
-              route: { type: "object", properties: { x1: { type: "number" }, y1: { type: "number" }, x2: { type: "number" }, y2: { type: "number" } } },
+              groups: {
+                type: "array",
+                items: {
+                  type: "object",
+                  properties: {
+                    key: { type: "string", enum: options.map((o) => o.key) },
+                    wall: { type: "string", enum: ["A", "B", "C", "D"] },
+                    along: { type: "number" },
+                    cx: { type: "number" },
+                    cy: { type: "number" },
+                    zone: { type: "string" },
+                  },
+                  required: ["key"],
+                },
+              },
               notes: { type: "array", items: { type: "object", properties: { ok: { type: "boolean" }, text: { type: "string" } }, required: ["ok", "text"] } },
             },
-            required: ["name", "items", "notes"],
+            required: ["name", "groups", "notes"],
           },
         },
       }],
       tool_choice: { type: "function", function: { name: "layout" } },
     }),
   });
-  if (!res.ok) return { status: res.status, body: { error: res.status === 429 ? "Rate limited, please try again shortly." : res.status === 402 ? "AI credits are used up for now." : `AI error: ${res.status}` } };
-  const data = await res.json();
-  const args = data.choices?.[0]?.message?.tool_calls?.[0]?.function?.arguments;
-  if (!args) return { status: 502, body: { error: "No layout came back. Try again." } };
-  return { status: 200, body: { layout: JSON.parse(args) } };
+  let plan: { name?: string; groups?: GroupRequest[]; notes?: { ok: boolean; text: string }[] } | null = null;
+  if (res.ok) {
+    const data = await res.json();
+    const args = data.choices?.[0]?.message?.tool_calls?.[0]?.function?.arguments;
+    if (args) plan = JSON.parse(args);
+  } else if (res.status === 402 || res.status === 429) {
+    return { status: res.status, body: { error: res.status === 429 ? "Rate limited, please try again shortly." : "AI credits are used up for now." } };
+  } else {
+    console.warn("generate-layout journey: AI error", res.status);
+  }
+  const openings = (body.fixed ?? []).map((f) => ({ kind: f.kind, wall: f.wall ?? null, pos: f.pos ?? null }));
+  const groups = plan?.groups?.length ? plan.groups : fallbackGroups(groupingsFor(groupings, body.roomType, body.activities), openings, W, L);
+  // placed here too, so any caller gets real pieces; the app places them again with the same rules
+  const placed = arrange({ W, L, openings, groups, keep: (body.keep ?? []).map((k) => ({ name: k.name, w: k.w, d: k.d, wall: k.wall ?? null, fixedSpot: k.fixedSpot })), specs, groupings });
+  const pc = (v: number, of: number) => Math.round((v / of) * 1000) / 10;
+  return {
+    status: 200,
+    body: {
+      layout: {
+        name: plan?.name ?? "Room plan",
+        notes: plan?.notes ?? [],
+        plan: { groups },
+        items: placed.items.map((p) => ({ label: p.label, kind: p.kind, x: pc(p.x, W), y: pc(p.y, L), w: pc(p.w, W), h: pc(p.h, L), facing: p.facing })),
+        zones: placed.zones.map((z) => ({ label: z.label, x: pc(z.x, W), y: pc(z.y, L), w: pc(z.w, W), h: pc(z.h, L) })),
+      },
+    },
+  };
 }

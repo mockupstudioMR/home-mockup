@@ -10,6 +10,8 @@ import { getStyleMoodboardUrls } from "@/lib/styleMoodboards";
 import { trackEvent } from "@/lib/analytics";
 import { mergeSize, parseArea, parseLength, readWritten, type PrintedRoom, type Written, type WrittenText } from "../../supabase/functions/_shared/dimensions";
 import { curRoom, uid, type JourneyState, type Layout, type Piece, type StyleMatch, type Swatch } from "./state";
+import { fallbackLayout, footprint, loadRules, placeLayout, requestsFromItems, roomGroupings } from "./plan/arrangeLayout";
+import type { GroupRequest } from "../../supabase/functions/_shared/arrange";
 
 const userId = async () => (await supabase.auth.getUser()).data.user?.id ?? null;
 
@@ -217,9 +219,15 @@ export async function analyzePlan(imageUrl: string, focus?: readonly number[]): 
   return { widthM: size.width, lengthM: size.length, shape: fp?.shape_description, written: hasWritten ? written : undefined, printedRooms };
 }
 
-/** One layout for the room (step 4.3), built by generate-layout from everything known so far. */
-export async function makeLayout(s: JourneyState, opts: { emphasis?: number; avoid?: string[] } = {}) {
-  const { data, error } = await invokeAi<{ layout?: Omit<Layout, "id">; error?: string }>("generate-layout", {
+/**
+ * One layout for the room (step 4.3). The AI (generate-layout) picks which furniture groupings suit the room and the
+ * person and where they go; the size and grouping tables then place every piece at its real size, facing the right
+ * way (plan/arrangeLayout). Without an answer from the AI the groupings for the room's activities are placed alone.
+ */
+export async function makeLayout(s: JourneyState, opts: { emphasis?: number; avoid?: string[] } = {}): Promise<Layout> {
+  const rules = await loadRules();
+  const options = roomGroupings(s, rules);
+  const { data, error } = await invokeAi<{ layout?: Omit<Layout, "id"> & { plan?: { groups?: GroupRequest[] } }; error?: string }>("generate-layout", {
     body: {
       journey: true,
       roomType: curRoom(s) ?? "living-room",
@@ -230,14 +238,24 @@ export async function makeLayout(s: JourneyState, opts: { emphasis?: number; avo
       style: s.moodboard?.name,
       keep: s.keeping.map((k) => ({ name: k.name, w: k.w ?? 100, d: k.d ?? 50, wall: k.wall, fixedSpot: k.fixedSpot })),
       fixed: s.placements.map((p) => ({ kind: p.kind, wall: p.wall, pos: p.pos })),
+      // the groupings it may choose from, with the space each needs
+      groupings: options.map((g) => ({ key: g.key, name: g.name, place: g.anchor_place, activities: g.activities, ...footprint(g, rules) })),
       emphasis: opts.emphasis,
       avoid: opts.avoid,
     },
     timeoutMs: 90_000,
   });
-  if (error || !data?.layout) throw new Error(getAiErrorMessage(error ?? data, "The layout couldn't be made. Try again."));
-  const l = data.layout;
-  return { id: uid(), name: l.name, items: l.items ?? [], zones: l.zones ?? [], route: l.route, notes: (l.notes ?? []).slice(0, 3) } as Layout;
+  const l = data?.layout;
+  if (error || !l) console.warn("[layout] no AI layout, placing from the rules alone", error ?? data);
+  const meta = { name: l?.name, notes: (l?.notes ?? []).slice(0, 3) };
+  // the AI chose groupings and walls: the rules place them
+  const known = (g: GroupRequest) => rules.groupings.some((x) => x.key === g.key);
+  const asked = (l?.plan?.groups ?? []).filter(known);
+  if (asked.length) return placeLayout(s, rules, asked, meta);
+  // an older AI answer with positioned pieces: its main pieces become groupings on the walls it chose
+  const fromItems = l?.items?.length ? requestsFromItems(l.items, s, rules) : [];
+  if (fromItems.length) return placeLayout(s, rules, fromItems, meta);
+  return fallbackLayout(s, rules, opts.avoid);
 }
 
 /** A product-style picture of one piece (generate-highlight-visuals, editable prompt "highlight_accent_furniture"). */
