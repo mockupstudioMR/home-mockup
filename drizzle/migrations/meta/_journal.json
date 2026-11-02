@@ -71,6 +71,13 @@
       "when": 1793636274162,
       "tag": "0009_scheme_reference_data",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1793636310389,
+      "tag": "0010_shops_sourcing_admin",
+      "breakpoints": true
     }
   ]
 }

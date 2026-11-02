@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_audit_log: {
+        Row: {
+          action: string
+          actor_id: string | null
+          after: Json | null
+          before: Json | null
+          created_at: string
+          id: number
+          row_id: string | null
+          table_name: string
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          after?: Json | null
+          before?: Json | null
+          created_at?: string
+          id?: number
+          row_id?: string | null
+          table_name: string
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          after?: Json | null
+          before?: Json | null
+          created_at?: string
+          id?: number
+          row_id?: string | null
+          table_name?: string
+        }
+        Relationships: []
+      }
       analytics_events: {
         Row: {
           created_at: string
@@ -261,6 +294,66 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      custom_made_requests: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          currency: string
+          drawing_path: string | null
+          id: string
+          maker_contact: string | null
+          maker_name: string | null
+          quote_amount: number | null
+          room_item_id: string
+          spec: Json
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          drawing_path?: string | null
+          id?: string
+          maker_contact?: string | null
+          maker_name?: string | null
+          quote_amount?: number | null
+          room_item_id: string
+          spec?: Json
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          drawing_path?: string | null
+          id?: string
+          maker_contact?: string | null
+          maker_name?: string | null
+          quote_amount?: number | null
+          room_item_id?: string
+          spec?: Json
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "custom_made_requests_room_item_id_fkey"
+            columns: ["room_item_id"]
+            isOneToOne: false
+            referencedRelation: "room_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "custom_made_requests_room_item_id_fkey"
+            columns: ["room_item_id"]
+            isOneToOne: false
+            referencedRelation: "v_buying_list"
+            referencedColumns: ["item_id"]
+          },
+        ]
       }
       design_items: {
         Row: {
@@ -533,6 +626,154 @@ export type Database = {
           },
         ]
       }
+      detected_pieces: {
+        Row: {
+          box: Json | null
+          category_id: string | null
+          color_id: string | null
+          confidence: number | null
+          created_at: string
+          crop_path: string | null
+          id: string
+          item_id: string
+          material_id: string | null
+          raw: Json
+          review_reason: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          scheme_id: string | null
+          status: string
+          style_id: string | null
+          tag_ids: string[]
+        }
+        Insert: {
+          box?: Json | null
+          category_id?: string | null
+          color_id?: string | null
+          confidence?: number | null
+          created_at?: string
+          crop_path?: string | null
+          id?: string
+          item_id: string
+          material_id?: string | null
+          raw?: Json
+          review_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          scheme_id?: string | null
+          status?: string
+          style_id?: string | null
+          tag_ids?: string[]
+        }
+        Update: {
+          box?: Json | null
+          category_id?: string | null
+          color_id?: string | null
+          confidence?: number | null
+          created_at?: string
+          crop_path?: string | null
+          id?: string
+          item_id?: string
+          material_id?: string | null
+          raw?: Json
+          review_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          scheme_id?: string | null
+          status?: string
+          style_id?: string | null
+          tag_ids?: string[]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "detected_pieces_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "taxonomy_terms"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "detected_pieces_color_id_fkey"
+            columns: ["color_id"]
+            isOneToOne: false
+            referencedRelation: "taxonomy_terms"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "detected_pieces_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "ingest_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "detected_pieces_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "taxonomy_terms"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "detected_pieces_scheme_id_fkey"
+            columns: ["scheme_id"]
+            isOneToOne: false
+            referencedRelation: "furniture_schemes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "detected_pieces_scheme_id_fkey"
+            columns: ["scheme_id"]
+            isOneToOne: false
+            referencedRelation: "v_furniture_schemes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "detected_pieces_style_id_fkey"
+            columns: ["style_id"]
+            isOneToOne: false
+            referencedRelation: "taxonomy_terms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      detection_corrections: {
+        Row: {
+          ai_value: string | null
+          created_at: string
+          facet: string
+          fixed_by: string | null
+          fixed_value: string | null
+          id: string
+          piece_id: string
+        }
+        Insert: {
+          ai_value?: string | null
+          created_at?: string
+          facet: string
+          fixed_by?: string | null
+          fixed_value?: string | null
+          id?: string
+          piece_id: string
+        }
+        Update: {
+          ai_value?: string | null
+          created_at?: string
+          facet?: string
+          fixed_by?: string | null
+          fixed_value?: string | null
+          id?: string
+          piece_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "detection_corrections_piece_id_fkey"
+            columns: ["piece_id"]
+            isOneToOne: false
+            referencedRelation: "detected_pieces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       floor_plan_analyses: {
         Row: {
           created_at: string
@@ -619,6 +860,7 @@ export type Database = {
           material_facet: Database["public"]["Enums"]["term_facet"]
           material_id: string | null
           source: string
+          status: string
           style_facet: Database["public"]["Enums"]["term_facet"]
           style_id: string | null
           tag_signature: string
@@ -635,6 +877,7 @@ export type Database = {
           material_facet?: Database["public"]["Enums"]["term_facet"]
           material_id?: string | null
           source?: string
+          status?: string
           style_facet?: Database["public"]["Enums"]["term_facet"]
           style_id?: string | null
           tag_signature?: string
@@ -651,6 +894,7 @@ export type Database = {
           material_facet?: Database["public"]["Enums"]["term_facet"]
           material_id?: string | null
           source?: string
+          status?: string
           style_facet?: Database["public"]["Enums"]["term_facet"]
           style_id?: string | null
           tag_signature?: string
@@ -844,6 +1088,135 @@ export type Database = {
             columns: ["room_id"]
             isOneToOne: false
             referencedRelation: "rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ingest_batches: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          failed_count: number
+          finished_at: string | null
+          found_count: number
+          id: string
+          name: string
+          review_all: boolean
+          room_type_id: string | null
+          saved_count: number
+          source_credit: string | null
+          source_type: string
+          source_url: string | null
+          status: string
+          style_hint_id: string | null
+          threshold: number
+          waiting_count: number
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          failed_count?: number
+          finished_at?: string | null
+          found_count?: number
+          id?: string
+          name: string
+          review_all?: boolean
+          room_type_id?: string | null
+          saved_count?: number
+          source_credit?: string | null
+          source_type: string
+          source_url?: string | null
+          status?: string
+          style_hint_id?: string | null
+          threshold?: number
+          waiting_count?: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          failed_count?: number
+          finished_at?: string | null
+          found_count?: number
+          id?: string
+          name?: string
+          review_all?: boolean
+          room_type_id?: string | null
+          saved_count?: number
+          source_credit?: string | null
+          source_type?: string
+          source_url?: string | null
+          status?: string
+          style_hint_id?: string | null
+          threshold?: number
+          waiting_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ingest_batches_room_type_id_fkey"
+            columns: ["room_type_id"]
+            isOneToOne: false
+            referencedRelation: "taxonomy_terms"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ingest_batches_style_hint_id_fkey"
+            columns: ["style_hint_id"]
+            isOneToOne: false
+            referencedRelation: "taxonomy_terms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ingest_items: {
+        Row: {
+          batch_id: string
+          created_at: string
+          detected_style_id: string | null
+          error: string | null
+          file_hash: string | null
+          id: string
+          page_no: number | null
+          source_url: string | null
+          status: string
+          storage_path: string | null
+        }
+        Insert: {
+          batch_id: string
+          created_at?: string
+          detected_style_id?: string | null
+          error?: string | null
+          file_hash?: string | null
+          id?: string
+          page_no?: number | null
+          source_url?: string | null
+          status?: string
+          storage_path?: string | null
+        }
+        Update: {
+          batch_id?: string
+          created_at?: string
+          detected_style_id?: string | null
+          error?: string | null
+          file_hash?: string | null
+          id?: string
+          page_no?: number | null
+          source_url?: string | null
+          status?: string
+          storage_path?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ingest_items_batch_id_fkey"
+            columns: ["batch_id"]
+            isOneToOne: false
+            referencedRelation: "ingest_batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ingest_items_detected_style_id_fkey"
+            columns: ["detected_style_id"]
+            isOneToOne: false
+            referencedRelation: "taxonomy_terms"
             referencedColumns: ["id"]
           },
         ]
@@ -1494,6 +1867,55 @@ export type Database = {
           },
         ]
       }
+      product_scheme_links: {
+        Row: {
+          confidence: number | null
+          confirmed: boolean
+          created_at: string
+          product_id: string
+          scheme_id: string
+          source: string
+        }
+        Insert: {
+          confidence?: number | null
+          confirmed?: boolean
+          created_at?: string
+          product_id: string
+          scheme_id: string
+          source?: string
+        }
+        Update: {
+          confidence?: number | null
+          confirmed?: boolean
+          created_at?: string
+          product_id?: string
+          scheme_id?: string
+          source?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_scheme_links_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "shop_products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_scheme_links_scheme_id_fkey"
+            columns: ["scheme_id"]
+            isOneToOne: false
+            referencedRelation: "furniture_schemes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_scheme_links_scheme_id_fkey"
+            columns: ["scheme_id"]
+            isOneToOne: false
+            referencedRelation: "v_furniture_schemes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       products: {
         Row: {
           color: string | null
@@ -1716,6 +2138,77 @@ export type Database = {
             columns: ["room_id"]
             isOneToOne: false
             referencedRelation: "rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_shop_choices: {
+        Row: {
+          own_shops_first: boolean
+          project_id: string
+          updated_at: string
+          use_custom_made: boolean
+          use_own_shops: boolean
+          use_suggested: boolean
+        }
+        Insert: {
+          own_shops_first?: boolean
+          project_id: string
+          updated_at?: string
+          use_custom_made?: boolean
+          use_own_shops?: boolean
+          use_suggested?: boolean
+        }
+        Update: {
+          own_shops_first?: boolean
+          project_id?: string
+          updated_at?: string
+          use_custom_made?: boolean
+          use_own_shops?: boolean
+          use_suggested?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_shop_choices_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: true
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_shops: {
+        Row: {
+          added_at: string
+          added_by: string | null
+          project_id: string
+          shop_id: string
+        }
+        Insert: {
+          added_at?: string
+          added_by?: string | null
+          project_id: string
+          shop_id: string
+        }
+        Update: {
+          added_at?: string
+          added_by?: string | null
+          project_id?: string
+          shop_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_shops_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_shops_shop_id_fkey"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
             referencedColumns: ["id"]
           },
         ]
@@ -2289,6 +2782,7 @@ export type Database = {
       room_items: {
         Row: {
           action: Database["public"]["Enums"]["item_action"]
+          chosen_product_id: string | null
           created_at: string
           currency: string
           decision: Database["public"]["Enums"]["keep_change"]
@@ -2312,6 +2806,7 @@ export type Database = {
           shop_product_id: string | null
           sort_order: number
           source: Database["public"]["Enums"]["item_source"]
+          sourcing: string | null
           supplier: string | null
           unit_price: number | null
           updated_at: string
@@ -2319,6 +2814,7 @@ export type Database = {
         }
         Insert: {
           action?: Database["public"]["Enums"]["item_action"]
+          chosen_product_id?: string | null
           created_at?: string
           currency?: string
           decision?: Database["public"]["Enums"]["keep_change"]
@@ -2342,6 +2838,7 @@ export type Database = {
           shop_product_id?: string | null
           sort_order?: number
           source?: Database["public"]["Enums"]["item_source"]
+          sourcing?: string | null
           supplier?: string | null
           unit_price?: number | null
           updated_at?: string
@@ -2349,6 +2846,7 @@ export type Database = {
         }
         Update: {
           action?: Database["public"]["Enums"]["item_action"]
+          chosen_product_id?: string | null
           created_at?: string
           currency?: string
           decision?: Database["public"]["Enums"]["keep_change"]
@@ -2372,12 +2870,20 @@ export type Database = {
           shop_product_id?: string | null
           sort_order?: number
           source?: Database["public"]["Enums"]["item_source"]
+          sourcing?: string | null
           supplier?: string | null
           unit_price?: number | null
           updated_at?: string
           wall_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "room_items_chosen_product_id_fkey"
+            columns: ["chosen_product_id"]
+            isOneToOne: false
+            referencedRelation: "shop_products"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "room_items_furniture_spec_id_fkey"
             columns: ["furniture_spec_id"]
@@ -2866,6 +3372,7 @@ export type Database = {
           created_at: string
           created_by: string | null
           id: string
+          ingest_batch_id: string | null
           member_count: number
           member_signature: string
           name: string | null
@@ -2873,6 +3380,7 @@ export type Database = {
           room_type_facet: Database["public"]["Enums"]["term_facet"]
           room_type_id: string | null
           source: string
+          status: string
           style_facet: Database["public"]["Enums"]["term_facet"]
           style_id: string | null
         }
@@ -2880,6 +3388,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           id?: string
+          ingest_batch_id?: string | null
           member_count?: number
           member_signature?: string
           name?: string | null
@@ -2887,6 +3396,7 @@ export type Database = {
           room_type_facet?: Database["public"]["Enums"]["term_facet"]
           room_type_id?: string | null
           source?: string
+          status?: string
           style_facet?: Database["public"]["Enums"]["term_facet"]
           style_id?: string | null
         }
@@ -2894,6 +3404,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           id?: string
+          ingest_batch_id?: string | null
           member_count?: number
           member_signature?: string
           name?: string | null
@@ -2901,10 +3412,18 @@ export type Database = {
           room_type_facet?: Database["public"]["Enums"]["term_facet"]
           room_type_id?: string | null
           source?: string
+          status?: string
           style_facet?: Database["public"]["Enums"]["term_facet"]
           style_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "scheme_combinations_ingest_batch_id_fkey"
+            columns: ["ingest_batch_id"]
+            isOneToOne: false
+            referencedRelation: "ingest_batches"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "scheme_combinations_room_type_id_room_type_facet_fkey"
             columns: ["room_type_id", "room_type_facet"]
@@ -2942,6 +3461,33 @@ export type Database = {
         }
         Relationships: []
       }
+      settings_versions: {
+        Row: {
+          content_type: string | null
+          id: number
+          key: string
+          saved_at: string
+          saved_by: string | null
+          value: string
+        }
+        Insert: {
+          content_type?: string | null
+          id?: number
+          key: string
+          saved_at?: string
+          saved_by?: string | null
+          value: string
+        }
+        Update: {
+          content_type?: string | null
+          id?: number
+          key?: string
+          saved_at?: string
+          saved_by?: string | null
+          value?: string
+        }
+        Relationships: []
+      }
       shop_products: {
         Row: {
           ai_image_description: string | null
@@ -2957,6 +3503,7 @@ export type Database = {
           price: number | null
           scheme_id: string | null
           shop_id: string
+          shop_ref: string | null
           source_url: string | null
           style: string | null
           type: string
@@ -2976,6 +3523,7 @@ export type Database = {
           price?: number | null
           scheme_id?: string | null
           shop_id: string
+          shop_ref?: string | null
           source_url?: string | null
           style?: string | null
           type: string
@@ -2995,6 +3543,7 @@ export type Database = {
           price?: number | null
           scheme_id?: string | null
           shop_id?: string
+          shop_ref?: string | null
           source_url?: string | null
           style?: string | null
           type?: string
@@ -3013,6 +3562,54 @@ export type Database = {
             columns: ["scheme_id"]
             isOneToOne: false
             referencedRelation: "v_furniture_schemes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shop_products_shop_ref_fkey"
+            columns: ["shop_ref"]
+            isOneToOne: false
+            referencedRelation: "shops"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shop_scrape_runs: {
+        Row: {
+          error: string | null
+          finished_at: string | null
+          id: string
+          products_found: number
+          shop_id: string
+          started_at: string
+          started_by: string | null
+          status: string
+        }
+        Insert: {
+          error?: string | null
+          finished_at?: string | null
+          id?: string
+          products_found?: number
+          shop_id: string
+          started_at?: string
+          started_by?: string | null
+          status?: string
+        }
+        Update: {
+          error?: string | null
+          finished_at?: string | null
+          id?: string
+          products_found?: number
+          shop_id?: string
+          started_at?: string
+          started_by?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shop_scrape_runs_shop_id_fkey"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
             referencedColumns: ["id"]
           },
         ]
@@ -3073,6 +3670,60 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      shops: {
+        Row: {
+          added_by: string | null
+          created_at: string
+          domain: string | null
+          id: string
+          kind: Database["public"]["Enums"]["shop_kind"]
+          last_scraped_at: string | null
+          name: string
+          owner_user_id: string | null
+          product_count: number
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: Database["public"]["Enums"]["shop_status"]
+          terms_checked: boolean
+          updated_at: string
+          url: string | null
+        }
+        Insert: {
+          added_by?: string | null
+          created_at?: string
+          domain?: string | null
+          id?: string
+          kind?: Database["public"]["Enums"]["shop_kind"]
+          last_scraped_at?: string | null
+          name: string
+          owner_user_id?: string | null
+          product_count?: number
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: Database["public"]["Enums"]["shop_status"]
+          terms_checked?: boolean
+          updated_at?: string
+          url?: string | null
+        }
+        Update: {
+          added_by?: string | null
+          created_at?: string
+          domain?: string | null
+          id?: string
+          kind?: Database["public"]["Enums"]["shop_kind"]
+          last_scraped_at?: string | null
+          name?: string
+          owner_user_id?: string | null
+          product_count?: number
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: Database["public"]["Enums"]["shop_status"]
+          terms_checked?: boolean
+          updated_at?: string
+          url?: string | null
+        }
+        Relationships: []
       }
       signal_weights: {
         Row: {
@@ -3295,7 +3946,9 @@ export type Database = {
           is_active: boolean
           label: string
           parent_id: string | null
+          proposed_from: string | null
           slug: string
+          status: Database["public"]["Enums"]["term_status"]
           synonyms: string[]
         }
         Insert: {
@@ -3306,7 +3959,9 @@ export type Database = {
           is_active?: boolean
           label: string
           parent_id?: string | null
+          proposed_from?: string | null
           slug: string
+          status?: Database["public"]["Enums"]["term_status"]
           synonyms?: string[]
         }
         Update: {
@@ -3317,7 +3972,9 @@ export type Database = {
           is_active?: boolean
           label?: string
           parent_id?: string | null
+          proposed_from?: string | null
           slug?: string
+          status?: Database["public"]["Enums"]["term_status"]
           synonyms?: string[]
         }
         Relationships: [
@@ -3326,6 +3983,13 @@ export type Database = {
             columns: ["parent_id"]
             isOneToOne: false
             referencedRelation: "taxonomy_terms"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "taxonomy_terms_proposed_from_fkey"
+            columns: ["proposed_from"]
+            isOneToOne: false
+            referencedRelation: "detected_pieces"
             referencedColumns: ["id"]
           },
         ]
@@ -3541,6 +4205,11 @@ export type Database = {
       }
       is_privileged_caller: { Args: never; Returns: boolean }
       is_project_owner: { Args: { _project_id: string }; Returns: boolean }
+      merge_terms: {
+        Args: { _drop: string; _keep: string }
+        Returns: undefined
+      }
+      project_shop_ids: { Args: { _project_id: string }; Returns: string[] }
       refresh_scheme_scores: { Args: never; Returns: undefined }
       resolve_term: {
         Args: {
@@ -3639,6 +4308,8 @@ export type Database = {
         | "ac_ventilation"
         | "heating"
         | "data_tv_sound"
+      shop_kind: "partner" | "user_added"
+      shop_status: "pending" | "approved" | "rejected" | "unreadable"
       size_kind: "standard" | "available" | "approved"
       size_status: "standard" | "edited" | "measured" | "approved"
       step_status: "not_started" | "in_progress" | "completed" | "skipped"
@@ -3654,6 +4325,7 @@ export type Database = {
         | "mood"
         | "room_type"
         | "other"
+      term_status: "proposed" | "active" | "retired"
       wall_review_status: "to_review" | "kept" | "changed"
     }
     CompositeTypes: {
@@ -3872,6 +4544,8 @@ export const Constants = {
         "heating",
         "data_tv_sound",
       ],
+      shop_kind: ["partner", "user_added"],
+      shop_status: ["pending", "approved", "rejected", "unreadable"],
       size_kind: ["standard", "available", "approved"],
       size_status: ["standard", "edited", "measured", "approved"],
       step_status: ["not_started", "in_progress", "completed", "skipped"],
@@ -3888,6 +4562,7 @@ export const Constants = {
         "room_type",
         "other",
       ],
+      term_status: ["proposed", "active", "retired"],
       wall_review_status: ["to_review", "kept", "changed"],
     },
   },
