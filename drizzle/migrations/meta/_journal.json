@@ -43,6 +43,48 @@
       "when": 1791760720908,
       "tag": "0005_admin_read_policies_for_support_screens",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1793636184764,
+      "tag": "0006_designing_my_home_v2",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1793636206724,
+      "tag": "0007_reference_data",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1793636245975,
+      "tag": "0008_furniture_schemes",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1793636274162,
+      "tag": "0009_scheme_reference_data",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1793636310389,
+      "tag": "0010_shops_sourcing_admin",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1793636366546,
+      "tag": "0011_scan_pipeline_and_admin",
+      "breakpoints": true
     }
   ]
 }
