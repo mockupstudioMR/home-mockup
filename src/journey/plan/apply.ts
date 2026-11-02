@@ -2,7 +2,16 @@
 import type { FixedKind, JourneyState, Placement, PlanReading } from "../state";
 import { uid } from "../state";
 import { PLAN_DOOR_M, type PlanRead } from "./reader";
-import { mergeSize, type Written } from "../../../supabase/functions/_shared/dimensions";
+import { mergeSize, pickPrinted, readWritten, type PrintedRoom, type Written } from "../../../supabase/functions/_shared/dimensions";
+
+/**
+ * The sizes printed for the room inside `box` (its outline on the plan, 0–1), from every room's printed sizes.
+ * Undefined when nothing is printed for that room, so another room's numbers are never used.
+ */
+export function writtenFor(rooms: PrintedRoom[] | undefined, box: readonly number[] | undefined): Written | undefined {
+  const w = readWritten(pickPrinted(rooms, box));
+  return Object.keys(w).length ? w : undefined;
+}
 
 const KIND: Record<"door" | "window", FixedKind> = { door: "doors", window: "windows" };
 

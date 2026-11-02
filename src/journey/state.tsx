@@ -145,6 +145,8 @@ export type JourneyState = {
     written?: { width?: number; length?: number; area?: number };
     /** Where each side's size came from: printed on the plan, worked out from a printed area, or estimated. */
     sizeSource?: { width: "written" | "estimated" | "from area"; length: "written" | "estimated" | "from area" };
+    /** Every room's printed sizes and where it is on the plan (0–100 %), to use the right ones for the room picked. */
+    printedRooms?: { name?: string | null; x_pct?: number | null; y_pct?: number | null; width_text?: string | null; length_text?: string | null; pair_text?: string | null; area_text?: string | null; unit?: string | null }[];
   };
   layouts: Layout[];
   chosenLayout?: number;

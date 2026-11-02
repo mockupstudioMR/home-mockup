@@ -9,7 +9,7 @@ import { ADDABLE, newPiece, resizeCm, sizeCm, turn } from "../plan/editLayout";
 import { StepSummary } from "../Summary";
 import { analyzePlan, makeLayout, uploadPhoto } from "../services";
 import { onPlanReaderStatus, readPlan, warmPlanReader, type PlanRead } from "../plan/reader";
-import { applyPlanRead, fromReference, withWritten, type ScaleRef } from "../plan/apply";
+import { applyPlanRead, fromReference, withWritten, writtenFor, type ScaleRef } from "../plan/apply";
 import { layoutChecks, pieceInfo } from "../plan/layoutCheck";
 import { pdfToImages } from "@/lib/pdfToImages";
 import { list, soFar } from "../story";
@@ -67,19 +67,25 @@ export function RoomInput() {
       if (read.ok) {
         set((x) => {
           const next = applyPlanRead(x, read, EX_W);
-          return { ...next, room: { ...next.room, planImage: url }, layouts: [], chosenLayout: undefined };
+          // a new plan: the previous plan's printed sizes don't apply to it
+          return { ...next, room: { ...next.room, planImage: url, printedRooms: undefined, written: undefined }, layouts: [], chosenLayout: undefined };
         });
         // Sizes written on the plan beat the door-width guess and any scale reference set while they were
         // being read (door width, a wall typed from the reference box). Only another plan uploaded meanwhile is left alone.
-        void analyzePlan(url)
+        // The AI copies every room's printed sizes with its position; the ones for the room the reader picked are
+        // used (and picked again when the person taps another room).
+        void analyzePlan(url, read.box)
           .then((est) => {
-            if (!est?.written) return;
+            if (!est) return;
             let applied: JourneyState["room"] | null = null;
             let replaced = false;
             set((x) => {
               if (x.room.planImage !== url) return {};
+              const printedRooms = est.printedRooms ?? x.room.printedRooms;
+              const written = est.printedRooms ? writtenFor(est.printedRooms, x.room.planRead?.box) : est.written;
+              if (!written) return printedRooms ? { room: { ...x.room, printedRooms } } : {};
               replaced = !!x.room.confirmed && !x.room.sizeSource;
-              const room = { ...x.room, ...withWritten({ widthM: x.room.widthM ?? EX_W, lengthM: x.room.lengthM ?? EX_L }, est.written) };
+              const room = { ...x.room, printedRooms, ...withWritten({ widthM: x.room.widthM ?? EX_W, lengthM: x.room.lengthM ?? EX_L }, written) };
               applied = room;
               return { room, layouts: [], chosenLayout: undefined };
             });
@@ -98,6 +104,7 @@ export function RoomInput() {
           input: "plan",
           planImage: url,
           planRead: undefined,
+          printedRooms: est?.printedRooms,
           ...(est ? withWritten({ widthM: est.widthM, lengthM: est.lengthM }, est.written) : { confirmed: false, written: undefined, sizeSource: undefined }),
         };
         set({ room, layouts: [], chosenLayout: undefined });
@@ -259,8 +266,10 @@ function PlanOutline() {
       const r = await readPlan(img, opts.tap, 120_000, opts.box);
       if (!r.ok || r.picked === "tap_missed") throw new Error(r.ok ? "That room isn't closed off on the plan. Drag the edges onto its walls instead." : r.message);
       set((x) => {
-        // the printed sizes belong to the room first read: kept when its outline is adjusted, dropped for another room
-        const next = applyPlanRead(x, r, EX_W, opts.tap ? undefined : x.room.written);
+        // the sizes printed for the room now picked: from every room's printed sizes when the plan gave them,
+        // otherwise the first room's kept while its outline is adjusted and dropped for another room
+        const written = x.room.printedRooms ? writtenFor(x.room.printedRooms, r.box) : opts.tap ? undefined : x.room.written;
+        const next = applyPlanRead(x, r, EX_W, written);
         return { ...next, room: { ...next.room, planImage: x.room.planImage }, layouts: [], chosenLayout: undefined };
       });
     } catch (e) {

@@ -194,3 +194,58 @@ export const WRITTEN_RULES = `PRINTED SIZES (most important — numbers on the p
 - Sizes along vertical walls are often printed rotated 90°; read them too. Small raised digits after a number are centimetres ("3⁷⁵" = 3,75): copy them as raised digits.
 - When a wall has one overall dimension line, copy that. When it only has a chain of segments, copy every segment joined with " + " (e.g. "1,20 + 2,55"). Ignore heights (H, RH, BRH, Höhe) and the sizes of doors and windows.
 - Leave a field empty when nothing is printed for it. Never invent a number, and don't copy sizes of other rooms, the whole flat, furniture, doors or windows.`;
+
+/** One room's printed sizes and where the room sits on the plan image (its centre, 0–100 % of width and height). */
+export type PrintedRoom = WrittenText & { name?: string | null; x_pct?: number | null; y_pct?: number | null };
+
+/** JSON schema for copying the printed sizes of every room, with each room's position. */
+export const PRINTED_ROOMS_SCHEMA = {
+  type: "object",
+  properties: {
+    unit: WRITTEN_SCHEMA.properties.unit,
+    rooms: {
+      type: "array",
+      description: "Every room on the plan that has sizes printed for it",
+      items: {
+        type: "object",
+        properties: {
+          name: { type: "string", description: "The room's printed name, e.g. 'Wohnen', 'Bedroom 2', or empty" },
+          x_pct: { type: "number", description: "Horizontal position of the room's centre, 0 = left edge of the image, 100 = right edge" },
+          y_pct: { type: "number", description: "Vertical position of the room's centre, 0 = top edge of the image, 100 = bottom edge" },
+          ...WRITTEN_SCHEMA.properties,
+        },
+        required: ["x_pct", "y_pct"],
+      },
+    },
+  },
+  required: ["rooms"],
+} as const;
+
+/**
+ * The printed sizes of the room inside `box` ([x0, y0, x1, y1], 0–1 of the plan): the printed room whose centre lies
+ * in the box (nearest the box centre when several do). Without a box: the room with the largest printed size.
+ * Undefined when no printed room lies in the box, so another room's numbers are never used.
+ */
+export function pickPrinted(rooms: PrintedRoom[] | null | undefined, box?: readonly number[] | null, unit?: string | null): WrittenText | undefined {
+  const withText = (rooms ?? []).filter((r) => r && (r.width_text || r.length_text || r.pair_text || r.area_text));
+  if (!withText.length) return undefined;
+  const at = (r: PrintedRoom) => [Number(r.x_pct) / 100, Number(r.y_pct) / 100] as const;
+  let room: PrintedRoom | undefined;
+  if (box && box.length === 4) {
+    const [x0, y0, x1, y1] = box, pad = 0.03, cx = (x0 + x1) / 2, cy = (y0 + y1) / 2;
+    const inside = withText.filter((r) => {
+      const [x, y] = at(r);
+      return Number.isFinite(x) && Number.isFinite(y) && x >= x0 - pad && x <= x1 + pad && y >= y0 - pad && y <= y1 + pad;
+    });
+    room = inside.sort((a, b) => Math.hypot(at(a)[0] - cx, at(a)[1] - cy) - Math.hypot(at(b)[0] - cx, at(b)[1] - cy))[0];
+  } else {
+    const size = (r: PrintedRoom) => {
+      const w = readWritten({ ...r, unit: r.unit ?? unit });
+      return w.area ?? ((w.width ?? 0) * (w.length ?? 0) || (w.width ?? w.length ?? 0));
+    };
+    room = [...withText].sort((a, b) => size(b) - size(a))[0];
+  }
+  if (!room) return undefined;
+  const { width_text, length_text, pair_text, area_text } = room;
+  return { width_text, length_text, pair_text, area_text, unit: room.unit ?? unit ?? undefined };
+}

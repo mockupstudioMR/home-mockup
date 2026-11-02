@@ -8,7 +8,7 @@ import { getAiErrorMessage } from "@/lib/aiErrorMessage";
 import { getAiOptimizedImageUrl, optimizeImageFileSafe } from "@/lib/imageOptimization";
 import { getStyleMoodboardUrls } from "@/lib/styleMoodboards";
 import { trackEvent } from "@/lib/analytics";
-import { mergeSize, parseArea, parseLength, readWritten, type Written, type WrittenText } from "../../supabase/functions/_shared/dimensions";
+import { mergeSize, parseArea, parseLength, readWritten, type PrintedRoom, type Written, type WrittenText } from "../../supabase/functions/_shared/dimensions";
 import { curRoom, uid, type JourneyState, type Layout, type Piece, type StyleMatch, type Swatch } from "./state";
 
 const userId = async () => (await supabase.auth.getUser()).data.user?.id ?? null;
@@ -179,8 +179,12 @@ export async function readDesign(imageUrl: string, style?: string): Promise<Read
   return data.parts;
 }
 
-/** Read an uploaded floor plan: the room's two side lengths, in metres. */
-export async function analyzePlan(imageUrl: string): Promise<{ widthM: number; lengthM: number; shape?: string; written?: Written } | null> {
+/**
+ * Read an uploaded floor plan: the room's two side lengths, in metres. `focus` is the room's outline on the plan
+ * (0–1), so the sizes printed for that room are used; printedRooms has every room's printed sizes, to pick from
+ * again when the person chooses another room.
+ */
+export async function analyzePlan(imageUrl: string, focus?: readonly number[]): Promise<{ widthM: number; lengthM: number; shape?: string; written?: Written; printedRooms?: PrintedRoom[] } | null> {
   const { data, error } = await invokeAi<{
     floorplan?: {
       walls?: { length_m: number }[];
@@ -188,8 +192,10 @@ export async function analyzePlan(imageUrl: string): Promise<{ widthM: number; l
       written_dimensions?: { width_m?: number; length_m?: number; area_sqm?: number } | null;
       /** What the model copied from the plan, as printed. */
       printed_text?: WrittenText | null;
+      /** Every room's printed sizes and position (functions deployed after 2 Nov). */
+      printed_rooms?: PrintedRoom[] | null;
     };
-  }>("analyze-floorplan", { body: { imageUrl }, timeoutMs: 120_000 });
+  }>("analyze-floorplan", { body: { imageUrl, focus }, timeoutMs: 120_000 });
   if (error) throw new Error(getAiErrorMessage(error, "We couldn't read the plan. Try a clearer image."));
   const round = (n: number) => Math.round(n * 100) / 100;
   const fp = data?.floorplan;
@@ -207,7 +213,8 @@ export async function analyzePlan(imageUrl: string): Promise<{ widthM: number; l
   if (walls.length < 2 && !hasWritten) return null;
   const est = walls.length >= 2 ? { width: round(walls[0].length_m), length: round(walls[1].length_m) } : { width: 3.75, length: 4.9 };
   const size = mergeSize(written, est);
-  return { widthM: size.width, lengthM: size.length, shape: fp?.shape_description, written: hasWritten ? written : undefined };
+  const printedRooms = Array.isArray(fp?.printed_rooms) && fp.printed_rooms.length ? fp.printed_rooms : undefined;
+  return { widthM: size.width, lengthM: size.length, shape: fp?.shape_description, written: hasWritten ? written : undefined, printedRooms };
 }
 
 /** One layout for the room (step 4.3), built by generate-layout from everything known so far. */

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { mergeSize, parseArea, parseLength, parsePair, readWritten } from "../../supabase/functions/_shared/dimensions";
+import { mergeSize, parseArea, parseLength, parsePair, pickPrinted, readWritten } from "../../supabase/functions/_shared/dimensions";
 
 describe("reading printed lengths", () => {
   it("reads metres, centimetres and millimetres, with or without units", () => {
@@ -78,5 +78,23 @@ describe("printed sizes in the forms real plans use", () => {
     expect(readWritten({ pair_text: "3,75m x 4,90m" })).toEqual({ width: 3.75, length: 4.9 });
     expect(readWritten({ pair_text: "approx. 3,75 x 4,90" })).toEqual({ width: 3.75, length: 4.9 });
     expect(readWritten({ pair_text: "3,75 x 4,90 = 18,38 m²" })).toEqual({ width: 3.75, length: 4.9 });
+  });
+});
+
+describe("the printed sizes of the room being drawn", () => {
+  const rooms = [
+    { name: "Wohnen", x_pct: 30, y_pct: 40, pair_text: "4,60 x 5,20" },
+    { name: "Schlafen", x_pct: 75, y_pct: 30, width_text: "3,10", length_text: "3,85" },
+    { name: "Bad", x_pct: 75, y_pct: 80, area_text: "4,8 m²" },
+  ];
+  it("uses the room whose centre is inside the outline", () => {
+    expect(readWritten(pickPrinted(rooms, [0.6, 0.1, 0.9, 0.5]))).toEqual({ width: 3.1, length: 3.85 });
+    expect(readWritten(pickPrinted(rooms, [0.1, 0.2, 0.5, 0.6]))).toEqual({ width: 4.6, length: 5.2 });
+  });
+  it("never uses a neighbour's sizes", () => {
+    expect(pickPrinted(rooms, [0.05, 0.75, 0.3, 0.95])).toBeUndefined();
+  });
+  it("without an outline, uses the largest printed room", () => {
+    expect(readWritten(pickPrinted(rooms))).toEqual({ width: 4.6, length: 5.2 });
   });
 });

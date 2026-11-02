@@ -1,7 +1,7 @@
 import "../_shared/language.ts";
 import { requireUser } from "../_shared/auth.ts";
 import { fetchWithTimeout } from "../_shared/http.ts";
-import { WRITTEN_RULES, WRITTEN_SCHEMA, mergeSize, readWritten } from "../_shared/dimensions.ts";
+import { PRINTED_ROOMS_SCHEMA, WRITTEN_RULES, mergeSize, pickPrinted, readWritten, type PrintedRoom } from "../_shared/dimensions.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -18,7 +18,7 @@ Deno.serve(async (req) => {
   if (caller instanceof Response) return caller;
 
   try {
-    const { imageUrl } = await req.json();
+    const { imageUrl, focus } = await req.json();
     if (!imageUrl) {
       return new Response(JSON.stringify({ error: "imageUrl required" }), {
         status: 400,
@@ -50,11 +50,12 @@ For a simple rectangle 5m x 4m, walls would be:
 
     // A separate, focused pass that only copies the numbers printed on the plan: models read small text far more
     // reliably when that is the whole task. The text is turned into metres here (_shared/dimensions.ts), not by the model.
-    const readPrompt = `You read the text printed on a floor plan. Your only job is to copy the room's printed sizes exactly.
+    const readPrompt = `You read the text printed on a floor plan. Your only job is to copy the printed sizes of EVERY room exactly, and say where each room is.
 
 ${WRITTEN_RULES}
 
-If the plan shows several rooms, report the main / largest room (the one the photo focuses on).`;
+- Give one entry per room that has sizes printed for it (a plan with one room has one entry). For each, give the position of the ROOM's centre (not the label's) as x_pct / y_pct: 0–100 % of the image width from the left and of the image height from the top.
+- Each room's sizes are the ones printed inside it or on dimension lines along its own walls. Don't give one room the sizes of a neighbour or of the whole flat.`;
 
     const ask = async (model: string, system: string, text: string, tool: { name: string; description: string; parameters: unknown }) => {
       const response = await fetchWithTimeout("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -125,13 +126,13 @@ If the plan shows several rooms, report the main / largest room (the one the pho
         required: ["walls", "shape_description"],
       },
     };
-    const readTool = { name: "copy_printed_sizes", description: "Copy the room's sizes exactly as printed on the plan", parameters: WRITTEN_SCHEMA };
+    const readTool = { name: "copy_printed_sizes", description: "Copy every room's sizes exactly as printed on the plan, with where each room is", parameters: PRINTED_ROOMS_SCHEMA };
 
     // Reading small printed numbers needs the strongest vision model; fall back if it isn't available.
     const readSizes = async () => {
       for (const model of ["google/gemini-2.5-pro", "google/gemini-2.5-flash"]) {
         try {
-          return await ask(model, readPrompt, "Copy every size printed for this room, exactly as written.", readTool);
+          return await ask(model, readPrompt, "Copy the sizes printed for every room, exactly as written, with each room's position.", readTool);
         } catch (e) {
           console.warn("analyze-floorplan: printed-size read failed on", model, (e as Error).message);
         }
@@ -139,11 +140,14 @@ If the plan shows several rooms, report the main / largest room (the one the pho
       return null;
     };
 
-    const [parsed, writtenText] = await Promise.all([
+    const [parsed, printed] = await Promise.all([
       ask("google/gemini-2.5-flash", systemPrompt, "Analyze this floor plan image and extract the room shape as wall segments with angles. Be precise about proportions.", shapeTool),
       readSizes(),
     ]);
 
+    // The room asked about (focus = its outline on the plan, 0–1) or else the largest printed room.
+    const printedRooms: PrintedRoom[] = Array.isArray(printed?.rooms) ? printed.rooms : [];
+    const writtenText = pickPrinted(printedRooms, Array.isArray(focus) ? focus : null, printed?.unit) ?? null;
     // Printed numbers beat the shape pass's estimate; only what isn't printed stays estimated.
     const written = readWritten(writtenText);
     const walls: { length_m: number; angle_deg: number }[] = Array.isArray(parsed.walls) ? parsed.walls : [];
@@ -166,6 +170,8 @@ If the plan shows several rooms, report the main / largest room (the one the pho
       parsed.dimensions_source = { width: "estimated", length: "estimated" };
     }
     parsed.printed_text = writtenText ?? null;
+    // every room's printed sizes and position, so the app can use the right ones for the room the person picks
+    parsed.printed_rooms = printedRooms.map((r) => ({ ...r, unit: r.unit ?? printed?.unit ?? null }));
 
     return new Response(JSON.stringify({ floorplan: parsed }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
