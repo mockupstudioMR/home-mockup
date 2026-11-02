@@ -4151,5 +4151,11 @@
   "written on plan": "مكتوب على المسقط",
   "estimated": "تقديري",
   "from printed area": "من المساحة المكتوبة",
-  "sizes from the plan": "المقاسات من المسقط"
+  "sizes from the plan": "المقاسات من المسقط",
+  "Sizes written on the plan are used as they are.": "المقاسات المكتوبة على المسقط بتتاخد زي ما هي.",
+  "The sizes written on the plan replace the measurement you set.": "المقاسات المكتوبة على المسقط خدت مكان المقاس اللي كتبته.",
+  "Wall A is written on your plan; the other side comes from your measurement.": "حيطة A مكتوبة على المسقط؛ الجنب التاني من المقاس بتاعك.",
+  "Wall B is written on your plan; the other side comes from your measurement.": "حيطة B مكتوبة على المسقط؛ الجنب التاني من المقاس بتاعك.",
+  "Worked out from the area written on your plan. Type one wall above to make it exact.": "محسوبة من المساحة المكتوبة على المسقط. اكتب طول حيطة واحدة فوق علشان تبقى مظبوطة.",
+  "Sizes from the printed plan are used; the 1 m door only fills in rooms without printed sizes. Saved for next time.": "اتاخدت المقاسات المكتوبة على المسقط؛ الباب 1 م بيكمّل بس الأوض اللي مالهاش مقاسات. اتحفظ للمرة الجاية."
 }

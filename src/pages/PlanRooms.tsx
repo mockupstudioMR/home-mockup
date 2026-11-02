@@ -176,7 +176,10 @@ const PlanRooms = () => {
           .eq("image_hash", hash)
           .maybeSingle();
         const cachedPlan = cached?.plan as unknown as PlanResult | undefined;
-        if (cachedPlan?.rooms?.length && cached?.image_url) {
+        // Plans measured before printed sizes were read have no size_source: they were scaled from the 1 m
+        // door only, so measure them again instead of reusing door-based sizes.
+        const readsPrinted = !!cachedPlan?.rooms?.length && cachedPlan.rooms.every((r) => !!r.size_source);
+        if (cachedPlan?.rooms?.length && cached?.image_url && readsPrinted) {
           setImageUrl(cached.image_url);
           setPlan(normalize(cachedPlan));
           setUploading(false);
@@ -222,7 +225,7 @@ const PlanRooms = () => {
 
         toast({
           title: `${normalized.rooms.length} rooms detected`,
-          description: "Sizes were scaled using a 1 m door reference — saved for next time.",
+          description: "Sizes from the printed plan are used; the 1 m door only fills in rooms without printed sizes. Saved for next time.",
         });
       } catch (err: any) {
         toast({ title: "Analysis failed", description: getAiErrorMessage(err), variant: "destructive" });

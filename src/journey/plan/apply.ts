@@ -72,3 +72,27 @@ export function withWritten(estimate: { widthM: number; lengthM: number }, writt
     sizeSource: size.source,
   };
 }
+
+type Source = NonNullable<JourneyState["room"]["sizeSource"]>;
+export type ScaleRef = "Wall A length" | "Wall B length" | "Door width";
+
+/**
+ * A measurement typed in the "A measurement you know" box, applied to the room. Sides printed on the plan overrule
+ * any reference: the other wall or the door width only rescales the sides that aren't printed. Typing a wall's own
+ * length is a correction of that wall, so it replaces that side even when it was printed.
+ */
+export function fromReference(
+  room: { widthM: number; lengthM: number; doorM: number; sizeSource?: Source },
+  ref: ScaleRef,
+  v: number,
+): { widthM: number; lengthM: number; doorM?: number; sizeSource?: Source } {
+  const r2 = (n: number) => +n.toFixed(2);
+  const { widthM: w, lengthM: l, doorM, sizeSource: src } = room;
+  const printedW = src?.width === "written", printedL = src?.length === "written";
+  const typed = ref === "Wall A length" ? "width" : ref === "Wall B length" ? "length" : null;
+  const keep = (side: "width" | "length") => (src?.[side] === "written" && typed !== side ? "written" : "estimated");
+  const sizeSource: Source | undefined = keep("width") === "written" || keep("length") === "written" ? { width: keep("width"), length: keep("length") } : undefined;
+  if (ref === "Wall A length") return { widthM: v, lengthM: printedL ? l : r2(v * (l / w)), sizeSource };
+  if (ref === "Wall B length") return { widthM: printedW ? w : r2(v * (w / l)), lengthM: v, sizeSource };
+  return { widthM: printedW ? w : r2((w * v) / doorM), lengthM: printedL ? l : r2((l * v) / doorM), doorM: v, sizeSource };
+}

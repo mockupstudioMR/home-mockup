@@ -9,7 +9,7 @@ import { ADDABLE, newPiece, resizeCm, sizeCm, turn } from "../plan/editLayout";
 import { StepSummary } from "../Summary";
 import { analyzePlan, makeLayout, uploadPhoto } from "../services";
 import { onPlanReaderStatus, readPlan, warmPlanReader, type PlanRead } from "../plan/reader";
-import { applyPlanRead, withWritten } from "../plan/apply";
+import { applyPlanRead, fromReference, withWritten, type ScaleRef } from "../plan/apply";
 import { layoutChecks, pieceInfo } from "../plan/layoutCheck";
 import { pdfToImages } from "@/lib/pdfToImages";
 import { list, soFar } from "../story";
@@ -37,7 +37,8 @@ const sideNote = (r: JourneyState["room"], side: "width" | "length", example: bo
   const src = r.sizeSource?.[side];
   if (src === "written") return " · written on plan";
   if (src === "from area") return " · from printed area";
-  if (src === "estimated") return " · estimated";
+  // a side worked out from a measurement the person typed isn't an estimate any more
+  if (src === "estimated") return r.confirmed ? "" : " · estimated";
   return example ? (r.planRead?.guessM ? " · from plan" : " · example") : "";
 };
 
@@ -68,20 +69,25 @@ export function RoomInput() {
           const next = applyPlanRead(x, read, EX_W);
           return { ...next, room: { ...next.room, planImage: url }, layouts: [], chosenLayout: undefined };
         });
-        // Sizes written on the plan beat the door-width guess. Read in the background; applied unless
-        // the person has already typed a measurement or uploaded another plan.
+        // Sizes written on the plan beat the door-width guess and any scale reference set while they were
+        // being read (door width, a wall typed from the reference box). Only another plan uploaded meanwhile is left alone.
         void analyzePlan(url)
           .then((est) => {
             if (!est?.written) return;
             let applied: JourneyState["room"] | null = null;
+            let replaced = false;
             set((x) => {
-              // a size the person typed in the meantime wins; another plan uploaded meanwhile is left alone
-              if (x.room.planImage !== url || (x.room.confirmed && !x.room.sizeSource)) return {};
+              if (x.room.planImage !== url) return {};
+              replaced = !!x.room.confirmed && !x.room.sizeSource;
               const room = { ...x.room, ...withWritten({ widthM: x.room.widthM ?? EX_W, lengthM: x.room.lengthM ?? EX_L }, est.written) };
               applied = room;
               return { room, layouts: [], chosenLayout: undefined };
             });
-            if (applied) toast({ title: "Sizes read from your plan", description: sizeLine(applied) });
+            if (applied)
+              toast({
+                title: "Sizes read from your plan",
+                description: `${sizeLine(applied)}${replaced ? ". The sizes written on the plan replace the measurement you set." : ""}`,
+              });
           })
           .catch(() => undefined);
       } else {
@@ -366,15 +372,15 @@ export function Measure() {
   const W = Math.round(w * k), H = Math.round(l * k);
 
   const setRoom = (patch: Partial<JourneyState["room"]>) => set((x) => ({ room: { ...x.room, sizeSource: undefined, ...patch }, layouts: [], chosenLayout: undefined }));
-  // a side printed on the plan isn't rescaled when the other side is typed
   const printedW = s.room.sizeSource?.width === "written", printedL = s.room.sizeSource?.length === "written";
   const doorM = s.room.doorM ?? 0.9;
   const known = ref === "Wall A length" ? s.room.widthM ?? EX_W : ref === "Wall B length" ? s.room.lengthM ?? EX_L : doorM;
   const setKnown = (v: number) => {
-    if (!v || v <= 0 || (s.room.confirmed && Math.abs(v - known) < 0.005)) return; // unchanged: keep the layouts
-    if (ref === "Wall A length") setRoom({ lengthM: printedL ? l : +(v * (l / w)).toFixed(2), widthM: v, confirmed: true });
-    else if (ref === "Wall B length") setRoom({ widthM: printedW ? w : +(v * (w / l)).toFixed(2), lengthM: v, confirmed: true });
-    else setRoom({ widthM: +((w * v) / doorM).toFixed(2), lengthM: +((l * v) / doorM).toFixed(2), doorM: v, confirmed: true });
+    if (!v || v <= 0) return;
+    // unchanged: keep the layouts and where the sizes came from (an unchanged example size is still confirmed)
+    if (Math.abs(v - known) < 0.005 && (s.room.confirmed || printedW || printedL)) return;
+    // printed sides overrule the reference; see fromReference
+    setRoom({ ...fromReference({ widthM: w, lengthM: l, doorM, sizeSource: s.room.sizeSource }, ref as ScaleRef, v), confirmed: true });
   };
   const addTool = (kind: FixedKind) =>
     set((x) => {
@@ -411,7 +417,7 @@ export function Measure() {
         <p className="sub" style={{ fontSize: "19px" }}>
           {s.room.input === "plan"
             ? s.room.planRead
-              ? `We measured your plan and put ${s.room.planRead.doors} door${s.room.planRead.doors === 1 ? "" : "s"} and ${s.room.planRead.windows} window${s.room.planRead.windows === 1 ? "" : "s"} on its walls. Check them, then type one real measurement.`
+              ? `We measured your plan and put ${s.room.planRead.doors} door${s.room.planRead.doors === 1 ? "" : "s"} and ${s.room.planRead.windows} window${s.room.planRead.windows === 1 ? "" : "s"} on its walls. ${s.room.sizeSource?.width === "written" || s.room.sizeSource?.length === "written" ? "Sizes written on the plan are used as they are." : "Check them, then type one real measurement."}`
               : "We traced your plan. Drag the features you counted onto the right walls."
             : "Here's your room's shape. Type its sizes and drag the features you counted onto the right walls."}
         </p>
@@ -499,9 +505,13 @@ export function Measure() {
             </div>
             <p className="small" style={{ margin: "0" }}>
               {s.room.sizeSource
-                ? s.room.confirmed
+                ? printedW && printedL
                   ? "Read from the sizes written on your plan. Change them above if they're not right."
-                  : "One side is written on your plan; the other is estimated from the drawing. Type it above to make it exact."
+                  : s.room.confirmed
+                  ? `Wall ${printedW ? "A" : "B"} is written on your plan; the other side comes from your measurement.`
+                  : printedW || printedL
+                  ? "One side is written on your plan; the other is estimated from the drawing. Type it above to make it exact."
+                  : "Worked out from the area written on your plan. Type one wall above to make it exact."
                 : example
                 ? s.room.planRead?.guessM
                   ? `A rough size from your plan's door width. Type one real length above to make it exact.`
