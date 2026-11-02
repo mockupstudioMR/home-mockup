@@ -50,6 +50,13 @@
       "when": 1793636184764,
       "tag": "0006_designing_my_home_v2",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1793636206724,
+      "tag": "0007_reference_data",
+      "breakpoints": true
     }
   ]
 }

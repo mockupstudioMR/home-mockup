@@ -2347,6 +2347,27 @@ export type Database = {
           },
         ]
       }
+      scope_defaults: {
+        Row: {
+          area: string
+          hint: string | null
+          mode: Database["public"]["Enums"]["scope_mode"]
+          starting_state: Database["public"]["Enums"]["room_starting_state"]
+        }
+        Insert: {
+          area: string
+          hint?: string | null
+          mode: Database["public"]["Enums"]["scope_mode"]
+          starting_state: Database["public"]["Enums"]["room_starting_state"]
+        }
+        Update: {
+          area?: string
+          hint?: string | null
+          mode?: Database["public"]["Enums"]["scope_mode"]
+          starting_state?: Database["public"]["Enums"]["room_starting_state"]
+        }
+        Relationships: []
+      }
       shop_products: {
         Row: {
           ai_image_description: string | null
@@ -2717,6 +2738,7 @@ export type Database = {
     }
     Functions: {
       accept_invite: { Args: { invite_token: string }; Returns: boolean }
+      apply_scope_defaults: { Args: { _room_id: string }; Returns: undefined }
       can_access_project: { Args: { _project_id: string }; Returns: boolean }
       can_access_room: { Args: { _room_id: string }; Returns: boolean }
       can_edit_room: { Args: { _room_id: string }; Returns: boolean }
