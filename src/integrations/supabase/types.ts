@@ -3445,18 +3445,21 @@ export type Database = {
           area: string
           hint: string | null
           mode: Database["public"]["Enums"]["scope_mode"]
+          room_type: string
           starting_state: Database["public"]["Enums"]["room_starting_state"]
         }
         Insert: {
           area: string
           hint?: string | null
           mode: Database["public"]["Enums"]["scope_mode"]
+          room_type?: string
           starting_state: Database["public"]["Enums"]["room_starting_state"]
         }
         Update: {
           area?: string
           hint?: string | null
           mode?: Database["public"]["Enums"]["scope_mode"]
+          room_type?: string
           starting_state?: Database["public"]["Enums"]["room_starting_state"]
         }
         Relationships: []
@@ -4184,10 +4187,27 @@ export type Database = {
     }
     Functions: {
       accept_invite: { Args: { invite_token: string }; Returns: boolean }
+      add_project_shop: {
+        Args: { _project: string; _url: string }
+        Returns: {
+          domain: string
+          id: string
+          last_scraped_at: string
+          name: string
+          product_count: number
+          status: Database["public"]["Enums"]["shop_status"]
+          url: string
+        }[]
+      }
+      admin_refresh_scores: { Args: never; Returns: string }
       apply_scope_defaults: { Args: { _room_id: string }; Returns: undefined }
       can_access_project: { Args: { _project_id: string }; Returns: boolean }
       can_access_room: { Args: { _room_id: string }; Returns: boolean }
       can_edit_room: { Args: { _room_id: string }; Returns: boolean }
+      can_read_shop: {
+        Args: { _shop: string; _user: string }
+        Returns: boolean
+      }
       deduct_credits: {
         Args: { _amount: number; _user_id: string }
         Returns: boolean
@@ -4210,6 +4230,15 @@ export type Database = {
         Returns: undefined
       }
       project_shop_ids: { Args: { _project_id: string }; Returns: string[] }
+      propose_term: {
+        Args: {
+          _facet: Database["public"]["Enums"]["term_facet"]
+          _piece?: string
+          _text: string
+        }
+        Returns: string
+      }
+      refresh_ingest_batch: { Args: { _batch: string }; Returns: undefined }
       refresh_scheme_scores: { Args: never; Returns: undefined }
       resolve_term: {
         Args: {
@@ -4218,6 +4247,11 @@ export type Database = {
         }
         Returns: string
       }
+      save_detected_piece: {
+        Args: { _confirmed?: boolean; _piece: string }
+        Returns: string
+      }
+      save_ingest_combination: { Args: { _item: string }; Returns: string }
       term: {
         Args: {
           _facet: Database["public"]["Enums"]["term_facet"]
@@ -4225,6 +4259,7 @@ export type Database = {
         }
         Returns: string
       }
+      undo_ingest_batch: { Args: { _batch: string }; Returns: undefined }
     }
     Enums: {
       app_role: "admin" | "designer" | "furniture_shop" | "user"
