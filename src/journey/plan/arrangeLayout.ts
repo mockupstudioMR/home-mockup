@@ -54,7 +54,7 @@ export function placeLayout(s: JourneyState, rules: Rules, groups: GroupRequest[
 const pc = (v: number, of: number) => Math.round((v / of) * 1000) / 10;
 
 function toLayout(a: Arrangement, W: number, L: number, s: JourneyState, groups: GroupRequest[], meta: { name?: string; notes?: Layout["notes"] }): Layout {
-  const items: LayoutItem[] = a.items.map((p) => ({ label: p.label, kind: p.kind, x: pc(p.x, W), y: pc(p.y, L), w: pc(p.w, W), h: pc(p.h, L), facing: p.facing, group: p.group, symbol: p.symbol }));
+  const items: LayoutItem[] = a.items.map((p) => ({ label: p.label, kind: p.kind, x: pc(p.x, W), y: pc(p.y, L), w: pc(p.w, W), h: pc(p.h, L), facing: p.facing, group: p.group, symbol: p.symbol, symbolFront: p.symbolFront }));
   const zones = a.zones.filter((z) => z.label).map((z, i) => ({ label: z.label, x: pc(z.x, W), y: pc(z.y, L), w: pc(z.w, W), h: pc(z.h, L), tone: i % 2 ? "green" : "plum" }));
   // a walking line from the main door into the room
   const door = s.placements.find((p) => p.kind === "doors" && p.wall && p.pos != null);

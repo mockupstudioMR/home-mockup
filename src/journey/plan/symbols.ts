@@ -55,10 +55,15 @@ export function symbolOf(i: Pick<LayoutItem, "symbol" | "label" | "kind">): stri
  * How to lay the symbol into a piece of `pw` × `ph` px: turned to the piece's facing (back away from its front),
  * or, for a piece with no front, turned a quarter when its long side runs the other way to the drawing's.
  */
-export function symbolPlacement(key: string, dir: Dir | undefined, pw: number, ph: number) {
-  const [sw, sh] = SYMBOL_SIZE[key] ?? [1, 1];
+export function symbolPlacement(key: string, dir: Dir | undefined, pw: number, ph: number, front: "bottom" | "top" | "left" | "right" = "bottom") {
+  // a drawing made with its front on another edge is first turned so its front is at the bottom
+  const base = { bottom: 0, top: 180, left: -90, right: 90 }[front];
+  const [w0, h0] = SYMBOL_SIZE[key] ?? [1, 1];
+  const [sw, sh] = Math.abs(base) === 90 ? [h0, w0] : [w0, h0];
   const squareish = Math.abs(sw / sh - 1) < 0.15;
-  const deg = dir ? { down: 0, up: 180, left: 90, right: -90 }[dir] : !squareish && sw >= sh !== pw >= ph ? 90 : 0;
+  const turn = dir ? { down: 0, up: 180, left: 90, right: -90 }[dir] : !squareish && sw >= sh !== pw >= ph ? 90 : 0;
+  const t = (turn + base + 360) % 360;
+  const deg = t > 180 ? t - 360 : t; // 0, 90, 180 or -90
   const quarter = Math.abs(deg) === 90;
   const w = quarter ? ph : pw, h = quarter ? pw : ph;
   return { width: w, height: h, left: (pw - w) / 2, top: (ph - h) / 2, transform: deg ? `rotate(${deg}deg)` : undefined };

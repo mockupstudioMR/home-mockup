@@ -35,6 +35,12 @@ describe("furniture symbols", () => {
     expect(left.left).toBe((95 - 220) / 2);
   });
 
+  it("a symbol drawn with its front on another edge is turned so its front still points the right way", () => {
+    // drawn front on the left: a quarter turn anticlockwise puts it at the bottom
+    expect(symbolPlacement("sofa-3", "down", 95, 220, "left")).toMatchObject({ width: 220, height: 95, transform: "rotate(-90deg)" });
+    expect(symbolPlacement("sofa-3", "left", 95, 220, "top").transform).toBe("rotate(-90deg)");
+  });
+
   it("a table standing the other way round is turned too, a round one isn't", () => {
     expect(symbolPlacement("dining-table", undefined, 80, 140).transform).toBe("rotate(90deg)");
     expect(symbolPlacement("side-table", undefined, 45, 45).transform).toBeUndefined();

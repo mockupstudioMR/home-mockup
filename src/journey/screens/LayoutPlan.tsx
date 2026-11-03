@@ -153,7 +153,7 @@ export function LayoutPlan({ layout, s, max = { w: 440, h: 560 }, compact = fals
             const dir = facingOf(i, w, l);
             const sym = symbolOf(i);
             const pw = (i.w / 100) * W, ph = (i.h / 100) * H;
-            const back = <img className="lp-sym" src={symbolUrl(sym)} alt="" aria-hidden="true" draggable={false} style={symbolPlacement(sym, dir, pw, ph)} />;
+            const back = <img className="lp-sym" src={symbolUrl(sym)} alt="" aria-hidden="true" draggable={false} style={symbolPlacement(sym, dir, pw, ph, i.symbolFront)} />;
             if (!edit)
               return (
                 <div key={n} className={`lp-f sym${i.kind === "rug" ? " rug" : ""}`} style={st}>

@@ -49,6 +49,8 @@ export type LayoutItem = {
   group?: string;
   /** Its top-view symbol: public/furniture-symbols/<symbol>.svg. */
   symbol?: string;
+  /** Which edge of that drawing is the piece's front, when it isn't the bottom. */
+  symbolFront?: "top" | "left" | "right";
 };
 export type Layout = {
   id: string;

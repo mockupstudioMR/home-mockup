@@ -21,7 +21,17 @@ export type GroupRequest = { key: string; wall?: Wall | null; along?: number | n
 /** A piece the person keeps. along is 0–100 % along its wall. */
 export type KeepRequest = { name: string; w: number; d: number; wall?: Wall | null; along?: number | null; fixedSpot?: boolean };
 
-export type Placed = Box & { label: string; kind: SpecKind | "keep"; facing?: Dir; group: string; optional?: boolean; /** public/furniture-symbols/<symbol>.svg */ symbol?: string };
+export type Placed = Box & {
+  label: string;
+  kind: SpecKind | "keep";
+  facing?: Dir;
+  group: string;
+  optional?: boolean;
+  /** public/furniture-symbols/<symbol>.svg */
+  symbol?: string;
+  /** Which edge of the symbol drawing is the front, when it isn't the bottom. */
+  symbolFront?: "top" | "left" | "right";
+};
 /** moved: groupings that couldn't go where they were asked (a wall), and where they went instead. */
 export type Arrangement = { items: Placed[]; zones: (Box & { label: string })[]; left_out: string[]; moved: { name: string; from: Wall; to: Wall | null }[] };
 
@@ -83,7 +93,28 @@ function frontZone(b: Box, facing: Dir | undefined, depth: number): Box | null {
   return { x: b.x - depth, y: b.y, w: depth, h: b.h };
 }
 
-type Piece = Placed & { clearance: number; tall: boolean; anchorFacing: boolean };
+const OPP: Record<Dir, Dir> = { down: "up", up: "down", left: "right", right: "left" };
+/** Left and right as seen standing in front of a piece and looking at it (facing down: its left is screen left). */
+const LEFT_OF: Record<Dir, Dir> = { down: "left", up: "right", right: "down", left: "up" };
+
+/**
+ * The floor that must stay free around a piece: in front (walking up to it, opening it), behind (pulling out a
+ * chair), at its left and right (getting into bed, sitting at the end of a table). A piece with no front is treated
+ * as facing down: its long sides are front and back.
+ */
+function clearZones(p: Piece): Box[] {
+  const f = p.facing ?? "down";
+  const c = p.clear;
+  const out = [
+    p.anchorFacing ? null : frontZone(p, f, c.front), // a chair's front is tucked under its table
+    frontZone(p, OPP[f], c.back),
+    frontZone(p, LEFT_OF[f], c.left),
+    frontZone(p, OPP[LEFT_OF[f]], c.right),
+  ];
+  return out.filter(Boolean) as Box[];
+}
+
+type Piece = Placed & { clearance: number; clear: { front: number; back: number; left: number; right: number }; tall: boolean; anchorFacing: boolean };
 
 export type ArrangeInput = {
   W: number; // cm, wall A / C
@@ -129,11 +160,10 @@ export function arrange(input: ArrangeInput): Arrangement {
     for (const q of placed) {
       if (q.group === group || q.kind === "rug") continue;
       if (hit(p, q)) return false;
-      // keep the floor in front of other pieces free (walking space, opening a wardrobe, pulling out a chair)
-      const fz = frontZone(q, q.facing, q.clearance);
-      if (fz && !q.anchorFacing && hit(p, fz, 2)) return false;
-      const own = frontZone(p, p.facing, p.clearance);
-      if (own && !p.anchorFacing && hit(own, q, 2)) return false;
+      // keep the floor around other pieces free, on every side that needs it (walking up to a sofa, opening a
+      // wardrobe, getting into bed, pulling out a chair), and this piece's own floor free of them
+      if (clearZones(q).some((z) => hit(p, z, 2))) return false;
+      if (clearZones(p).some((z) => hit(z, q, 2))) return false;
     }
     return true;
   };
@@ -145,10 +175,12 @@ export function arrange(input: ArrangeInput): Arrangement {
       label,
       kind: spec?.kind ?? "other",
       symbol: spec?.symbol ?? (spec ? symbolForName(spec.name, spec.variant, spec.kind) : undefined),
+      ...(spec?.symbol_front && spec.symbol_front !== "bottom" ? { symbolFront: spec.symbol_front } : {}),
       facing: dir,
       group,
       optional: optional || undefined,
       clearance: spec?.min_clearance_cm ?? 0,
+      clear: { front: spec?.min_clearance_cm ?? 0, back: spec?.back_clearance_cm ?? 0, left: spec?.left_clearance_cm ?? 0, right: spec?.right_clearance_cm ?? 0 },
       tall: (spec?.height_cm ?? 0) >= 110,
       anchorFacing: spec?.facing === "anchor",
     };
@@ -228,7 +260,8 @@ export function arrange(input: ArrangeInput): Arrangement {
     if (keptAnchors.has(k)) continue; // placed with its grouping below
     const spec = findSpec(specs, k.name);
     const sz = { w: k.w || spec?.width_cm || 80, d: k.d || spec?.depth_cm || 50 };
-    const keepSpec: Spec = { name: k.name, variant: "kept", kind: spec?.kind ?? "other", width_cm: sz.w, depth_cm: sz.d, height_cm: spec?.height_cm, min_clearance_cm: spec?.min_clearance_cm ?? 40, facing: spec?.facing ?? "wall", symbol: spec?.symbol ?? symbolForName(k.name), is_default: false };
+    // the owner's piece at its real size, with the sides and clearances of its kind of piece
+    const keepSpec: Spec = { ...(spec ?? {}), name: k.name, variant: "kept", kind: spec?.kind ?? "other", width_cm: sz.w, depth_cm: sz.d, height_cm: spec?.height_cm, min_clearance_cm: spec?.min_clearance_cm ?? 40, facing: spec?.facing ?? "wall", symbol: spec?.symbol ?? symbolForName(k.name), is_default: false };
     let done: Piece[] | null = null;
     const ws = k.fixedSpot && k.wall ? [k.wall] : wallsBy(k.wall);
     for (const w of ws) {
@@ -293,7 +326,7 @@ export function arrange(input: ArrangeInput): Arrangement {
   }
 
   return {
-    items: placed.map(({ clearance: _c, tall: _t, anchorFacing: _a, ...p }) => ({ ...p, x: r1(p.x), y: r1(p.y), w: r1(p.w), h: r1(p.h) })),
+    items: placed.map(({ clearance: _c, clear: _cl, tall: _t, anchorFacing: _a, ...p }) => ({ ...p, x: r1(p.x), y: r1(p.y), w: r1(p.w), h: r1(p.h) })),
     zones: zones.map((z) => ({ ...z, x: r1(z.x), y: r1(z.y), w: r1(z.w), h: r1(z.h) })),
     left_out,
     moved,

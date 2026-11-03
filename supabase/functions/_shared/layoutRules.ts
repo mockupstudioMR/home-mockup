@@ -10,7 +10,7 @@
  * - wall: back against a wall, front into the room (sofa, wardrobe, desk, TV unit)
  * - head_wall: head end against a wall (bed)
  * - anchor: faces the piece it belongs to (dining chair → table, armchair → coffee table)
- * - free: no front (coffee table, rug, lamp)
+ * - free: no front (side table, rug, lamp)
  */
 export type SpecFacing = "wall" | "head_wall" | "anchor" | "free";
 /** What the plan draws it as. */
@@ -29,8 +29,22 @@ export type Spec = {
   facing: SpecFacing;
   /** Its top-view symbol on the plan: public/furniture-symbols/<symbol>.svg (back at the top). */
   symbol?: string | null;
+  /** Which edge of the symbol drawing is the piece's front (the symbols are drawn with it at the bottom). */
+  symbol_front?: Edge | null;
+  /**
+   * What each side of the piece is. Front: the side you use (a sofa's seats, a desk's knee space, a piano's
+   * keyboard, a wardrobe's doors, a coffee table's side facing the seating); back: the other side, usually on the
+   * wall; left and right as seen standing in front of the piece, looking at it.
+   */
+  sides?: Sides | null;
+  /** Free floor needed behind and at each side, in cm (min_clearance_cm is the front). */
+  back_clearance_cm?: number | null;
+  left_clearance_cm?: number | null;
+  right_clearance_cm?: number | null;
   is_default: boolean;
 };
+export type Edge = "top" | "bottom" | "left" | "right";
+export type Sides = { front: string; back: string; left: string; right: string };
 
 /**
  * Where a member sits, drawn as if the main piece stands against the TOP wall facing down into the room:
@@ -80,7 +94,7 @@ export const DEFAULT_SPECS: Spec[] = [
   { name: "bench", variant: "standard", kind: "bench", width_cm: 120, depth_cm: 40, height_cm: 45, min_clearance_cm: 0, facing: "free", symbol: "bench", is_default: true },
   { name: "piano bench", variant: "standard", kind: "bench", width_cm: 56, depth_cm: 36, height_cm: 49, min_clearance_cm: 0, facing: "anchor", symbol: "piano-bench", is_default: true },
   // tables
-  { name: "coffee table", variant: "standard", kind: "table", width_cm: 110, depth_cm: 65, height_cm: 38, min_clearance_cm: 45, facing: "free", symbol: "coffee-table", is_default: true },
+  { name: "coffee table", variant: "standard", kind: "table", width_cm: 110, depth_cm: 65, height_cm: 38, min_clearance_cm: 45, facing: "anchor", symbol: "coffee-table", is_default: true },
   { name: "side table", variant: "standard", kind: "table", width_cm: 45, depth_cm: 45, height_cm: 50, min_clearance_cm: 0, facing: "free", symbol: "side-table", is_default: true },
   { name: "dining table", variant: "4-seat", kind: "table", width_cm: 140, depth_cm: 80, height_cm: 75, min_clearance_cm: 80, facing: "free", symbol: "dining-table", is_default: true },
   { name: "dining table", variant: "6-seat", kind: "table", width_cm: 180, depth_cm: 90, height_cm: 75, min_clearance_cm: 80, facing: "free", symbol: "dining-table", is_default: false },
@@ -105,13 +119,62 @@ export const DEFAULT_SPECS: Spec[] = [
   { name: "floor lamp", variant: "standard", kind: "other", width_cm: 30, depth_cm: 30, height_cm: 155, min_clearance_cm: 0, facing: "free", symbol: "floor-lamp", is_default: true },
 ];
 
+/**
+ * Each piece's sides: what front, back, left and right are, and the free floor behind and at each side (cm).
+ * Left and right are as seen standing in front of the piece, looking at it.
+ */
+export const SIDES: Record<string, Sides & { back_cm: number; left_cm: number; right_cm: number }> = {
+  "3-seat sofa": { front: "seats", back: "backrest", left: "arm", right: "arm", back_cm: 0, left_cm: 0, right_cm: 0 },
+  "curved sofa": { front: "seats", back: "curved backrest", left: "arm", right: "arm", back_cm: 0, left_cm: 0, right_cm: 0 },
+  "l-shape sofa": { front: "seats", back: "backrest", left: "chaise end", right: "arm", back_cm: 0, left_cm: 0, right_cm: 0 },
+  "accent chair": { front: "seat", back: "backrest", left: "arm", right: "arm", back_cm: 0, left_cm: 0, right_cm: 0 },
+  "dining chair": { front: "seat", back: "backrest", left: "side", right: "side", back_cm: 30, left_cm: 0, right_cm: 0 },
+  "desk chair": { front: "seat", back: "backrest", left: "side", right: "side", back_cm: 30, left_cm: 0, right_cm: 0 },
+  bench: { front: "long side", back: "long side", left: "end", right: "end", back_cm: 0, left_cm: 0, right_cm: 0 },
+  "piano bench": { front: "side towards the piano", back: "side you sit down from", left: "end", right: "end", back_cm: 40, left_cm: 0, right_cm: 0 },
+  "coffee table": { front: "long side towards the seating", back: "long side", left: "end", right: "end", back_cm: 40, left_cm: 30, right_cm: 30 },
+  "side table": { front: "any side (round)", back: "any side", left: "any side", right: "any side", back_cm: 0, left_cm: 0, right_cm: 0 },
+  "dining table": { front: "long side (seats)", back: "long side (seats)", left: "end (head of the table)", right: "end (head of the table)", back_cm: 80, left_cm: 60, right_cm: 60 },
+  desk: { front: "where you sit (knee space)", back: "against the wall", left: "end", right: "end", back_cm: 0, left_cm: 0, right_cm: 0 },
+  bed: { front: "foot end", back: "headboard", left: "side (getting in)", right: "side (getting in)", back_cm: 0, left_cm: 60, right_cm: 60 },
+  nightstand: { front: "drawer", back: "against the wall", left: "side", right: "side", back_cm: 0, left_cm: 0, right_cm: 0 },
+  wardrobe: { front: "doors", back: "against the wall", left: "side panel", right: "side panel", back_cm: 0, left_cm: 0, right_cm: 0 },
+  dresser: { front: "drawers", back: "against the wall", left: "side", right: "side", back_cm: 0, left_cm: 0, right_cm: 0 },
+  "tv unit": { front: "screen side, towards the seating", back: "against the wall", left: "end", right: "end", back_cm: 0, left_cm: 0, right_cm: 0 },
+  bookshelf: { front: "shelves", back: "against the wall", left: "side", right: "side", back_cm: 0, left_cm: 0, right_cm: 0 },
+  sideboard: { front: "doors and drawers", back: "against the wall", left: "end", right: "end", back_cm: 0, left_cm: 0, right_cm: 0 },
+  console: { front: "front", back: "against the wall", left: "end", right: "end", back_cm: 0, left_cm: 0, right_cm: 0 },
+  "upright piano": { front: "keyboard", back: "against the wall", left: "bass end", right: "treble end", back_cm: 0, left_cm: 0, right_cm: 0 },
+  "digital piano": { front: "keyboard", back: "against the wall", left: "bass end", right: "treble end", back_cm: 0, left_cm: 0, right_cm: 0 },
+  "baby grand piano": { front: "keyboard", back: "curved tail", left: "straight side (bass)", right: "curved side (lid opens here)", back_cm: 50, left_cm: 30, right_cm: 50 },
+  rug: { front: "any side", back: "any side", left: "any side", right: "any side", back_cm: 0, left_cm: 0, right_cm: 0 },
+  "round mirror": { front: "mirror", back: "against the wall", left: "edge", right: "edge", back_cm: 0, left_cm: 0, right_cm: 0 },
+  "floor lamp": { front: "any side (round)", back: "any side", left: "any side", right: "any side", back_cm: 0, left_cm: 0, right_cm: 0 },
+  cushion: { front: "any side", back: "any side", left: "any side", right: "any side", back_cm: 0, left_cm: 0, right_cm: 0 },
+};
+
+/** A size row with its sides filled in from SIDES. */
+function withSides(sp: Spec): Spec {
+  const d = SIDES[sp.name];
+  if (!d) return sp;
+  return {
+    ...sp,
+    symbol_front: sp.symbol_front ?? "bottom",
+    sides: sp.sides ?? { front: d.front, back: d.back, left: d.left, right: d.right },
+    back_clearance_cm: sp.back_clearance_cm ?? d.back_cm,
+    left_clearance_cm: sp.left_clearance_cm ?? d.left_cm,
+    right_clearance_cm: sp.right_clearance_cm ?? d.right_cm,
+  };
+}
+for (let i = 0; i < DEFAULT_SPECS.length; i++) DEFAULT_SPECS[i] = withSides(DEFAULT_SPECS[i]);
+
 export const DEFAULT_GROUPINGS: Grouping[] = [
   {
     key: "tv-lounge", name: "Sofa, coffee table and TV", room_types: ["living-room"], activities: ["Relax", "Watch films"],
     anchor_name: "3-seat sofa", anchor_place: "wall", priority: 1, zone: "RELAX",
     members: [
       { spec_name: "rug", spec_variant: "medium", dx_cm: 0, dy_cm: 150, faces: "none", optional: true },
-      { spec_name: "coffee table", dx_cm: 0, dy_cm: 173, faces: "none" }, // 95 sofa + 45 gap + 32.5 half table
+      { spec_name: "coffee table", dx_cm: 0, dy_cm: 173, faces: "toward_wall" }, // 95 sofa + 45 gap + 32.5 half table; its front faces the sofa
       { spec_name: "tv unit", dx_cm: 0, dy_cm: 0, faces: "toward_wall", at: "opposite_wall", optional: true },
       { spec_name: "side table", dx_cm: 138, dy_cm: 30, faces: "none", optional: true },
       { spec_name: "floor lamp", dx_cm: -130, dy_cm: 25, faces: "none", optional: true },
@@ -122,7 +185,7 @@ export const DEFAULT_GROUPINGS: Grouping[] = [
     anchor_name: "3-seat sofa", anchor_place: "wall", priority: 2, zone: "SOCIAL",
     members: [
       { spec_name: "rug", spec_variant: "medium", dx_cm: 0, dy_cm: 160, faces: "none", optional: true },
-      { spec_name: "coffee table", dx_cm: 0, dy_cm: 173, faces: "none" },
+      { spec_name: "coffee table", dx_cm: 0, dy_cm: 173, faces: "toward_wall" },
       // armchairs beside the table, turned in towards it
       { spec_name: "accent chair", label: "Armchair", dx_cm: -140, dy_cm: 185, faces: "right" },
       { spec_name: "accent chair", label: "Armchair", dx_cm: 140, dy_cm: 185, faces: "left", optional: true },
@@ -262,8 +325,14 @@ export function guessKind(name: string, againstWall?: boolean | null): { kind: S
   return { kind: "other", facing: againstWall ? "wall" : "free" };
 }
 
+/** The side labels of a database row (front_label, back_label, left_label, right_label). */
+function sidesOf(r: Partial<Spec> & Record<string, unknown>): Sides | null {
+  const f = r.front_label, b = r.back_label, l = r.left_label, rt = r.right_label;
+  return typeof f === "string" && f ? { front: f, back: String(b ?? ""), left: String(l ?? ""), right: String(rt ?? "") } : null;
+}
+
 /** Database rows first, defaults for anything they don't have (by name + variant, and by grouping key). */
-export function mergeSpecs(rows: Partial<Spec>[] | null | undefined): Spec[] {
+export function mergeSpecs(rows: (Partial<Spec> & Record<string, unknown>)[] | null | undefined): Spec[] {
   const out = new Map(DEFAULT_SPECS.map((s) => [`${s.name}|${s.variant}`, s]));
   for (const r of rows ?? []) {
     if (!r?.name || !r.width_cm || !r.depth_cm) continue;
@@ -280,6 +349,11 @@ export function mergeSpecs(rows: Partial<Spec>[] | null | undefined): Spec[] {
       min_clearance_cm: r.min_clearance_cm ?? base?.min_clearance_cm ?? 40,
       facing: (r.facing as SpecFacing) ?? base?.facing ?? guess.facing,
       symbol: r.symbol ?? base?.symbol ?? symbolForName(r.name, r.variant ?? undefined),
+      symbol_front: (r.symbol_front as Edge) ?? base?.symbol_front ?? "bottom",
+      sides: sidesOf(r) ?? base?.sides ?? null,
+      back_clearance_cm: r.back_clearance_cm ?? base?.back_clearance_cm ?? 0,
+      left_clearance_cm: r.left_clearance_cm ?? base?.left_clearance_cm ?? 0,
+      right_clearance_cm: r.right_clearance_cm ?? base?.right_clearance_cm ?? 0,
       is_default: r.is_default ?? base?.is_default ?? false,
     });
   }
