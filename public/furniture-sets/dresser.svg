@@ -1,8 +1,8 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 148 72" role="img" aria-label="Dresser">
-<!-- Home Mockup furniture set: Dresser (dresser). Top view, main piece against the top wall; lighter pieces are optional. 148 × 72 cm. Built by qa/furniture-sets/build-set-symbols.ts. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 148 82" role="img" aria-label="Dresser">
+<!-- Home Mockup furniture set: Dresser (dresser). Top view, main piece against the top wall; lighter pieces are optional. 148 × 82 cm. Built by qa/furniture-sets/build-set-symbols.ts. -->
 <title>Dresser: dresser</title>
 <rect x="0" y="0" width="148" height="8" fill="#3B3350"/>
-<g><title>Dresser</title><svg x="14" y="8" width="120" height="50" viewBox="0 0 120 50" preserveAspectRatio="none" overflow="visible"><g stroke-linejoin="round" stroke-linecap="round">
+<g><title>Dresser</title><svg x="14" y="18" width="120" height="50" viewBox="0 0 120 50" preserveAspectRatio="none" overflow="visible"><g stroke-linejoin="round" stroke-linecap="round">
 <rect x="1" y="1" width="118" height="48" rx="2" fill="#6A4836" stroke="#3B3350" stroke-width="1.2" vector-effect="non-scaling-stroke"/><rect x="1" y="42" width="118" height="7" fill="#4A2F22" stroke="#3B3350" stroke-width="1.2" vector-effect="non-scaling-stroke"/><line x1="40" y1="1" x2="40" y2="49" stroke="#4A2F22" stroke-width="0.9" vector-effect="non-scaling-stroke"/><line x1="80" y1="1" x2="80" y2="49" stroke="#4A2F22" stroke-width="0.9" vector-effect="non-scaling-stroke"/>
 </g></svg></g>
 </svg>

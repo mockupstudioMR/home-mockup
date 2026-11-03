@@ -8,28 +8,29 @@
  */
 import { supabase } from "@/lib/looseDb";
 import { arrange, fallbackGroups, type Arrangement, type GroupRequest, type KeepRequest, type Opening, type Wall } from "../../../supabase/functions/_shared/arrange";
-import { findSpec, groupingsFor, mergeGroupings, mergeSpecs, type Grouping, type Spec } from "../../../supabase/functions/_shared/layoutRules";
+import { findSpec, groupingsFor, mergeGroupings, mergeSpecs, mergeWallGaps, type Grouping, type Spec, type WallGaps } from "../../../supabase/functions/_shared/layoutRules";
 import { curRoom, uid, type JourneyState, type Layout, type LayoutItem } from "../state";
 
-export type Rules = { specs: Spec[]; groupings: Grouping[] };
+export type Rules = { specs: Spec[]; groupings: Grouping[]; wallGaps?: WallGaps };
 
 let cached: Promise<Rules> | null = null;
 /** The size and grouping tables, with the built-in defaults for anything they don't have (or before they exist). */
 export function loadRules(): Promise<Rules> {
   cached ??= (async () => {
-    const [specs, groups, members] = await Promise.all([
+    const [specs, groups, members, gaps] = await Promise.all([
       supabase.from("furniture_specs").select("*").then((r: { data: unknown[] | null }) => r.data, () => null),
       supabase.from("furniture_groupings").select("*").then((r: { data: unknown[] | null }) => r.data, () => null),
       supabase.from("furniture_grouping_members").select("*").order("sort").then((r: { data: unknown[] | null }) => r.data, () => null),
+      supabase.from("wall_gap_rules").select("behind, gap_cm").then((r: { data: unknown[] | null }) => r.data, () => null),
     ]);
     type Row = Record<string, unknown>;
     const byGroup = new Map<string, Row[]>();
     for (const m of (members ?? []) as Row[]) byGroup.set(String(m.grouping_id), [...(byGroup.get(String(m.grouping_id)) ?? []), m]);
     const rows = ((groups ?? []) as Row[]).map((g) => ({ ...(g as unknown as Grouping), is_active: g.is_active as boolean, members: (byGroup.get(String(g.id)) as unknown as Grouping["members"]) ?? [] }));
-    return { specs: mergeSpecs(specs as Partial<Spec>[] | null), groupings: mergeGroupings(rows) };
+    return { specs: mergeSpecs(specs as Partial<Spec>[] | null), groupings: mergeGroupings(rows), wallGaps: mergeWallGaps(gaps as { behind: string; gap_cm: number }[] | null) };
   })().catch(() => {
     cached = null;
-    return { specs: mergeSpecs(null), groupings: mergeGroupings(null) };
+    return { specs: mergeSpecs(null), groupings: mergeGroupings(null), wallGaps: mergeWallGaps(null) };
   });
   return cached;
 }
@@ -47,7 +48,7 @@ export function roomGroupings(s: JourneyState, rules: Rules) {
 /** Place the requested groupings and turn them into a layout for the plan (percent of the room). */
 export function placeLayout(s: JourneyState, rules: Rules, groups: GroupRequest[], meta: { name?: string; notes?: Layout["notes"] } = {}): Layout {
   const { W, L } = cm(s);
-  const a = arrange({ W, L, openings: openingsOf(s), groups, keep: keepOf(s), specs: rules.specs, groupings: rules.groupings });
+  const a = arrange({ W, L, openings: openingsOf(s), groups, keep: keepOf(s), specs: rules.specs, groupings: rules.groupings, wallGaps: rules.wallGaps });
   return toLayout(a, W, L, s, groups, meta);
 }
 

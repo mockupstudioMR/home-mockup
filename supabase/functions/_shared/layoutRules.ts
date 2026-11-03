@@ -383,3 +383,15 @@ export function groupingsFor(groupings: Grouping[], roomType: string, activities
 
 /** The set's top-view symbol (built from its pieces by qa/furniture-sets/build-set-symbols.ts). */
 export const setSymbolUrl = (g: Pick<Grouping, "key" | "symbol">) => `/furniture-sets/${g.symbol || g.key}.svg`;
+
+/**
+ * How far a piece (or a set's main piece) stands from the wall behind it, in cm, by what's in that wall behind it:
+ * a plain wall, a window, a balcony door, or a door. Database table wall_gap_rules; these are the defaults.
+ */
+export type WallGaps = { plain: number; window: number; balcony: number; door: number };
+export const DEFAULT_WALL_GAPS: WallGaps = { plain: 10, window: 50, balcony: 50, door: 200 };
+export function mergeWallGaps(rows: { behind: string; gap_cm: number }[] | null | undefined): WallGaps {
+  const out = { ...DEFAULT_WALL_GAPS };
+  for (const r of rows ?? []) if (r && r.behind in out && Number.isFinite(r.gap_cm) && r.gap_cm >= 0) out[r.behind as keyof WallGaps] = r.gap_cm;
+  return out;
+}

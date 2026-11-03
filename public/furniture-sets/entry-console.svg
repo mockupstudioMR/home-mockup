@@ -1,8 +1,8 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 52" role="img" aria-label="Console by the door">
-<!-- Home Mockup furniture set: Console by the door (entry-console). Top view, main piece against the top wall; lighter pieces are optional. 128 × 52 cm. Built by qa/furniture-sets/build-set-symbols.ts. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 62" role="img" aria-label="Console by the door">
+<!-- Home Mockup furniture set: Console by the door (entry-console). Top view, main piece against the top wall; lighter pieces are optional. 128 × 62 cm. Built by qa/furniture-sets/build-set-symbols.ts. -->
 <title>Console by the door: console</title>
 <rect x="0" y="0" width="128" height="8" fill="#3B3350"/>
-<g><title>Console</title><svg x="14" y="8" width="100" height="30" viewBox="0 0 100 30" preserveAspectRatio="none" overflow="visible"><g stroke-linejoin="round" stroke-linecap="round">
+<g><title>Console</title><svg x="14" y="18" width="100" height="30" viewBox="0 0 100 30" preserveAspectRatio="none" overflow="visible"><g stroke-linejoin="round" stroke-linecap="round">
 <rect x="1" y="1" width="98" height="28" rx="2" fill="#7E5A38" stroke="#3B3350" stroke-width="1.2" vector-effect="non-scaling-stroke"/><circle cx="25" cy="15.0" r="7" fill="#E9E3EE" stroke="#3B3350" stroke-width="1.2" vector-effect="non-scaling-stroke"/><rect x="60" y="8" width="24" height="14" rx="2" fill="#B08A60" stroke="#3B3350" stroke-width="1.2" vector-effect="non-scaling-stroke"/>
 </g></svg></g>
 </svg>

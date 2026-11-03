@@ -8,7 +8,7 @@
  *
  * Room: x from wall D (left) to wall B (right), y from wall A (top) to wall C (bottom), in cm.
  */
-import { findSpec, symbolForName, type Grouping, type Member, type MemberFaces, type Spec, type SpecKind } from "./layoutRules.ts";
+import { DEFAULT_WALL_GAPS, findSpec, symbolForName, type WallGaps, type Grouping, type Member, type MemberFaces, type Spec, type SpecKind } from "./layoutRules.ts";
 
 export type Wall = "A" | "B" | "C" | "D";
 /** Which way a piece's front points on the plan. */
@@ -49,18 +49,22 @@ const FACES: Record<Exclude<MemberFaces, "none">, "down" | "up" | "right" | "lef
 /** A frame: where template point (tx, ty) lands in the room, and how directions turn. */
 type Frame = { at: (tx: number, ty: number) => [number, number]; swap: boolean; turn: Record<"down" | "up" | "right" | "left", Dir> };
 
-function wallFrame(wall: Wall, along: number, W: number, L: number): Frame {
+/** A piece against `wall`, its middle `along` it, standing `gap` cm off the wall. */
+function wallFrame(wall: Wall, along: number, W: number, L: number, gap = 0): Frame {
   switch (wall) {
     case "A":
-      return { at: (tx, ty) => [along + tx, ty], swap: false, turn: TURN.A };
+      return { at: (tx, ty) => [along + tx, ty + gap], swap: false, turn: TURN.A };
     case "C":
-      return { at: (tx, ty) => [along - tx, L - ty], swap: false, turn: TURN.C };
+      return { at: (tx, ty) => [along - tx, L - ty - gap], swap: false, turn: TURN.C };
     case "D":
-      return { at: (tx, ty) => [ty, along - tx], swap: true, turn: TURN.D };
+      return { at: (tx, ty) => [ty + gap, along - tx], swap: true, turn: TURN.D };
     default:
-      return { at: (tx, ty) => [W - ty, along + tx], swap: true, turn: TURN.B };
+      return { at: (tx, ty) => [W - ty - gap, along + tx], swap: true, turn: TURN.B };
   }
 }
+
+/** How wide an opening is along its wall, in cm. */
+const OPENING_CM: Record<string, number> = { doors: 90, windows: 120, balconies: 160 };
 /** A free-standing piece: long side across (like wall A) or turned a quarter (like wall D). */
 function floatFrame(cx: number, cy: number, turned: boolean): Frame {
   return turned ? { at: (tx, ty) => [cx + ty, cy - tx], swap: true, turn: TURN.D } : { at: (tx, ty) => [cx + tx, cy + ty], swap: false, turn: TURN.A };
@@ -124,9 +128,55 @@ export type ArrangeInput = {
   keep?: KeepRequest[];
   specs: Spec[];
   groupings: Grouping[];
+  /** How far pieces stand off the wall behind them (defaults: 10 cm plain, 50 window or balcony, 200 door). */
+  wallGaps?: WallGaps;
 };
 
+/**
+ * Places the requested groupings. First spot by spot: each piece stands off the wall behind it by what's in that
+ * wall behind it (a plain stretch is tried before a window, a door last). When a grouping still doesn't fit, the room
+ * is measured again as a smaller box: every wall moved in by its gap (2 m on a wall with a door, 0.5 m with a window
+ * or balcony door, 0.1 m when plain), so the box has only plain walls, and everything is placed again in it. The
+ * result that fits more is used.
+ */
 export function arrange(input: ArrangeInput): Arrangement {
+  const first = arrangeOnce(input);
+  if (!first.left_out.length || !input.openings.some((o) => o.wall && (o.kind in OPENING_CM))) return first;
+  const boxed = arrangeInBox(input);
+  return boxed && boxed.left_out.length < first.left_out.length ? boxed : first;
+}
+
+/** The room as a smaller box with only plain walls: each wall moved in by the gap its openings ask for. */
+export function arrangeInBox(input: ArrangeInput): Arrangement | null {
+  const { W, L, openings } = input;
+  const g = input.wallGaps ?? DEFAULT_WALL_GAPS;
+  const gapOf = (w: Wall) =>
+    openings.filter((o) => o.wall === w && o.kind in OPENING_CM).reduce((m, o) => Math.max(m, o.kind === "doors" ? g.door : o.kind === "balconies" ? g.balcony : g.window), g.plain);
+  const gA = gapOf("A"), gB = gapOf("B"), gC = gapOf("C"), gD = gapOf("D");
+  const w2 = W - gD - gB, l2 = L - gA - gC;
+  if (w2 < 120 || l2 < 120) return null;
+  // a position along a wall (% of the room's wall) as a position along the box's wall (% of the box's wall)
+  const alongIn = (wall: Wall | null | undefined, pct: number | null | undefined) => {
+    if (pct == null || !wall) return pct ?? null;
+    const across = wall === "A" || wall === "C";
+    const cm = (pct / 100) * (across ? W : L) - (across ? gD : gA);
+    return Math.min(100, Math.max(0, (cm / (across ? w2 : l2)) * 100));
+  };
+  const inner = arrangeOnce({
+    ...input,
+    W: w2,
+    L: l2,
+    // the box's walls are all plain; radiators still keep sofas and beds away
+    openings: openings.filter((o) => o.kind === "radiators").map((o) => ({ ...o, pos: alongIn(o.wall, o.pos) })),
+    wallGaps: { plain: 0, window: 0, balcony: 0, door: 0 },
+    groups: input.groups.map((r) => ({ ...r, along: alongIn(r.wall, r.along), cx: r.cx != null ? Math.min(100, Math.max(0, (((r.cx / 100) * W - gD) / w2) * 100)) : r.cx, cy: r.cy != null ? Math.min(100, Math.max(0, (((r.cy / 100) * L - gA) / l2) * 100)) : r.cy })),
+    keep: input.keep?.map((k) => ({ ...k, along: alongIn(k.wall, k.along) })),
+  });
+  const shift = <T extends Box>(b: T): T => ({ ...b, x: r1(b.x + gD), y: r1(b.y + gA) });
+  return { ...inner, items: inner.items.map(shift), zones: inner.zones.map(shift) };
+}
+
+function arrangeOnce(input: ArrangeInput): Arrangement {
   const { W, L, openings, specs, groupings } = input;
   const placed: Piece[] = [];
   const left_out: string[] = [];
@@ -147,6 +197,39 @@ export function arrange(input: ArrangeInput): Arrangement {
   const doors = openings.filter((o) => o.kind === "doors").map((o) => stripAt(o, W, L, 100, 100)).filter(Boolean) as Box[];
   const windows = openings.filter((o) => o.kind === "windows").map((o) => stripAt(o, W, L, 130, 45)).filter(Boolean) as Box[];
   const radiators = openings.filter((o) => o.kind === "radiators").map((o) => stripAt(o, W, L, 110, 35)).filter(Boolean) as Box[];
+
+  /**
+   * The gap behind a piece standing against `wall` whose back runs from `from` to `to` cm along it: the largest
+   * that applies to what's in the wall behind it — a door (2 m), a window or balcony door (0.5 m), else 0.1 m.
+   */
+  const gaps = input.wallGaps ?? DEFAULT_WALL_GAPS;
+  const gapBehind = (wall: Wall, from: number, to: number) => {
+    const len = WALL_LEN(wall, W, L);
+    let g = gaps.plain;
+    for (const o of openings) {
+      if (o.wall !== wall || o.pos == null || !(o.kind in OPENING_CM)) continue;
+      const c = (o.pos / 100) * len, half = OPENING_CM[o.kind] / 2;
+      if (c + half <= from || c - half >= to) continue; // not behind this piece
+      g = Math.max(g, o.kind === "doors" ? gaps.door : o.kind === "balconies" ? gaps.balcony : gaps.window);
+    }
+    return g;
+  };
+  /** A wall frame for a piece `width` cm wide, its middle `along` the wall, at the gap its back wall asks for. */
+  const backFrame = (wall: Wall, along: number, width: number) => wallFrame(wall, along, W, L, gapBehind(wall, along - width / 2, along + width / 2));
+  /**
+   * Every spot to try for a piece `width` cm wide, best first: a plain stretch of wall before one with a window
+   * behind, and a door behind (2 m out) only when nothing else works; within each, the asked-for wall first and
+   * the spots nearest the asked-for position first.
+   */
+  const wallSpots = (walls: Wall[], width: number, wantWall?: Wall | null, wantAlong?: number | null) => {
+    const out: { w: Wall; t: number; gap: number; order: number }[] = [];
+    walls.forEach((w, wi) => {
+      const len = WALL_LEN(w, W, L);
+      const start = wantAlong != null && w === wantWall ? (wantAlong / 100) * len : len / 2;
+      spots(start, len).forEach((t, ti) => out.push({ w, t, gap: gapBehind(w, t - width / 2, t + width / 2), order: wi * 10000 + ti }));
+    });
+    return out.sort((a, b) => a.gap - b.gap || a.order - b.order);
+  };
 
   /** Can this piece go here, next to what's already placed (other groups) and what can't move? */
   const fits = (p: Piece, group: string) => {
@@ -212,7 +295,7 @@ export function arrange(input: ArrangeInput): Arrangement {
       if (!across) return null;
       // the member's sideways offset, in the anchor's own frame, projected onto the facing wall
       const p = onWall ? frame.at(m.dx_cm, 0) : [anchor.x + anchor.w / 2, anchor.y + anchor.h / 2];
-      const f = wallFrame(across, across === "A" || across === "C" ? p[0] : p[1], W, L);
+      const f = backFrame(across, across === "A" || across === "C" ? p[0] : p[1], s.width_cm);
       return pieceFor(s, lab, f.at(0, s.depth_cm / 2), f, s.facing === "free" ? undefined : f.turn.down, key, !!m.optional);
     }
     const dir = m.faces === "none" ? undefined : frame.turn[FACES[m.faces]];
@@ -263,20 +346,14 @@ export function arrange(input: ArrangeInput): Arrangement {
     // the owner's piece at its real size, with the sides and clearances of its kind of piece
     const keepSpec: Spec = { ...(spec ?? {}), name: k.name, variant: "kept", kind: spec?.kind ?? "other", width_cm: sz.w, depth_cm: sz.d, height_cm: spec?.height_cm, min_clearance_cm: spec?.min_clearance_cm ?? 40, facing: spec?.facing ?? "wall", symbol: spec?.symbol ?? symbolForName(k.name), is_default: false };
     let done: Piece[] | null = null;
-    const ws = k.fixedSpot && k.wall ? [k.wall] : wallsBy(k.wall);
-    for (const w of ws) {
-      const len = WALL_LEN(w, W, L);
-      const start = k.along != null && w === k.wall ? (k.along / 100) * len : len / 2;
-      for (const t of spots(start, len)) {
-        const f = wallFrame(w, t, W, L);
-        const p = pieceFor(keepSpec, k.name, f.at(0, sz.d / 2), f, keepSpec.facing === "free" ? undefined : f.turn.down, `keep:${k.name}`, false, sz);
-        p.kind = "keep";
-        if (fits(p, p.group)) {
-          done = [p];
-          break;
-        }
+    for (const { w, t } of wallSpots(k.fixedSpot && k.wall ? [k.wall] : wallsBy(k.wall), sz.w, k.wall, k.along)) {
+      const f = backFrame(w, t, sz.w);
+      const p = pieceFor(keepSpec, k.name, f.at(0, sz.d / 2), f, keepSpec.facing === "free" ? undefined : f.turn.down, `keep:${k.name}`, false, sz);
+      p.kind = "keep";
+      if (fits(p, p.group)) {
+        done = [p];
+        break;
       }
-      if (done) break;
     }
     if (done) commit(done, { key: done[0].group, zone: "" });
     else left_out.push(k.name);
@@ -306,13 +383,9 @@ export function arrange(input: ArrangeInput): Arrangement {
       }
     } else {
       // a kept piece with a fixed spot stays on its wall
-      for (const w of kept?.fixedSpot && kept.wall ? [kept.wall] : wallsBy(r.wall)) {
-        const len = WALL_LEN(w, W, L);
-        const start = r.along != null && w === r.wall ? (r.along / 100) * len : len / 2;
-        for (const t of spots(start, len)) {
-          pieces = tryAt(g, wallFrame(w, t, W, L), w, t, kept);
-          if (pieces) break;
-        }
+      const aw = kept?.w || findSpec(specs, g.anchor_name, g.anchor_variant)?.width_cm || 100;
+      for (const { w, t } of wallSpots(kept?.fixedSpot && kept.wall ? [kept.wall] : wallsBy(r.wall), aw, r.wall, r.along)) {
+        pieces = tryAt(g, backFrame(w, t, aw), w, t, kept);
         if (pieces) {
           wentTo = w;
           break;

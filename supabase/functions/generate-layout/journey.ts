@@ -6,7 +6,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { fetchWithTimeout } from "../_shared/http.ts";
 import { arrange, fallbackGroups, type GroupRequest, type Wall } from "../_shared/arrange.ts";
-import { groupingsFor, mergeGroupings, mergeSpecs, type Grouping, type Spec } from "../_shared/layoutRules.ts";
+import { groupingsFor, mergeGroupings, mergeSpecs, mergeWallGaps, type Grouping, type Spec, type WallGaps } from "../_shared/layoutRules.ts";
 
 export type JourneyLayoutRequest = {
   journey: true;
@@ -37,6 +37,8 @@ real sizes by the app, facing the right way.
 Rules:
 - Choose 1 to 4 groupings that serve the owner's activities, favouring the priority you are told to favour. Never
   two groupings with the same main piece (not two sofas, not two beds).
+- Pieces stand 0.1 m off a plain wall, 0.5 m off a wall with a window or balcony door behind them, and 2 m off a
+  wall with a door behind them, so prefer plain stretches of wall for sets against a wall.
 - Keep doors clear and leave a walking route from the main door. Don't put a bed's head or tall storage under a window.
 - A sofa usually backs onto the wall opposite the TV or focal point; a bed's head goes on a solid wall, ideally not
   facing the door directly; a desk often sits beside or facing a window.
@@ -51,15 +53,18 @@ export async function journeyLayout(body: JourneyLayoutRequest, apiKey: string) 
   const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
   let specs: Spec[] = mergeSpecs(null);
   let groupings: Grouping[] = mergeGroupings(null);
+  let wallGaps: WallGaps = mergeWallGaps(null);
   let rules = "";
   if (url && key) {
     const db = createClient(url, key);
-    const [{ data: s }, { data: g }, { data: m }, { data: r }] = await Promise.all([
+    const [{ data: s }, { data: g }, { data: m }, { data: r }, { data: wg }] = await Promise.all([
       db.from("furniture_specs").select("*"),
       db.from("furniture_groupings").select("*"),
       db.from("furniture_grouping_members").select("*").order("sort"),
       db.from("opening_rules").select("opening_type, clearance_cm, attracts_furniture, repels_furniture"),
+      db.from("wall_gap_rules").select("behind, gap_cm"),
     ]);
+    wallGaps = mergeWallGaps(wg);
     specs = mergeSpecs(s as Partial<Spec>[] | null);
     if (g?.length) {
       const by = new Map<string, unknown[]>();
@@ -133,7 +138,7 @@ ${body.avoid?.length ? `Make it clearly different from: ${body.avoid.join("; ")}
   const openings = (body.fixed ?? []).map((f) => ({ kind: f.kind, wall: f.wall ?? null, pos: f.pos ?? null }));
   const groups = plan?.groups?.length ? plan.groups : fallbackGroups(groupingsFor(groupings, body.roomType, body.activities), openings, W, L);
   // placed here too, so any caller gets real pieces; the app places them again with the same rules
-  const placed = arrange({ W, L, openings, groups, keep: (body.keep ?? []).map((k) => ({ name: k.name, w: k.w, d: k.d, wall: k.wall ?? null, fixedSpot: k.fixedSpot })), specs, groupings });
+  const placed = arrange({ W, L, openings, groups, keep: (body.keep ?? []).map((k) => ({ name: k.name, w: k.w, d: k.d, wall: k.wall ?? null, fixedSpot: k.fixedSpot })), specs, groupings, wallGaps });
   const pc = (v: number, of: number) => Math.round((v / of) * 1000) / 10;
   return {
     status: 200,
