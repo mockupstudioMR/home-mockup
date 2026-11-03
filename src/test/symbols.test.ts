@@ -40,3 +40,16 @@ describe("furniture symbols", () => {
     expect(symbolPlacement("side-table", undefined, 45, 45).transform).toBeUndefined();
   });
 });
+
+describe("furniture set symbols", () => {
+  it("every set has its symbol, built from the current sets (run qa/furniture-sets/build-set-symbols.ts after changing one)", async () => {
+    const { DEFAULT_GROUPINGS, setSymbolUrl } = await import("../../supabase/functions/_shared/layoutRules");
+    for (const g of DEFAULT_GROUPINGS) {
+      const file = `public${setSymbolUrl(g)}`;
+      expect(fs.existsSync(file), file).toBe(true);
+      const svg = fs.readFileSync(file, "utf8");
+      // one drawn piece per member plus the main piece, so a set changed without rebuilding is caught
+      expect((svg.match(/<g[ >]/g) ?? []).length, g.key).toBeGreaterThanOrEqual(1 + g.members.filter((m) => !m.optional).length);
+    }
+  });
+});

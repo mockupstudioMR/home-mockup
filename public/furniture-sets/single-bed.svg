@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 170.5 222" role="img" aria-label="Single bed and nightstand">
+<!-- Home Mockup furniture set: Single bed and nightstand (single-bed). Top view, main piece against the top wall; lighter pieces are optional. 171 × 222 cm. Built by qa/furniture-sets/build-set-symbols.ts. -->
+<title>Single bed and nightstand: bed, nightstand</title>
+<rect x="0" y="0" width="170.5" height="8" fill="#3B3350"/>
+<g><title>Bed</title><svg x="14" y="8" width="90" height="200" viewBox="0 0 90 200" preserveAspectRatio="none" overflow="visible"><g stroke-linejoin="round" stroke-linecap="round">
+<rect x="1" y="1" width="88" height="198" rx="5" fill="#EDE6DC" stroke="#3B3350" stroke-width="1.2" vector-effect="non-scaling-stroke"/><rect x="1" y="1" width="88" height="14.0" rx="3" fill="#A99BBE" stroke="#3B3350" stroke-width="1.2" vector-effect="non-scaling-stroke"/><rect x="8.0" y="20.0" width="74.0" height="30.0" rx="6" fill="#F8F5F0" stroke="#3B3350" stroke-width="1.2" vector-effect="non-scaling-stroke"/><path d="M1 64.0 L89 64.0 L89 194 Q89 199 84 199 L6 199 Q1 199 1 194 Z" fill="#D9CFE0" stroke="#3B3350" stroke-width="1.2" vector-effect="non-scaling-stroke"/><path d="M1 64.0 L89 64.0 L89 80.0 L1 80.0 Z" fill="#C8BBD6" stroke="#3B3350" stroke-width="0.8" vector-effect="non-scaling-stroke"/>
+</g></svg></g>
+<g><title>Nightstand</title><svg x="111.5" y="8" width="45" height="40" viewBox="0 0 45 40" preserveAspectRatio="none" overflow="visible"><g stroke-linejoin="round" stroke-linecap="round">
+<rect x="1" y="1" width="43" height="38" rx="3" fill="#6A4836" stroke="#3B3350" stroke-width="1.2" vector-effect="non-scaling-stroke"/><circle cx="22.5" cy="20.0" r="9" fill="#F3E3B5" stroke="#3B3350" stroke-width="1.2" vector-effect="non-scaling-stroke"/><circle cx="22.5" cy="20.0" r="3" fill="#7E5A38"/>
+</g></svg></g>
+</svg>

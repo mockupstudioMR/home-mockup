@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 208 279" role="img" aria-label="Table for six">
+<!-- Home Mockup furniture set: Table for six (dining-6). Top view, free-standing; lighter pieces are optional. 208 × 279 cm. Built by qa/furniture-sets/build-set-symbols.ts. -->
+<title>Table for six: dining table, dining chair, dining chair, dining chair, dining chair, dining chair, dining chair</title>
+<rect x="0" y="271" width="208" height="8" fill="#3B3350"/>
+<g><title>Dining table</title><svg x="14" y="61" width="180" height="90" viewBox="0 0 140 80" preserveAspectRatio="none" overflow="visible"><g stroke-linejoin="round" stroke-linecap="round">
+<rect x="1" y="1" width="138" height="78" rx="6" fill="#9A7149" stroke="#3B3350" stroke-width="1.2" vector-effect="non-scaling-stroke"/><line x1="3" y1="20.0" x2="137" y2="20.0" stroke="#7E5A38" stroke-width="0.7" vector-effect="non-scaling-stroke"/><line x1="3" y1="40.0" x2="137" y2="40.0" stroke="#7E5A38" stroke-width="0.7" vector-effect="non-scaling-stroke"/><line x1="3" y1="60.0" x2="137" y2="60.0" stroke="#7E5A38" stroke-width="0.7" vector-effect="non-scaling-stroke"/>
+</g></svg></g>
+<g><title>Dining chair</title><svg x="26.5" y="14" width="45" height="50" viewBox="0 0 45 50" preserveAspectRatio="none" overflow="visible"><g stroke-linejoin="round" stroke-linecap="round">
+<rect x="3" y="8" width="39" height="40" rx="5" fill="#2F5B4A" stroke="#3B3350" stroke-width="1.2" vector-effect="non-scaling-stroke"/><rect x="2" y="1" width="41" height="8" rx="3" fill="#22453A" stroke="#3B3350" stroke-width="1.2" vector-effect="non-scaling-stroke"/>
+</g></svg></g>
+<g><title>Dining chair</title><svg x="81.5" y="14" width="45" height="50" viewBox="0 0 45 50" preserveAspectRatio="none" overflow="visible"><g stroke-linejoin="round" stroke-linecap="round">
+<rect x="3" y="8" width="39" height="40" rx="5" fill="#2F5B4A" stroke="#3B3350" stroke-width="1.2" vector-effect="non-scaling-stroke"/><rect x="2" y="1" width="41" height="8" rx="3" fill="#22453A" stroke="#3B3350" stroke-width="1.2" vector-effect="non-scaling-stroke"/>
+</g></svg></g>
+<g><title>Dining chair</title><svg x="136.5" y="14" width="45" height="50" viewBox="0 0 45 50" preserveAspectRatio="none" overflow="visible"><g stroke-linejoin="round" stroke-linecap="round">
+<rect x="3" y="8" width="39" height="40" rx="5" fill="#2F5B4A" stroke="#3B3350" stroke-width="1.2" vector-effect="non-scaling-stroke"/><rect x="2" y="1" width="41" height="8" rx="3" fill="#22453A" stroke="#3B3350" stroke-width="1.2" vector-effect="non-scaling-stroke"/>
+</g></svg></g>
+<g transform="rotate(180 49 173)"><title>Dining chair</title><svg x="26.5" y="148" width="45" height="50" viewBox="0 0 45 50" preserveAspectRatio="none" overflow="visible"><g stroke-linejoin="round" stroke-linecap="round">
+<rect x="3" y="8" width="39" height="40" rx="5" fill="#2F5B4A" stroke="#3B3350" stroke-width="1.2" vector-effect="non-scaling-stroke"/><rect x="2" y="1" width="41" height="8" rx="3" fill="#22453A" stroke="#3B3350" stroke-width="1.2" vector-effect="non-scaling-stroke"/>
+</g></svg></g>
+<g transform="rotate(180 104 173)"><title>Dining chair</title><svg x="81.5" y="148" width="45" height="50" viewBox="0 0 45 50" preserveAspectRatio="none" overflow="visible"><g stroke-linejoin="round" stroke-linecap="round">
+<rect x="3" y="8" width="39" height="40" rx="5" fill="#2F5B4A" stroke="#3B3350" stroke-width="1.2" vector-effect="non-scaling-stroke"/><rect x="2" y="1" width="41" height="8" rx="3" fill="#22453A" stroke="#3B3350" stroke-width="1.2" vector-effect="non-scaling-stroke"/>
+</g></svg></g>
+<g transform="rotate(180 159 173)"><title>Dining chair</title><svg x="136.5" y="148" width="45" height="50" viewBox="0 0 45 50" preserveAspectRatio="none" overflow="visible"><g stroke-linejoin="round" stroke-linecap="round">
+<rect x="3" y="8" width="39" height="40" rx="5" fill="#2F5B4A" stroke="#3B3350" stroke-width="1.2" vector-effect="non-scaling-stroke"/><rect x="2" y="1" width="41" height="8" rx="3" fill="#22453A" stroke="#3B3350" stroke-width="1.2" vector-effect="non-scaling-stroke"/>
+</g></svg></g>
+<g transform="rotate(180 104 248.5)" opacity="0.55"><title>Sideboard (optional)</title><svg x="24" y="226" width="160" height="45" viewBox="0 0 160 45" preserveAspectRatio="none" overflow="visible"><g stroke-linejoin="round" stroke-linecap="round">
+<rect x="1" y="1" width="158" height="43" rx="2" fill="#7E5A38" stroke="#3B3350" stroke-width="1.2" vector-effect="non-scaling-stroke"/><line x1="40" y1="1" x2="40" y2="44" stroke="#4A2F22" stroke-width="0.9" vector-effect="non-scaling-stroke"/><line x1="80" y1="1" x2="80" y2="44" stroke="#4A2F22" stroke-width="0.9" vector-effect="non-scaling-stroke"/><line x1="120" y1="1" x2="120" y2="44" stroke="#4A2F22" stroke-width="0.9" vector-effect="non-scaling-stroke"/>
+</g></svg></g>
+</svg>

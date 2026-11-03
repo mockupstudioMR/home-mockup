@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192.5 107" role="img" aria-label="Reading chair and lamp">
+<!-- Home Mockup furniture set: Reading chair and lamp (reading-corner). Top view, main piece against the top wall; lighter pieces are optional. 193 × 107 cm. Built by qa/furniture-sets/build-set-symbols.ts. -->
+<title>Reading chair and lamp: accent chair, floor lamp</title>
+<rect x="0" y="0" width="192.5" height="8" fill="#3B3350"/>
+<g><title>Accent chair</title><svg x="51" y="8" width="80" height="85" viewBox="0 0 80 85" preserveAspectRatio="none" overflow="visible"><g stroke-linejoin="round" stroke-linecap="round">
+<rect x="1" y="1" width="78" height="83" rx="12" fill="#2F5B4A" stroke="#3B3350" stroke-width="1.2" vector-effect="non-scaling-stroke"/><rect x="12" y="1" width="56" height="22" rx="7" fill="#22453A" stroke="#22453A" stroke-width="0.8" vector-effect="non-scaling-stroke"/><rect x="1" y="1" width="13" height="83" rx="7" fill="#22453A" stroke="#3B3350" stroke-width="1.2" vector-effect="non-scaling-stroke"/><rect x="66" y="1" width="13" height="83" rx="7" fill="#22453A" stroke="#3B3350" stroke-width="1.2" vector-effect="non-scaling-stroke"/><rect x="16" y="25" width="48" height="54" rx="8" fill="#3E7261" stroke="#22453A" stroke-width="0.8" vector-effect="non-scaling-stroke"/>
+</g></svg></g>
+<g><title>Floor lamp</title><svg x="14" y="15" width="30" height="30" viewBox="0 0 30 30" preserveAspectRatio="none" overflow="visible"><g stroke-linejoin="round" stroke-linecap="round">
+<circle cx="15" cy="15" r="14" fill="#F3E3B5" stroke="#3B3350" stroke-width="1.2" vector-effect="non-scaling-stroke"/><circle cx="15" cy="15" r="7" fill="none" stroke="#B08D57" stroke-width="0.8" vector-effect="non-scaling-stroke"/><circle cx="15" cy="15" r="2.5" fill="#3B3350"/>
+</g></svg></g>
+<g opacity="0.55"><title>Side table (optional)</title><svg x="133.5" y="15.5" width="45" height="45" viewBox="0 0 45 45" preserveAspectRatio="none" overflow="visible"><g stroke-linejoin="round" stroke-linecap="round">
+<circle cx="22.5" cy="22.5" r="21" fill="#9A7149" stroke="#3B3350" stroke-width="1.2" vector-effect="non-scaling-stroke"/><circle cx="22.5" cy="22.5" r="12" fill="none" stroke="#7E5A38" stroke-width="0.7" vector-effect="non-scaling-stroke"/>
+</g></svg></g>
+</svg>

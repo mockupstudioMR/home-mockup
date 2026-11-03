@@ -64,6 +64,8 @@ export type Grouping = {
   priority: number;
   /** One upper-case word for the zone on the plan, e.g. RELAX. */
   zone: string;
+  /** Its top-view symbol: public/furniture-sets/<symbol>.svg (the key when not set). */
+  symbol?: string | null;
   members: Member[];
 };
 
@@ -304,3 +306,6 @@ export function groupingsFor(groupings: Grouping[], roomType: string, activities
   const score = (g: Grouping) => (g.activities.some((a) => acts.includes(a.toLowerCase())) ? 0 : 100) + g.priority;
   return inRoom.sort((a, b) => score(a) - score(b));
 }
+
+/** The set's top-view symbol (built from its pieces by qa/furniture-sets/build-set-symbols.ts). */
+export const setSymbolUrl = (g: Pick<Grouping, "key" | "symbol">) => `/furniture-sets/${g.symbol || g.key}.svg`;
