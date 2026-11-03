@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 90 200" preserveAspectRatio="none" role="img" aria-label="Single bed">
+<!-- Home Mockup furniture symbol: Single bed. Top view, back of the piece at the top, front at the bottom. 90 × 200 cm. -->
+<g stroke-linejoin="round" stroke-linecap="round">
+<rect x="1" y="1" width="88" height="198" rx="5" fill="#EDE6DC" stroke="#3B3350" stroke-width="1.2" vector-effect="non-scaling-stroke"/><rect x="1" y="1" width="88" height="14.0" rx="3" fill="#A99BBE" stroke="#3B3350" stroke-width="1.2" vector-effect="non-scaling-stroke"/><rect x="8.0" y="20.0" width="74.0" height="30.0" rx="6" fill="#F8F5F0" stroke="#3B3350" stroke-width="1.2" vector-effect="non-scaling-stroke"/><path d="M1 64.0 L89 64.0 L89 194 Q89 199 84 199 L6 199 Q1 199 1 194 Z" fill="#D9CFE0" stroke="#3B3350" stroke-width="1.2" vector-effect="non-scaling-stroke"/><path d="M1 64.0 L89 64.0 L89 80.0 L1 80.0 Z" fill="#C8BBD6" stroke="#3B3350" stroke-width="0.8" vector-effect="non-scaling-stroke"/>
+</g>
+</svg>

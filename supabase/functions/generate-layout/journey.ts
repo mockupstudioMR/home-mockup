@@ -142,7 +142,7 @@ ${body.avoid?.length ? `Make it clearly different from: ${body.avoid.join("; ")}
         name: plan?.name ?? "Room plan",
         notes: plan?.notes ?? [],
         plan: { groups },
-        items: placed.items.map((p) => ({ label: p.label, kind: p.kind, x: pc(p.x, W), y: pc(p.y, L), w: pc(p.w, W), h: pc(p.h, L), facing: p.facing })),
+        items: placed.items.map((p) => ({ label: p.label, kind: p.kind, x: pc(p.x, W), y: pc(p.y, L), w: pc(p.w, W), h: pc(p.h, L), facing: p.facing, symbol: p.symbol })),
         zones: placed.zones.map((z) => ({ label: z.label, x: pc(z.x, W), y: pc(z.y, L), w: pc(z.w, W), h: pc(z.h, L) })),
       },
     },

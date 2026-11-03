@@ -768,3 +768,8 @@
 .mu .lp-pil.b-left{top:9%;bottom:9%;left:10%;width:15%;flex-direction:column}
 .mu .lp-pil.b-right{top:9%;bottom:9%;right:10%;width:15%;flex-direction:column}
 .mu .lp-f .lp-n:not(.rug){position:relative;z-index:1}
+
+/* pieces drawn with their top-view symbol (public/furniture-symbols) */
+.mu .lp-f.sym{background:none;box-shadow:none;border-radius:0}
+.mu .lp-f.sym .lp-sym{position:absolute;max-width:none;pointer-events:none;user-select:none;filter:drop-shadow(0 2px 3px rgba(59,51,80,.22))}
+.mu .lp-f.sym.rug .lp-sym{filter:none}

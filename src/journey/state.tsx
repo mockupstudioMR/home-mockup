@@ -47,6 +47,8 @@ export type LayoutItem = {
   facing?: "up" | "down" | "left" | "right";
   /** The furniture grouping it was placed with (furniture_groupings.key). */
   group?: string;
+  /** Its top-view symbol: public/furniture-symbols/<symbol>.svg. */
+  symbol?: string;
 };
 export type Layout = {
   id: string;

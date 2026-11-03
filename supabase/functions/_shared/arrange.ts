@@ -8,7 +8,7 @@
  *
  * Room: x from wall D (left) to wall B (right), y from wall A (top) to wall C (bottom), in cm.
  */
-import { findSpec, type Grouping, type Member, type MemberFaces, type Spec, type SpecKind } from "./layoutRules.ts";
+import { findSpec, symbolForName, type Grouping, type Member, type MemberFaces, type Spec, type SpecKind } from "./layoutRules.ts";
 
 export type Wall = "A" | "B" | "C" | "D";
 /** Which way a piece's front points on the plan. */
@@ -21,7 +21,7 @@ export type GroupRequest = { key: string; wall?: Wall | null; along?: number | n
 /** A piece the person keeps. along is 0–100 % along its wall. */
 export type KeepRequest = { name: string; w: number; d: number; wall?: Wall | null; along?: number | null; fixedSpot?: boolean };
 
-export type Placed = Box & { label: string; kind: SpecKind | "keep"; facing?: Dir; group: string; optional?: boolean };
+export type Placed = Box & { label: string; kind: SpecKind | "keep"; facing?: Dir; group: string; optional?: boolean; /** public/furniture-symbols/<symbol>.svg */ symbol?: string };
 /** moved: groupings that couldn't go where they were asked (a wall), and where they went instead. */
 export type Arrangement = { items: Placed[]; zones: (Box & { label: string })[]; left_out: string[]; moved: { name: string; from: Wall; to: Wall | null }[] };
 
@@ -144,6 +144,7 @@ export function arrange(input: ArrangeInput): Arrangement {
       ...boxAt(c, w, d, frame.swap),
       label,
       kind: spec?.kind ?? "other",
+      symbol: spec?.symbol ?? (spec ? symbolForName(spec.name, spec.variant, spec.kind) : undefined),
       facing: dir,
       group,
       optional: optional || undefined,
@@ -227,7 +228,7 @@ export function arrange(input: ArrangeInput): Arrangement {
     if (keptAnchors.has(k)) continue; // placed with its grouping below
     const spec = findSpec(specs, k.name);
     const sz = { w: k.w || spec?.width_cm || 80, d: k.d || spec?.depth_cm || 50 };
-    const keepSpec: Spec = { name: k.name, variant: "kept", kind: spec?.kind ?? "other", width_cm: sz.w, depth_cm: sz.d, height_cm: spec?.height_cm, min_clearance_cm: spec?.min_clearance_cm ?? 40, facing: spec?.facing ?? "wall", is_default: false };
+    const keepSpec: Spec = { name: k.name, variant: "kept", kind: spec?.kind ?? "other", width_cm: sz.w, depth_cm: sz.d, height_cm: spec?.height_cm, min_clearance_cm: spec?.min_clearance_cm ?? 40, facing: spec?.facing ?? "wall", symbol: spec?.symbol ?? symbolForName(k.name), is_default: false };
     let done: Piece[] | null = null;
     const ws = k.fixedSpot && k.wall ? [k.wall] : wallsBy(k.wall);
     for (const w of ws) {

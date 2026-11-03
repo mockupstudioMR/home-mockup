@@ -27,6 +27,8 @@ export type Spec = {
   /** Free space needed in front of it, in cm. */
   min_clearance_cm: number;
   facing: SpecFacing;
+  /** Its top-view symbol on the plan: public/furniture-symbols/<symbol>.svg (back at the top). */
+  symbol?: string | null;
   is_default: boolean;
 };
 
@@ -67,38 +69,38 @@ export type Grouping = {
 
 export const DEFAULT_SPECS: Spec[] = [
   // seating
-  { name: "3-seat sofa", variant: "standard", kind: "sofa", width_cm: 220, depth_cm: 95, height_cm: 85, min_clearance_cm: 60, facing: "wall", is_default: true },
-  { name: "curved sofa", variant: "3-seat", kind: "sofa", width_cm: 240, depth_cm: 105, height_cm: 80, min_clearance_cm: 60, facing: "wall", is_default: true },
-  { name: "l-shape sofa", variant: "standard", kind: "sofa", width_cm: 280, depth_cm: 180, height_cm: 85, min_clearance_cm: 60, facing: "wall", is_default: true },
-  { name: "accent chair", variant: "standard", kind: "chair", width_cm: 80, depth_cm: 85, height_cm: 85, min_clearance_cm: 50, facing: "anchor", is_default: true },
-  { name: "dining chair", variant: "standard", kind: "chair", width_cm: 45, depth_cm: 50, height_cm: 85, min_clearance_cm: 0, facing: "anchor", is_default: true },
-  { name: "desk chair", variant: "standard", kind: "chair", width_cm: 60, depth_cm: 60, height_cm: 100, min_clearance_cm: 0, facing: "anchor", is_default: true },
-  { name: "bench", variant: "standard", kind: "bench", width_cm: 120, depth_cm: 40, height_cm: 45, min_clearance_cm: 0, facing: "free", is_default: true },
-  { name: "piano bench", variant: "standard", kind: "bench", width_cm: 56, depth_cm: 36, height_cm: 49, min_clearance_cm: 0, facing: "anchor", is_default: true },
+  { name: "3-seat sofa", variant: "standard", kind: "sofa", width_cm: 220, depth_cm: 95, height_cm: 85, min_clearance_cm: 60, facing: "wall", symbol: "sofa-3", is_default: true },
+  { name: "curved sofa", variant: "3-seat", kind: "sofa", width_cm: 240, depth_cm: 105, height_cm: 80, min_clearance_cm: 60, facing: "wall", symbol: "sofa-curved", is_default: true },
+  { name: "l-shape sofa", variant: "standard", kind: "sofa", width_cm: 280, depth_cm: 180, height_cm: 85, min_clearance_cm: 60, facing: "wall", symbol: "sofa-l", is_default: true },
+  { name: "accent chair", variant: "standard", kind: "chair", width_cm: 80, depth_cm: 85, height_cm: 85, min_clearance_cm: 50, facing: "anchor", symbol: "armchair", is_default: true },
+  { name: "dining chair", variant: "standard", kind: "chair", width_cm: 45, depth_cm: 50, height_cm: 85, min_clearance_cm: 0, facing: "anchor", symbol: "dining-chair", is_default: true },
+  { name: "desk chair", variant: "standard", kind: "chair", width_cm: 60, depth_cm: 60, height_cm: 100, min_clearance_cm: 0, facing: "anchor", symbol: "desk-chair", is_default: true },
+  { name: "bench", variant: "standard", kind: "bench", width_cm: 120, depth_cm: 40, height_cm: 45, min_clearance_cm: 0, facing: "free", symbol: "bench", is_default: true },
+  { name: "piano bench", variant: "standard", kind: "bench", width_cm: 56, depth_cm: 36, height_cm: 49, min_clearance_cm: 0, facing: "anchor", symbol: "piano-bench", is_default: true },
   // tables
-  { name: "coffee table", variant: "standard", kind: "table", width_cm: 110, depth_cm: 65, height_cm: 38, min_clearance_cm: 45, facing: "free", is_default: true },
-  { name: "side table", variant: "standard", kind: "table", width_cm: 45, depth_cm: 45, height_cm: 50, min_clearance_cm: 0, facing: "free", is_default: true },
-  { name: "dining table", variant: "4-seat", kind: "table", width_cm: 140, depth_cm: 80, height_cm: 75, min_clearance_cm: 80, facing: "free", is_default: true },
-  { name: "dining table", variant: "6-seat", kind: "table", width_cm: 180, depth_cm: 90, height_cm: 75, min_clearance_cm: 80, facing: "free", is_default: false },
-  { name: "desk", variant: "standard", kind: "desk", width_cm: 120, depth_cm: 60, height_cm: 75, min_clearance_cm: 90, facing: "wall", is_default: true },
+  { name: "coffee table", variant: "standard", kind: "table", width_cm: 110, depth_cm: 65, height_cm: 38, min_clearance_cm: 45, facing: "free", symbol: "coffee-table", is_default: true },
+  { name: "side table", variant: "standard", kind: "table", width_cm: 45, depth_cm: 45, height_cm: 50, min_clearance_cm: 0, facing: "free", symbol: "side-table", is_default: true },
+  { name: "dining table", variant: "4-seat", kind: "table", width_cm: 140, depth_cm: 80, height_cm: 75, min_clearance_cm: 80, facing: "free", symbol: "dining-table", is_default: true },
+  { name: "dining table", variant: "6-seat", kind: "table", width_cm: 180, depth_cm: 90, height_cm: 75, min_clearance_cm: 80, facing: "free", symbol: "dining-table", is_default: false },
+  { name: "desk", variant: "standard", kind: "desk", width_cm: 120, depth_cm: 60, height_cm: 75, min_clearance_cm: 90, facing: "wall", symbol: "desk", is_default: true },
   // beds
-  { name: "bed", variant: "double", kind: "bed", width_cm: 160, depth_cm: 200, height_cm: 100, min_clearance_cm: 60, facing: "head_wall", is_default: true },
-  { name: "bed", variant: "king", kind: "bed", width_cm: 180, depth_cm: 200, height_cm: 100, min_clearance_cm: 60, facing: "head_wall", is_default: false },
-  { name: "bed", variant: "single", kind: "bed", width_cm: 90, depth_cm: 200, height_cm: 90, min_clearance_cm: 60, facing: "head_wall", is_default: false },
-  { name: "nightstand", variant: "standard", kind: "storage", width_cm: 45, depth_cm: 40, height_cm: 55, min_clearance_cm: 0, facing: "wall", is_default: true },
+  { name: "bed", variant: "double", kind: "bed", width_cm: 160, depth_cm: 200, height_cm: 100, min_clearance_cm: 60, facing: "head_wall", symbol: "bed-double", is_default: true },
+  { name: "bed", variant: "king", kind: "bed", width_cm: 180, depth_cm: 200, height_cm: 100, min_clearance_cm: 60, facing: "head_wall", symbol: "bed-king", is_default: false },
+  { name: "bed", variant: "single", kind: "bed", width_cm: 90, depth_cm: 200, height_cm: 90, min_clearance_cm: 60, facing: "head_wall", symbol: "bed-single", is_default: false },
+  { name: "nightstand", variant: "standard", kind: "storage", width_cm: 45, depth_cm: 40, height_cm: 55, min_clearance_cm: 0, facing: "wall", symbol: "nightstand", is_default: true },
   // storage
-  { name: "wardrobe", variant: "standard", kind: "storage", width_cm: 200, depth_cm: 60, height_cm: 220, min_clearance_cm: 90, facing: "wall", is_default: true },
-  { name: "dresser", variant: "standard", kind: "storage", width_cm: 120, depth_cm: 50, height_cm: 80, min_clearance_cm: 80, facing: "wall", is_default: true },
-  { name: "tv unit", variant: "standard", kind: "storage", width_cm: 160, depth_cm: 40, height_cm: 50, min_clearance_cm: 0, facing: "wall", is_default: true },
-  { name: "bookshelf", variant: "standard", kind: "storage", width_cm: 90, depth_cm: 35, height_cm: 200, min_clearance_cm: 70, facing: "wall", is_default: true },
-  { name: "sideboard", variant: "standard", kind: "storage", width_cm: 160, depth_cm: 45, height_cm: 80, min_clearance_cm: 80, facing: "wall", is_default: true },
-  { name: "console", variant: "slim", kind: "storage", width_cm: 100, depth_cm: 30, height_cm: 80, min_clearance_cm: 60, facing: "wall", is_default: true },
+  { name: "wardrobe", variant: "standard", kind: "storage", width_cm: 200, depth_cm: 60, height_cm: 220, min_clearance_cm: 90, facing: "wall", symbol: "wardrobe", is_default: true },
+  { name: "dresser", variant: "standard", kind: "storage", width_cm: 120, depth_cm: 50, height_cm: 80, min_clearance_cm: 80, facing: "wall", symbol: "dresser", is_default: true },
+  { name: "tv unit", variant: "standard", kind: "storage", width_cm: 160, depth_cm: 40, height_cm: 50, min_clearance_cm: 0, facing: "wall", symbol: "tv-unit", is_default: true },
+  { name: "bookshelf", variant: "standard", kind: "storage", width_cm: 90, depth_cm: 35, height_cm: 200, min_clearance_cm: 70, facing: "wall", symbol: "bookshelf", is_default: true },
+  { name: "sideboard", variant: "standard", kind: "storage", width_cm: 160, depth_cm: 45, height_cm: 80, min_clearance_cm: 80, facing: "wall", symbol: "sideboard", is_default: true },
+  { name: "console", variant: "slim", kind: "storage", width_cm: 100, depth_cm: 30, height_cm: 80, min_clearance_cm: 60, facing: "wall", symbol: "console", is_default: true },
   // instruments
-  { name: "upright piano", variant: "standard", kind: "other", width_cm: 150, depth_cm: 60, height_cm: 125, min_clearance_cm: 90, facing: "wall", is_default: true },
+  { name: "upright piano", variant: "standard", kind: "other", width_cm: 150, depth_cm: 60, height_cm: 125, min_clearance_cm: 90, facing: "wall", symbol: "piano-upright", is_default: true },
   // decor & lighting
-  { name: "rug", variant: "large", kind: "rug", width_cm: 240, depth_cm: 340, height_cm: 1, min_clearance_cm: 0, facing: "free", is_default: true },
-  { name: "rug", variant: "medium", kind: "rug", width_cm: 230, depth_cm: 160, height_cm: 1, min_clearance_cm: 0, facing: "free", is_default: false },
-  { name: "floor lamp", variant: "standard", kind: "other", width_cm: 30, depth_cm: 30, height_cm: 155, min_clearance_cm: 0, facing: "free", is_default: true },
+  { name: "rug", variant: "large", kind: "rug", width_cm: 240, depth_cm: 340, height_cm: 1, min_clearance_cm: 0, facing: "free", symbol: "rug", is_default: true },
+  { name: "rug", variant: "medium", kind: "rug", width_cm: 230, depth_cm: 160, height_cm: 1, min_clearance_cm: 0, facing: "free", symbol: "rug", is_default: false },
+  { name: "floor lamp", variant: "standard", kind: "other", width_cm: 30, depth_cm: 30, height_cm: 155, min_clearance_cm: 0, facing: "free", symbol: "floor-lamp", is_default: true },
 ];
 
 export const DEFAULT_GROUPINGS: Grouping[] = [
@@ -209,6 +211,40 @@ export function findSpec(specs: Spec[], name: string, variant?: string | null): 
   return (variant ? same.find((s) => s.variant === variant) : undefined) ?? same.find((s) => s.is_default) ?? same[0];
 }
 
+/** The symbol for a piece by its name (and size), for rows and plan pieces that don't name one. */
+export function symbolForName(name: string, variant?: string, kind?: string): string {
+  const n = `${name} ${variant ?? ""}`.toLowerCase();
+  if (/l-shape|corner|chaise/.test(n) && /sofa/.test(n)) return "sofa-l";
+  if (/curved/.test(n) && /sofa/.test(n)) return "sofa-curved";
+  if (/sofa|couch|settee/.test(n)) return /2-seat|loveseat/.test(n) ? "sofa-2" : /4-seat/.test(n) ? "sofa-4" : "sofa-3";
+  if (/grand piano/.test(n)) return "piano-grand";
+  if (/digital piano|keyboard/.test(n)) return "piano-digital";
+  if (/piano bench/.test(n)) return "piano-bench";
+  if (/piano/.test(n)) return "piano-upright";
+  if (/bedside|nightstand|night stand/.test(n)) return "nightstand";
+  if (/\bbed\b|crib|cot/.test(n)) return /single|90/.test(n) ? "bed-single" : /king|180/.test(n) ? "bed-king" : "bed-double";
+  if (/desk chair|office chair/.test(n)) return "desk-chair";
+  if (/dining chair|chair.*dining/.test(n)) return "dining-chair";
+  if (/chair/.test(n)) return "armchair";
+  if (/bench|stool/.test(n)) return "bench";
+  if (/coffee table/.test(n)) return "coffee-table";
+  if (/side table|end table/.test(n)) return "side-table";
+  if (/dining|table for/.test(n)) return "dining-table";
+  if (/desk/.test(n)) return "desk";
+  if (/wardrobe|closet/.test(n)) return "wardrobe";
+  if (/dresser|chest of drawers/.test(n)) return "dresser";
+  if (/tv/.test(n)) return "tv-unit";
+  if (/book|shel/.test(n)) return "bookshelf";
+  if (/sideboard|credenza|buffet/.test(n)) return "sideboard";
+  if (/console/.test(n)) return "console";
+  if (/\brug\b|carpet/.test(n)) return "rug";
+  if (/mirror/.test(n)) return "mirror-round";
+  if (/lamp|light/.test(n)) return "floor-lamp";
+  if (/cushion|pillow/.test(n)) return "cushion";
+  const byKind: Record<string, string> = { sofa: "sofa-3", chair: "armchair", table: "dining-table", rug: "rug", bed: "bed-double", desk: "desk", bench: "bench", storage: "sideboard" };
+  return (kind && byKind[kind]) || "generic";
+}
+
 /** For a row typed into the table without a kind or facing: what its name says it is. */
 export function guessKind(name: string, againstWall?: boolean | null): { kind: SpecKind; facing: SpecFacing } {
   const n = name.toLowerCase();
@@ -241,6 +277,7 @@ export function mergeSpecs(rows: Partial<Spec>[] | null | undefined): Spec[] {
       height_cm: r.height_cm ?? base?.height_cm ?? null,
       min_clearance_cm: r.min_clearance_cm ?? base?.min_clearance_cm ?? 40,
       facing: (r.facing as SpecFacing) ?? base?.facing ?? guess.facing,
+      symbol: r.symbol ?? base?.symbol ?? symbolForName(r.name, r.variant ?? undefined),
       is_default: r.is_default ?? base?.is_default ?? false,
     });
   }
