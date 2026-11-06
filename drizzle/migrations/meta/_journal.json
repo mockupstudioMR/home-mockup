@@ -92,6 +92,13 @@
       "when": 1793969411452,
       "tag": "0012_latest_furniture_layout_schema",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1793969504824,
+      "tag": "0013_restrict_public_layout_reference_reads",
+      "breakpoints": true
     }
   ]
 }
