@@ -810,6 +810,110 @@ export type Database = {
         }
         Relationships: []
       }
+      furniture_grouping_members: {
+        Row: {
+          at: string
+          dx_cm: number
+          dy_cm: number
+          faces: string
+          grouping_id: string
+          id: string
+          label: string | null
+          optional: boolean
+          sort: number
+          spec_name: string
+          spec_variant: string | null
+        }
+        Insert: {
+          at?: string
+          dx_cm?: number
+          dy_cm?: number
+          faces?: string
+          grouping_id: string
+          id?: string
+          label?: string | null
+          optional?: boolean
+          sort?: number
+          spec_name: string
+          spec_variant?: string | null
+        }
+        Update: {
+          at?: string
+          dx_cm?: number
+          dy_cm?: number
+          faces?: string
+          grouping_id?: string
+          id?: string
+          label?: string | null
+          optional?: boolean
+          sort?: number
+          spec_name?: string
+          spec_variant?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "furniture_grouping_members_grouping_id_fkey"
+            columns: ["grouping_id"]
+            isOneToOne: false
+            referencedRelation: "furniture_groupings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      furniture_groupings: {
+        Row: {
+          activities: string[]
+          anchor_name: string
+          anchor_place: string
+          anchor_variant: string | null
+          created_at: string
+          id: string
+          is_active: boolean
+          key: string
+          name: string
+          notes: string | null
+          priority: number
+          room_types: string[]
+          symbol: string | null
+          updated_at: string
+          zone: string
+        }
+        Insert: {
+          activities?: string[]
+          anchor_name: string
+          anchor_place?: string
+          anchor_variant?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          key: string
+          name: string
+          notes?: string | null
+          priority?: number
+          room_types?: string[]
+          symbol?: string | null
+          updated_at?: string
+          zone?: string
+        }
+        Update: {
+          activities?: string[]
+          anchor_name?: string
+          anchor_place?: string
+          anchor_variant?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          key?: string
+          name?: string
+          notes?: string | null
+          priority?: number
+          room_types?: string[]
+          symbol?: string | null
+          updated_at?: string
+          zone?: string
+        }
+        Relationships: []
+      }
       furniture_scheme_tags: {
         Row: {
           scheme_id: string
@@ -932,6 +1036,8 @@ export type Database = {
       }
       furniture_specs: {
         Row: {
+          back_clearance_cm: number
+          back_label: string | null
           category: string | null
           category_term_id: string | null
           companion_of: string | null
@@ -939,19 +1045,30 @@ export type Database = {
           default_orientation: string
           depth_cm: number
           extra_dims: Json
+          facing: string
+          front_label: string | null
           grouping_key: string | null
           height_cm: number | null
           id: string
           is_default: boolean
+          kind: string
+          left_clearance_cm: number
+          left_label: string | null
           min_clearance_cm: number
           must_against_wall: boolean
           name: string
+          right_clearance_cm: number
+          right_label: string | null
           source: string | null
+          symbol: string | null
+          symbol_front: string
           updated_at: string
           variant: string
           width_cm: number
         }
         Insert: {
+          back_clearance_cm?: number
+          back_label?: string | null
           category?: string | null
           category_term_id?: string | null
           companion_of?: string | null
@@ -959,19 +1076,30 @@ export type Database = {
           default_orientation?: string
           depth_cm?: number
           extra_dims?: Json
+          facing?: string
+          front_label?: string | null
           grouping_key?: string | null
           height_cm?: number | null
           id?: string
           is_default?: boolean
+          kind?: string
+          left_clearance_cm?: number
+          left_label?: string | null
           min_clearance_cm?: number
           must_against_wall?: boolean
           name: string
+          right_clearance_cm?: number
+          right_label?: string | null
           source?: string | null
+          symbol?: string | null
+          symbol_front?: string
           updated_at?: string
           variant?: string
           width_cm?: number
         }
         Update: {
+          back_clearance_cm?: number
+          back_label?: string | null
           category?: string | null
           category_term_id?: string | null
           companion_of?: string | null
@@ -979,14 +1107,23 @@ export type Database = {
           default_orientation?: string
           depth_cm?: number
           extra_dims?: Json
+          facing?: string
+          front_label?: string | null
           grouping_key?: string | null
           height_cm?: number | null
           id?: string
           is_default?: boolean
+          kind?: string
+          left_clearance_cm?: number
+          left_label?: string | null
           min_clearance_cm?: number
           must_against_wall?: boolean
           name?: string
+          right_clearance_cm?: number
+          right_label?: string | null
           source?: string | null
+          symbol?: string | null
+          symbol_front?: string
           updated_at?: string
           variant?: string
           width_cm?: number
@@ -4015,6 +4152,24 @@ export type Database = {
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
           user_id?: string
+        }
+        Relationships: []
+      }
+      wall_gap_rules: {
+        Row: {
+          behind: string
+          gap_cm: number
+          updated_at: string
+        }
+        Insert: {
+          behind: string
+          gap_cm: number
+          updated_at?: string
+        }
+        Update: {
+          behind?: string
+          gap_cm?: number
+          updated_at?: string
         }
         Relationships: []
       }
