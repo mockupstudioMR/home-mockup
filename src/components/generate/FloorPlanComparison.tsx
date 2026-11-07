@@ -24,6 +24,12 @@ interface FloorPlanContext {
   layout: { name: string; description: string; items: LayoutItem[] };
 }
 
+type Opening = FloorPlanContext["openings"][number];
+interface StoredWall {
+  id: Opening["wall"];
+  openings?: { type: Opening["type"]; position_pct: number }[];
+}
+
 interface Props {
   designImageUrl: string | null;
   /** Current design id — used to fetch the room spec tied to THIS design (not a stale session one) */
@@ -78,7 +84,7 @@ export default function FloorPlanComparison({
           .maybeSingle();
 
         if (cancelled) return;
-        const roomId = (design as any)?.room_id;
+        const roomId = design?.room_id;
         if (!roomId) {
           setCtx(null);
           return;
@@ -91,27 +97,29 @@ export default function FloorPlanComparison({
           .maybeSingle();
 
         if (cancelled) return;
-        if (!room || !(room as any).layout) {
+        if (!room || !room.layout) {
           setCtx(null);
           return;
         }
 
-        const r: any = room;
-        const flatOpenings = (r.walls ?? []).flatMap((w: any) =>
-          (w.openings ?? []).map((o: any) => ({
+        // JSON columns are untyped in the generated DB types; describe the shapes we read.
+        const walls = (Array.isArray(room.walls) ? room.walls : []) as unknown as StoredWall[];
+        const flatOpenings = walls.flatMap((w) =>
+          (w.openings ?? []).map((o) => ({
             type: o.type,
             wall: w.id,
             position: o.position_pct,
           })),
         );
+        const furniture = room.furniture as { selectedItems?: string[] } | null;
 
         setCtx({
-          shape: r.shape,
-          dimensions: r.dimensions ?? {},
-          roomType: r.room_type,
-          furnitureItems: r.furniture?.selectedItems ?? [],
+          shape: room.shape,
+          dimensions: (room.dimensions ?? {}) as Record<string, number>,
+          roomType: room.room_type,
+          furnitureItems: furniture?.selectedItems ?? [],
           openings: flatOpenings,
-          layout: r.layout,
+          layout: room.layout as unknown as FloorPlanContext["layout"],
         });
       } catch (e) {
         if (!cancelled) setCtx(null);
@@ -146,12 +154,12 @@ export default function FloorPlanComparison({
         if (error) throw error;
         if (data?.error) throw new Error(data.error);
         setTopViewUrl(data?.imageUrl || null);
-      } catch (e: any) {
+      } catch (e: unknown) {
         if (cancelled) return;
         console.error("Top-view generation failed:", e);
         toast({
           title: "Couldn't generate top view",
-          description: e?.message || "Try again later.",
+          description: e instanceof Error && e.message ? e.message : "Try again later.",
           variant: "destructive",
         });
       } finally {

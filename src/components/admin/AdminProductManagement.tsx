@@ -7,6 +7,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import type { Tables, TablesUpdate } from "@/integrations/supabase/types";
+import { getExtractedColors, hasExtractedColors, metadataObject, splitTypeTags, type ExtractedColor } from "@/lib/productColors";
 import { 
   Package, 
   Plus, 
@@ -52,6 +54,9 @@ const styles = [
   "modern-minimal", "bohemian-eclectic", "glam-luxe", "rustic-nature", 
   "mediterranean", "classic-historical"
 ];
+
+type ShopProduct = Tables<"shop_products">;
+type ProductUpdates = Pick<TablesUpdate<"shop_products">, "name" | "type" | "style" | "price" | "source_url">;
 
 const AdminProductManagement = () => {
   const { toast } = useToast();
@@ -125,7 +130,7 @@ const AdminProductManagement = () => {
           style: product.style,
           price: product.price ? parseFloat(product.price) : null,
           source_url: product.source_url || null,
-        } as any)
+        })
         .select()
         .single();
       
@@ -196,7 +201,7 @@ const AdminProductManagement = () => {
 
   // Update product mutation
   const updateProductMutation = useMutation({
-    mutationFn: async ({ productId, updates }: { productId: string; updates: { name?: string; category?: string; style?: string; price?: number | null; source_url?: string | null } }) => {
+    mutationFn: async ({ productId, updates }: { productId: string; updates: ProductUpdates }) => {
       const { error } = await supabase
         .from("shop_products")
         .update(updates)
@@ -238,13 +243,13 @@ const AdminProductManagement = () => {
 
   // Update colors mutation
   const updateColorsMutation = useMutation({
-    mutationFn: async ({ productId, colors }: { productId: string; colors: Array<{ name: string; hex: string; percentage: number }> }) => {
+    mutationFn: async ({ productId, colors }: { productId: string; colors: ExtractedColor[] }) => {
       // Get current metadata first
       const { data: current } = await supabase.from("shop_products").select("metadata").eq("id", productId).single();
-      const currentMeta = (current?.metadata as any) || {};
+      const currentMeta = metadataObject(current?.metadata);
       const { error } = await supabase
         .from("shop_products")
-        .update({ metadata: { ...currentMeta, extracted_colors: colors } })
+        .update({ metadata: { ...currentMeta, extracted_colors: colors.map((c) => ({ ...c })) } })
         .eq("id", productId);
       if (error) throw error;
     },
@@ -257,11 +262,11 @@ const AdminProductManagement = () => {
     },
   });
 
-  const startEditing = (product: any) => {
+  const startEditing = (product: ShopProduct) => {
     setEditingProduct(product.id);
     setEditFields({
       name: product.name || "",
-      type: (product as any).type || "",
+      type: product.type || "",
       style: product.style || "",
       price: product.price ? String(product.price) : "",
       source_url: product.source_url || "",
@@ -277,7 +282,7 @@ const AdminProductManagement = () => {
         style: editFields.style || null,
         price: editFields.price ? parseFloat(editFields.price) : null,
         source_url: editFields.source_url || null,
-      } as any,
+      },
     });
   };
 
@@ -367,19 +372,17 @@ const AdminProductManagement = () => {
   const availableColors = Array.from(
     new Set(
       (allProducts || []).flatMap((p) => {
-        const colors = (p.metadata as any)?.extracted_colors as Array<{ name: string }> | undefined;
-        return colors?.map((c) => c.name) || [];
+        return getExtractedColors(p.metadata).map((c) => c.name);
       })
     )
   ).sort();
 
   // Apply filters
   const filteredProducts = (allProducts || []).filter((p) => {
-    if (filterCategory !== "all" && (p as any).type !== filterCategory) return false;
+    if (filterCategory !== "all" && p.type !== filterCategory) return false;
     if (filterStyle !== "all" && p.style !== filterStyle) return false;
     if (filterColor !== "all") {
-      const colors = (p.metadata as any)?.extracted_colors as Array<{ name: string }> | undefined;
-      if (!colors?.some((c) => c.name === filterColor)) return false;
+      if (!getExtractedColors(p.metadata).some((c) => c.name === filterColor)) return false;
     }
     return true;
   });
@@ -844,11 +847,11 @@ const AdminProductManagement = () => {
                           <span className="text-xs text-muted-foreground font-medium">Type</span>
                         </div>
                         <EditableTagList
-                          tags={(product as any).type ? (product as any).type.split(",").map((t: string) => t.trim()).filter(Boolean) : []}
+                          tags={splitTypeTags(product.type)}
                           onUpdate={(tags) => {
                             const newType = tags.join(", ");
                             if (newType) {
-                              updateProductMutation.mutate({ productId: product.id, updates: { type: newType } as any });
+                              updateProductMutation.mutate({ productId: product.id, updates: { type: newType } });
                             }
                           }}
                           isPending={updateProductMutation.isPending}
@@ -904,16 +907,16 @@ const AdminProductManagement = () => {
                               ) : (
                                 <>
                                   <Sparkles className="w-3 h-3 mr-1" />
-                                  {(product.metadata as any)?.extracted_colors ? "Re-extract" : "Extract"}
+                                  {hasExtractedColors(product.metadata) ? "Re-extract" : "Extract"}
                                 </>
                               )}
                             </Button>
                           )}
                         </div>
                         <EditableTagList
-                          tags={((product.metadata as any)?.extracted_colors as Array<{ name: string }> || []).map(c => c.name)}
+                          tags={getExtractedColors(product.metadata).map(c => c.name)}
                           onUpdate={(colorNames) => {
-                            const existingColors = ((product.metadata as any)?.extracted_colors || []) as Array<{ name: string; hex: string; percentage: number }>;
+                            const existingColors = getExtractedColors(product.metadata);
                             // Keep existing colors that are still in the list, add new ones with defaults
                             const updatedColors = colorNames.map(name => {
                               const existing = existingColors.find(c => c.name === name);

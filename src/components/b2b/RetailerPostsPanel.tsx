@@ -32,6 +32,17 @@ export interface RetailerPost {
   isPinned: boolean;
 }
 
+/** Shape of one post returned by the post-writing edge function (all fields optional). */
+interface GeneratedPost {
+  caption?: string;
+  body?: string;
+  subject?: string;
+  preview?: string;
+  hashtags?: string;
+  imagePrompt?: string;
+  productNames?: unknown;
+}
+
 const CHANNELS: { id: PostChannel; label: string; icon: typeof Instagram; hint: string }[] = [
   { id: "instagram", label: "Instagram", icon: Instagram, hint: "3 punchy captions with hashtags" },
   { id: "linkedin", label: "LinkedIn", icon: Linkedin, hint: "3 professional posts" },
@@ -92,7 +103,7 @@ const RetailerPostsPanel = ({
         .limit(60);
       if (cancelled || !data?.length) return;
       const next: Record<PostChannel, RetailerPost[]> = { instagram: [], linkedin: [], email: [] };
-      for (const row of data as any[]) {
+      for (const row of data) {
         const ch = (row.channel as PostChannel) || "instagram";
         if (!next[ch]) continue;
         next[ch].push({
@@ -144,7 +155,7 @@ const RetailerPostsPanel = ({
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
-      const incoming = (data?.posts || []) as any[];
+      const incoming = (data?.posts || []) as GeneratedPost[];
       if (!incoming.length) throw new Error("No posts were written");
 
       const mapped: RetailerPost[] = incoming.map((p) => ({
@@ -156,7 +167,7 @@ const RetailerPostsPanel = ({
         preview: p.preview || undefined,
         hashtags: p.hashtags || undefined,
         imagePrompt: p.imagePrompt || undefined,
-        productNames: Array.isArray(p.productNames) ? p.productNames : [],
+        productNames: Array.isArray(p.productNames) ? p.productNames.filter((n): n is string => typeof n === "string") : [],
         imageUrl: null,
         isPinned: false,
       }));
@@ -204,11 +215,11 @@ const RetailerPostsPanel = ({
         image_prompt: post.imagePrompt ?? null,
         is_pinned: true,
         language,
-        metadata: { productNames: post.productNames ?? [] } as any,
-      } as any)
+        metadata: { productNames: post.productNames ?? [] },
+      })
       .select("id")
       .single();
-    if (!error && data) patch(post.id, { rowId: (data as any).id });
+    if (!error && data) patch(post.id, { rowId: data.id });
   };
 
   const persist = async (post: RetailerPost, next: Partial<RetailerPost>) => {
@@ -222,7 +233,7 @@ const RetailerPostsPanel = ({
         hashtags: next.hashtags ?? post.hashtags ?? null,
         image_url: next.imageUrl ?? post.imageUrl ?? null,
         image_prompt: next.imagePrompt ?? post.imagePrompt ?? null,
-      } as any)
+      })
       .eq("id", post.rowId);
   };
 
