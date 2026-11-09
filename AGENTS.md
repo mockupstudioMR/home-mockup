@@ -1,5 +1,7 @@
 # Architecture rules
 
+- Project SELECT policies must check row ownership directly before membership helpers so INSERT RETURNING can read newly created owner rows within the same statement snapshot.
+
 - Keep furniture groupings, plan symbols, side clearances, and wall-gap rules in database reference tables; publish only active groupings and preserve customized reference values when seeding defaults.
 
 - Assemble generation moodboard references with the shared moodboard context helper, preserving role labels; attach images in priority order up to a memory-safe cap and name any remaining references in prompt text, because too many inline images exceed edge worker memory.

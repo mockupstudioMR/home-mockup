@@ -1,6 +1,7 @@
 # Roadmap
 
 ## Now
+- [x] Fix new-project saving: corrected owner SELECT policy; 3 live privacy/saving tests passed; signed-in Step 1 saved project, bedroom and progress, and Project Home reloaded them after browser journey storage was cleared.
 - [x] Verify current database migrations and request deployment of the latest version (2026-11-06): applied missing furniture layout schema and reference data; checked signed-in activities screen and 12 layout/shopping-list tests.
 - [ ] Get `npm run lint` green on main (130 errors left: ~70 `any` in the web app, 61 in edge functions, 7 `@ts-nocheck` admin screens). Work through it file by file, biggest first: `components/admin/AdminProductManagement.tsx`, `supabase/functions/analyze-multiroom-plan/index.ts`, `supabase/functions/search-products/index.ts`, `components/generate/FloorPlanComparison.tsx`, `components/b2b/RetailerPostsPanel.tsx`.
 - [ ] Style quiz (needs Unsplash allowed in this agent's network settings — blocked on 2026-10-25 and 2026-10-27): check the six inspiration photos in `quiz/steps/ImageStep.tsx` match their labels (e.g. "Bohemian"), move them into `public/images/quiz/` and record credits in `public/images/CREDITS.md`.
