@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Home Mockup Design Review</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Work+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* Layout: screen list on the left, the screen and its edits on the right; the markup editor opens over the screen. */
+:root {
+  --bg: hsl(30 33% 96%);
+  --panel: #fffdfb;
+  --ink: hsl(260 18% 22%);
+  --soft: hsl(260 8% 48%);
+  --line: hsl(30 15% 86%);
+  --plum: hsl(268 40% 30%);
+  --plum-tint: hsl(268 35% 94%);
+  --ok: #1d6b3a; --ok-bg: #dcefe3;
+  --warn: #8a4b00; --warn-bg: #fbe8cc;
+  --bad: #9b1c1c; --bad-bg: #fbdcdc;
+  --info: #234f8a; --info-bg: #dce7f6;
+  --display: "Instrument Serif", Georgia, serif;
+  --body: "Work Sans", "Helvetica Neue", Arial, sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: hsl(260 15% 10%); --panel: hsl(260 14% 14%); --ink: hsl(30 20% 92%); --soft: hsl(260 8% 66%);
+    --line: hsl(260 10% 24%); --plum: hsl(268 55% 76%); --plum-tint: hsl(268 25% 22%);
+    --ok: #8fd6a8; --ok-bg: #1c3a27; --warn: #f3c27e; --warn-bg: #3e2e15; --bad: #f1a0a0; --bad-bg: #431d1d; --info: #a9c6f0; --info-bg: #1d2e47;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: hsl(260 15% 10%); --panel: hsl(260 14% 14%); --ink: hsl(30 20% 92%); --soft: hsl(260 8% 66%);
+  --line: hsl(260 10% 24%); --plum: hsl(268 55% 76%); --plum-tint: hsl(268 25% 22%);
+  --ok: #8fd6a8; --ok-bg: #1c3a27; --warn: #f3c27e; --warn-bg: #3e2e15; --bad: #f1a0a0; --bad-bg: #431d1d; --info: #a9c6f0; --info-bg: #1d2e47;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; }
+body { background: var(--bg); color: var(--ink); font: 15px/1.5 var(--body); }
+button, input, textarea, select { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--plum); outline-offset: 2px; }
+.app { display: grid; grid-template-rows: auto 1fr; height: 100%; }
+
+header.top { display: flex; flex-wrap: wrap; gap: 12px 24px; align-items: center; justify-content: space-between; padding: 14px 20px; border-bottom: 1px solid var(--line); background: var(--panel); }
+.title { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; }
+h1 { font: 400 30px/1.1 var(--display); margin: 0; text-wrap: balance; }
+.snap { color: var(--soft); font-size: 13px; }
+.snap b { color: var(--ink); font-weight: 600; font-family: ui-monospace, monospace; }
+.top-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.btn { border: 1px solid var(--line); background: var(--panel); color: var(--ink); border-radius: 8px; padding: 7px 12px; font-size: 14px; font-weight: 500; text-decoration: none; display: inline-flex; gap: 6px; align-items: center; }
+.btn:hover { border-color: var(--plum); }
+.btn.primary { background: var(--plum); border-color: var(--plum); color: var(--bg); }
+.btn.small { padding: 4px 9px; font-size: 13px; }
+.btn[disabled] { opacity: .45; cursor: default; }
+
+.main { display: grid; grid-template-columns: 300px 1fr; min-height: 0; }
+aside { border-right: 1px solid var(--line); overflow: auto; background: var(--panel); }
+.filters { display: flex; gap: 4px; padding: 10px; position: sticky; top: 0; background: var(--panel); border-bottom: 1px solid var(--line); z-index: 1; flex-wrap: wrap; }
+.filters button { border: 1px solid transparent; background: none; border-radius: 20px; padding: 3px 10px; font-size: 13px; color: var(--soft); }
+.filters button[aria-pressed="true"] { background: var(--plum-tint); color: var(--ink); border-color: var(--line); }
+.grp { padding: 10px 14px 4px; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--soft); }
+.grp b { color: var(--ink); letter-spacing: 0; text-transform: none; font-size: 13px; margin-right: 4px; }
+.item { display: grid; grid-template-columns: 56px 1fr; gap: 10px; align-items: center; width: 100%; padding: 6px 14px; background: none; border: 0; text-align: left; border-left: 3px solid transparent; }
+.item:hover { background: var(--plum-tint); }
+.item[aria-current="true"] { background: var(--plum-tint); border-left-color: var(--plum); }
+.item img, .item .ph { width: 56px; height: 36px; object-fit: cover; object-position: top; border-radius: 4px; border: 1px solid var(--line); background: var(--bg); }
+.item .t { font-size: 13.5px; line-height: 1.3; }
+.item .chips { display: flex; gap: 4px; margin-top: 2px; flex-wrap: wrap; }
+
+.chip { display: inline-block; font-size: 11px; font-weight: 600; border-radius: 20px; padding: 1px 8px; white-space: nowrap; }
+.chip.changed { background: var(--warn-bg); color: var(--warn); }
+.chip.new { background: var(--ok-bg); color: var(--ok); }
+.chip.draft { background: var(--plum-tint); color: var(--plum); }
+.chip.approved { background: var(--ok-bg); color: var(--ok); }
+.chip.queued { background: var(--info-bg); color: var(--info); }
+.chip.sent { background: var(--info-bg); color: var(--info); }
+.chip.rejected, .chip.err { background: var(--bad-bg); color: var(--bad); }
+
+section.view { overflow: auto; padding: 18px 24px 40px; min-width: 0; }
+.vhead { display: flex; flex-wrap: wrap; gap: 10px 20px; justify-content: space-between; align-items: flex-end; margin-bottom: 14px; }
+.vhead h2 { font: 400 28px/1.15 var(--display); margin: 0; text-wrap: balance; }
+.meta { font-size: 13px; color: var(--soft); }
+.meta code { font-size: 12px; color: var(--ink); }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.seg button { border: 0; background: var(--panel); padding: 6px 12px; font-size: 13px; }
+.seg button[aria-pressed="true"] { background: var(--plum); color: var(--bg); }
+.cols { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 24px; align-items: start; }
+.shot { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 10px; }
+.shot img { display: block; max-width: 100%; margin: 0 auto; border-radius: 6px; }
+.shot.mobile img { max-width: 390px; width: 100%; }
+.empty { padding: 40px; text-align: center; color: var(--soft); }
+
+.edits h3 { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: var(--soft); margin: 0 0 8px; font-weight: 600; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px; display: grid; gap: 8px; margin-bottom: 10px; }
+.card img { width: 100%; max-height: 180px; object-fit: cover; object-position: top; border-radius: 6px; border: 1px solid var(--line); cursor: zoom-in; }
+.card .row { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.card .notes { white-space: pre-wrap; font-size: 14px; }
+.card .when { font-size: 12px; color: var(--soft); }
+.card a { color: var(--plum); }
+
+/* queue view */
+.queue { display: grid; gap: 22px; }
+.queue .lane h3 { display: flex; gap: 10px; align-items: center; }
+.qgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
+
+/* editor */
+.editor { position: fixed; inset: 0; background: color-mix(in srgb, var(--bg) 92%, transparent); z-index: 10; display: grid; grid-template-rows: auto 1fr; }
+.editor[hidden] { display: none; }
+.ebar { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; padding: 10px 16px; background: var(--panel); border-bottom: 1px solid var(--line); }
+.tools { display: inline-flex; gap: 2px; border: 1px solid var(--line); border-radius: 8px; padding: 2px; }
+.tools button { border: 0; background: none; border-radius: 6px; padding: 5px 10px; font-size: 13px; }
+.tools button[aria-pressed="true"] { background: var(--plum); color: var(--bg); }
+.sw { width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--panel); outline: 1px solid var(--line); padding: 0; }
+.sw[aria-pressed="true"] { outline: 2px solid var(--ink); }
+.ebody { display: grid; grid-template-columns: minmax(0, 1fr) 360px; min-height: 0; }
+.stage { overflow: auto; padding: 16px; }
+.stage canvas { display: block; margin: 0 auto; border-radius: 6px; border: 1px solid var(--line); touch-action: none; cursor: crosshair; max-width: 100%; }
+.form { border-left: 1px solid var(--line); background: var(--panel); padding: 16px; display: grid; gap: 12px; align-content: start; overflow: auto; }
+.form label { font-size: 13px; font-weight: 600; display: grid; gap: 4px; }
+.form textarea, .form input[type=text] { border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; background: var(--bg); }
+.form textarea { min-height: 140px; resize: vertical; }
+.hint { font-size: 12.5px; color: var(--soft); font-weight: 400; }
+.upl img { max-width: 100%; border-radius: 6px; border: 1px solid var(--line); margin-top: 6px; }
+.textpop { position: fixed; z-index: 20; display: flex; gap: 4px; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 4px; }
+.textpop input { border: 1px solid var(--line); border-radius: 6px; padding: 4px 8px; width: 220px; background: var(--bg); }
+
+.lightbox { position: fixed; inset: 0; z-index: 30; background: rgba(0,0,0,.7); display: grid; place-items: center; padding: 20px; overflow: auto; }
+.lightbox img { max-width: 100%; border-radius: 6px; }
+.toast { position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%); background: var(--ink); color: var(--bg); padding: 8px 14px; border-radius: 8px; font-size: 14px; z-index: 40; max-width: 90vw; }
+.banner { margin: 0 0 14px; padding: 10px 14px; border-radius: 8px; background: var(--info-bg); color: var(--info); font-size: 14px; }
+
+@media (max-width: 900px) {
+  .main { grid-template-columns: 1fr; }
+  aside { max-height: 38vh; border-right: 0; border-bottom: 1px solid var(--line); }
+  .cols { grid-template-columns: 1fr; }
+  .ebody { grid-template-columns: 1fr; }
+  .form { border-left: 0; border-top: 1px solid var(--line); }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="top">
+    <div class="title">
+      <h1>Design review</h1>
+      <span class="snap" id="snap">Loading the latest snapshot…</span>
+    </div>
+    <div class="top-actions">
+      <a class="btn" id="pdfLink" href="#" target="_blank" rel="noopener" hidden>Open PDF</a>
+      <button class="btn" id="queueBtn" type="button">All edits</button>
+      <button class="btn primary" id="pushBtn" type="button" disabled>Push approved to feature list</button>
+    </div>
+  </header>
+  <div class="main">
+    <aside>
+      <div class="filters" role="group" aria-label="Show screens">
+        <button type="button" data-f="all" aria-pressed="true">All</button>
+        <button type="button" data-f="changed" aria-pressed="false">Changed</button>
+        <button type="button" data-f="edits" aria-pressed="false">With edits</button>
+      </div>
+      <nav id="list" aria-label="Screens"></nav>
+    </aside>
+    <section class="view" id="view"><div class="empty">Loading…</div></section>
+  </div>
+</div>
+
+<div class="editor" id="editor" hidden>
+  <div class="ebar">
+    <strong id="eTitle">Edit design</strong>
+    <div class="tools" role="group" aria-label="Drawing tool">
+      <button type="button" data-tool="box" aria-pressed="true">Box</button>
+      <button type="button" data-tool="arrow" aria-pressed="false">Arrow</button>
+      <button type="button" data-tool="pen" aria-pressed="false">Pen</button>
+      <button type="button" data-tool="highlight" aria-pressed="false">Highlight</button>
+      <button type="button" data-tool="text" aria-pressed="false">Text</button>
+      <button type="button" data-tool="cover" aria-pressed="false">Remove</button>
+    </div>
+    <div class="row" role="group" aria-label="Colour" id="swatches"></div>
+    <button class="btn small" type="button" id="undoBtn">Undo</button>
+    <button class="btn small" type="button" id="clearBtn">Clear marks</button>
+    <span class="hint">Remove paints over something that should go. Text adds a label.</span>
+  </div>
+  <div class="ebody">
+    <div class="stage"><canvas id="cv"></canvas></div>
+    <div class="form">
+      <label for="eName">Change title
+        <input type="text" id="eName" placeholder="e.g. Bigger photo cards on the layout step">
+      </label>
+      <label for="eNotes">What should change
+        <span class="hint">Write it as you'd brief a designer: what, where, why. Numbers on the screen refer to your marks.</span>
+        <textarea id="eNotes"></textarea>
+      </label>
+      <label for="eFile">Your own version (optional)
+        <span class="hint">A sketch, Figma export or photo of the new design.</span>
+        <input type="file" id="eFile" accept="image/*">
+        <div class="upl" id="eUpl"></div>
+      </label>
+      <label for="ePrio">Priority
+        <select id="ePrio"><option value="normal">Normal</option><option value="high">High</option><option value="low">Low</option></select>
+      </label>
+      <div class="row">
+        <button class="btn" type="button" id="cancelBtn">Cancel</button>
+        <button class="btn" type="button" id="saveBtn">Save draft</button>
+        <button class="btn primary" type="button" id="saveApproveBtn">Save &amp; approve</button>
+      </div>
+      <p class="hint" id="eStatus"></p>
+    </div>
+  </div>
+</div>
+
+<script>
+"use strict";
+const TRIGGER_ID = "trig_01E4WhyCGEfd5qUJdrwRP8Wx"; // the "home-mockup design review" scheduled task
+const BOARD_URL = "https://claude.ai/artifact/GrszEJqrDbfzUBzKKQYNjT";
+const COLORS = ["#e0245e", "#4b2a63", "#f5b301", "#1f8a4c", "#ffffff"];
+const STATUS = { draft: "Draft", approved: "Approved", queued: "Waiting for agent", sent: "On feature list", rejected: "Dropped" };
+
+const state = { db: null, assets: null, mcp: null, canEdit: false, meta: null, screens: [], edits: [], groups: [], filter: "all", current: null, device: "desktop", mode: "screen" };
+const $ = (s, el = document) => el.querySelector(s);
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+function toast(msg) { const t = document.createElement("div"); t.className = "toast"; t.textContent = msg; document.body.appendChild(t); setTimeout(() => t.remove(), 3500); }
+const fmtDate = (iso) => { try { return new Date(iso).toLocaleString(undefined, { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }); } catch { return iso || ""; } };
+const blob = (id, url) => url || (id ? "/_blob/" + id : "");
+
+/* ---------- data ---------- */
+async function boot() {
+  const timer = setTimeout(() => { if (!state.meta) $("#view").innerHTML = '<div class="empty">The review data did not load. Reload the page; if it stays empty, the design agent has not run yet.</div>'; }, 10000);
+  const db = await claude.use("db");
+  if (!db) { clearTimeout(timer); $("#view").innerHTML = '<div class="empty">Sign in to claude.ai to see the design review.</div>'; return; }
+  state.db = db;
+  const user = await claude.use("user");
+  state.canEdit = user ? (user.can("data.write") ?? true) : false;
+  state.assets = await claude.use("assets");
+  claude.use("mcp").then((m) => { state.mcp = m; });
+  try { const pl = location.hash.slice(1); if (pl) state.current = pl; } catch {}
+
+  let snapUnsub = null, snapKey = null;
+  db.doc("meta/current").onSnapshot((d) => {
+    clearTimeout(timer);
+    state.meta = d.exists ? d.data() : {};
+    const key = state.meta.snapshot;
+    if (key && key !== snapKey) {
+      snapKey = key; snapUnsub?.();
+      snapUnsub = db.doc("snapshots/" + key).onSnapshot((sd) => { state.screens = sd.exists ? (sd.data().screens || []) : []; render(); }, () => {});
+    }
+    render();
+  }, () => { clearTimeout(timer); });
+  db.collection("edits").onSnapshot((snap) => { state.edits = snap.docs.map((d) => ({ id: d.id, _doc: d, ...d.data() })); render(); }, () => {});
+}
+
+/* ---------- render ---------- */
+function editsFor(id) { return state.edits.filter((e) => e.screenId === id && e.status !== "rejected"); }
+function groupOf(s) {
+  const groups = state.meta?.groups || [];
+  return groups.find((g) => g.area === s.area && (!g.prefix || s.board === g.prefix || s.board.startsWith(g.prefix))) || { key: s.area, title: s.area, sub: "" };
+}
+function render() {
+  const m = state.meta || {};
+  if (m.commitShort) {
+    $("#snap").innerHTML = `Snapshot of <b>${esc(m.commitShort)}</b> · pushed ${esc(fmtDate(m.commitDate))} · ${m.screenCount || state.screens.length} screens${m.changedCount ? ` · <span class="chip changed">${m.changedCount} changed</span>` : ""}`;
+  } else $("#snap").textContent = "No snapshot yet";
+  const pdf = blob(m.pdfAssetId, m.pdfUrl);
+  $("#pdfLink").hidden = !pdf; if (pdf) $("#pdfLink").href = pdf;
+  const approved = state.edits.filter((e) => e.status === "approved").length;
+  $("#pushBtn").disabled = !approved || !state.canEdit;
+  $("#pushBtn").textContent = approved ? `Push ${approved} approved to feature list` : "Push approved to feature list";
+  const open = state.edits.filter((e) => ["draft", "approved", "queued"].includes(e.status)).length;
+  $("#queueBtn").textContent = open ? `All edits (${open} open)` : "All edits";
+  $("#queueBtn").setAttribute("aria-pressed", state.mode === "queue");
+  renderList();
+  if (state.mode === "queue") renderQueue(); else renderScreen();
+}
+
+function sortedScreens() {
+  return [...state.screens].sort((a, b) => (a.no ?? 999) - (b.no ?? 999));
+}
+function renderList() {
+  const f = state.filter;
+  let last = null, html = "";
+  for (const s of sortedScreens()) {
+    const ed = editsFor(s.id);
+    if (f === "changed" && !s.change) continue;
+    if (f === "edits" && !ed.length) continue;
+    const g = groupOf(s);
+    if (g.key !== last) { html += `<div class="grp"><b>${esc(g.title)}</b>${esc(g.sub || "")}</div>`; last = g.key; }
+    const chips = (s.change ? `<span class="chip ${s.change}">${s.change === "new" ? "New" : "Changed"}</span>` : "") +
+      (ed.length ? `<span class="chip draft">${ed.length} edit${ed.length > 1 ? "s" : ""}</span>` : "") +
+      (s.error || s.redirectedTo ? '<span class="chip err">Check</span>' : "");
+    const thumb = blob(s.desktopAssetId, s.desktopUrl);
+    html += `<button class="item" type="button" data-id="${esc(s.id)}" aria-current="${state.mode === "screen" && s.id === state.current}">
+      ${thumb ? `<img src="${esc(thumb)}" alt="" loading="lazy">` : '<span class="ph"></span>'}
+      <span><span class="t">${esc(s.title)}</span><span class="chips">${chips}</span></span></button>`;
+  }
+  $("#list").innerHTML = html || '<div class="empty">Nothing here.</div>';
+}
+
+function editCard(e, withScreen) {
+  const img = blob(e.markupAssetId, e.markupUrl) || blob(e.uploadAssetId, e.uploadUrl);
+  const s = state.screens.find((x) => x.id === e.screenId);
+  const actions = [];
+  if (state.canEdit) {
+    if (e.status === "draft") actions.push(`<button class="btn small" data-act="edit" data-id="${e.id}">Edit</button>`, `<button class="btn small primary" data-act="approve" data-id="${e.id}">Approve</button>`);
+    if (e.status === "approved") actions.push(`<button class="btn small primary" data-act="push" data-id="${e.id}">Push to feature list</button>`, `<button class="btn small" data-act="unapprove" data-id="${e.id}">Back to draft</button>`);
+    if (["draft", "approved"].includes(e.status)) actions.push(`<button class="btn small" data-act="drop" data-id="${e.id}">Drop</button>`);
+    if (e.status === "rejected") actions.push(`<button class="btn small" data-act="unapprove" data-id="${e.id}">Restore</button>`);
+  }
+  return `<div class="card">
+    <div class="row"><span class="chip ${e.status}">${STATUS[e.status] || e.status}</span>${e.priority === "high" ? '<span class="chip changed">High</span>' : ""}<strong>${esc(e.title || "Design change")}</strong></div>
+    ${withScreen && s ? `<div class="when">${esc(s.title)} · <code>${esc(s.route)}</code></div>` : ""}
+    ${img ? `<img src="${esc(img)}" alt="Marked-up design" data-zoom="${esc(img)}">` : ""}
+    ${e.uploadAssetId && e.markupAssetId ? `<a href="${esc(blob(e.uploadAssetId, e.uploadUrl))}" target="_blank" rel="noopener">Your own version</a>` : ""}
+    ${e.notes ? `<div class="notes">${esc(e.notes)}</div>` : ""}
+    ${e.featureId ? `<div class="when">Feature <b>${esc(e.featureId)}</b>${e.featureStatus ? ` · board status: ${esc(e.featureStatus)}` : ""} · <a href="${BOARD_URL}" target="_blank" rel="noopener">Open feature board</a></div>` : ""}
+    <div class="when">${e.status === "queued" ? "Pushed " + esc(fmtDate(e.queuedAt)) + ", the design agent adds it on its next run" : "Updated " + esc(fmtDate(e.updatedAt))}${e.snapshotCommit ? " · on " + esc(e.snapshotCommit) : ""}</div>
+    ${actions.length ? `<div class="row">${actions.join("")}</div>` : ""}
+  </div>`;
+}
+
+function renderScreen() {
+  const list = sortedScreens();
+  if (!list.length) { $("#view").innerHTML = state.meta?.snapshot ? '<div class="empty">Loading screens…</div>' : '<div class="empty">No screens yet. The design agent fills this page after its first run.</div>'; return; }
+  let s = list.find((x) => x.id === state.current) || list[0];
+  state.current = s.id;
+  const src = state.device === "desktop" ? blob(s.desktopAssetId, s.desktopUrl) : blob(s.mobileAssetId, s.mobileUrl);
+  const ed = state.edits.filter((e) => e.screenId === s.id).sort((a, b) => String(b.updatedAt).localeCompare(String(a.updatedAt)));
+  const warn = s.error ? `<div class="banner">This screen did not render in the last snapshot: ${esc(s.error)}</div>` : s.redirectedTo ? `<div class="banner">Opening ${esc(s.route)} ended on ${esc(s.redirectedTo)}, so the picture may show another screen.</div>` : "";
+  $("#view").innerHTML = `
+    <div class="vhead"><div>
+      <div class="meta">${esc(groupOf(s).title)} · ${esc(groupOf(s).sub || "")}</div>
+      <h2>${esc(s.title)} ${s.change ? `<span class="chip ${s.change}">${s.change === "new" ? "New screen" : "Changed in " + esc(s.snapshotCommit || "")}</span>` : ""}</h2>
+      <div class="meta">Route <code>${esc(s.route)}</code> · screen <code>${esc(s.id)}</code> · ${s.role ? "signed in as " + esc(s.role) : "signed out"} · picture from ${esc(s.snapshotCommit || "")}</div>
+    </div>
+    <div class="row" style="display:flex;gap:8px;flex-wrap:wrap">
+      <div class="seg" role="group" aria-label="Device"><button type="button" data-dev="desktop" aria-pressed="${state.device === "desktop"}">Desktop</button><button type="button" data-dev="mobile" aria-pressed="${state.device === "mobile"}">Mobile</button></div>
+      ${state.canEdit ? '<button class="btn primary" type="button" id="newEdit">Edit this design</button>' : ""}
+    </div></div>
+    ${warn}
+    <div class="cols">
+      <div class="shot ${state.device}">${src ? `<img src="${esc(src)}" alt="${esc(s.title)} on ${state.device}">` : '<div class="empty">No picture</div>'}</div>
+      <div class="edits"><h3>Edits for this screen</h3>${ed.length ? ed.map((e) => editCard(e, false)).join("") : '<p class="meta">None yet. Use “Edit this design” to mark up the screen and describe the change.</p>'}</div>
+    </div>`;
+}
+
+function renderQueue() {
+  const lanes = [["draft", "Drafts"], ["approved", "Approved, ready to push"], ["queued", "Pushed, waiting for the agent"], ["sent", "On the feature list"], ["rejected", "Dropped"]];
+  const html = lanes.map(([k, label]) => {
+    const items = state.edits.filter((e) => e.status === k).sort((a, b) => String(b.updatedAt).localeCompare(String(a.updatedAt)));
+    if (!items.length && (k === "rejected")) return "";
+    return `<div class="lane"><h3><span class="chip ${k}">${items.length}</span>${label}</h3>${items.length ? `<div class="qgrid">${items.map((e) => editCard(e, true)).join("")}</div>` : '<p class="meta">Nothing here.</p>'}</div>`;
+  }).join("");
+  $("#view").innerHTML = `<div class="vhead"><div><h2>All design edits</h2><div class="meta">Approve the edits you want built, then push them. Each pushed edit becomes an idea on the <a href="${BOARD_URL}" target="_blank" rel="noopener">feature board</a>, where the feature agent writes the spec for you to approve.</div></div></div><div class="queue">${html}</div>`;
+}
+
+/* ---------- actions ---------- */
+async function setStatus(id, status, extra = {}) {
+  const e = state.edits.find((x) => x.id === id); if (!e) return;
+  try {
+    await state.db.doc("edits/" + id).update({ status, updatedAt: new Date().toISOString(), ...extra });
+  } catch (err) { toast("Could not save: " + (err?.message || err)); }
+}
+async function pushEdits(ids) {
+  const now = new Date().toISOString();
+  for (const id of ids) await setStatus(id, "queued", { queuedAt: now });
+  let fired = false;
+  if (TRIGGER_ID && state.mcp) {
+    try { await state.mcp.callTool("Claude Code Remote", "fire_trigger", { trigger_id: TRIGGER_ID, text: "Monica just pushed design edits from the review page. Do step 4 (push queued edits to the feature board) now." }); fired = true; } catch { /* the hourly run picks them up */ }
+  }
+  toast(fired ? `${ids.length} edit${ids.length > 1 ? "s" : ""} pushed. The design agent is adding them to the feature list now.` : `${ids.length} edit${ids.length > 1 ? "s" : ""} pushed. The design agent adds them to the feature list on its next run (within the hour).`);
+}
+
+document.addEventListener("click", async (ev) => {
+  const t = ev.target.closest("button, img[data-zoom]");
+  if (!t) return;
+  if (t.matches(".item")) { state.mode = "screen"; state.current = t.dataset.id; try { history.replaceState(null, "", "#" + t.dataset.id); } catch {} render(); $("#view").scrollTop = 0; return; }
+  if (t.dataset.f) { state.filter = t.dataset.f; document.querySelectorAll(".filters button").forEach((b) => b.setAttribute("aria-pressed", b === t)); renderList(); return; }
+  if (t.dataset.dev) { state.device = t.dataset.dev; renderScreen(); return; }
+  if (t.dataset.zoom) { const lb = document.createElement("div"); lb.className = "lightbox"; lb.innerHTML = `<img src="${esc(t.dataset.zoom)}" alt="">`; lb.onclick = () => lb.remove(); document.body.appendChild(lb); return; }
+  if (t.id === "queueBtn") { state.mode = state.mode === "queue" ? "screen" : "queue"; render(); return; }
+  if (t.id === "pushBtn") { const ids = state.edits.filter((e) => e.status === "approved").map((e) => e.id); if (ids.length) await pushEdits(ids); return; }
+  if (t.id === "newEdit") { openEditor(state.screens.find((s) => s.id === state.current), null); return; }
+  const id = t.dataset.id, act = t.dataset.act;
+  if (!act) return;
+  if (act === "edit") { const e = state.edits.find((x) => x.id === id); openEditor(state.screens.find((s) => s.id === e.screenId), e); }
+  if (act === "approve") { await setStatus(id, "approved", { approvedAt: new Date().toISOString() }); toast("Approved. Push it to the feature list when you're ready."); }
+  if (act === "unapprove") await setStatus(id, "draft");
+  if (act === "drop") await setStatus(id, "rejected");
+  if (act === "push") await pushEdits([id]);
+});
+
+/* ---------- markup editor ---------- */
+const ed = { screen: null, edit: null, img: null, shapes: [], tool: "box", color: COLORS[0], drawing: null, upload: null, device: "desktop" };
+const cv = $("#cv"), ctx = cv.getContext("2d");
+$("#swatches").innerHTML = COLORS.map((c, i) => `<button type="button" class="sw" style="background:${c}" data-color="${c}" aria-label="Colour ${i + 1}" aria-pressed="${i === 0}"></button>`).join("");
+$("#swatches").addEventListener("click", (e) => { const b = e.target.closest("[data-color]"); if (!b) return; ed.color = b.dataset.color; document.querySelectorAll(".sw").forEach((x) => x.setAttribute("aria-pressed", x === b)); });
+document.querySelector(".tools").addEventListener("click", (e) => { const b = e.target.closest("[data-tool]"); if (!b) return; ed.tool = b.dataset.tool; document.querySelectorAll(".tools button").forEach((x) => x.setAttribute("aria-pressed", x === b)); });
+
+function loadImage(src) { return new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = src; }); }
+async function openEditor(screen, edit) {
+  if (!screen) return;
+  ed.screen = screen; ed.edit = edit; ed.upload = null;
+  ed.device = edit?.device || state.device;
+  ed.shapes = edit?.shapes ? JSON.parse(JSON.stringify(edit.shapes)) : [];
+  $("#eTitle").textContent = (edit ? "Edit: " : "New edit: ") + screen.title + (ed.device === "mobile" ? " (mobile)" : "");
+  $("#eName").value = edit?.title || "";
+  $("#eNotes").value = edit?.notes || "";
+  $("#ePrio").value = edit?.priority || "normal";
+  $("#eFile").value = "";
+  $("#eUpl").innerHTML = edit?.uploadAssetId ? `<img src="${esc(blob(edit.uploadAssetId, edit.uploadUrl))}" alt="Your version">` : "";
+  $("#eStatus").textContent = "";
+  $("#editor").hidden = false;
+  const src = ed.device === "mobile" ? blob(screen.mobileAssetId, screen.mobileUrl) : blob(screen.desktopAssetId, screen.desktopUrl);
+  try { ed.img = await loadImage(src); } catch { ed.img = null; $("#eStatus").textContent = "The screen picture did not load; you can still describe the change."; }
+  cv.width = ed.img?.naturalWidth || 1440; cv.height = ed.img?.naturalHeight || 900;
+  draw();
+}
+function closeEditor() { $("#editor").hidden = true; }
+$("#cancelBtn").onclick = closeEditor;
+$("#undoBtn").onclick = () => { ed.shapes.pop(); draw(); };
+$("#clearBtn").onclick = () => { ed.shapes = []; draw(); };
+
+function lw() { return Math.max(3, Math.round(cv.width / 360)); }
+function drawShape(c, s, n) {
+  c.save(); c.strokeStyle = s.color; c.fillStyle = s.color; c.lineWidth = s.w; c.lineCap = "round"; c.lineJoin = "round";
+  if (s.t === "box") { c.strokeRect(s.x, s.y, s.x2 - s.x, s.y2 - s.y); }
+  if (s.t === "cover") { c.globalAlpha = 0.85; c.fillStyle = "#ffffff"; c.fillRect(s.x, s.y, s.x2 - s.x, s.y2 - s.y); c.globalAlpha = 1; c.setLineDash([s.w * 2, s.w * 2]); c.strokeRect(s.x, s.y, s.x2 - s.x, s.y2 - s.y); }
+  if (s.t === "highlight") { c.globalAlpha = 0.28; c.fillRect(s.x, s.y, s.x2 - s.x, s.y2 - s.y); }
+  if (s.t === "arrow") {
+    c.beginPath(); c.moveTo(s.x, s.y); c.lineTo(s.x2, s.y2); c.stroke();
+    const a = Math.atan2(s.y2 - s.y, s.x2 - s.x), h = s.w * 5;
+    c.beginPath(); c.moveTo(s.x2, s.y2); c.lineTo(s.x2 - h * Math.cos(a - 0.45), s.y2 - h * Math.sin(a - 0.45)); c.lineTo(s.x2 - h * Math.cos(a + 0.45), s.y2 - h * Math.sin(a + 0.45)); c.closePath(); c.fill();
+  }
+  if (s.t === "pen" && s.p?.length) { c.beginPath(); c.moveTo(s.p[0], s.p[1]); for (let i = 2; i < s.p.length; i += 2) c.lineTo(s.p[i], s.p[i + 1]); c.stroke(); }
+  if (s.t === "text") {
+    const fs = s.w * 6; c.font = `600 ${fs}px "Work Sans", Arial, sans-serif`;
+    const tw = c.measureText(s.text).width; c.fillStyle = s.color === "#ffffff" ? "#4b2a63" : "#ffffff"; c.globalAlpha = 0.92;
+    c.fillRect(s.x - fs * 0.3, s.y - fs * 1.05, tw + fs * 0.6, fs * 1.4); c.globalAlpha = 1; c.fillStyle = s.color; c.fillText(s.text, s.x, s.y);
+  }
+  // number marker so notes can refer to marks
+  if (n != null && s.t !== "pen") {
+    const r = s.w * 3.2, mx = s.t === "arrow" ? s.x : Math.min(s.x, s.x2 ?? s.x), my = s.t === "arrow" ? s.y : Math.min(s.y, s.y2 ?? s.y) - (s.t === "text" ? s.w * 7 : 0);
+    c.globalAlpha = 1; c.setLineDash([]); c.fillStyle = s.color === "#ffffff" ? "#4b2a63" : s.color; c.beginPath(); c.arc(mx, my, r, 0, Math.PI * 2); c.fill();
+    c.fillStyle = "#fff"; c.font = `700 ${r * 1.2}px Arial`; c.textAlign = "center"; c.textBaseline = "middle"; c.fillText(String(n), mx, my + 1);
+  }
+  c.restore();
+}
+function draw() {
+  ctx.clearRect(0, 0, cv.width, cv.height);
+  if (ed.img) ctx.drawImage(ed.img, 0, 0); else { ctx.fillStyle = "#eee"; ctx.fillRect(0, 0, cv.width, cv.height); }
+  let n = 0;
+  for (const s of ed.shapes) drawShape(ctx, s, s.t === "pen" ? null : ++n);
+  if (ed.drawing) drawShape(ctx, ed.drawing, null);
+}
+function pt(e) { const r = cv.getBoundingClientRect(); return [Math.round((e.clientX - r.left) * cv.width / r.width), Math.round((e.clientY - r.top) * cv.height / r.height)]; }
+cv.addEventListener("pointerdown", (e) => {
+  const [x, y] = pt(e);
+  if (ed.tool === "text") { askText(e.clientX, e.clientY, (text) => { if (text) { ed.shapes.push({ t: "text", x, y, text, color: ed.color, w: lw() }); draw(); } }); return; }
+  cv.setPointerCapture(e.pointerId);
+  ed.drawing = ed.tool === "pen" ? { t: "pen", p: [x, y], color: ed.color, w: lw() } : { t: ed.tool, x, y, x2: x, y2: y, color: ed.color, w: ed.tool === "highlight" ? 0 : lw() };
+  if (ed.tool === "highlight") ed.drawing.w = lw();
+});
+cv.addEventListener("pointermove", (e) => {
+  if (!ed.drawing) return; const [x, y] = pt(e);
+  if (ed.drawing.t === "pen") { const p = ed.drawing.p; if (Math.hypot(x - p[p.length - 2], y - p[p.length - 1]) > 4) p.push(x, y); }
+  else { ed.drawing.x2 = x; ed.drawing.y2 = y; }
+  draw();
+});
+cv.addEventListener("pointerup", () => {
+  const d = ed.drawing; ed.drawing = null; if (!d) return;
+  if (d.t === "pen" ? d.p.length > 4 : Math.abs(d.x2 - d.x) + Math.abs(d.y2 - d.y) > 8) {
+    if (d.t !== "pen" && d.t !== "arrow") { const [x, x2] = [Math.min(d.x, d.x2), Math.max(d.x, d.x2)], [y, y2] = [Math.min(d.y, d.y2), Math.max(d.y, d.y2)]; Object.assign(d, { x, x2, y, y2 }); }
+    ed.shapes.push(d);
+  }
+  draw();
+});
+function askText(cx, cy, done) {
+  const pop = document.createElement("form"); pop.className = "textpop"; pop.style.left = Math.min(cx, innerWidth - 300) + "px"; pop.style.top = cy + "px";
+  pop.innerHTML = '<input id="txtIn" type="text" aria-label="Label text" placeholder="Label"><button class="btn small primary" type="submit">Add</button>';
+  document.body.appendChild(pop); const inp = pop.querySelector("input"); inp.focus();
+  pop.onsubmit = (e) => { e.preventDefault(); const v = inp.value.trim(); pop.remove(); done(v); };
+  inp.onkeydown = (e) => { if (e.key === "Escape") { pop.remove(); done(""); } };
+  inp.onblur = () => setTimeout(() => { if (pop.isConnected) { pop.remove(); done(inp.value.trim()); } }, 150);
+}
+$("#eFile").addEventListener("change", () => {
+  const f = $("#eFile").files[0]; ed.upload = f || null;
+  $("#eUpl").innerHTML = f ? `<img src="${URL.createObjectURL(f)}" alt="Your version">` : "";
+});
+
+async function saveEdit(approve) {
+  const title = $("#eName").value.trim(), notes = $("#eNotes").value.trim();
+  if (!title && !notes && !ed.shapes.length && !ed.upload) { $("#eStatus").textContent = "Add a mark, a note or your own version first."; return; }
+  if (approve && !notes && !title) { $("#eStatus").textContent = "Write what should change before approving, so the feature agent knows what to build."; return; }
+  $("#saveBtn").disabled = $("#saveApproveBtn").disabled = true; $("#eStatus").textContent = "Saving…";
+  try {
+    const now = new Date().toISOString();
+    const data = { screenId: ed.screen.id, screenTitle: ed.screen.title, route: ed.screen.route, device: ed.device, title: title || "Change to " + ed.screen.title, notes, priority: $("#ePrio").value, shapes: ed.shapes, snapshotCommit: state.meta?.commitShort || ed.screen.snapshotCommit || "", beforeAssetId: ed.device === "mobile" ? ed.screen.mobileAssetId : ed.screen.desktopAssetId, updatedAt: now };
+    if (state.assets) {
+      if (ed.shapes.length && ed.img) {
+        const png = await new Promise((r) => cv.toBlob(r, "image/jpeg", 0.85));
+        const a = await state.assets.upload(png); data.markupAssetId = a.id; data.markupUrl = a.url;
+      } else if (!ed.shapes.length) { data.markupAssetId = ""; data.markupUrl = ""; }
+      if (ed.upload) { const a = await state.assets.upload(ed.upload); data.uploadAssetId = a.id; data.uploadUrl = a.url; }
+    } else if (ed.upload) { $("#eStatus").textContent = "Uploads are only available to editors of this page."; }
+    if (approve) { data.status = "approved"; data.approvedAt = now; }
+    if (ed.edit) {
+      if (!approve) data.status = ed.edit.status === "approved" ? "draft" : ed.edit.status;
+      await state.db.doc("edits/" + ed.edit.id).update(data);
+    } else {
+      const id = "e" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+      await state.db.doc("edits/" + id).set({ ...data, status: approve ? "approved" : "draft", createdAt: now });
+    }
+    closeEditor(); toast(approve ? "Saved and approved." : "Draft saved.");
+  } catch (err) { $("#eStatus").textContent = "Could not save: " + (err?.message || err); }
+  finally { $("#saveBtn").disabled = $("#saveApproveBtn").disabled = false; }
+}
+$("#saveBtn").onclick = () => saveEdit(false);
+$("#saveApproveBtn").onclick = () => saveEdit(true);
+document.addEventListener("keydown", (e) => { if (!$("#editor").hidden && e.key === "z" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); ed.shapes.pop(); draw(); } });
+
+window.addEventListener("hashchange", () => { const h = location.hash.slice(1); if (h && state.screens.some((s) => s.id === h)) { state.current = h; state.mode = "screen"; render(); } });
+boot();
+</script>
+</body>
+</html>

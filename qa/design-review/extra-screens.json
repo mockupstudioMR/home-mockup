@@ -1,0 +1,27 @@
+{
+ "_about": "Screens the design snapshot adds to the journey and admin boards of qa/screen-agent/screens.config.json. Same fields as there: route, role (null = signed out), seed, patch, actions, allowRedirect. groups = the chapters of the PDF, in order; a screen's chapter is found from its area and the start of its board name.",
+ "screens": {
+  "Home": { "title": "Landing page", "route": "/", "role": null },
+  "B2B": { "title": "B2B solutions", "route": "/b2b-solutions", "role": null },
+  "Auth": { "title": "Sign in / sign up", "route": "/auth", "role": null },
+  "ChoosePath": { "title": "Choose your path", "route": "/choose-path", "role": "user", "allowRedirect": true },
+  "Quiz": { "title": "Style quiz", "route": "/quiz", "role": "user", "allowRedirect": true },
+  "Gallery": { "title": "Gallery", "route": "/gallery", "role": "user", "allowRedirect": true },
+  "Project": { "title": "Project file", "route": "/project", "role": "user", "allowRedirect": true }
+ },
+ "groups": [
+  { "key": "public", "area": "public", "prefix": "", "title": "Website & entry", "sub": "Landing, sign-in, paths and quiz" },
+  { "key": "journey-0", "area": "journey", "prefix": "Main", "title": "Journey home", "sub": "Before the steps" },
+  { "key": "journey-1", "area": "journey", "prefix": "S1-", "title": "Step 1", "sub": "Your project" },
+  { "key": "journey-2", "area": "journey", "prefix": "S2-", "title": "Step 2", "sub": "Inspiration & moodboard" },
+  { "key": "journey-3", "area": "journey", "prefix": "S3-", "title": "Step 3", "sub": "How you use the space" },
+  { "key": "journey-4", "area": "journey", "prefix": "S4-", "title": "Step 4", "sub": "Your layout" },
+  { "key": "journey-5", "area": "journey", "prefix": "S5-", "title": "Step 5", "sub": "Main furniture" },
+  { "key": "journey-6", "area": "journey", "prefix": "S6-", "title": "Step 6", "sub": "Colours & materials" },
+  { "key": "journey-7", "area": "journey", "prefix": "S7-", "title": "Step 7", "sub": "Lighting" },
+  { "key": "journey-8", "area": "journey", "prefix": "S8-", "title": "Step 8", "sub": "Finishing details" },
+  { "key": "journey-9", "area": "journey", "prefix": "S9-", "title": "Step 9", "sub": "Make it happen" },
+  { "key": "journey-10", "area": "journey", "prefix": "S10-", "title": "Step 10", "sub": "See everything together" },
+  { "key": "admin", "area": "admin", "prefix": "", "title": "Admin", "sub": "Design scanning, review queue, reference data" }
+ ]
+}
