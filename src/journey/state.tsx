@@ -1,10 +1,12 @@
 /**
  * The journey's working state: one project, the room being designed, and every answer so far.
  * Kept in this browser (so nothing is lost on reload) and mirrored to the database where tables exist
- * (projects, rooms, shop choices — see lib/projectStore).
+ * (projects, rooms, shop choices — see lib/projectStore), and step by step to step_progress so the
+ * project continues on any device (see useCloudSync).
  */
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type { HouseState, Intent, Property } from "./data";
+import { useCloudSync } from "./useCloudSync";
 
 export const STORAGE_KEY = "hm_journey_v1";
 
@@ -282,6 +284,7 @@ export function JourneyProvider({ children }: { children: ReactNode }) {
   }, [s]);
   const set = useCallback<Ctx["set"]>((patch) => setS((prev) => ({ ...prev, ...(typeof patch === "function" ? patch(prev) : patch) })), []);
   const reset = useCallback(() => setS(EMPTY), []);
+  useCloudSync(s, set);
   const value = useMemo(() => ({ s, set, reset }), [s, set, reset]);
   return <JourneyCtx.Provider value={value}>{children}</JourneyCtx.Provider>;
 }
