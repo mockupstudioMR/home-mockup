@@ -180,6 +180,7 @@ export function LanguageSwitcher() {
   return (
     <div
       data-no-translate
+      data-floating
       className="fixed bottom-3 start-3 z-[100] flex overflow-hidden rounded-full border border-border bg-background/95 text-xs shadow-md backdrop-blur print:hidden"
       role="group"
       aria-label="Language"

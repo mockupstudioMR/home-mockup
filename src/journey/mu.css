@@ -103,6 +103,31 @@
 .mu .actions .grow{flex:1 1 300px}
 .mu .back{display:inline-flex;align-items:center;gap:12px;min-height:48px;font-size:20px;font-weight:500;color:var(--ink2);text-decoration:none}
 .mu .back:hover{color:var(--ink)}
+/* Bottom dock: Back + main button pinned to the bottom of the window (same height on every screen, no scrolling to reach it) */
+.mu .dock{position:fixed;left:0;right:0;bottom:0;z-index:30;padding:14px 32px calc(14px + env(safe-area-inset-bottom));background:rgba(251,248,246,.94);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);border-top:1px solid var(--line);box-shadow:0 -10px 30px -18px rgba(59,51,80,.35)}
+.mu .dock-in{max-width:1240px;margin:0 auto;display:flex;align-items:center;gap:20px;min-height:60px}
+.mu .dock .note{flex:1 1 auto;min-width:0;text-align:right;font-size:15px;line-height:1.4;color:var(--ink3)}
+.mu .dock .note b{color:var(--ink)}
+.mu .dock-in>:first-child{margin-right:auto}
+.mu .dock .btn{width:auto;flex:0 0 auto;height:60px;min-height:0;padding:0 32px;font-size:18px;margin:0}
+.mu .dock .btn.ghost{padding:0 24px;font-size:16px}
+.mu.has-dock .wrap{padding-bottom:150px}
+/* Floating language / role switches sit above the dock instead of on top of it */
+body:has(.mu.has-dock) [data-floating]{bottom:calc(100px + env(safe-area-inset-bottom))}
+.mu .dock .show-sm{display:none}
+@media (max-width:600px){
+.mu .dock{padding:10px 16px calc(10px + env(safe-area-inset-bottom))}
+.mu .dock-in{gap:12px;min-height:52px}
+.mu .dock .back{font-size:16px;gap:6px;min-height:44px;flex:0 0 auto}
+.mu .dock .note{display:none}
+.mu .dock .btn{flex:1 1 0;min-width:0;height:52px;min-height:0;padding:0 14px;font-size:15px;line-height:1.15;text-align:center;overflow:hidden}
+.mu .dock .btn.ghost{height:52px;padding:0 10px;font-size:14px}
+.mu .dock .hide-sm{display:none}
+.mu .dock .show-sm{display:inline}
+.mu .dock .back .back-l{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.mu .dock .back{min-width:44px;justify-content:center}
+body:has(.mu.has-dock) [data-floating]{bottom:calc(84px + env(safe-area-inset-bottom))}
+.mu.has-dock .wrap{padding-bottom:110px}}
 .mu .panel{background:var(--paper);border:1px solid var(--line);border-radius:28px;padding:36px;box-shadow:0 30px 60px -40px rgba(59,51,80,.35)}
 .mu .panel.tint{background:var(--peach);border-color:#ECD8CB}
 .mu .panel.lav{background:var(--lav);border-color:#E3D9E6}

@@ -186,7 +186,17 @@ export function RoomInput() {
     </li>
   );
   return (
-    <Screen board="S4-Input" step={4} right={roomName(curRoom(s))} wrapStyle={{ maxWidth: "1120px" }}>
+    <Screen board="S4-Input" step={4} right={roomName(curRoom(s))} wrapStyle={{ maxWidth: "1120px" }}
+      dock={
+        <>
+          <Back to="S3-Summary" />
+          <Go className={`btn${s.room.input ? "" : " dis"}`} to="S4-Measure" onClick={() => !!s.room.input}>
+            Continue
+            <I.next />
+          </Go>
+        </>
+      }
+    >
       <p className="eyebrow">Choose where life happens</p>
       <h1 className="h1">Show us the room</h1>
       <p className="sub">{busy ?? "Now we fit your direction to the real space. Pick whichever is easiest."}</p>
@@ -242,9 +252,6 @@ export function RoomInput() {
         </span>
         <Ic style={{ marginLeft: "auto" }}>{p("M5 12h14M13 6l6 6-6 6")}</Ic>
       </Go>
-      <div className="actions">
-        <Back to="S3-Summary" />
-      </div>
     </Screen>
   );
 }
@@ -459,7 +466,27 @@ export function Measure() {
   const ORDER: FixedKind[] = ["windows", "radiators", "doors", "columns"];
   const shown = pl.filter((x) => ORDER.includes(x.kind)).sort((a, b) => ORDER.indexOf(a.kind) - ORDER.indexOf(b.kind) || a.n - b.n);
   return (
-    <Screen board="S4-Measure" step={4} right={roomName(curRoom(s))} wrapClass="wrap wide">
+    <Screen
+      board="S4-Measure"
+      step={4}
+      right={roomName(curRoom(s))}
+      wrapClass="wrap wide"
+      dock={
+        <>
+          <Back to="S4-Input" />
+          <Go
+            className="btn"
+            to="S3-Fixed"
+            onClick={() => {
+              if (!shown.some((x) => x.kind === "doors" && x.wall)) toast({ title: "Tip: place at least one door", description: "Layouts keep a clear route from the door." });
+            }}
+          >
+            Next: what can't move
+            <I.next />
+          </Go>
+        </>
+      }
+    >
       <div className="left">
         <p className="eyebrow">Choose where life happens</p>
         <h1 className="h1" style={{ fontSize: "clamp(36px,4vw,56px)" }}>
@@ -585,17 +612,6 @@ export function Measure() {
                 </div>
               )}
             </div>
-            <Go
-              className="btn"
-              to="S3-Fixed"
-              style={{ minHeight: "64px", fontSize: "19px" }}
-              onClick={() => {
-                if (!shown.some((x) => x.kind === "doors" && x.wall)) toast({ title: "Tip: place at least one door", description: "Layouts keep a clear route from the door." });
-              }}
-            >
-              Next: what can't move
-              <I.next />
-            </Go>
             <Go className="link-btn" to="S4-Input" style={{ justifyContent: "center" }}>
               {s.room.input === "plan" ? "Upload a different plan" : "Upload a plan instead"}
             </Go>
@@ -688,7 +704,30 @@ export function Layouts() {
   const pieces = lay ? pieceInfo(s, lay.items, w, l) : [];
   const keptN = pieces.filter((x) => x.kept).length;
   return (
-    <Screen board="S4-Layouts" step={4} right={`${roomName(curRoom(s))} · ${m(w)} × ${m(l)} m`} wrapClass="wrap wide">
+    <Screen
+      board="S4-Layouts"
+      step={4}
+      right={`${roomName(curRoom(s))} · ${m(w)} × ${m(l)} m`}
+      wrapClass="wrap wide"
+      dock={
+        <>
+          <Back to="S3-Fixed" />
+          <span className="note">{example ? `Sizes use example room measurements (${m(w)} × ${m(l)} m) until you confirm them.` : "Piece sizes are standard until you choose the actual pieces in step 5."}</span>
+          <Go
+            className={`btn${s.layouts.length ? "" : " dis"}`}
+            to="S4-Summary"
+            onClick={() => {
+              if (!s.layouts.length) return false;
+              set((x) => ({ chosenLayout: chosen, done: Array.from(new Set([...x.done, 4])) }));
+              void saveStepDone(s, 4);
+            }}
+          >
+            Choose layout {chosen + 1} and finish step 4
+            <I.next />
+          </Go>
+        </>
+      }
+    >
       <div className="ly-top">
         <div className="stack" style={{ gap: "6px", maxWidth: "760px" }}>
           <p className="ly-script">built from your real walls</p>
@@ -910,22 +949,6 @@ export function Layouts() {
         </aside>
       </div>
 
-      <div className="ly-foot">
-        <Back to="S3-Fixed" />
-        <span className="small">{example ? `Sizes use example room measurements (${m(w)} × ${m(l)} m) until you confirm them.` : "Piece sizes are standard until you choose the actual pieces in step 5."}</span>
-        <Go
-          className={`btn auto${s.layouts.length ? "" : " dis"}`}
-          to="S4-Summary"
-          onClick={() => {
-            if (!s.layouts.length) return false;
-            set((x) => ({ chosenLayout: chosen, done: Array.from(new Set([...x.done, 4])) }));
-            void saveStepDone(s, 4);
-          }}
-        >
-          Choose layout {chosen + 1} and finish step 4
-          <I.next />
-        </Go>
-      </div>
     </Screen>
   );
 }

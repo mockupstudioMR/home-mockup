@@ -190,7 +190,44 @@ export function Palette() {
   const setAccent = (decision: "keep" | "adjust" | "skip") => set((x) => ({ accent: { ...(x.accent ?? accent!), decision } }));
 
   return (
-    <Screen board="S6-Palette" step={6} right={roomName(curRoom(s))} wrapClass="wrap wide" wrapStyle={{ paddingTop: "28px" }}>
+    <Screen
+      board="S6-Palette"
+      step={6}
+      right={roomName(curRoom(s))}
+      wrapClass="wrap wide"
+      wrapStyle={{ paddingTop: "28px" }}
+      dock={
+        <>
+          {prevPart ? (
+            <Go to="S6-Palette" extra={`?part=${prevPart}`} className="back">
+              <Ic>{p("M19 12H5M11 6l-6 6 6 6")}</Ic>
+              <span className="back-l">Back</span>
+            </Go>
+          ) : (
+            <Back to="S5-Anchor" />
+          )}
+          {nextPart ? (
+            <Go className="btn" to="S6-Palette" extra={`?part=${nextPart}`} onClick={markRefined}>
+              Next: {PARTS.find((x) => x.key === nextPart)!.label}
+              <Ic>{p("M5 12h14M13 6l6 6-6 6")}</Ic>
+            </Go>
+          ) : (
+            <Go
+              className="btn"
+              to="S6-Summary"
+              onClick={() => {
+                markRefined();
+                set((x) => ({ done: Array.from(new Set([...x.done, 6])), surfaces: surfacesFor(x), decor: decorFor(x) }));
+                void saveStepDone(s, 6);
+              }}
+            >
+              Finish step 6
+              <Ic>{p("M5 12h14M13 6l6 6-6 6")}</Ic>
+            </Go>
+          )}
+        </>
+      }
+    >
       <RefineCrumbs on={part} />
       <div className="split" style={{ marginTop: "28px" }}>
         <div className="main">
@@ -367,36 +404,6 @@ export function Palette() {
               </button>
             </div>
           </section>
-          <div className="actions">
-            {prevPart ? (
-              <Go to="S6-Palette" extra={`?part=${prevPart}`} className="back">
-                <Ic>{p("M19 12H5M11 6l-6 6 6 6")}</Ic>
-                Back
-              </Go>
-            ) : (
-              <Back to="S5-Anchor" />
-            )}
-            {nextPart ? (
-              <Go className="btn auto" to="S6-Palette" extra={`?part=${nextPart}`} style={{ marginLeft: "auto" }} onClick={markRefined}>
-                Next: {PARTS.find((x) => x.key === nextPart)!.label}
-                <Ic>{p("M5 12h14M13 6l6 6-6 6")}</Ic>
-              </Go>
-            ) : (
-              <Go
-                className="btn auto"
-                to="S6-Summary"
-                style={{ marginLeft: "auto" }}
-                onClick={() => {
-                  markRefined();
-                  set((x) => ({ done: Array.from(new Set([...x.done, 6])), surfaces: surfacesFor(x), decor: decorFor(x) }));
-                  void saveStepDone(s, 6);
-                }}
-              >
-                Finish step 6
-                <Ic>{p("M5 12h14M13 6l6 6-6 6")}</Ic>
-              </Go>
-            )}
-          </div>
         </div>
         <MiniRail s={s} extra={[["Main piece", anchorLine(s)], ["Accent", accent && accent.decision !== "skip" ? accent.name.replace(" statement", "") : "None"]]} />
       </div>
@@ -514,7 +521,29 @@ export function Lighting() {
   const hasWindow = s.placements.some((x) => x.kind === "windows" && x.wall);
   const pal = s.moodboard?.palette ?? [];
   return (
-    <Screen board="S7-Lighting" step={7} right={roomName(curRoom(s))} wrapClass="wrap wide" wrapStyle={{ paddingTop: "28px" }}>
+    <Screen
+      board="S7-Lighting"
+      step={7}
+      right={roomName(curRoom(s))}
+      wrapClass="wrap wide"
+      wrapStyle={{ paddingTop: "28px" }}
+      dock={
+        <>
+          <Back to="S6-Palette" />
+          <Go
+            className="btn"
+            to="S7-Summary"
+            onClick={() => {
+              set((x) => ({ done: Array.from(new Set([...x.done, 7])) }));
+              void saveStepDone(s, 7);
+            }}
+          >
+            Finish step 7
+            <Ic>{p("M5 12h14M13 6l6 6-6 6")}</Ic>
+          </Go>
+        </>
+      }
+    >
       <div className="palbar" aria-label="Your palette">
         <span className="lbl" style={{ marginRight: "4px" }}>
           Palette
@@ -614,21 +643,6 @@ export function Lighting() {
               </p>
             </div>
           </section>
-          <div className="actions">
-            <Back to="S6-Palette" />
-            <Go
-              className="btn auto"
-              to="S7-Summary"
-              style={{ marginLeft: "auto" }}
-              onClick={() => {
-                set((x) => ({ done: Array.from(new Set([...x.done, 7])) }));
-                void saveStepDone(s, 7);
-              }}
-            >
-              Finish step 7
-              <Ic>{p("M5 12h14M13 6l6 6-6 6")}</Ic>
-            </Go>
-          </div>
         </div>
         <aside className="rail">
           <div className="rail-card">

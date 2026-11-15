@@ -98,7 +98,25 @@ export function Activities() {
   };
   const n = s.activities.length;
   return (
-    <Screen board="S3-Activities" step={3} right={roomName(curRoom(s))}>
+    <Screen board="S3-Activities" step={3} right={roomName(curRoom(s))}
+      dock={
+        <>
+          <Back to="S2-Moodboard" />
+          <Go
+            className={`btn auto${n ? "" : " dis"}`}
+            to="S3-Summary"
+            onClick={() => {
+              if (!n) return false;
+              set((x) => ({ done: Array.from(new Set([...x.done, 3])) }));
+              void saveStepDone(s, 3);
+            }}
+          >
+            Finish step 3 · {n} selected
+            <I.next />
+          </Go>
+        </>
+      }
+    >
       <p className="eyebrow">Design around your everyday life</p>
       <h1 className="h1">What happens in this room?</h1>
       <p className="sub">Pick everything you do here. Do you play an instrument, paint or work from the sofa? Add it.</p>
@@ -123,22 +141,6 @@ export function Activities() {
             Add
           </button>
         </div>
-      </div>
-      <div className="actions">
-        <Back to="S2-Moodboard" />
-        <Go
-          className={`btn auto${n ? "" : " dis"}`}
-          to="S3-Summary"
-          style={{ marginLeft: "auto" }}
-          onClick={() => {
-            if (!n) return false;
-            set((x) => ({ done: Array.from(new Set([...x.done, 3])) }));
-            void saveStepDone(s, 3);
-          }}
-        >
-          Finish step 3 · {n} selected
-          <I.next />
-        </Go>
       </div>
     </Screen>
   );
@@ -443,7 +445,24 @@ export function Existing() {
     </button>
   );
   return (
-    <Screen board="S3-Existing" step={5} right={roomName(curRoom(s))} wrapStyle={{ maxWidth: "1100px" }}>
+    <Screen board="S3-Existing" step={5} right={roomName(curRoom(s))} wrapStyle={{ maxWidth: "1100px" }}
+      dock={
+        <>
+          <Back to="S4-Summary" />
+          {s.keeping.length ? (
+            <Go className="btn" to="S5-Shops">
+              Next: suggest new pieces
+              <I.next />
+            </Go>
+          ) : (
+            <Go className="btn ghost" to="S5-Shops" onClick={() => void set({ keeping: [], nothingKept: true })}>
+              Nothing yet — suggest everything
+              <I.next />
+            </Go>
+          )}
+        </>
+      }
+    >
       <div className="ex-head">
         <p className="ex-script">before we suggest anything new</p>
         <h1 className="ex-h1">
@@ -537,8 +556,8 @@ export function Existing() {
         </>
       )}
 
-      <div className="ex-foot">
-        {counts.length ? (
+      {counts.length > 0 && (
+        <div className="ex-foot">
           <p className="ex-tally">
             {counts.map((c) => (
               <span key={c.id}>
@@ -548,24 +567,8 @@ export function Existing() {
             ))}
             <span className="ex-hand sm">— we'll suggest the rest</span>
           </p>
-        ) : (
-          <Back to="S4-Summary" />
-        )}
-        <div className="row" style={{ gap: "20px", alignItems: "center" }}>
-          {counts.length > 0 && <Back to="S4-Summary" />}
-          {s.keeping.length ? (
-            <Go className="btn auto" to="S5-Shops">
-              Next: suggest new pieces
-              <I.next />
-            </Go>
-          ) : (
-            <Go className="btn ghost auto" to="S5-Shops" onClick={() => void set({ keeping: [], nothingKept: true })}>
-              Nothing yet — suggest everything
-              <I.next />
-            </Go>
-          )}
         </div>
-      </div>
+      )}
     </Screen>
   );
 }
@@ -651,7 +654,17 @@ export function Fixed() {
   const shots = [...pl.filter((x) => x.photo), ...needPhoto.slice(0, 2)];
 
   return (
-    <Screen board="S3-Fixed" step={4} right={roomName(curRoom(s))} wrapStyle={{ maxWidth: "1080px" }}>
+    <Screen board="S3-Fixed" step={4} right={roomName(curRoom(s))} wrapStyle={{ maxWidth: "1080px" }}
+      dock={
+        <>
+          <Back to="S4-Measure" />
+          <Go className="btn auto" to="S4-Layouts">
+            Show me layouts
+            <I.next />
+          </Go>
+        </>
+      }
+    >
       <p className="eyebrow">Your room, as it is</p>
       <h1 className="h1">What can't move?</h1>
       <p className="sub">Count what's built into the room, then snap a photo and show us where each one is.</p>
@@ -831,13 +844,6 @@ export function Fixed() {
           </p>
         </div>
       </section>
-      <div className="actions">
-        <Back to="S4-Measure" />
-        <Go className="btn auto" to="S4-Layouts" style={{ marginLeft: "auto" }}>
-          Show me layouts
-          <I.next />
-        </Go>
-      </div>
     </Screen>
   );
 }

@@ -53,17 +53,19 @@ export function Back({ to, label = "Back", style }: { to: ScreenId; label?: stri
   return (
     <Go to={to} className="back" style={style}>
       <I.back />
-      {label}
+      <span className="back-l">{label}</span>
     </Go>
   );
 }
 
-/** Screen frame. step 0 = before the journey (no progress bar, "Log in"). */
+/** Screen frame. step 0 = before the journey (no progress bar, "Log in").
+ *  `dock` = the screen's Back / Continue row, pinned to the bottom of the window so the main button
+ *  sits at the same height on every screen and never needs scrolling to. */
 export function Screen({
-  board, step, right, children, wrapClass = "wrap", wrapStyle, blob2 = false, signedIn = true,
-}: { board: string; step: number; right?: ReactNode; children: ReactNode; wrapClass?: string; wrapStyle?: CSSProperties; blob2?: boolean; signedIn?: boolean }) {
+  board, step, right, children, wrapClass = "wrap", wrapStyle, blob2 = false, signedIn = true, dock,
+}: { board: string; step: number; right?: ReactNode; children: ReactNode; wrapClass?: string; wrapStyle?: CSSProperties; blob2?: boolean; signedIn?: boolean; dock?: ReactNode }) {
   return (
-    <div className={`mu app b-${board}`} data-board={board}>
+    <div className={`mu app b-${board}${dock ? " has-dock" : ""}`} data-board={board}>
       <div className="blob" />
       {blob2 && <div className="blob2" />}
       <header className="top">
@@ -106,6 +108,13 @@ export function Screen({
       <main className={wrapClass} style={wrapStyle}>
         {children}
       </main>
+      {dock && (
+        <nav className="dock" aria-label="Continue or go back">
+          <div className="dock-in" style={wrapStyle?.maxWidth ? { maxWidth: wrapStyle.maxWidth } : undefined}>
+            {dock}
+          </div>
+        </nav>
+      )}
     </div>
   );
 }

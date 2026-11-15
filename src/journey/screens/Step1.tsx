@@ -91,7 +91,17 @@ export function Why() {
   const { s, set } = useJourney();
   const go = useGo();
   return (
-    <Screen board="S1-Why" step={1} right="Question 1 of 5">
+    <Screen board="S1-Why" step={1} right="Question 1 of 5"
+      dock={
+        <>
+          <Back to="Main" />
+          <Go className={`btn${s.intent ? "" : " dis"}`} to="S1-Place" onClick={() => !!s.intent}>
+            Continue
+            <I.next />
+          </Go>
+        </>
+      }
+    >
       <p className="eyebrow">Start your journey</p>
       <h1 className="h1">What's brought you here?</h1>
       <p className="sub">Select what matches your situation.</p>
@@ -128,9 +138,6 @@ export function Why() {
           );
         })}
       </div>
-      <div className="actions">
-        <Back to="Main" />
-      </div>
     </Screen>
   );
 }
@@ -164,7 +171,17 @@ export function Place() {
   const { s, set } = useJourney();
   const go = useGo();
   return (
-    <Screen board="S1-Place" step={1} right="Question 2 of 5">
+    <Screen board="S1-Place" step={1} right="Question 2 of 5"
+      dock={
+        <>
+          <Back to="S1-Why" />
+          <Go className={`btn${s.propertyType ? "" : " dis"}`} to="S1-Rooms" onClick={() => !!s.propertyType}>
+            Continue
+            <I.next />
+          </Go>
+        </>
+      }
+    >
       <p className="eyebrow">Start your journey</p>
       <h1 className="h1">What kind of place?</h1>
       <p className="sub">Choose the type of property you're working with.</p>
@@ -191,9 +208,6 @@ export function Place() {
           );
         })}
       </div>
-      <div className="actions">
-        <Back to="S1-Why" />
-      </div>
     </Screen>
   );
 }
@@ -208,7 +222,23 @@ export function Rooms() {
     });
   const n = s.rooms.length;
   return (
-    <Screen board="S1-Rooms" step={1} right="Question 3 of 5">
+    <Screen board="S1-Rooms" step={1} right="Question 3 of 5"
+      dock={
+        <>
+          <Back to="S1-Place" />
+          <span className="note">
+            <b>
+              {n} room{n === 1 ? "" : "s"}
+            </b>{" "}
+            selected
+          </span>
+          <Go className={`btn${n ? "" : " dis"}`} to="S1-Start" onClick={() => n > 0}>
+            Continue
+            <I.next />
+          </Go>
+        </>
+      }
+    >
       <p className="eyebrow">Start your journey</p>
       <h1 className="h1">Which rooms are on your list?</h1>
       <p className="sub">Select all the spaces you want to design. You'll pick one to start with next.</p>
@@ -225,19 +255,6 @@ export function Rooms() {
           );
         })}
       </div>
-      <div className="actions">
-        <Back to="S1-Place" />
-        <span className="small" style={{ marginLeft: "auto", fontSize: "16px", color: "#665A80" }}>
-          <b style={{ color: "#3B3350" }}>
-            {n} room{n === 1 ? "" : "s"}
-          </b>{" "}
-          selected
-        </span>
-      </div>
-      <Go className={`btn${n ? "" : " dis"}`} to="S1-Start" style={{ marginTop: "20px" }} onClick={() => n > 0}>
-        Continue
-        <I.next />
-      </Go>
     </Screen>
   );
 }
@@ -250,7 +267,17 @@ export function StartRoom() {
   const others = rooms.filter((r) => r !== start).map(roomName);
   const big = rooms.length <= 4;
   return (
-    <Screen board="S1-Start" step={1} right="Question 4 of 5">
+    <Screen board="S1-Start" step={1} right="Question 4 of 5"
+      dock={
+        <>
+          <Back to="S1-Rooms" />
+          <Go className="btn" to="S1-State" onClick={() => void set({ startRoom: start })}>
+            Start with the {roomName(start).toLowerCase()}
+            <I.next />
+          </Go>
+        </>
+      }
+    >
       <p className="eyebrow">Start your journey</p>
       <h1 className="h1">Where do you want to start?</h1>
       <p className="sub">Pick one room to begin with — you can do the rest later.</p>
@@ -275,19 +302,12 @@ export function StartRoom() {
           );
         })}
       </div>
-      <Go className="btn" to="S1-State" style={{ marginTop: "36px" }} onClick={() => void set({ startRoom: start })}>
-        Start with the {roomName(start).toLowerCase()}
-        <I.next />
-      </Go>
-      <div className="actions" style={{ marginTop: "24px" }}>
-        <Back to="S1-Rooms" />
-        {others.length > 0 && (
-          <span className="small" style={{ marginLeft: "auto" }}>
-            {others.length === 1 ? others[0] : `${others.slice(0, -1).join(", ")} and ${others[others.length - 1]}`}{" "}
-            {others.length === 1 ? "is" : "are"} saved — steps 2–10 repeat for each after this room.
-          </span>
-        )}
-      </div>
+      {others.length > 0 && (
+        <p className="small" style={{ textAlign: "center", marginTop: "28px", fontSize: "15px" }}>
+          {others.length === 1 ? others[0] : `${others.slice(0, -1).join(", ")} and ${others[others.length - 1]}`}{" "}
+          {others.length === 1 ? "is" : "are"} saved — steps 2–10 repeat for each after this room.
+        </p>
+      )}
     </Screen>
   );
 }
@@ -331,7 +351,17 @@ export function StateOfPlace() {
     />
   );
   return (
-    <Screen board={cur.board} step={1} right="Question 5 of 5">
+    <Screen board={cur.board} step={1} right="Question 5 of 5"
+      dock={
+        <>
+          <Back to="S1-Start" />
+          <Go className={`btn${s.houseState ? "" : " dis"}`} to="S1-Summary" onClick={() => !!s.houseState}>
+            Continue
+            <I.next />
+          </Go>
+        </>
+      }
+    >
       <p className="eyebrow">Start your journey</p>
       <h1 className="h1">What's the state of the place?</h1>
       <p className="sub">Tell us where you're starting from. It decides what the design is allowed to change.</p>
@@ -429,13 +459,6 @@ export function StateOfPlace() {
           )}
         </section>
       )}
-      <div className="actions">
-        <Back to="S1-Start" />
-        <Go className={`btn auto${s.houseState ? "" : " dis"}`} to="S1-Summary" style={{ marginLeft: "auto" }} onClick={() => !!s.houseState}>
-          Continue
-          <I.next />
-        </Go>
-      </div>
     </Screen>
   );
 }
@@ -449,7 +472,26 @@ export function Brief() {
   const prop = PROPERTIES.find((p) => p.id === s.propertyType);
   const brief = (k: keyof typeof s.brief, v: string) => set((p) => ({ brief: { ...p.brief, [k]: v } }));
   return (
-    <Screen board="S1-Summary" step={1} right="Summary" wrapStyle={{ maxWidth: "1080px" }}>
+    <Screen board="S1-Summary" step={1} right="Summary" wrapStyle={{ maxWidth: "1080px" }}
+      dock={
+        <>
+          <Back to="S1-State" />
+          <Go
+            className="btn"
+            to="S2-Vision"
+            onClick={() => {
+              // Step 1 counts as done even when the project can't be saved to the database yet.
+              set((x) => ({ done: Array.from(new Set([...x.done, 1])) }));
+              void saveStep1(s).then((ids) => ids && set(ids));
+            }}
+          >
+            <span className="hide-sm">Continue to step 2: Inspiration</span>
+            <span className="show-sm">Continue</span>
+            <I.next />
+          </Go>
+        </>
+      }
+    >
       <p className="eyebrow">Step 1 complete · Your project</p>
       <h1 className="h1">Here's what we're working on</h1>
       <p className="sub">Check it looks right. Anything you're not sure about can stay open for now.</p>
@@ -591,22 +633,6 @@ export function Brief() {
           </div>
         </div>
       </section>
-      <div className="actions">
-        <Back to="S1-State" />
-        <Go
-          className="btn auto"
-          to="S2-Vision"
-          style={{ marginLeft: "auto" }}
-          onClick={() => {
-            // Step 1 counts as done even when the project can't be saved to the database yet.
-            set((x) => ({ done: Array.from(new Set([...x.done, 1])) }));
-            void saveStep1(s).then((ids) => ids && set(ids));
-          }}
-        >
-          Continue to step 2: Inspiration
-          <I.next />
-        </Go>
-      </div>
     </Screen>
   );
 }

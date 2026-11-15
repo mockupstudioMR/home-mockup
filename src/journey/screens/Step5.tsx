@@ -91,7 +91,17 @@ export function Shops() {
   const shops = ctx?.shops ?? [];
   const n = shops.length + s.catalogPhotos.length;
   return (
-    <Screen board="S5-Shops" step={5} right={roomName(curRoom(s))}>
+    <Screen board="S5-Shops" step={5} right={roomName(curRoom(s))}
+      dock={
+        <>
+          <Back to="S3-Existing" />
+          <Go className="btn auto" to="S5-Anchor">
+            Show me furniture
+            <I.next />
+          </Go>
+        </>
+      }
+    >
       <p className="eyebrow">Before we pick the pieces</p>
       <h1 className="h1">Where do you want to shop?</h1>
       <p className="sub">We look for furniture that matches your {s.moodboard?.name ?? "chosen"} style and your room sizes — in the places you choose.</p>
@@ -267,13 +277,6 @@ export function Shops() {
           </p>
         </div>
       </section>
-      <div className="actions">
-        <Back to="S3-Existing" />
-        <Go className="btn auto" to="S5-Anchor" style={{ marginLeft: "auto" }}>
-          Show me furniture
-          <I.next />
-        </Go>
-      </div>
     </Screen>
   );
 }
@@ -409,7 +412,29 @@ export function Anchor() {
   const keepName = s.keeping[0]?.name;
   const label = `${a.shape} ${kind}`.replace(/^\w/, (c) => c.toUpperCase());
   return (
-    <Screen board="S5-Anchor" step={5} right={roomName(curRoom(s))} wrapClass="wrap wide" wrapStyle={{ paddingTop: "28px" }}>
+    <Screen
+      board="S5-Anchor"
+      step={5}
+      right={roomName(curRoom(s))}
+      wrapClass="wrap wide"
+      wrapStyle={{ paddingTop: "28px" }}
+      dock={
+        <>
+          <Back to="S5-Shops" />
+          <Go
+            className="btn"
+            to="S5-Summary"
+            onClick={() => {
+              set((x) => ({ done: Array.from(new Set([...x.done, 5])) }));
+              void saveStepDone(s, 5);
+            }}
+          >
+            <I.check />
+            Keep the {label.toLowerCase()}
+          </Go>
+        </>
+      }
+    >
       <div className="palbar" aria-label="Your palette">
         <span className="lbl" style={{ marginRight: "6px" }}>
           Your palette
@@ -591,17 +616,6 @@ export function Anchor() {
             )}
           </section>
           <div className="actions">
-            <Go
-              className="btn auto"
-              to="S5-Summary"
-              onClick={() => {
-                set((x) => ({ done: Array.from(new Set([...x.done, 5])) }));
-                void saveStepDone(s, 5);
-              }}
-            >
-              <I.check />
-              Keep the {label.toLowerCase()}
-            </Go>
             <Go className="btn ghost auto" to="S2-Moodboard">
               <Ic>{p("M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16zM13 20h7")}</Ic>
               Adjust

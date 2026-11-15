@@ -53,7 +53,17 @@ export function BuyList() {
     toast({ title: `${r.name}: ${next === "Buy" ? "suggested shops" : next === "Custom" ? "custom made" : "your own piece"}` });
   };
   return (
-    <Screen board="S9-BuyList" step={9} right="1 of 3 · Buying list" wrapClass="wrap wide">
+    <Screen board="S9-BuyList" step={9} right="1 of 3 · Buying list" wrapClass="wrap wide"
+      dock={
+        <>
+          <Back to="S8-Walls" />
+          <Go className="btn auto" to="S9-Sizes" onClick={() => void saveBuyList(s, rows)}>
+            Next: confirm the sizes
+            <I.next />
+          </Go>
+        </>
+      }
+    >
       <div className="row between" style={{ alignItems: "flex-end" }}>
         <div className="left" style={{ flex: "1 1 560px" }}>
           <p className="eyebrow">Make it happen</p>
@@ -165,13 +175,6 @@ export function BuyList() {
           ))}
         </div>
       </section>
-      <div className="actions">
-        <Back to="S8-Walls" />
-        <Go className="btn auto" to="S9-Sizes" style={{ marginLeft: "auto" }} onClick={() => void saveBuyList(s, rows)}>
-          Next: confirm the sizes
-          <I.next />
-        </Go>
-      </div>
     </Screen>
   );
 }
@@ -207,7 +210,20 @@ export function Sizes() {
   };
   const text = lists.map((l) => `${l.title}:\n${l.items.map((i) => `☐ ${i}`).join("\n")}`).join("\n\n");
   return (
-    <Screen board="S9-Sizes" step={9} right="2 of 3 · Sizes" wrapStyle={{ maxWidth: "1200px" }}>
+    <Screen board="S9-Sizes" step={9} right="2 of 3 · Sizes" wrapStyle={{ maxWidth: "1200px" }}
+      dock={
+        <>
+          <Back to="S9-BuyList" label="Back to list" />
+          <button className="link-btn hide-sm" type="button" onClick={() => share(`Measuring checklist · ${roomName(curRoom(s))}`, text, toast)}>
+            Send checklist to whoever's measuring
+          </button>
+          <Go className="btn auto" to="S9-Todo">
+            Next: your to-do list
+            <I.next />
+          </Go>
+        </>
+      }
+    >
       <p className="eyebrow">Make it happen</p>
       <h1 className="h1">Measure once. Order with confidence.</h1>
       <p className="sub">Replace every example size with a real one before you buy. A preview image can't tell you dimensions — a tape measure can.</p>
@@ -307,16 +323,6 @@ export function Sizes() {
           );
         })}
       </div>
-      <div className="actions">
-        <Back to="S9-BuyList" label="Back to list" />
-        <button className="link-btn" type="button" style={{ marginLeft: "auto" }} onClick={() => share(`Measuring checklist · ${roomName(curRoom(s))}`, text, toast)}>
-          Send checklist to whoever's measuring
-        </button>
-        <Go className="btn auto" to="S9-Todo">
-          Next: your to-do list
-          <I.next />
-        </Go>
-      </div>
     </Screen>
   );
 }
@@ -382,7 +388,24 @@ export function Todo() {
     }
   };
   return (
-    <Screen board="S9-Todo" step={9} right="3 of 3 · To-do" wrapClass="wrap wide">
+    <Screen board="S9-Todo" step={9} right="3 of 3 · To-do" wrapClass="wrap wide"
+      dock={
+        <>
+          <Back to="S9-Sizes" />
+          <Go
+            className="btn"
+            to="S9-Summary"
+            onClick={() => {
+              set((x) => ({ done: Array.from(new Set([...x.done, 9])) }));
+              void saveStepDone(s, 9);
+            }}
+          >
+            Finish step 9
+            <I.next />
+          </Go>
+        </>
+      }
+    >
       <div className="left">
         <p className="eyebrow">How to make it real</p>
         <h1 className="h1" style={{ fontSize: "clamp(36px,4vw,60px)" }}>
@@ -491,23 +514,8 @@ export function Todo() {
             <p className="small" style={{ margin: "0" }}>
               We open an email in your mail app for you to send. People added to the project see the plan, walls and their part of the list.
             </p>
-            <Go
-              className="btn"
-              to="S9-Summary"
-              style={{ minHeight: "60px", fontSize: "18px" }}
-              onClick={() => {
-                set((x) => ({ done: Array.from(new Set([...x.done, 9])) }));
-                void saveStepDone(s, 9);
-              }}
-            >
-              Finish step 9
-              <I.next />
-            </Go>
           </div>
         </aside>
-      </div>
-      <div className="actions">
-        <Back to="S9-Sizes" />
       </div>
     </Screen>
   );
@@ -667,7 +675,25 @@ export function Final() {
     { k: "d", title: "Project checklist", text: "Owners, dates, deliveries, install tasks and final checks.", ok: true, tag: "Ready", to: "S9-Todo" as const, label: "Open", icon: () => <Ic>{p("M9 11l3 3 8-8M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h9")}</Ic> },
   ];
   return (
-    <Screen board="S10-Final" step={10} right={roomName(room)} wrapClass="wrap wide">
+    <Screen board="S10-Final" step={10} right={roomName(room)} wrapClass="wrap wide"
+      dock={
+        <>
+          <Back to="S9-Summary" />
+          {next ? (
+            <button className="btn auto" type="button" onClick={continueWith}>
+              <span className="hide-sm">Continue with room {all.indexOf(next) + 1}: {roomName(next)} — from step 2</span>
+              <span className="show-sm">Next room: {roomName(next)}</span>
+              <I.next />
+            </button>
+          ) : (
+            <Go className="btn auto" to="Main" onClick={() => (window.location.href = "/project", false)}>
+              Back to my project
+              <I.next />
+            </Go>
+          )}
+        </>
+      }
+    >
       <p className="script">your {roomName(room).toLowerCase()}</p>
       <h1 className="h1" style={{ marginTop: "4px" }}>
         Ready to make your room real
@@ -788,17 +814,6 @@ export function Final() {
           <Ic>{p("M12 3v12M7 8l5-5 5 5M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6")}</Ic>
           Share
         </button>
-        {next ? (
-          <button className="btn auto" type="button" style={{ marginLeft: "auto" }} onClick={continueWith}>
-            Continue with room {all.indexOf(next) + 1}: {roomName(next)} — from step 2
-            <I.next />
-          </button>
-        ) : (
-          <Go className="btn auto" to="Main" style={{ marginLeft: "auto" }} onClick={() => (window.location.href = "/project", false)}>
-            Back to my project
-            <I.next />
-          </Go>
-        )}
       </div>
     </Screen>
   );

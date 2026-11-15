@@ -147,7 +147,22 @@ export function Walls() {
   };
   const locPos: Record<Wall, React.CSSProperties> = { A: { left: "62px", top: "5px" }, B: { right: "5px", top: "77px" }, C: { left: "62px", bottom: "5px" }, D: { left: "5px", top: "77px" } };
   return (
-    <Screen board="S8-Walls" step={8} right={roomName(curRoom(s))} wrapClass="wrap wide">
+    <Screen board="S8-Walls" step={8} right={roomName(curRoom(s))} wrapClass="wrap wide"
+      dock={
+        <>
+          <Back to="S7-Lighting" />
+          <Go className="btn ghost" to="S8-Summary" onClick={finish}>
+            Keep all 4 walls · finish step 8
+          </Go>
+          {next && (
+            <button className="btn" type="button" onClick={() => go("S8-WallDetail", `/${next}`)}>
+              Review wall {next}
+              <I.next />
+            </button>
+          )}
+        </>
+      }
+    >
       <div className="row" style={{ gap: "32px", alignItems: "center", flexWrap: "wrap" }}>
         <div className="left" style={{ flex: "1 1 520px" }}>
           <p className="eyebrow">Your room, wall by wall</p>
@@ -212,18 +227,6 @@ export function Walls() {
       <p className="small" style={{ marginTop: "18px" }}>
         Walls you haven't photographed are illustrative proposals based on your preview. Electrical positions and specs: TBC.
       </p>
-      <div className="actions">
-        <Back to="S7-Lighting" />
-        <Go className="btn ghost auto" to="S8-Summary" style={{ marginLeft: "auto" }} onClick={finish}>
-          Keep all 4 walls · finish step 8
-        </Go>
-        {next && (
-          <button className="btn auto" type="button" onClick={() => go("S8-WallDetail", `/${next}`)}>
-            Review wall {next}
-            <I.next />
-          </button>
-        )}
-      </div>
     </Screen>
   );
 }
@@ -279,7 +282,31 @@ export function WallDetail({ param }: { param?: string }) {
   const hasDoor = wp.role === "Entry";
   const hasWindow = wp.role === "Window";
   return (
-    <Screen board="S8-WallDetail" step={8} right={`Wall ${w} of 4`} wrapClass="wrap wide" wrapStyle={{ paddingTop: "32px" }}>
+    <Screen
+      board="S8-WallDetail"
+      step={8}
+      right={`Wall ${w} of 4`}
+      wrapClass="wrap wide"
+      wrapStyle={{ paddingTop: "32px" }}
+      dock={
+        <>
+          <Back to="S8-Walls" label="All walls" />
+          <button
+            className="btn ghost"
+            type="button"
+            onClick={() => {
+              setWall(w, { status: "kept" });
+              after();
+            }}
+          >
+            Keep wall as it is
+          </button>
+          <button className={`btn${busy ? " dis" : ""}`} type="button" onClick={apply}>
+            {busy ? "Updating the wall…" : `Apply and see wall ${w}`}
+          </button>
+        </>
+      }
+    >
       <nav className="wtabs" aria-label="Walls">
         {WALLS.map((x) => (
           <Go key={x} className={x === w ? "on" : walls[x].status !== "review" ? "ok" : ""} to={x === w ? "S8-WallDetail" : "S8-WallDetail"} extra={`/${x}`}>
@@ -365,20 +392,6 @@ export function WallDetail({ param }: { param?: string }) {
               <label htmlFor="chg">Your change</label>
               <textarea id="chg" className="textarea" style={{ minHeight: "104px" }} placeholder={`e.g. keep the ${wp.items[0] ? lc(wp.items[0].name) : "furniture"}, add a dimmable wall light`} value={request} onChange={(e) => setWall(w, { change: e.target.value })} />
             </div>
-            <button className={`btn${busy ? " dis" : ""}`} type="button" style={{ minHeight: "60px", fontSize: "18px" }} onClick={apply}>
-              {busy ? "Updating the wall…" : `Apply and see wall ${w}`}
-            </button>
-            <button
-              className="btn ghost"
-              type="button"
-              style={{ minHeight: "56px", fontSize: "17px" }}
-              onClick={() => {
-                setWall(w, { status: "kept" });
-                after();
-              }}
-            >
-              Keep wall as it is
-            </button>
           </div>
         </aside>
       </div>

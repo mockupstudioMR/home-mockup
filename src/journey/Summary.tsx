@@ -93,7 +93,21 @@ export function StepSummary({
   decWrap?: boolean;
 }) {
   return (
-    <Screen board={board} step={step} right="Summary" wrapStyle={{ maxWidth: "1160px" }}>
+    <Screen
+      board={board}
+      step={step}
+      right="Summary"
+      wrapStyle={{ maxWidth: "1160px" }}
+      dock={
+        <>
+          <Back to={back} />
+          <Go className="btn" to={next}>
+            {nextLabel ?? `Next: ${STEP_TITLES[step + 1]}`}
+            <I.next />
+          </Go>
+        </>
+      }
+    >
       <div className="sm">
         <p className="script">
           Step {step} complete · {STEP_TITLES[step]}
@@ -150,13 +164,6 @@ export function StepSummary({
             </div>
             <RoomsLine />
           </aside>
-        </div>
-        <div className="sm-foot">
-          <Back to={back} />
-          <Go className="btn auto" to={next}>
-            {nextLabel ?? `Next: ${STEP_TITLES[step + 1]}`}
-            <I.next />
-          </Go>
         </div>
       </div>
     </Screen>
