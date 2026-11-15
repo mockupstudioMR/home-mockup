@@ -773,3 +773,85 @@
 .mu .lp-f.sym{background:none;box-shadow:none;border-radius:0}
 .mu .lp-f.sym .lp-sym{position:absolute;max-width:none;pointer-events:none;user-select:none;filter:drop-shadow(0 2px 3px rgba(59,51,80,.22))}
 .mu .lp-f.sym.rug .lp-sym{filter:none}
+
+/* ---------- Fit-to-window layouts (desktop/laptop, steps 1–4): denser arrangements so each screen fits one window
+   without shrinking text too far. Phones keep the normal stacked layout and scroll up and down. ---------- */
+@media (min-width:601px){
+/* 1.6 Project brief: the three panels side by side under a short heading */
+.mu.fit.b-S1-Summary>.wrap{max-width:1320px!important}
+.mu.fit.b-S1-Summary .fit-in{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr) minmax(0,1fr);column-gap:18px;align-items:start}
+.mu.fit.b-S1-Summary .fit-in>:not(.panel){grid-column:1/-1}
+.mu.fit.b-S1-Summary .fit-in>.panel{margin-top:16px!important;padding:20px 22px}
+.mu.fit.b-S1-Summary .eyebrow{display:none}
+.mu.fit.b-S1-Summary .h1{margin-top:0;font-size:clamp(30px,3vw,44px)}
+.mu.fit.b-S1-Summary .sub{margin-top:6px;font-size:16px}
+.mu.fit.b-S1-Summary .brief{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+.mu.fit.b-S1-Summary .opt-g{grid-template-columns:minmax(0,1fr)!important;gap:8px}
+.mu.fit.b-S1-Summary .g4{grid-template-columns:repeat(2,minmax(0,1fr))!important;margin-top:12px!important}
+.mu.fit.b-S1-Summary .sm-strip{margin-top:10px}
+/* 2.2 Upload */
+.mu.fit.b-S2-Upload .fit-in>.panel,.mu.fit.b-S2-Upload section{margin-top:18px!important}
+/* 2.4 Style matches: the styles side by side */
+.mu.fit.b-S2-Matches .fit-in>.panel{margin-top:18px!important;padding:18px!important;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;align-items:start}
+.mu.fit.b-S2-Matches .fit-in>.panel>*{margin-top:0!important}
+.mu.fit.b-S2-Matches .fit-in>.panel>.row{grid-column:1/-1;margin:0!important}
+.mu.fit.b-S2-Matches .style{padding:18px}
+.mu.fit.b-S2-Matches .style .h2{font-size:24px!important}
+.mu.fit.b-S2-Matches .pics{gap:10px;margin-top:14px}
+.mu.fit.b-S2-Matches .kw{min-height:36px;padding:0 12px;font-size:15px}
+.mu.fit.b-S2-Matches .add-pill{min-height:30px;padding:0 10px;font-size:12px;top:8px;left:8px}
+/* 2.5 Moodboard: shorter preview, slimmer colour strip and heading */
+.mu.fit.b-S2-Moodboard .dr-h1{font-size:clamp(30px,3.2vw,44px)}
+.mu.fit.b-S2-Moodboard .dr-sub{font-size:15px}
+.mu.fit.b-S2-Moodboard .dr-strip-wrap{margin-top:12px}
+.mu.fit.b-S2-Moodboard .dr-strip{height:48px;border-radius:14px}
+.mu.fit.b-S2-Moodboard .dr-strip div{padding:6px 12px}
+.mu.fit.b-S2-Moodboard .dr-strip span{display:none}
+.mu.fit.b-S2-Moodboard .dr-hero{aspect-ratio:auto;height:clamp(260px,44vh,440px)}
+.mu.fit.b-S2-Moodboard .dr-main{gap:8px}
+.mu.fit.b-S2-Moodboard .dr-key li{padding:4px 10px 4px 4px}
+.mu.fit.b-S2-Moodboard .dr-vers button{width:64px;height:44px}
+.mu.fit.b-S2-Moodboard .dr-side{margin-top:0;gap:8px}
+.mu.fit.b-S2-Moodboard .dr-card{padding:10px 14px;gap:4px}
+.mu.fit.b-S2-Moodboard .dr-pola img{max-height:60px}
+.mu.fit.b-S2-Moodboard .dr-decide{margin-top:10px;padding:8px 12px}
+/* Step summaries: shorter heading block, smaller photos */
+.mu.fit .sm{gap:14px}
+.mu.fit .sm-h1{margin-top:-10px;font-size:clamp(30px,3vw,44px)}
+.mu.fit .sm-sub{margin-top:-8px;font-size:16px}
+.mu.fit .sm-cols{gap:16px 36px}
+.mu.fit .sm-main{gap:10px}
+.mu.fit .sm-side{gap:14px}
+.mu.fit .sm-media .ph img,.mu.fit .sm-media img{max-height:220px;object-fit:cover}
+.mu.fit .sm-dec{padding:7px 0}
+/* 4.3 What can't move: counters in three columns beside the "where are they" panel */
+.mu.fit.b-S3-Fixed>.wrap{max-width:1400px!important}
+.mu.fit.b-S3-Fixed .h1{font-size:clamp(28px,3vw,44px)}
+.mu.fit.b-S3-Fixed .fx{grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;margin-top:14px}
+.mu.fit.b-S3-Fixed .fr{flex-wrap:wrap}
+.mu.fit.b-S3-Fixed .fr .step{margin-left:auto}
+.mu.fit.b-S3-Fixed .fr{padding:10px 12px;gap:10px;border-radius:16px}
+.mu.fit.b-S3-Fixed .fr .ic-w{width:36px;height:36px;border-radius:10px}
+.mu.fit.b-S3-Fixed .fr b{font-size:15px}
+.mu.fit.b-S3-Fixed .fr small{font-size:12px}
+.mu.fit.b-S3-Fixed .step button{width:34px;height:34px;font-size:18px;border-radius:10px}
+.mu.fit.b-S3-Fixed .step output{min-width:24px;font-size:17px}
+.mu.fit.b-S3-Fixed .where{grid-template-columns:minmax(0,1fr) 420px;gap:18px;margin-top:12px}
+.mu.fit.b-S3-Fixed .where>.stack:last-child{display:grid!important;grid-template-columns:200px minmax(0,1fr);gap:8px 12px!important;align-items:start}
+.mu.fit.b-S3-Fixed .where>.stack:last-child>.lbl{grid-column:1/-1}
+.mu.fit.b-S3-Fixed .where>.stack:last-child>:not(.lbl):not(.mp-box){grid-column:2}
+.mu.fit.b-S3-Fixed .where>.stack:last-child>.mp-box{grid-row:2/span 3}
+.mu.fit.b-S3-Fixed .shots{grid-template-columns:repeat(6,minmax(0,1fr));gap:8px}
+.mu.fit.b-S3-Fixed .mp{width:170px;height:220px}
+.mu.fit.b-S3-Fixed .mp-box{padding:10px}
+/* 4.4 Layouts */
+.mu.fit.b-S4-Layouts .ly-row{margin-top:16px;gap:14px}
+.mu.fit.b-S4-Layouts .plan{height:min(440px,50vh)}
+.mu.fit.b-S4-Layouts .ly-plan{padding:14px 18px;gap:10px}
+.mu.fit.b-S4-Layouts .ly-card{padding:12px 14px;gap:6px}
+.mu.fit.b-S4-Layouts .ly-side{gap:10px}
+.mu.fit.b-S4-Layouts .ly-h1{font-size:clamp(28px,3vw,42px)}
+.mu.fit.b-S4-Layouts .ly-script{font-size:22px}
+.mu.fit.b-S4-Layouts .ly-sub{font-size:15px;max-width:none}
+.mu.fit.b-S4-Layouts .ly-why{display:none}
+}

@@ -813,7 +813,7 @@ export function Layouts() {
                   </button>
                 )}
               </div>
-              <LayoutPlan layout={lay} s={s} edit={{ selected: sel, onSelect: setSel, onChange: changeItem }} />
+              <LayoutPlan layout={lay} s={s} max={{ w: 400, h: 480 }} edit={{ selected: sel, onSelect: setSel, onChange: changeItem }} />
               <p className="small ly-hint">{picked ? "Drag to move · corner to resize · arrow keys nudge" : "Tap a piece to move, resize or remove it."}</p>
               <div className="ly-legend">
                 <span>

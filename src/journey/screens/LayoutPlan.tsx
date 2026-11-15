@@ -92,7 +92,10 @@ export function LayoutPlan({ layout, s, max = { w: 440, h: 560 }, compact = fals
   const moveTo = (e: PointerEvent) => {
     const d = drag.current;
     if (!d) return;
-    const dx = ((e.clientX - d.x) / W) * 100, dy = ((e.clientY - d.y) / H) * 100;
+    // measure on screen: the screen may be shown shrunk to fit the window (CSS zoom)
+    const r = room.current?.getBoundingClientRect();
+    const vw = r?.width || W, vh = r?.height || H;
+    const dx = ((e.clientX - d.x) / vw) * 100, dy = ((e.clientY - d.y) / vh) * 100;
     if (Math.abs(e.clientX - d.x) + Math.abs(e.clientY - d.y) > 2) d.moved = true;
     const item = d.mode === "move" ? moveBy(d.start, dx, dy) : keepInside({ ...d.start, w: Math.max(2, d.start.w + dx), h: Math.max(2, d.start.h + dy) });
     setDraft({ n: d.n, item });
