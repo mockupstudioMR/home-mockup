@@ -2,6 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Palette, Home, Package, LogOut, User, ArrowRight } from "lucide-react";
 import AccountNameDialog from "@/components/AccountNameDialog";
+import Logo from "@/components/Logo";
 import heroBg from "@/assets/hero-bg.jpg";
 import "@/journey/mu.css";
 
@@ -28,7 +29,7 @@ const Index = () => {
       <header className="top">
         <a className="brand" href="/" onClick={(e) => { e.preventDefault(); navigate("/"); }}>
           <span className="brand-mark">
-            <Home className="ic" />
+            <Logo size={34} />
           </span>
           Home Mockup
         </a>
