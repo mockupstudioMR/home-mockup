@@ -29,7 +29,7 @@
 .mu .blob2{position:absolute;bottom:-300px;right:-200px;width:700px;height:700px;border-radius:50%;background:radial-gradient(circle,rgba(205,209,189,.45) 0%,rgba(244,237,232,0) 65%);pointer-events:none}
 .mu .top{position:relative;z-index:2;display:flex;flex-wrap:wrap;align-items:center;gap:16px 32px;padding:20px 40px;border-bottom:1px solid rgba(102,90,133,.10)}
 .mu .brand{display:flex;align-items:center;gap:10px;font-weight:800;font-size:18px;letter-spacing:-.02em;color:var(--ink);text-decoration:none}
-.mu .brand-mark{width:34px;height:34px;border-radius:10px;background:var(--plum);color:#fff;display:flex;align-items:center;justify-content:center}
+.mu .brand-mark{width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center}
 .mu .brand-mark .ic{width:18px;height:18px;stroke-width:2.2}
 .mu .prog{flex:1 1 360px;display:flex;flex-direction:column;gap:8px;max-width:560px;margin:0 auto}
 .mu .prog-label{font-size:14px;color:var(--ink2);display:flex;justify-content:space-between;gap:12px}

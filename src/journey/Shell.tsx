@@ -2,6 +2,7 @@
 import { useLayoutEffect, useRef, type CSSProperties, type MouseEvent, type ReactNode } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { I } from "./icons";
+import Logo from "@/components/Logo";
 import { STEP_NAMES, STEP_TITLES } from "./data";
 import { hrefOf, type ScreenId } from "./routes";
 import { useJourney } from "./state";
@@ -156,7 +157,7 @@ export function Screen({
       <header className="top">
         <Link className="brand" to="/">
           <span className="brand-mark">
-            <I.home />
+            <Logo size={34} />
           </span>
           Home Mockup
         </Link>

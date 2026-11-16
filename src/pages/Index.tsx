@@ -2,6 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Palette, Home, Package, LogOut, User, ArrowRight } from "lucide-react";
 import AccountNameDialog from "@/components/AccountNameDialog";
+import Logo from "@/components/Logo";
 import heroBg from "@/assets/hero-bg.jpg";
 import "@/journey/mu.css";
 
