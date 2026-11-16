@@ -304,7 +304,7 @@ export function Sizes() {
                 <div className="stack" style={{ gap: 6 }} onClick={(e) => e.stopPropagation()}>
                   {l.items.map((it, i) => (
                     <label key={it} className="row" style={{ gap: 10, fontSize: 15, flexWrap: "nowrap" }}>
-                      <input type="checkbox" checked={st[i]} onChange={() => toggle(l.id, i, l.items.length, l.auto)} style={{ width: 20, height: 20, accentColor: "#665A85" }} />
+                      <input type="checkbox" checked={st[i]} onChange={() => toggle(l.id, i, l.items.length, l.auto)} style={{ width: 20, height: 20, accentColor: "#5E4268" }} />
                       {it}
                     </label>
                   ))}
@@ -317,7 +317,7 @@ export function Sizes() {
                 <span>
                   {done} of {l.items.length}
                 </span>
-                <span style={{ color: "#665A85" }}>{done === l.items.length ? "Done" : done ? "Continue" : "Start"}</span>
+                <span style={{ color: "#5E4268" }}>{done === l.items.length ? "Done" : done ? "Continue" : "Start"}</span>
               </div>
             </a>
           );
@@ -773,10 +773,10 @@ export function Final() {
               const isDone = done.includes(r);
               const isNext = r === next;
               return isNext ? (
-                <button key={r} className="rmi" type="button" onClick={continueWith} style={{ padding: "14px 16px", borderRadius: "14px", background: "#fff", border: "2px solid #665A85", color: "#3B3350", cursor: "pointer", font: "inherit" }}>
+                <button key={r} className="rmi" type="button" onClick={continueWith} style={{ padding: "14px 16px", borderRadius: "14px", background: "#fff", border: "2px solid #5E4268", color: "#34203B", cursor: "pointer", font: "inherit" }}>
                   <Icon />
                   <b>{roomName(r)}</b>
-                  <span className="st" style={{ color: "#544872" }}>
+                  <span className="st" style={{ color: "#4A3254" }}>
                     Next →
                   </span>
                 </button>

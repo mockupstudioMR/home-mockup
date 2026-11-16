@@ -416,7 +416,7 @@ export function StateOfPlace() {
                 <Ic style={{ color: "#7A4A1E" }}>
                   <path d="M9 11l3 3 8-8M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h9" />
                 </Ic>
-                <span style={{ fontSize: "16px", color: "#3B3350", flex: "1 1 360px" }}>
+                <span style={{ fontSize: "16px", color: "#34203B", flex: "1 1 360px" }}>
                   Coming up: we'll ask <b>what stays</b>, its size, and whether its spot is fixed.
                 </span>
                 <Go className="link-btn" to="S3-Existing" style={{ color: "#7A4A1E" }}>
@@ -435,7 +435,7 @@ export function StateOfPlace() {
           {cur.id === "redoing" && (
             <>
               <div className="next">
-                <Ic style={{ color: "#665A85" }}>
+                <Ic style={{ color: "#5E4268" }}>
                   <path d="M5 11V8a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v3" />
                   <path d="M3 13a2 2 0 0 1 4 0v1h10v-1a2 2 0 0 1 4 0v4a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z" />
                 </Ic>

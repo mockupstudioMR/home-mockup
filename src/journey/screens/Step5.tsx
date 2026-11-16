@@ -463,7 +463,7 @@ export function Anchor() {
             ) : (
               <>
                 {s.preview?.versions[s.preview.current] && <img className="img" src={s.preview.versions[s.preview.current].image} alt="" style={{ opacity: 0.35 }} />}
-                <span style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, color: "#3B3350" }}>
+                <span style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, color: "#34203B" }}>
                   {busy ? `Drawing your ${label.toLowerCase()}…` : ""}
                 </span>
               </>
@@ -514,7 +514,7 @@ export function Anchor() {
                   <option key={v.label}>{v.label}</option>
                 ))}
               </select>
-              <span className="row" style={{ gap: "8px", fontSize: "14px", color: "#544872" }}>
+              <span className="row" style={{ gap: "8px", fontSize: "14px", color: "#4A3254" }}>
                 <Ic style={{ width: "18px", height: "18px" }}>
                   <ellipse cx="12" cy="5" rx="8" ry="3" />
                   {p("M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3")}

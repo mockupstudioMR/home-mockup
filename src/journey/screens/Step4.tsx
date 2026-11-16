@@ -270,23 +270,23 @@ function featureStyle(pl: Placement, W: number, H: number, t: number): CSSProper
   const wall = pl.wall!;
   if (pl.kind === "windows") {
     const len = Math.min(180, (wall === "A" || wall === "C" ? W : H) * 0.4);
-    const base: CSSProperties = { position: "absolute", background: "#9FC3D6", borderLeft: "3px solid #3B3350", borderRight: "3px solid #3B3350" };
+    const base: CSSProperties = { position: "absolute", background: "#9FC3D6", borderLeft: "3px solid #34203B", borderRight: "3px solid #34203B" };
     if (wall === "C") return [{ ...base, bottom: -t, left: along(len, W), width: len, height: t }];
     if (wall === "A") return [{ ...base, top: -t, left: along(len, W), width: len, height: t }];
-    if (wall === "B") return [{ ...base, right: -t, top: along(len, H), width: t, height: len, borderLeft: 0, borderRight: 0, borderTop: "3px solid #3B3350", borderBottom: "3px solid #3B3350" }];
-    return [{ ...base, left: -t, top: along(len, H), width: t, height: len, borderLeft: 0, borderRight: 0, borderTop: "3px solid #3B3350", borderBottom: "3px solid #3B3350" }];
+    if (wall === "B") return [{ ...base, right: -t, top: along(len, H), width: t, height: len, borderLeft: 0, borderRight: 0, borderTop: "3px solid #34203B", borderBottom: "3px solid #34203B" }];
+    return [{ ...base, left: -t, top: along(len, H), width: t, height: len, borderLeft: 0, borderRight: 0, borderTop: "3px solid #34203B", borderBottom: "3px solid #34203B" }];
   }
   if (pl.kind === "doors") {
     const len = 90;
     const gap: CSSProperties = { position: "absolute", background: "#F6F0EB" };
-    const sw: CSSProperties = { position: "absolute", width: len, height: len, borderTop: "2px solid #665A85", borderRight: "2px dashed #B4A9C4" };
+    const sw: CSSProperties = { position: "absolute", width: len, height: len, borderTop: "2px solid #5E4268", borderRight: "2px dashed #B4A9C4" };
     if (wall === "D") return [{ ...gap, left: -t, top: along(len, H), width: t, height: len }, { ...sw, left: 0, top: along(len, H), borderRadius: "0 90px 0 0" }];
-    if (wall === "B") return [{ ...gap, right: -t, top: along(len, H), width: t, height: len }, { ...sw, right: 0, top: along(len, H), borderTop: "2px solid #665A85", borderRight: 0, borderLeft: "2px dashed #B4A9C4", borderRadius: "90px 0 0 0" }];
-    if (wall === "A") return [{ ...gap, top: -t, left: along(len, W), width: len, height: t }, { ...sw, top: 0, left: along(len, W), borderTop: 0, borderLeft: "2px solid #665A85", borderBottom: "2px dashed #B4A9C4", borderRight: 0, borderRadius: "0 0 0 90px" }];
-    return [{ ...gap, bottom: -t, left: along(len, W), width: len, height: t }, { ...sw, bottom: 0, left: along(len, W), borderTop: 0, borderRight: 0, borderLeft: "2px solid #665A85", borderBottom: "2px dashed #B4A9C4", borderRadius: "0 90px 0 0" }];
+    if (wall === "B") return [{ ...gap, right: -t, top: along(len, H), width: t, height: len }, { ...sw, right: 0, top: along(len, H), borderTop: "2px solid #5E4268", borderRight: 0, borderLeft: "2px dashed #B4A9C4", borderRadius: "90px 0 0 0" }];
+    if (wall === "A") return [{ ...gap, top: -t, left: along(len, W), width: len, height: t }, { ...sw, top: 0, left: along(len, W), borderTop: 0, borderLeft: "2px solid #5E4268", borderBottom: "2px dashed #B4A9C4", borderRight: 0, borderRadius: "0 0 0 90px" }];
+    return [{ ...gap, bottom: -t, left: along(len, W), width: len, height: t }, { ...sw, bottom: 0, left: along(len, W), borderTop: 0, borderRight: 0, borderLeft: "2px solid #5E4268", borderBottom: "2px dashed #B4A9C4", borderRadius: "0 90px 0 0" }];
   }
   const big = pl.kind === "radiators" ? { l: 120, t: 14 } : { l: 26, t: 26 };
-  const color = pl.kind === "radiators" ? { background: "#C9BBA9", border: "1px solid #9E8E7A" } : { background: "#3B3350" };
+  const color = pl.kind === "radiators" ? { background: "#C9BBA9", border: "1px solid #9E8E7A" } : { background: "#34203B" };
   const s: CSSProperties = { position: "absolute", borderRadius: 4, ...color };
   if (wall === "C") return [{ ...s, bottom: 6, left: along(big.l, W), width: big.l, height: big.t }];
   if (wall === "A") return [{ ...s, top: 6, left: along(big.l, W), width: big.l, height: big.t }];
@@ -377,7 +377,7 @@ function PlanOutline() {
         }}
         style={{ position: "absolute", ...style, display: "flex", alignItems: "center", justifyContent: "center", touchAction: "none", zIndex: 2 }}
       >
-        <span style={vertical ? { width: 6, height: 28, borderRadius: 3, background: "#665A85" } : { height: 6, width: 28, borderRadius: 3, background: "#665A85" }} />
+        <span style={vertical ? { width: 6, height: 28, borderRadius: 3, background: "#5E4268" } : { height: 6, width: 28, borderRadius: 3, background: "#5E4268" }} />
       </span>
     );
   };
@@ -407,7 +407,7 @@ function PlanOutline() {
           .map((b, i) => (
             <span key={i} aria-hidden="true" style={{ position: "absolute", left: `${b[0] * 100}%`, top: `${b[1] * 100}%`, width: `${(b[2] - b[0]) * 100}%`, height: `${(b[3] - b[1]) * 100}%`, border: "2px dashed rgba(102,90,133,.45)", borderRadius: 4, pointerEvents: "none" }} />
           ))}
-        <span aria-label="The room we measured" style={{ position: "absolute", left: `${box[0] * 100}%`, top: `${box[1] * 100}%`, width: `${(box[2] - box[0]) * 100}%`, height: `${(box[3] - box[1]) * 100}%`, border: "3px solid #665A85", background: "rgba(102,90,133,.12)", pointerEvents: "none" }} />
+        <span aria-label="The room we measured" style={{ position: "absolute", left: `${box[0] * 100}%`, top: `${box[1] * 100}%`, width: `${(box[2] - box[0]) * 100}%`, height: `${(box[3] - box[1]) * 100}%`, border: "3px solid #5E4268", background: "rgba(102,90,133,.12)", pointerEvents: "none" }} />
         {([0, 1, 2, 3] as const).map(edge)}
       </div>
     </div>

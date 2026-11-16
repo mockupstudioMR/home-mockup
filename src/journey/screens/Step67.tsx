@@ -637,7 +637,7 @@ export function Lighting() {
           </div>
           <section className="panel lav" style={{ marginTop: "24px", padding: "22px 26px" }}>
             <div className="row" style={{ gap: "14px", flexWrap: "nowrap" }}>
-              <Ic style={{ color: "#665A85" }}>{p("M13 2 4 14h7l-1 8 9-12h-7z")}</Ic>
+              <Ic style={{ color: "#5E4268" }}>{p("M13 2 4 14h7l-1 8 9-12h-7z")}</Ic>
               <p className="p" style={{ fontSize: "16px" }}>
                 These show the look. Your electrician confirms the standard, circuits, compatible fixtures and exact positions before anything is installed.
               </p>

@@ -177,7 +177,7 @@ export function Walls() {
               <span style={{ width: `${(kept / 4) * 100}%` }} />
             </div>
             <span className="small" style={{ fontSize: "15px" }}>
-              <b style={{ color: "#3B3350" }}>{kept} of 4</b> walls kept
+              <b style={{ color: "#34203B" }}>{kept} of 4</b> walls kept
             </span>
           </div>
         </div>

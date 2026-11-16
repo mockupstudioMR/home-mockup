@@ -588,7 +588,7 @@ function paletteShares(palette: Swatch[]) {
 const onColour = (hex: string) => {
   const n = parseInt(hex.replace("#", "").padEnd(6, "0").slice(0, 6), 16);
   const l = (0.299 * ((n >> 16) & 255) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255)) / 255;
-  return l > 0.6 ? "#2F2840" : "#FFFFFF";
+  return l > 0.6 ? "#34203B" : "#FFFFFF";
 };
 
 /** 2.4 · Your direction — the moodboard and the one preview on one screen: keep it or say what to change. */
