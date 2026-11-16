@@ -47,7 +47,7 @@ export function Go({
         if (e.defaultPrevented) return;
         e.preventDefault();
         navigate(href);
-        window.scrollTo({ top: 0 });
+        scrollToTop();
       }}
     >
       {children}
@@ -59,7 +59,7 @@ export function useGo() {
   const navigate = useNavigate();
   return (to: ScreenId, extra = "") => {
     navigate(hrefOf(to, extra));
-    window.scrollTo({ top: 0 });
+    scrollToTop();
   };
 }
 
