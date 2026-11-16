@@ -1,5 +1,6 @@
 import { Link, useNavigate } from "react-router-dom";
 import { ArrowRight, Briefcase, Check, Home } from "lucide-react";
+import Logo from "@/components/Logo";
 import "@/journey/mu.css";
 
 /** First screen after "Get started": the design canvas's "Who are you?" in the warm modern look. */
@@ -35,7 +36,7 @@ const ChoosePath = () => {
       <header className="top">
         <Link className="brand" to="/">
           <span className="brand-mark">
-            <Home className="ic" />
+            <Logo size={34} />
           </span>
           Home Mockup
         </Link>

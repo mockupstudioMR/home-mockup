@@ -4,6 +4,7 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/looseDb";
 import { Ic, I } from "@/journey/icons";
+import Logo from "@/components/Logo";
 import type { Term } from "@/admin/data";
 import "@/journey/mu.css";
 import "./admin.css";
@@ -111,7 +112,7 @@ export function AdminTop({ right }: { right?: ReactNode }) {
     <header className="top">
       <Link className="brand" to="/admin">
         <span className="brand-mark">
-          <I.home />
+          <Logo size={34} />
         </span>
         Home Mockup
       </Link>
