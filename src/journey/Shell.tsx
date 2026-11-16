@@ -9,6 +9,20 @@ import { STEP_FIRST, stepState } from "./stepNav";
 import "./mu.css";
 import "./boards.css";
 
+/** Back to the top after moving to another screen. With a docked screen the window doesn't scroll —
+ *  the <main class="wrap"> does — so reset both (the wrap node is reused across screens, so reset it
+ *  now and again after the new screen has rendered). */
+function scrollToTop() {
+  window.scrollTo({ top: 0 });
+  const wrap = document.querySelector<HTMLElement>(".mu.has-dock > .wrap");
+  if (wrap) {
+    wrap.scrollTop = 0;
+    requestAnimationFrame(() => {
+      wrap.scrollTop = 0;
+    });
+  }
+}
+
 /** A link to another journey screen, styled by the caller (".back", ".btn", ".link-btn"…). */
 export function Go({
   to, extra, className, style, children, onClick, ariaLabel, title,
