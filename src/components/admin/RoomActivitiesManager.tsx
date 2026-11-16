@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import type { Json, TablesInsert } from "@/integrations/supabase/types";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -47,8 +48,10 @@ export default function RoomActivitiesManager() {
   });
 
   const saveMutation = useMutation({
-    mutationFn: async ({ id, ...values }: any) => {
-      const { error } = await supabase.from("room_activities").update(values).eq("id", id);
+    mutationFn: async ({ id, ...values }: Partial<RoomActivity> & { id: string }) => {
+      const { opening_affinity, ...rest } = values;
+      const update = opening_affinity === undefined ? rest : { ...rest, opening_affinity: opening_affinity as Json };
+      const { error } = await supabase.from("room_activities").update(update).eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -61,7 +64,7 @@ export default function RoomActivitiesManager() {
   });
 
   const insertMutation = useMutation({
-    mutationFn: async (values: any) => {
+    mutationFn: async (values: TablesInsert<"room_activities">) => {
       const { error } = await supabase.from("room_activities").insert(values);
       if (error) throw error;
     },
@@ -70,7 +73,7 @@ export default function RoomActivitiesManager() {
       setNewActivity(null);
       toast({ title: "Added" });
     },
-    onError: (e: any) => toast({ title: e.message || "Insert failed", variant: "destructive" }),
+    onError: (e: unknown) => toast({ title: (e instanceof Error && e.message) || "Insert failed", variant: "destructive" }),
   });
 
   const deleteMutation = useMutation({

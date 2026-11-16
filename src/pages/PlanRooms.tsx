@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import Logo from "@/components/Logo";
 import { ArrowLeft, ArrowRight, DoorOpen, Loader2, Ruler, Upload } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import type { Json } from "@/integrations/supabase/types";
 import { toast } from "@/hooks/use-toast";
 import { trackEvent } from "@/lib/analytics";
 import { getAiErrorMessage } from "@/lib/aiErrorMessage";
@@ -216,8 +217,8 @@ const PlanRooms = () => {
             image_hash: hash,
             image_url: urlData.publicUrl,
             storage_path: path,
-            plan: normalized as any,
-            metadata: { file_name: file.name, size: file.size } as any,
+            plan: normalized as unknown as Json,
+            metadata: { file_name: file.name, size: file.size },
           },
           { onConflict: "user_id,image_hash" },
         );
@@ -227,7 +228,7 @@ const PlanRooms = () => {
           title: `${normalized.rooms.length} rooms detected`,
           description: "Sizes from the printed plan are used; the 1 m door only fills in rooms without printed sizes. Saved for next time.",
         });
-      } catch (err: any) {
+      } catch (err: unknown) {
         toast({ title: "Analysis failed", description: getAiErrorMessage(err), variant: "destructive" });
       } finally {
         setUploading(false);
