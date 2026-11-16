@@ -58,7 +58,6 @@ const Index = () => {
       </header>
 
       <main className="wrap" style={{ maxWidth: "1180px" }}>
-        <p className="eyebrow">Where you lead. Technology supports.</p>
         <h1 className="h1">
           Live individually.
           <br />
