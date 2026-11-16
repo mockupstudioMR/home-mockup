@@ -464,8 +464,9 @@ const Gallery = () => {
             <button
               onClick={() => navigate("/")}
               className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+              aria-label="Home"
             >
-              <Home className="w-4 h-4" />
+              <Logo size={30} />
             </button>
             <h1 className="text-2xl font-bold">My HomeMockUps</h1>
           </div>
