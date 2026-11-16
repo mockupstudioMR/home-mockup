@@ -3,8 +3,8 @@
 ## Now
 - [x] Fix new-project saving: corrected owner SELECT policy; 3 live privacy/saving tests passed; signed-in Step 1 saved project, bedroom and progress, and Project Home reloaded them after browser journey storage was cleared.
 - [x] Verify current database migrations and request deployment of the latest version (2026-11-06): applied missing furniture layout schema and reference data; checked signed-in activities screen and 12 layout/shopping-list tests.
-- [ ] Get `npm run lint` green on main (104 errors left: ~50 `any` in the web app, ~55 in edge functions, `@ts-nocheck` admin screens). Next files, biggest first: `supabase/functions/analyze-multiroom-plan/index.ts`, `supabase/functions/search-products/index.ts`, `supabase/functions/generate-design/index.ts`, `components/analyze/ConclusionVisuals.tsx`, `components/b2b/RetailerStyleFlow.tsx`, `components/start/CaptureVision.tsx`.
-- [ ] Style quiz (needs Unsplash allowed in this agent's network settings — blocked on 2026-10-25, 2026-10-27 and 2026-11-06): check the six inspiration photos in `quiz/steps/ImageStep.tsx` match their labels (e.g. "Bohemian"), move them into `public/images/quiz/` and record credits in `public/images/CREDITS.md`.
+- [ ] Get `npm run lint` green on main (83 errors left: ~30 in the web app, ~50 in edge functions, `@ts-nocheck` admin screens). Next web-app files: `pages/Gallery.tsx`, `pages/DesignJourney.tsx`, `generate/LoveThisButton.tsx`, `admin/OpeningRulesManager.tsx`, `admin/FurnitureSpecsManager.tsx`, then the 1-error files. Edge functions (`supabase/functions/*`) are left for a human-reviewed pass.
+- [ ] Style quiz (needs Unsplash allowed in this agent's network settings — blocked on 2026-10-25, 2026-10-27, 2026-11-06 and 2026-11-16): check the six inspiration photos in `quiz/steps/ImageStep.tsx` match their labels (e.g. "Bohemian"), move them into `public/images/quiz/` and record credits in `public/images/CREDITS.md`.
 
 ## Next
 - [ ] Send invite emails from the app (needs an email service + key; today the user's mail app opens).
@@ -20,6 +20,7 @@
 - [ ] Accessibility pass: alt text on generated images, focus order in the journey steps.
 
 ## Done
+- [x] Lint: `start/CaptureVision.tsx`, `analyze/ConclusionVisuals.tsx`, `b2b/RetailerStyleFlow.tsx`, `pages/PlanRooms.tsx`, `pages/AnalyzeProducts.tsx`, `admin/RoomActivitiesManager.tsx` lint-clean (21 errors removed, 104 → 83); voice dictation shared in `lib/speechRecognition.ts` with 5 tests (2026-11-16).
 - [x] Lint: `admin/AdminProductManagement.tsx`, `generate/FloorPlanComparison.tsx` and `b2b/RetailerPostsPanel.tsx` lint-clean (26 errors removed, 130 → 104); product colour parsing moved to `lib/productColors.ts` with 6 tests; fixed admin product-edit type that named a non-existent `category` column (2026-11-06).
 - [x] Lint: `floorplan/BuyListStep.tsx`, `generate/ShopExistingProducts.tsx` and `pages/ShopDashboard.tsx` lint-clean (31 errors removed, 161 → 130); palette parsing moved to `lib/paletteFromPayload.ts` with 5 tests (2026-10-30).
 - [x] Clickable step bar everywhere; step 9 invites honest; step 6 pictures redraw after swaps; step 5 real shop pieces; designer filter + View (2026-10-28).
