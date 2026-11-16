@@ -28,7 +28,7 @@ const Index = () => {
       <header className="top">
         <a className="brand" href="/" onClick={(e) => { e.preventDefault(); navigate("/"); }}>
           <span className="brand-mark">
-            <Home className="ic" />
+            <Logo size={34} />
           </span>
           Home Mockup
         </a>
