@@ -82,7 +82,7 @@ const Index = () => {
 
         <div
           className="ph"
-          style={{ marginTop: "56px", aspectRatio: "16 / 7", borderRadius: "28px", boxShadow: "0 40px 80px -48px rgba(52,32,59,.45)" }}
+          style={{ marginTop: "28px", aspectRatio: "16 / 7", borderRadius: "28px", boxShadow: "0 40px 80px -48px rgba(52,32,59,.45)" }}
         >
           <img className="img" src={heroBg} alt="A finished living room designed with Home Mockup" style={{ borderRadius: "28px" }} />
         </div>
