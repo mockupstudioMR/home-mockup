@@ -10,7 +10,6 @@ import {
   Download,
   Trash2,
   Heart,
-  Home,
   Plus,
   Loader2,
   Play,
