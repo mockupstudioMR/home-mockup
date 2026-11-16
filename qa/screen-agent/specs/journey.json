@@ -727,7 +727,7 @@
     "must": true
    },
    {
-    "text": "Next: Inspiration",
+    "text": "Continue to step 2: Inspiration",
     "kind": "button",
     "must": true
    }
@@ -1820,7 +1820,7 @@
     "must": true
    },
    {
-    "text": "Show me layouts",
+    "text": "Next: what can't move",
     "kind": "button",
     "must": true
    },

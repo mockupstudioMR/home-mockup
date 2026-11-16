@@ -803,7 +803,7 @@ export function Moodboard() {
 
       <section className="dr-decide" aria-label="Decide">
         <form className="dr-adjust" onSubmit={(e) => void update(e)}>
-          <label htmlFor="adjust">Want changes? Adjust it before you keep it</label>
+          <label htmlFor="adjust">Or adjust it</label>
           <div className="row" style={{ gap: "10px", flexWrap: "nowrap" }}>
             <input id="adjust" className="input" value={req} placeholder="e.g. lighter walls, but keep the sofa" onChange={(e) => setReq(e.target.value)} disabled={making} />
             <button className="dr-ghost pri" type="submit" disabled={making || !v}>
