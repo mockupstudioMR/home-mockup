@@ -1,11 +1,11 @@
-import { createClient } from "npm:@supabase/supabase-js@2";
+import { createClient, type SupabaseClient } from "npm:@supabase/supabase-js@2";
 import { corsHeaders } from "../_shared/http.ts";
 import { verifyTwilioRequest } from "../_shared/twilioSignature.ts";
 import { STEPS, parseTextAnswer, renderTextStep, advanceAndSend, sendWhatsApp, firstMessage } from "../_shared/whatsappQuiz.ts";
 import { fetchWithTimeout } from "../_shared/http.ts";
 
 async function downloadTwilioMediaToStorage(
-  admin: ReturnType<typeof createClient>,
+  admin: SupabaseClient,
   mediaUrl: string,
   sessionId: string,
   contentType: string,
