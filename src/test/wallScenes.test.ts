@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { EMPTY, type JourneyState } from "@/journey/state";
 import { buildModel } from "@/journey/showroom3d/model";
-import { altMask, centreOf, composite, cutLayer, driftOutside, itemMask, matchTone, pxBox, type Rgba } from "@/journey/wallScenes/layers";
+import { altMask, centreOf, composite, cutAlt, cutLayer, driftOutside, itemMask, matchTone, pxBox, type Rgba } from "@/journey/wallScenes/layers";
 import { wallItems } from "@/journey/wallScenes/items";
 import { wallKey } from "@/journey/wallScenes/runner";
 
@@ -34,6 +34,19 @@ describe("keeping alternatives true to the photo", () => {
     const cut = altMask(base, longer, box);
     expect(cut.clipped).toBe(true);
     expect(cut.usable).toBe(false);
+  });
+  it("keeps the original wall's texture above a new piece, with only its shadow", () => {
+    // the alternative darkens and blurs the wall just above the sofa (y 30–40)
+    const textured = picture((x, y) => (inSofa(x, y) ? [94, 43, 79] : (x + y) % 2 ? [190, 184, 175] : [170, 164, 155]));
+    const alt = picture((x, y) => (inSofa(x, y) ? [31, 92, 74] : y >= 30 && y < 40 && x >= 36 && x < 84 ? [144, 139, 132] : (x + y) % 2 ? [190, 184, 175] : [170, 164, 155]));
+    const cut = altMask(textured, alt, box);
+    const layer = cutAlt(textured, alt, cut.alpha, pxBox(box, W, H, 0.03), 1);
+    const i = (52 * W + 60) * 4;
+    expect(layer.data[i]).toBe(31); // the new piece itself
+    const a = (33 * W + 60) * 4, b = (33 * W + 61) * 4; // the wall above it: still textured, and darker
+    expect(layer.data[a + 3]).toBeGreaterThan(0);
+    expect(Math.abs(layer.data[a] - layer.data[b])).toBeGreaterThan(8);
+    expect(Math.max(layer.data[a], layer.data[b])).toBeLessThan(190);
   });
   it("won't show a re-lit rectangle instead of a piece", () => {
     const a = area();

@@ -13,7 +13,7 @@ import { getAiErrorMessage } from "@/lib/aiErrorMessage";
 import { storeDesignImage } from "../services";
 import type { JourneyState, Wall } from "../state";
 import { buildModel, type ShowroomModel } from "../showroom3d/model";
-import { alphaBox, altMask, centreOf, composite, cutLayer, driftOutside, matchTone, pxBox, unionAlpha, type AltCut, type PctBox, type Rgba } from "./layers";
+import { alphaBox, altMask, centreOf, composite, cutAlt, cutLayer, driftOutside, matchTone, pxBox, unionAlpha, type AltCut, type PctBox, type Rgba } from "./layers";
 import { wallItems, type WallItem } from "./items";
 
 export type WallScene = {
@@ -35,7 +35,7 @@ export const WALLS: Wall[] = ["A", "B", "C", "D"];
 const ALIGN_LIMIT = 14; // mean change outside the item (0–255), after matching tones, above which an alternative moved the photo
 const PARALLEL = 4;
 /** Raised when the way pictures are made changes, so walls made the old way are made again. */
-const PICTURE_VERSION = 2;
+const PICTURE_VERSION = 3;
 
 const previewImage = (s: JourneyState) => s.preview?.versions[s.preview.current]?.image;
 
@@ -231,10 +231,11 @@ async function makeWall(s: JourneyState, m: ShowroomModel, wall: Wall, report: (
     const all = unionAlpha(ok.map((o) => o.cut));
     const area = alphaBox(all, base.width, base.height, ok[0].cut.box);
     const variants = [{ px: base, alpha: all, name: item.mainName }, ...ok.map((o) => ({ px: o.px, alpha: o.cut.alpha, name: o.name }))];
+    const piece = pxBox(guide.boxes[item.id] as PctBox, base.width, base.height, 0.03);
     const name = item.id.replace(/[^a-zA-Z0-9_-]/g, "-");
     const urls: string[] = [], thumbs: string[] = [];
     for (const [i, v] of variants.entries()) {
-      const layer = cutLayer(v.px, v.alpha);
+      const layer = i === 0 ? cutLayer(v.px, v.alpha) : cutAlt(base, v.px, v.alpha, piece);
       const blob = await toBlob(layer, "image/webp");
       urls.push(await up.put(`${name}-${i + 1}.${blob.type === "image/webp" ? "webp" : "png"}`, blob, blob.type));
       const t = await toBlob(composite(base, layer), "image/jpeg", area, 260);

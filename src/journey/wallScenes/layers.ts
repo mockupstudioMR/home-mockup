@@ -255,7 +255,7 @@ export function altMask(base: Rgba, alt: Rgba, b: PctBox): AltCut {
   const bboxArea = on ? (x1 - x0 + 1) * (y1 - y0 + 1) : 1;
   const patch = on > 0 && on / bboxArea > 0.96 && bboxArea > area * 0.75;
   m = morph(m, w, box, 2, true);
-  const alpha = feather(m, w, box, Math.max(3, Math.round(r * 1.5)));
+  const alpha = feather(m, w, box, 2); // a crisp edge, like the photo's own: wide feathering smears
   return { alpha, box, cover, clipped, patch, usable: cover >= 0.02 && !clipped && !patch };
 }
 
@@ -274,4 +274,53 @@ export function alphaBox(alpha: Float32Array, width: number, height: number, fal
     if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y;
   }
   return x1 < 0 ? fallback : { x0, y0, x1: Math.min(width, x1 + 1), y1: Math.min(height, y1 + 1) };
+}
+
+/**
+ * Cuts one alternative like `cutLayer`, but keeps the original photo's own wall and floor around the piece.
+ * The image AI redraws the wall just around a new piece a little softer and darker; copied as it is, that
+ * shows as a smeared band (above a sofa's back, say). Outside the piece's own area, wherever the change is
+ * only light (every colour channel scaled alike: a shadow), the original's sharp texture is kept and only
+ * the alternative's smoothed shading is laid on it. Inside the piece's area the alternative is used as it is.
+ */
+export function cutAlt(base: Rgba, alt: Rgba, alpha: Float32Array, piece: PxBox, blend = 8): Rgba {
+  const { width: w, height: h } = base;
+  const out = new Uint8ClampedArray(w * h * 4);
+  // the area the layer covers
+  let x0 = w, y0 = h, x1 = 0, y1 = 0;
+  for (let p = 0; p < alpha.length; p++) if (alpha[p] > 0.002) {
+    const x = p % w, y = (p - x) / w;
+    if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y;
+  }
+  if (x1 < x0) return { data: out, width: w, height: h };
+  const area: PxBox = { x0, y0, x1: x1 + 1, y1: y1 + 1 };
+  // shading ratio (alternative / original), smoothed so none of the alternative's own blur comes through
+  let k: Float32Array = new Float32Array(w * h);
+  for (let y = area.y0; y < area.y1; y++) for (let x = area.x0; x < area.x1; x++) {
+    const i = (y * w + x) * 4;
+    const lb = base.data[i] + base.data[i + 1] + base.data[i + 2] + 24, la = alt.data[i] + alt.data[i + 1] + alt.data[i + 2] + 24;
+    k[y * w + x] = la / lb;
+  }
+  k = feather(k, w, area, 4);
+  for (let y = area.y0; y < area.y1; y++) for (let x = area.x0; x < area.x1; x++) {
+    const p = y * w + x, a = alpha[p];
+    if (a <= 0.002) continue;
+    const i = p * 4;
+    // how far outside the piece's own area this pixel is: 0 at its edge, 1 from `blend` pixels out
+    const dx = x < piece.x0 ? piece.x0 - x : x >= piece.x1 ? x - piece.x1 + 1 : 0;
+    const dy = y < piece.y0 ? piece.y0 - y : y >= piece.y1 ? y - piece.y1 + 1 : 0;
+    const out01 = Math.min(1, Math.max(dx, dy) / blend);
+    let wShade = 0;
+    if (out01 > 0) {
+      const r = (base.data[i] + 8), g = (base.data[i + 1] + 8), b = (base.data[i + 2] + 8);
+      const kr = (alt.data[i] + 8) / r, kg = (alt.data[i + 1] + 8) / g, kb = (alt.data[i + 2] + 8) / b;
+      const km = (kr + kg + kb) / 3, spread = Math.max(Math.abs(kr - km), Math.abs(kg - km), Math.abs(kb - km));
+      const shadowLike = km > 0.5 && km < 1.15 && spread < 0.1;
+      wShade = shadowLike ? out01 : 0;
+    }
+    const ks = Math.max(0.5, Math.min(1.15, k[p]));
+    for (let c = 0; c < 3; c++) out[i + c] = alt.data[i + c] * (1 - wShade) + base.data[i + c] * ks * wShade;
+    out[i + 3] = Math.round(Math.min(1, a) * 255);
+  }
+  return { data: out, width: w, height: h };
 }
