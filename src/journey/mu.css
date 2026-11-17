@@ -135,8 +135,7 @@
 .mu.has-dock .wrap:has(> .panel, > .fit-in > .panel) .opt.st .check{top:50%;transform:translateY(-50%);right:10px;width:24px;height:24px}
 .mu.has-dock .wrap:has(> .panel, > .fit-in > .panel) .g4{margin-top:clamp(12px,2.4vh,28px)!important;gap:10px!important}
 .mu.has-dock .wrap:has(> .panel, > .fit-in > .panel) .panel.lav{margin-top:clamp(12px,2vh,24px)!important}
-.mu.has-dock .wrap:has(> .panel.lav, > .fit-in > .panel.lav) .h1{font-size:clamp(26px,min(4.4vw,5.6vh),60px)}
-.mu.has-dock .wrap:has(> .panel.lav, > .fit-in > .panel.lav) .sub{display:none}
+/* the heading and subtitle keep their size and place when the details panel appears — only the cards below change */
 .mu.has-dock .panel.lav{padding:clamp(14px,2.4vh,28px) clamp(16px,2vw,28px)}
 .mu.has-dock .panel.lav .h3{font-size:clamp(16px,2.4vh,22px)}
 .mu.has-dock .panel.lav .grp-l{margin:clamp(8px,1.6vh,26px) 0 clamp(6px,1vh,12px)}
