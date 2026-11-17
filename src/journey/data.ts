@@ -1,8 +1,8 @@
 /** Fixed content of the journey: the choices people pick from. Words follow the design boards. */
 
-export const STEP_NAMES = ["", "Project", "Inspiration", "Daily life", "Layout", "Walls", "Colours", "Lighting", "Details", "Make it happen", "Together"];
-/** Name of each step in the progress bar ("Step 4 of 10 · Your layout"). */
-export const STEP_TITLES = ["", "Your project", "Inspiration & moodboard", "How you use the space", "Your layout", "Your walls", "Colours & materials", "Lighting", "Finishing details", "Make it happen", "See everything together"];
+export const STEP_NAMES = ["", "Project", "Inspiration", "Daily life", "Layout", "Walls", "Colours", "Lighting", "Details", "Make it happen"];
+/** Name of each step in the progress bar ("Step 4 of 9 · Your layout"). */
+export const STEP_TITLES = ["", "Your project", "Inspiration & moodboard", "How you use the space", "Your layout", "Your walls", "Colours & materials", "Lighting", "Finishing details", "Make it happen"];
 
 export type Intent = "new_space" | "redesign" | "exploring";
 export const INTENTS: { id: Intent; title: [string, string]; text: string; brief: string }[] = [

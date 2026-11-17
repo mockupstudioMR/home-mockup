@@ -165,7 +165,7 @@ export function Screen({
           <div className="prog">
             <div className="prog-label">
               <span>
-                <b>Step {step} of 10</b> · {STEP_TITLES[step]}
+                <b>Step {step} of 9</b> · {STEP_TITLES[step]}
               </span>
               {right != null && <span>{right}</span>}
             </div>
@@ -211,12 +211,12 @@ export function Screen({
   );
 }
 
-/** The 10 steps as the thin bar in the top bar: every step can be clicked to go to its first screen. */
+/** The 9 steps as the thin bar in the top bar: every step can be clicked to go to its first screen. */
 function StepBar({ step }: { step: number }) {
   const { s } = useJourney();
   return (
     <nav className="segs" aria-label="Steps">
-      {Array.from({ length: 10 }, (_, i) => {
+      {Array.from({ length: 9 }, (_, i) => {
         const n = i + 1;
         const st = stepState(s.done, n, step);
         return (
@@ -237,7 +237,7 @@ function StepBar({ step }: { step: number }) {
   );
 }
 
-/** The 10 steps as labelled pills (summaries): the same states and links as the top bar. */
+/** The 9 steps as labelled pills (summaries): the same states and links as the top bar. */
 export function StepStrip({ step }: { step: number }) {
   const { s } = useJourney();
   return (

@@ -223,7 +223,7 @@ export type JourneyState = {
   /** People asked to join. saved = added to the project in the database (not only in this browser). */
   team?: { role: string; email: string; saved?: boolean }[];
   // Step 10 / more rooms
-  /** The room being designed now (steps 2–10 repeat per room). Defaults to the start room. */
+  /** The room being designed now (steps 2–9 repeat per room). Defaults to the start room. */
   current?: string;
   roomsDone: string[];
   /** Each finished room's answers, kept for the project page. */
@@ -304,7 +304,7 @@ export function useJourney() {
 export const orderedRooms = (s: JourneyState) => (s.startRoom ? [s.startRoom, ...s.rooms.filter((r) => r !== s.startRoom)] : s.rooms);
 /** The room being designed now. */
 export const curRoom = (s: JourneyState) => s.current ?? s.startRoom;
-/** Answers that belong to one room (steps 2–10); the rest are the project's. */
+/** Answers that belong to one room (steps 2–9); the rest are the project's. */
 export const ROOM_KEYS: (keyof JourneyState)[] = [
   "visionMode", "photos", "pinterest", "note", "quickNotes", "analysis", "styles", "moodboard", "preview",
   "activities", "priorities", "keeping", "nothingKept", "fixedCounts", "fixedTbc", "placements", "fixedPhotos",
@@ -313,7 +313,7 @@ export const ROOM_KEYS: (keyof JourneyState)[] = [
 ];
 export const uid = () => Math.random().toString(36).slice(2, 10);
 
-/** Open the journey on another room of the project (used by the project page). Steps 2–10 start fresh for it. */
+/** Open the journey on another room of the project (used by the project page). Steps 2–9 start fresh for it. */
 export function resumeRoomInJourney(roomType: string, roomId?: string) {
   try {
     const cur: JourneyState = { ...EMPTY, ...JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "{}") };

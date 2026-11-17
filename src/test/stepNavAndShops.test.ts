@@ -7,7 +7,8 @@ describe("step bar", () => {
   it("starts each step on its first screen", () => {
     expect(STEP_FIRST[1]).toBe("S1-Why");
     expect(STEP_FIRST[4]).toBe("S4-Input");
-    expect(STEP_FIRST[10]).toBe("S10-Final");
+    expect(STEP_FIRST[9]).toBe("S9-BuyList");
+    expect(STEP_FIRST).toHaveLength(10);
   });
 
   it("shows finished steps as done wherever you are, and the next unfinished one after this step", () => {

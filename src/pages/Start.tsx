@@ -16,7 +16,7 @@ import IntentStep from "@/components/quiz/steps/IntentStep";
 import { createProjectFromGround } from "@/lib/projectStore";
 
 interface StartLocationState {
-  /** Set by the project home when the user continues with another room (steps 2–10 repeat per room). */
+  /** Set by the project home when the user continues with another room (steps 2–9 repeat per room). */
   resumeRoom?: string;
   fromChoosePath?: boolean;
 }

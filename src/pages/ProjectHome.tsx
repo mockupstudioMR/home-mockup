@@ -83,7 +83,7 @@ const ProjectHome = () => {
           <h1 className="mt-3 text-4xl font-extrabold tracking-tight md:text-6xl">{(data?.ready ? data.project?.name : undefined) ?? localProjectName() ?? "My home"}</h1>
           {data?.ready && rooms.length > 0 && (
             <p className="mx-auto mt-4 max-w-2xl text-lg text-muted-foreground">
-              {done} of {rooms.length} rooms designed. Your project basics carry over; steps 2–10 repeat for each room.
+              {done} of {rooms.length} rooms designed. Your project basics carry over; steps 2–9 repeat for each room.
             </p>
           )}
         </div>
@@ -134,8 +134,8 @@ const ProjectHome = () => {
                         <span className="rounded-full bg-muted px-3 py-1 text-xs font-bold text-muted-foreground">Not started</span>
                       )}
                     </div>
-                    <div className="grid grid-cols-10 gap-1" aria-label={`Step ${r.current_step} of 10`}>
-                      {Array.from({ length: 10 }, (_, i) => (
+                    <div className="grid grid-cols-9 gap-1" aria-label={`Step ${r.current_step} of 9`}>
+                      {Array.from({ length: 9 }, (_, i) => (
                         <span key={i} className={cn("h-1.5 rounded-full", i + 1 < r.current_step || finished ? "bg-primary/60" : i + 1 === r.current_step ? "bg-primary" : "bg-muted")} />
                       ))}
                     </div>

@@ -5,7 +5,7 @@ export type ScreenId =
   | "S3-Activities" | "S3-Existing" | "S3-Fixed" | "S3-Summary"
   | "S4-Input" | "S4-Measure" | "S4-Layouts" | "S4-Summary" | "S4-Showroom"
   | "S5-Walls" | "S5-Wall" | "S5-Shops" | "S5-Anchor" | "S5-Summary" | "S6-Palette" | "S6-Summary" | "S7-Lighting" | "S7-Summary"
-  | "S8-Walls" | "S8-WallDetail" | "S8-Summary" | "S9-BuyList" | "S9-Sizes" | "S9-Todo" | "S9-Summary" | "S10-Final";
+  | "S8-Walls" | "S8-WallDetail" | "S8-Summary" | "S9-BuyList" | "S9-Sizes" | "S9-Todo" | "S9-Summary";
 
 export const SCREENS: { id: ScreenId; path: string; step: number }[] = [
   { id: "Main", path: "", step: 0 },
@@ -46,7 +46,6 @@ export const SCREENS: { id: ScreenId; path: string; step: number }[] = [
   { id: "S9-Sizes", path: "9/sizes", step: 9 },
   { id: "S9-Todo", path: "9/todo", step: 9 },
   { id: "S9-Summary", path: "9/summary", step: 9 },
-  { id: "S10-Final", path: "10/final", step: 10 },
 ];
 
 export const hrefOf = (id: ScreenId, extra = "") => `/journey${SCREENS.find((s) => s.id === id)!.path ? "/" + SCREENS.find((s) => s.id === id)!.path : ""}${extra}`;
@@ -60,6 +59,7 @@ export function screenFor(rest: string): { id: ScreenId; param?: string } | null
   if (clean === "3/priorities") return { id: "S3-Activities" }; // "What matters most?" was removed
   if (clean === "2/adjust" || clean === "2/preview") return { id: "S2-Moodboard" }; // preview and adjusting are part of "Your direction"
   if (clean === "3/fixed") return { id: "S3-Fixed" }; // old address: "what can't move" moved after the floor plan
+  if (clean === "10/final") return { id: "S9-Summary" }; // old address: the final step is now 9 · Make it happen
   const wall5 = /^5\/wall\/([A-Da-d])$/.exec(clean);
   if (wall5) return { id: "S5-Wall", param: wall5[1].toUpperCase() };
   const wall = /^8\/wall\/([A-Za-z0-9]+)$/.exec(clean);

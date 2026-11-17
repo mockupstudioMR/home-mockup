@@ -1,4 +1,4 @@
-/** Steps 9 and 10 — buying list, sizes, to-do, summary; then everything together. */
+/** Step 9 — buying list, sizes, to-do, and the final summary with everything together. */
 import { useMemo, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Back, Go, Screen, useGo } from "../Shell";
@@ -521,9 +521,11 @@ export function Todo() {
   );
 }
 
-/** 9.4 · Step 9 summary */
+/** 9.4 · Step 9 summary — the final screen: every step summed up, what you get, and the next room. */
 export function Step9Summary() {
-  const { s } = useJourney();
+  const { s, set } = useJourney();
+  const go = useGo();
+  const { toast } = useToast();
   const rows = useMemo(() => buyList(s), [s]);
   const t = tally(rows);
   const lists = checklists(s);
@@ -534,12 +536,79 @@ export function Step9Summary() {
   const started = lists.filter((l) => l.items.some((_, i) => s.checks?.[l.id]?.[i] ?? l.auto?.[i]));
   const invited = s.team ?? [];
   const notYet = TEAM.map(([, r]) => r).filter((r) => !invited.some((m) => m.role === r));
+
+  const room = curRoom(s) ?? "living-room";
+  const all = orderedRooms(s);
+  const done = Array.from(new Set([...s.roomsDone, room]));
+  const left = all.filter((r) => !done.includes(r));
+  const next = left[0];
+  const hero = s.preview?.versions[s.preview.current]?.image;
+  const wallsReviewed = Object.values(s.walls).filter((w) => w?.status !== "review").length;
+  const measuredAll = !!s.room.confirmed && s.keeping.every((k) => k.measured);
+  const tbc = [
+    !measuredAll && "Room & item measurements",
+    (budgetOf(s) === "TBC" || !s.brief.when) && "Budget & dates",
+    "Exact products & suppliers",
+    "Costs & lead times",
+    "Construction details",
+    "Electrical specs & positions",
+    "Water, AC & data points",
+  ].filter(Boolean) as string[];
+
+  const continueWith = async () => {
+    if (!next) return go("Main");
+    const keep: Partial<JourneyState> = {};
+    for (const k of ROOM_KEYS) (keep as Record<string, unknown>)[k] = s[k];
+    const roomId = await startNextRoom(s, next);
+    set((x) => {
+      const reset: Partial<JourneyState> = {};
+      for (const k of ROOM_KEYS) (reset as Record<string, unknown>)[k] = (EMPTY as Record<string, unknown>)[k];
+      return { ...reset, archive: { ...(x.archive ?? {}), [room]: keep }, roomsDone: done, current: next, roomId: roomId ?? x.roomId, done: [1] };
+    });
+    go("S2-Vision");
+  };
+  const downloadFile = async () => {
+    try {
+      const { jsPDF } = await import("jspdf");
+      const doc = new jsPDF({ unit: "pt", format: "a4" });
+      let y = 56;
+      const line = (t: string, size = 11, bold = false) => {
+        doc.setFont("helvetica", bold ? "bold" : "normal").setFontSize(size);
+        for (const l of doc.splitTextToSize(t, 480)) {
+          if (y > 790) {
+            doc.addPage();
+            y = 56;
+          }
+          doc.text(l, 56, y);
+          y += size + 6;
+        }
+      };
+      line(`${roomName(room)} — project file`, 20, true);
+      y += 6;
+      for (let i = 1; i <= 9; i++) line(`Step ${i}: ${stepLine(s, i)}`);
+      y += 10;
+      line("Buying list", 15, true);
+      for (const r of rows) line(`• ${r.name} — ${r.qty} — ${r.size} — wall ${r.wall} — ${r.action}${r.status ? ` (${r.status})` : ""}`, 10);
+      y += 10;
+      line("Still TBC", 15, true);
+      for (const t of tbc) line(`• ${t}`, 10);
+      doc.save(`${roomName(room).toLowerCase().replace(/\s+/g, "-")}-project.pdf`);
+    } catch {
+      toast({ title: "The file couldn't be made", variant: "destructive" });
+    }
+  };
+  const deliverables = [
+    { k: "a", title: "Design review", text: "Keep the whole design, or adjust one wall or item.", ok: wallsReviewed === 4, tag: wallsReviewed === 4 ? "Ready" : `${wallsReviewed} of 4 walls`, to: "S5-Walls" as const, label: "Review", icon: () => <I.sparkle /> },
+    { k: "b", title: "Buying pack", text: "Real sizes, chosen products, quantities, budget and lead times.", ok: measuredAll, tag: measuredAll ? "Ready" : "Needs sizes", to: "S9-BuyList" as const, label: "Open", icon: () => <Ic>{p("M6 6h15l-2 9H8zM6 6 5 3H2M9 20h.01M18 20h.01")}</Ic> },
+    { k: "c", title: "Installation pack", text: "Measured plan, wall elevations, finish schedule and approved electrical plan.", ok: false, tag: "After survey", to: "S9-Sizes" as const, label: "Open", icon: () => <I.ruler /> },
+    { k: "d", title: "Project checklist", text: "Owners, dates, deliveries, install tasks and final checks.", ok: true, tag: "Ready", to: "S9-Todo" as const, label: "Open", icon: () => <Ic>{p("M9 11l3 3 8-8M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h9")}</Ic> },
+  ];
   return (
     <StepSummary
       step={9}
       board="S9-Summary"
       title="What we set up in step 9"
-      sub="You have a buying list, a measuring checklist and a to-do list. Last step: see it all together."
+      sub="You have a buying list, a measuring checklist and a to-do list. This is the last step — everything you decided, summed up below."
       media={
         <div className="nums">
           <div>
@@ -597,88 +666,9 @@ export function Step9Summary() {
         ["9", "List, sizes and to-do ready"],
       ]}
       back="S9-Todo"
-      next="S10-Final"
-    />
-  );
-}
-
-/** 10 · See everything together */
-export function Final() {
-  const { s, set } = useJourney();
-  const go = useGo();
-  const { toast } = useToast();
-  const room = curRoom(s) ?? "living-room";
-  const all = orderedRooms(s);
-  const done = Array.from(new Set([...s.roomsDone, room]));
-  const left = all.filter((r) => !done.includes(r));
-  const next = left[0];
-  const hero = s.preview?.versions[s.preview.current]?.image;
-  const rows = useMemo(() => buyList(s), [s]);
-  const wallsReviewed = Object.values(s.walls).filter((w) => w?.status !== "review").length;
-  const measuredAll = !!s.room.confirmed && s.keeping.every((k) => k.measured);
-  const tbc = [
-    !measuredAll && "Room & item measurements",
-    (budgetOf(s) === "TBC" || !s.brief.when) && "Budget & dates",
-    "Exact products & suppliers",
-    "Costs & lead times",
-    "Construction details",
-    "Electrical specs & positions",
-    "Water, AC & data points",
-  ].filter(Boolean) as string[];
-
-  const continueWith = async () => {
-    if (!next) return go("Main");
-    const keep: Partial<JourneyState> = {};
-    for (const k of ROOM_KEYS) (keep as Record<string, unknown>)[k] = s[k];
-    const roomId = await startNextRoom(s, next);
-    set((x) => {
-      const reset: Partial<JourneyState> = {};
-      for (const k of ROOM_KEYS) (reset as Record<string, unknown>)[k] = (EMPTY as Record<string, unknown>)[k];
-      return { ...reset, archive: { ...(x.archive ?? {}), [room]: keep }, roomsDone: done, current: next, roomId: roomId ?? x.roomId, done: [1] };
-    });
-    go("S2-Vision");
-  };
-  const downloadFile = async () => {
-    try {
-      const { jsPDF } = await import("jspdf");
-      const doc = new jsPDF({ unit: "pt", format: "a4" });
-      let y = 56;
-      const line = (t: string, size = 11, bold = false) => {
-        doc.setFont("helvetica", bold ? "bold" : "normal").setFontSize(size);
-        for (const l of doc.splitTextToSize(t, 480)) {
-          if (y > 790) {
-            doc.addPage();
-            y = 56;
-          }
-          doc.text(l, 56, y);
-          y += size + 6;
-        }
-      };
-      line(`${roomName(room)} — project file`, 20, true);
-      y += 6;
-      for (let i = 1; i <= 8; i++) line(`Step ${i}: ${stepLine(s, i)}`);
-      y += 10;
-      line("Buying list", 15, true);
-      for (const r of rows) line(`• ${r.name} — ${r.qty} — ${r.size} — wall ${r.wall} — ${r.action}${r.status ? ` (${r.status})` : ""}`, 10);
-      y += 10;
-      line("Still TBC", 15, true);
-      for (const t of tbc) line(`• ${t}`, 10);
-      doc.save(`${roomName(room).toLowerCase().replace(/\s+/g, "-")}-project.pdf`);
-    } catch {
-      toast({ title: "The file couldn't be made", variant: "destructive" });
-    }
-  };
-  const deliverables = [
-    { k: "a", title: "Design review", text: "Keep the whole design, or adjust one wall or item.", ok: wallsReviewed === 4, tag: wallsReviewed === 4 ? "Ready" : `${wallsReviewed} of 4 walls`, to: "S5-Walls" as const, label: "Review", icon: () => <I.sparkle /> },
-    { k: "b", title: "Buying pack", text: "Real sizes, chosen products, quantities, budget and lead times.", ok: measuredAll, tag: measuredAll ? "Ready" : "Needs sizes", to: "S9-BuyList" as const, label: "Open", icon: () => <Ic>{p("M6 6h15l-2 9H8zM6 6 5 3H2M9 20h.01M18 20h.01")}</Ic> },
-    { k: "c", title: "Installation pack", text: "Measured plan, wall elevations, finish schedule and approved electrical plan.", ok: false, tag: "After survey", to: "S9-Sizes" as const, label: "Open", icon: () => <I.ruler /> },
-    { k: "d", title: "Project checklist", text: "Owners, dates, deliveries, install tasks and final checks.", ok: true, tag: "Ready", to: "S9-Todo" as const, label: "Open", icon: () => <Ic>{p("M9 11l3 3 8-8M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h9")}</Ic> },
-  ];
-  return (
-    <Screen board="S10-Final" step={10} right={roomName(room)} wrapClass="wrap wide"
       dock={
         <>
-          <Back to="S9-Summary" />
+          <Back to="S9-Todo" />
           {next ? (
             <button className="btn auto" type="button" onClick={continueWith}>
               <span className="hide-sm">Continue with room {all.indexOf(next) + 1}: {roomName(next)} — from step 2</span>
@@ -694,45 +684,7 @@ export function Final() {
         </>
       }
     >
-      <p className="script">your {roomName(room).toLowerCase()}</p>
-      <h1 className="h1" style={{ marginTop: "4px" }}>
-        Ready to make your room real
-      </h1>
-      <p className="sub">The preview, your plan, every wall, the buying list and the work schedule — in one place.</p>
-      <nav className="vt" aria-label="View" style={{ justifyContent: "center", marginTop: "32px" }}>
-        <Go className="on" to="S10-Final">
-          <Ic>
-            <rect x="3" y="5" width="18" height="14" rx="2" />
-            {p("M3 15l5-5 4 4 3-3 6 6")}
-          </Ic>
-          Room
-        </Go>
-        <Go to="S4-Layouts">
-          <Ic>{p("M3 3h18v18H3zM3 12h7v9M14 3v6h7")}</Ic>
-          Plan
-        </Go>
-        <Go to="S5-Walls">
-          <Ic>
-            <rect x="4" y="4" width="7" height="7" rx="1.5" />
-            <rect x="13" y="4" width="7" height="7" rx="1.5" />
-            <rect x="4" y="13" width="7" height="7" rx="1.5" />
-            <rect x="13" y="13" width="7" height="7" rx="1.5" />
-          </Ic>
-          Walls
-        </Go>
-        <Go to="S9-BuyList">
-          <Ic>{p("M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01")}</Ic>
-          Buying list
-        </Go>
-        <Go to="S9-Todo">
-          <Ic>
-            <rect x="3" y="5" width="18" height="16" rx="2" />
-            {p("M3 10h18M8 3v4M16 3v4")}
-          </Ic>
-          Schedule
-        </Go>
-      </nav>
-      <div className="ph hero" style={{ marginTop: "20px", borderRadius: "30px" }}>
+      <div className="ph hero" style={{ marginTop: "32px", borderRadius: "30px" }}>
         {hero && <img className="img" src={hero} alt={`Final ${roomName(room).toLowerCase()}`} style={{ borderRadius: "30px" }} />}
         <span className="num">{(s.preview?.current ?? 0) + 1}</span>
       </div>
@@ -760,7 +712,7 @@ export function Final() {
             <div className="stack" style={{ gap: "6px" }}>
               <h2 className="h3">{left.length ? `${left.length} room${left.length > 1 ? "s" : ""} still to design` : "All rooms designed"}</h2>
               <p className="p" style={{ fontSize: "16px", color: "#5E3A18" }}>
-                The {roomName(room).toLowerCase()} is done. {left.length ? <>Each remaining room goes through <b>steps 2–10</b> — your project basics, budget and team carry over.</> : "Your whole project is designed."}
+                The {roomName(room).toLowerCase()} is done. {left.length ? <>Each remaining room goes through <b>steps 2–9</b> — your project basics, budget and team carry over.</> : "Your whole project is designed."}
               </p>
             </div>
             <span className="tag" style={{ background: "#fff", color: "#7A4A1E" }}>
@@ -815,7 +767,7 @@ export function Final() {
           Share
         </button>
       </div>
-    </Screen>
+    </StepSummary>
   );
 }
 

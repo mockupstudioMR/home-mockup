@@ -305,7 +305,7 @@ export function StartRoom() {
       {others.length > 0 && (
         <p className="small" style={{ textAlign: "center", marginTop: "28px", fontSize: "15px" }}>
           {others.length === 1 ? others[0] : `${others.slice(0, -1).join(", ")} and ${others[others.length - 1]}`}{" "}
-          {others.length === 1 ? "is" : "are"} saved — steps 2–10 repeat for each after this room.
+          {others.length === 1 ? "is" : "are"} saved — steps 2–9 repeat for each after this room.
         </p>
       )}
     </Screen>
@@ -553,7 +553,7 @@ export function Brief() {
               You chose {rooms.length} room{rooms.length === 1 ? "" : "s"}. We start with the {roomName(first).toLowerCase()}
               {rooms.length > 1 ? (
                 <>
-                  ; <b>steps 2–10 then repeat for each of the others</b>
+                  ; <b>steps 2–9 then repeat for each of the others</b>
                 </>
               ) : null}
               . Your answers from step 1 carry over.

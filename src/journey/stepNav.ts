@@ -1,8 +1,8 @@
-/** Moving between the 10 steps from the progress bar: where each step starts and how it is shown. */
+/** Moving between the 9 steps from the progress bar: where each step starts and how it is shown. */
 import { SCREENS, type ScreenId } from "./routes";
 
 /** The first screen of each step (index = step number). */
-export const STEP_FIRST: ScreenId[] = Array.from({ length: 11 }, (_, n) =>
+export const STEP_FIRST: ScreenId[] = Array.from({ length: 10 }, (_, n) =>
   n === 0 ? "Main" : n >= 6 && n <= 8 ? "S5-Walls" : SCREENS.find((x) => x.step === n)!.id,
 );
 
@@ -15,6 +15,6 @@ export type StepState = "now" | "done" | "next" | "todo";
 export function stepState(done: number[], n: number, now: number): StepState {
   if (n === now) return "now";
   if (done.includes(n)) return "done";
-  const next = Array.from({ length: 10 }, (_, i) => i + 1).find((k) => k > now && !done.includes(k));
+  const next = Array.from({ length: 9 }, (_, i) => i + 1).find((k) => k > now && !done.includes(k));
   return n === next ? "next" : "todo";
 }
