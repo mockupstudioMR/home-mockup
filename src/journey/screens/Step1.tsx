@@ -419,9 +419,6 @@ export function StateOfPlace() {
                 <span style={{ fontSize: "16px", color: "#34203B", flex: "1 1 360px" }}>
                   Coming up: we'll ask <b>what stays</b>, its size, and whether its spot is fixed.
                 </span>
-                <Go className="link-btn" to="S3-Existing" style={{ color: "#7A4A1E" }}>
-                  Preview that step
-                </Go>
               </div>
               <div className="allow">
                 <span className="stack" style={{ gap: "2px", flex: "1 1 auto" }}>
@@ -442,9 +439,6 @@ export function StateOfPlace() {
                 <span style={{ fontSize: "16px", flex: "1 1 360px" }}>
                   Love something you already own? You can still <b>keep it</b> — we'll ask in a moment.
                 </span>
-                <Go className="link-btn" to="S3-Existing">
-                  Preview that step
-                </Go>
               </div>
               <div className="warn">
                 <Ic style={{ color: "#7A4A1E", marginTop: "2px" }}>
