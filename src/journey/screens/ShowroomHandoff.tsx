@@ -89,7 +89,7 @@ export function ShowroomHandoff() {
   else if (sample) sub = "Try it in a sample room while yours is prepared: tap a dot, or a tab below, and swap the sofa or the wall colour.";
 
   return <Screen board="S4-Showroom" step={4} right={layout.name}
-    dock={<><Back to="S4-Summary" /><Go className="btn auto" to="S3-Existing">Continue to furniture</Go></>}>
+    dock={<><Back to="S4-Summary" /><Go className="btn auto" to="S5-Walls">Continue to your walls</Go></>}>
     <p className="eyebrow">Your room · showroom</p>
     <h1 className="h1">Your layout, in your room</h1>
     <p className="sub">{sub}</p>

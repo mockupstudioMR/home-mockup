@@ -56,7 +56,7 @@ export function BuyList() {
     <Screen board="S9-BuyList" step={9} right="1 of 3 · Buying list" wrapClass="wrap wide"
       dock={
         <>
-          <Back to="S8-Walls" />
+          <Back to="S5-Walls" label="My walls" />
           <Go className="btn auto" to="S9-Sizes" onClick={() => void saveBuyList(s, rows)}>
             Next: confirm the sizes
             <I.next />
@@ -669,7 +669,7 @@ export function Final() {
     }
   };
   const deliverables = [
-    { k: "a", title: "Design review", text: "Keep the whole design, or adjust one wall or item.", ok: wallsReviewed === 4, tag: wallsReviewed === 4 ? "Ready" : `${wallsReviewed} of 4 walls`, to: "S8-Walls" as const, label: "Review", icon: () => <I.sparkle /> },
+    { k: "a", title: "Design review", text: "Keep the whole design, or adjust one wall or item.", ok: wallsReviewed === 4, tag: wallsReviewed === 4 ? "Ready" : `${wallsReviewed} of 4 walls`, to: "S5-Walls" as const, label: "Review", icon: () => <I.sparkle /> },
     { k: "b", title: "Buying pack", text: "Real sizes, chosen products, quantities, budget and lead times.", ok: measuredAll, tag: measuredAll ? "Ready" : "Needs sizes", to: "S9-BuyList" as const, label: "Open", icon: () => <Ic>{p("M6 6h15l-2 9H8zM6 6 5 3H2M9 20h.01M18 20h.01")}</Ic> },
     { k: "c", title: "Installation pack", text: "Measured plan, wall elevations, finish schedule and approved electrical plan.", ok: false, tag: "After survey", to: "S9-Sizes" as const, label: "Open", icon: () => <I.ruler /> },
     { k: "d", title: "Project checklist", text: "Owners, dates, deliveries, install tasks and final checks.", ok: true, tag: "Ready", to: "S9-Todo" as const, label: "Open", icon: () => <Ic>{p("M9 11l3 3 8-8M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h9")}</Ic> },
@@ -711,7 +711,7 @@ export function Final() {
           <Ic>{p("M3 3h18v18H3zM3 12h7v9M14 3v6h7")}</Ic>
           Plan
         </Go>
-        <Go to="S8-Walls">
+        <Go to="S5-Walls">
           <Ic>
             <rect x="4" y="4" width="7" height="7" rx="1.5" />
             <rect x="13" y="4" width="7" height="7" rx="1.5" />

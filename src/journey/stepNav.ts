@@ -2,7 +2,9 @@
 import { SCREENS, type ScreenId } from "./routes";
 
 /** The first screen of each step (index = step number). */
-export const STEP_FIRST: ScreenId[] = Array.from({ length: 11 }, (_, n) => (n === 0 ? "Main" : SCREENS.find((x) => x.step === n)!.id));
+export const STEP_FIRST: ScreenId[] = Array.from({ length: 11 }, (_, n) =>
+  n === 0 ? "Main" : n >= 6 && n <= 8 ? "S5-Walls" : SCREENS.find((x) => x.step === n)!.id,
+);
 
 export type StepState = "now" | "done" | "next" | "todo";
 

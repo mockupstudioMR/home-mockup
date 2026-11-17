@@ -71,6 +71,12 @@ export type WallItem = {
   code?: string;
   x: number;
   y: number;
+  /** The layout piece ("lay-3") or kept piece ("keep-<id>") it stands for, so the wall outline can place it. */
+  ref?: string;
+  /** The real piece picked for it on the wall screen (step 5). */
+  choice?: { name: string; image?: string; url?: string; productId?: string; price?: number; currency?: string };
+  /** Added on the wall screen by the person (e.g. an extra socket). */
+  added?: boolean;
 };
 export type WallPlan = {
   role: string; // "Sofa"
@@ -206,6 +212,8 @@ export type JourneyState = {
   };
   // Step 8 — wall by wall
   walls: Partial<Record<Wall, WallPlan>>;
+  /** This room is designed wall by wall (step 5 "Your walls"): every choice lives on the walls, not in steps 5–8. */
+  wallFlow?: boolean;
   // Step 9 — make it happen
   buyEdits?: Record<string, { size?: string; action?: string }>;
   /** Space available, per buying-list row (the second of the three sizes). */
@@ -300,7 +308,7 @@ export const curRoom = (s: JourneyState) => s.current ?? s.startRoom;
 export const ROOM_KEYS: (keyof JourneyState)[] = [
   "visionMode", "photos", "pinterest", "note", "quickNotes", "analysis", "styles", "moodboard", "preview",
   "activities", "priorities", "keeping", "nothingKept", "fixedCounts", "fixedTbc", "placements", "fixedPhotos",
-  "room", "layouts", "chosenLayout", "anchor", "accent", "supporting", "supportImage", "samplesAdded", "surfaces", "decor", "refined", "lighting", "walls",
+  "room", "layouts", "chosenLayout", "anchor", "accent", "supporting", "supportImage", "samplesAdded", "surfaces", "decor", "refined", "lighting", "walls", "wallFlow",
   "buyEdits", "spaceAvail", "checks", "todo",
 ];
 export const uid = () => Math.random().toString(36).slice(2, 10);
@@ -322,6 +330,6 @@ export function resumeRoomInJourney(roomType: string, roomId?: string) {
 /** The first screen of the step after the last finished one. */
 export function resumePath(s: JourneyState) {
   const last = Math.max(0, ...s.done);
-  const firsts = ["1/why", "2/vision", "3/activities", "4/input", "5/shops", "6/palette", "7/lighting", "8/walls", "9/buy", "10/final", "10/final"];
+  const firsts = ["1/why", "2/vision", "3/activities", "4/input", "5/walls", "5/walls", "5/walls", "5/walls", "9/buy", "10/final", "10/final"];
   return `/journey/${firsts[Math.min(10, last)]}`;
 }

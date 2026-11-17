@@ -448,7 +448,7 @@ export function Existing() {
     <Screen board="S3-Existing" step={5} right={roomName(curRoom(s))} wrapStyle={{ maxWidth: "1100px" }}
       dock={
         <>
-          <Back to="S4-Summary" />
+          <Back to="S5-Walls" label="My walls" />
           {s.keeping.length ? (
             <Go className="btn" to="S5-Shops">
               Next: suggest new pieces

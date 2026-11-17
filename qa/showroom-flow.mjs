@@ -1,5 +1,5 @@
 /**
- * Showroom flow check: layout summary → showroom → swap a piece → continue to step 5.
+ * Showroom check: the showroom screen → swap a piece → continue to step 5 (your walls).
  * Runs the app against the screen agent's fake database and sample project.
  *
  *   node qa/showroom-flow.mjs [out-dir]     (default: qa/screen-agent/out)
@@ -27,10 +27,7 @@ const seed = JSON.parse(fs.readFileSync("qa/screen-agent/fixtures/journey-state.
 await ctx.addInitScript(({ key, session, seed }) => { localStorage.setItem(key, JSON.stringify(session)); localStorage.setItem("hm_journey_v1", JSON.stringify(seed)); localStorage.setItem("hm_qa", "1"); },
   { key: STORAGE_KEY, session: fakeSession(fakeUser("user")), seed });
 const step = async (name) => { await page.waitForTimeout(800); console.log(name.padEnd(28), page.url().replace(base, "")); };
-await page.goto(base + "/journey/4/summary"); await page.waitForLoadState("networkidle").catch(() => {}); await step("layout summary");
-const next = page.locator("a,button").filter({ hasText: /^(Next|Continue|See)/i });
-console.log("  next buttons:", await next.allInnerTexts());
-await next.last().click(); await step("after next");
+await page.goto(base + "/journey/4/showroom"); await page.waitForLoadState("networkidle").catch(() => {}); await step("showroom");
 await page.waitForSelector("showroom-configurator", { timeout: 15000 });
 await page.waitForTimeout(3000);
 const root = page.locator("showroom-configurator");
@@ -43,9 +40,9 @@ console.log("  hotspot vs canvas:", await page.evaluate(() => { const el = docum
 await page.getByRole("button", { name: "Wall A" }).click(); await page.waitForTimeout(800);
 console.log("  wall A view has configurator:", await page.locator("showroom-configurator").count());
 await page.getByRole("button", { name: "Whole room" }).click(); await page.waitForTimeout(500);
-await page.getByText("Continue to furniture").click(); await step("after continue");
+await page.getByText("Continue to your walls").click(); await step("after continue");
 const real = errors.filter((e) => !/favicon|DevTools|ERR_TUNNEL_CONNECTION_FAILED|ERR_NAME_NOT_RESOLVED/.test(e));
 console.log("errors:", real);
-const ok = page.url().endsWith("/journey/5/keeping") && real.length === 0;
+const ok = page.url().endsWith("/journey/5/walls") && real.length === 0;
 console.log(ok ? "PASS showroom flow" : "FAIL showroom flow");
 await browser.close(); child.kill("SIGTERM"); process.exit(ok ? 0 : 1);

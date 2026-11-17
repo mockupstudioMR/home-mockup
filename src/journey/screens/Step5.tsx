@@ -95,8 +95,8 @@ export function Shops() {
       dock={
         <>
           <Back to="S3-Existing" />
-          <Go className="btn auto" to="S5-Anchor">
-            Show me furniture
+          <Go className="btn auto" to="S5-Walls">
+            Back to my walls
             <I.next />
           </Go>
         </>

@@ -4,7 +4,7 @@ export type ScreenId =
   | "S2-Vision" | "S2-Upload" | "S2-Analyzing" | "S2-Matches" | "S2-Moodboard" | "S2-Summary"
   | "S3-Activities" | "S3-Existing" | "S3-Fixed" | "S3-Summary"
   | "S4-Input" | "S4-Measure" | "S4-Layouts" | "S4-Summary" | "S4-Showroom"
-  | "S5-Shops" | "S5-Anchor" | "S5-Summary" | "S6-Palette" | "S6-Summary" | "S7-Lighting" | "S7-Summary"
+  | "S5-Walls" | "S5-Wall" | "S5-Shops" | "S5-Anchor" | "S5-Summary" | "S6-Palette" | "S6-Summary" | "S7-Lighting" | "S7-Summary"
   | "S8-Walls" | "S8-WallDetail" | "S8-Summary" | "S9-BuyList" | "S9-Sizes" | "S9-Todo" | "S9-Summary" | "S10-Final";
 
 export const SCREENS: { id: ScreenId; path: string; step: number }[] = [
@@ -29,6 +29,8 @@ export const SCREENS: { id: ScreenId; path: string; step: number }[] = [
   { id: "S4-Layouts", path: "4/layouts", step: 4 },
   { id: "S4-Summary", path: "4/summary", step: 4 },
   { id: "S4-Showroom", path: "4/showroom", step: 4 },
+  { id: "S5-Walls", path: "5/walls", step: 5 },
+  { id: "S5-Wall", path: "5/wall", step: 5 },
   { id: "S3-Existing", path: "5/keeping", step: 5 },
   { id: "S5-Shops", path: "5/shops", step: 5 },
   { id: "S5-Anchor", path: "5/anchor", step: 5 },
@@ -58,6 +60,8 @@ export function screenFor(rest: string): { id: ScreenId; param?: string } | null
   if (clean === "3/priorities") return { id: "S3-Activities" }; // "What matters most?" was removed
   if (clean === "2/adjust" || clean === "2/preview") return { id: "S2-Moodboard" }; // preview and adjusting are part of "Your direction"
   if (clean === "3/fixed") return { id: "S3-Fixed" }; // old address: "what can't move" moved after the floor plan
+  const wall5 = /^5\/wall\/([A-Da-d])$/.exec(clean);
+  if (wall5) return { id: "S5-Wall", param: wall5[1].toUpperCase() };
   const wall = /^8\/wall\/([A-Za-z0-9]+)$/.exec(clean);
   if (wall) return { id: "S8-WallDetail", param: wall[1] };
   return null;

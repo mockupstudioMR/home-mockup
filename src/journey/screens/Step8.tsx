@@ -11,7 +11,7 @@ import { soFar } from "../story";
 import { saveStepDone } from "../sync";
 import { wallRoles } from "./Step4";
 
-const WALLS: Wall[] = ["A", "B", "C", "D"];
+export const WALLS: Wall[] = ["A", "B", "C", "D"];
 const lc = (t: string) => t.charAt(0).toLowerCase() + t.slice(1);
 const cap = (t: string) => t.charAt(0).toUpperCase() + t.slice(1);
 /** Pin positions on a wall picture, in reading order. */
@@ -35,7 +35,7 @@ export function composeWalls(s: JourneyState): Record<Wall, WallPlan> {
     const role = roles[w] ?? "Open";
     const items: Omit<WallItem, "n" | "x" | "y">[] = [];
     // furniture & decor
-    for (const it of lay?.items ?? []) {
+    for (const [li, it] of (lay?.items ?? []).entries()) {
       const at = it.kind === "chair" && s.accent?.wall ? s.accent.wall : near(it);
       if (it.kind === "rug" || at !== w || !it.label) continue;
       if (it.kind === "keep") continue;
@@ -45,9 +45,10 @@ export function composeWalls(s: JourneyState): Record<Wall, WallPlan> {
         name: anchor ? `${s.anchor!.shape} ${s.anchor!.kind}` : it.kind === "chair" && s.accent ? s.accent.name : it.kind === "table" ? s.supporting[0]?.name ?? it.label : it.label,
         note: anchor ? `${s.anchor!.w} × ${s.anchor!.d} × ${s.anchor!.h} cm · standard` : it.kind === "chair" && s.accent ? `${s.accent.decision === "skip" ? "Skipped" : "Accent piece"}` : "Example size",
         action: "Buy",
+        ref: `lay-${li}`,
       });
     }
-    for (const k of s.keeping.filter((k) => (k.wall ?? "B") === w)) items.push({ group: "furniture", name: k.name, note: k.measured ? "Measured" : "Size TBC", action: "Keep" });
+    for (const k of s.keeping.filter((k) => (k.wall ?? "B") === w)) items.push({ group: "furniture", name: k.name, note: k.measured ? "Measured" : "Size TBC", action: "Keep", ref: `keep-${k.id}` });
     if (role === "Entry" && s.supporting.find((x) => /console/i.test(x.name))) {
       const c = s.supporting.find((x) => /console/i.test(x.name))!;
       items.push({ group: "furniture", name: `${c.material.replace(/^Fluted /, "")} console`.replace(/^\w/, (x) => x.toUpperCase()), note: "Example 100 × 30 × 80 cm", action: "Buy" });
@@ -95,7 +96,7 @@ export function composeWalls(s: JourneyState): Record<Wall, WallPlan> {
 }
 
 /** The walls, composed once and then kept in the journey (status and changes are the person's). */
-function useWalls() {
+export function useWalls() {
   const { s, set } = useJourney();
   const composed = useMemo(() => composeWalls(s), [s]);
   const walls = WALLS.reduce((acc, w) => ({ ...acc, [w]: s.walls[w] ? { ...composed[w], ...s.walls[w], items: s.walls[w]!.items?.length ? s.walls[w]!.items : composed[w].items } : composed[w] }), {} as Record<Wall, WallPlan>);

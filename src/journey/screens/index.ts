@@ -7,6 +7,7 @@ import { Layouts, Measure, RoomInput, Step4Summary } from "./Step4";
 import { Anchor, Shops, Step5Summary } from "./Step5";
 import { Lighting, Palette, Step6Summary, Step7Summary } from "./Step67";
 import { Step8Summary, WallDetail, Walls } from "./Step8";
+import { WallShowroom, YourWalls } from "./Step5Walls";
 import { BuyList, Final, Sizes, Step9Summary, Todo } from "./Step910";
 import { Analyzing, Matches, Moodboard, Step2Summary, Upload, Vision } from "./Step2";
 
@@ -34,6 +35,8 @@ export const SCREEN_COMPONENTS: Partial<Record<ScreenId, ComponentType<any>>> = 
   "S4-Layouts": Layouts,
   "S4-Summary": Step4Summary,
   "S4-Showroom": ShowroomHandoff,
+  "S5-Walls": YourWalls,
+  "S5-Wall": WallShowroom,
   "S5-Shops": Shops,
   "S5-Anchor": Anchor,
   "S5-Summary": Step5Summary,
