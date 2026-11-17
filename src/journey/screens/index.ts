@@ -1,3 +1,4 @@
+import { ShowroomHandoff } from "./ShowroomHandoff";
 import type { ComponentType } from "react";
 import type { ScreenId } from "../routes";
 import { Brief, Place, Rooms, StartRoom, StateOfPlace, WhoAreYou, Why } from "./Step1";
@@ -32,6 +33,7 @@ export const SCREEN_COMPONENTS: Partial<Record<ScreenId, ComponentType<any>>> = 
   "S4-Measure": Measure,
   "S4-Layouts": Layouts,
   "S4-Summary": Step4Summary,
+  "S4-Showroom": ShowroomHandoff,
   "S5-Shops": Shops,
   "S5-Anchor": Anchor,
   "S5-Summary": Step5Summary,
