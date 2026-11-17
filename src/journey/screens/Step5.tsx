@@ -779,7 +779,7 @@ export function Step5Summary() {
       ]}
       soFar={soFar(s, 5)}
       back="S5-Anchor"
-      next="S6-Palette"
+      next="S9-BuyList"
     />
   );
 }

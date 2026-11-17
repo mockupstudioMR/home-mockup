@@ -1,5 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { STEP_FIRST, stepState } from "@/journey/stepNav";
+import { SCREENS, screenFor, hrefOf } from "@/journey/routes";
+import { displayStep } from "@/journey/data";
 import { rankPieces } from "@/journey/shopPieces";
 import { DEFAULT_SHOP_CHOICE, type ShopChoice, type ShopPreferences } from "@/lib/projectStore";
 
@@ -7,16 +9,30 @@ describe("step bar", () => {
   it("starts each step on its first screen", () => {
     expect(STEP_FIRST[1]).toBe("S1-Why");
     expect(STEP_FIRST[4]).toBe("S4-Input");
-    expect(STEP_FIRST[9]).toBe("S9-BuyList");
-    expect(STEP_FIRST).toHaveLength(10);
+    expect(STEP_FIRST[6]).toBe("S9-BuyList");
+    expect(STEP_FIRST).toHaveLength(7);
   });
 
   it("shows finished steps as done wherever you are, and the next unfinished one after this step", () => {
     const done = [1, 2, 3, 4, 5];
     // went back to step 2: later finished steps stay done
-    expect([1, 2, 3, 4, 5, 6, 7].map((n) => stepState(done, n, 2))).toEqual(["done", "now", "done", "done", "done", "next", "todo"]);
-    // jumped ahead to step 8 without finishing 6 and 7
-    expect([5, 6, 7, 8, 9].map((n) => stepState(done, n, 8))).toEqual(["done", "todo", "todo", "now", "next"]);
+    expect([1, 2, 3, 4, 5, 6].map((n) => stepState(done, n, 2))).toEqual(["done", "now", "done", "done", "done", "next"]);
+    expect(stepState(done, 6, 5)).toBe("next");
+    expect(stepState([...done, 6], 6, 5)).toBe("next"); // old Colours completion is not final completion
+    expect(stepState([...done, 9], 6, 5)).toBe("done");
+
+  });
+  it("removes the three intermediate steps and keeps old links usable", () => {
+    expect([...new Set(SCREENS.map((s) => s.step))]).toEqual([0, 1, 2, 3, 4, 5, 6]);
+    expect(SCREENS.some((s) => /^S[678]-/.test(s.id))).toBe(false);
+    expect(hrefOf("S9-BuyList")).toBe("/journey/6/buy");
+    for (const path of ["6/palette", "7/lighting", "8/walls", "8/wall/A", "9/buy"]) {
+      expect(screenFor(path)).toEqual({ id: "S9-BuyList" });
+    }
+    expect(screenFor("9/summary")).toEqual({ id: "S9-Summary" });
+    expect(displayStep(8)).toBe(6);
+    expect(displayStep(9)).toBe(6);
+    expect(displayStep(10)).toBe(7);
   });
 });
 

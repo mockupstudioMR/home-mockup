@@ -3,7 +3,7 @@ import { useLayoutEffect, useRef, type CSSProperties, type MouseEvent, type Reac
 import { Link, useNavigate } from "react-router-dom";
 import { I } from "./icons";
 import Logo from "@/components/Logo";
-import { STEP_NAMES, STEP_TITLES } from "./data";
+import { STEP_COUNT, STEP_NAMES, STEP_TITLES } from "./data";
 import { hrefOf, type ScreenId } from "./routes";
 import { useJourney } from "./state";
 import { STEP_FIRST, stepState } from "./stepNav";
@@ -165,7 +165,7 @@ export function Screen({
           <div className="prog">
             <div className="prog-label">
               <span>
-                <b>Step {step} of 9</b> · {STEP_TITLES[step]}
+                <b>Step {step} of {STEP_COUNT}</b> · {STEP_TITLES[step]}
               </span>
               {right != null && <span>{right}</span>}
             </div>
@@ -216,7 +216,7 @@ function StepBar({ step }: { step: number }) {
   const { s } = useJourney();
   return (
     <nav className="segs" aria-label="Steps">
-      {Array.from({ length: 9 }, (_, i) => {
+      {Array.from({ length: STEP_COUNT }, (_, i) => {
         const n = i + 1;
         const st = stepState(s.done, n, step);
         return (

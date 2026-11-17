@@ -90,8 +90,8 @@ describe("buying list from the walls", () => {
 });
 
 describe("step 5 routes", () => {
-  it("opens the walls from the progress bar for steps 5 to 8", () => {
-    expect([5, 6, 7, 8].map((n) => STEP_FIRST[n])).toEqual(["S5-Walls", "S5-Walls", "S5-Walls", "S5-Walls"]);
+  it("opens Walls at step 5 and Make it happen at step 6", () => {
+    expect([5, 6].map((n) => STEP_FIRST[n])).toEqual(["S5-Walls", "S9-BuyList"]);
     expect(screenFor("5/walls")).toEqual({ id: "S5-Walls" });
     expect(screenFor("5/wall/c")).toEqual({ id: "S5-Wall", param: "C" });
   });

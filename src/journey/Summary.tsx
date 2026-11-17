@@ -2,7 +2,7 @@
 import type { ReactNode } from "react";
 import { Back, Go, Screen, StepStrip } from "./Shell";
 import { I, ROOM_ICON_SM } from "./icons";
-import { STEP_TITLES, roomName } from "./data";
+import { STEP_COUNT, STEP_TITLES, roomName } from "./data";
 import { curRoom, orderedRooms, useJourney } from "./state";
 import type { ScreenId } from "./routes";
 
@@ -38,7 +38,7 @@ export function RoomsLeft({ step }: { step: number }) {
             <div key={r} className={`rmi${i === 0 ? " cur" : ""}`}>
               <Icon />
               <b>{roomName(r)}</b>
-              <span className="st">{i === 0 ? `Step ${step} of 9 ✓` : s.roomsDone.includes(r) ? "✓ Done" : "Not started"}</span>
+              <span className="st">{i === 0 ? `Step ${step} of ${STEP_COUNT} ✓` : s.roomsDone.includes(r) ? "✓ Done" : "Not started"}</span>
             </div>
           );
         })}
@@ -46,7 +46,7 @@ export function RoomsLeft({ step }: { step: number }) {
       <div className="rep">
         <I.repeat />
         <span>
-          After the {roomName(current).toLowerCase()}, <b>steps 2–9 repeat for each room</b>. Your project basics from step 1 carry over.
+          After the {roomName(current).toLowerCase()}, <b>steps 2–6 repeat for each room</b>. Your project basics from step 1 carry over.
         </span>
       </div>
     </div>
@@ -64,7 +64,7 @@ function RoomsLine() {
       <I.repeat />
       <span>
         <b>Rooms still to design: {left}</b>
-        {left ? ` — after the ${roomName(current).toLowerCase()}, steps 2–9 repeat for each room.` : " — this is the last one."}
+        {left ? ` — after the ${roomName(current).toLowerCase()}, steps 2–6 repeat for each room.` : " — this is the last one."}
       </span>
     </div>
   );
@@ -107,10 +107,10 @@ export function StepSummary({
         dock ?? (
           <>
             <Back to={back} />
-            <Go className="btn" to={next!}>
+            {next && <Go className="btn" to={next}>
               {nextLabel ?? `Next: ${STEP_TITLES[step + 1]}`}
               <I.next />
-            </Go>
+            </Go>}
           </>
         )
       }

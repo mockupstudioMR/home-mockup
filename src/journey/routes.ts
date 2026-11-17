@@ -1,4 +1,4 @@
-/** Every journey screen: its design board id, its address and its place in the 10 steps. */
+/** Every journey screen: its design board id, its address and its place in the six steps. */
 export type ScreenId =
   | "Main" | "S1-Why" | "S1-Place" | "S1-Rooms" | "S1-Start" | "S1-State" | "S1-Summary"
   | "S2-Vision" | "S2-Upload" | "S2-Analyzing" | "S2-Matches" | "S2-Moodboard" | "S2-Summary"
@@ -35,20 +35,17 @@ export const SCREENS: { id: ScreenId; path: string; step: number }[] = [
   { id: "S5-Shops", path: "5/shops", step: 5 },
   { id: "S5-Anchor", path: "5/anchor", step: 5 },
   { id: "S5-Summary", path: "5/summary", step: 5 },
-  { id: "S6-Palette", path: "6/palette", step: 6 },
-  { id: "S6-Summary", path: "6/summary", step: 6 },
-  { id: "S7-Lighting", path: "7/lighting", step: 7 },
-  { id: "S7-Summary", path: "7/summary", step: 7 },
-  { id: "S8-Walls", path: "8/walls", step: 8 },
-  { id: "S8-WallDetail", path: "8/wall", step: 8 },
-  { id: "S8-Summary", path: "8/summary", step: 8 },
-  { id: "S9-BuyList", path: "9/buy", step: 9 },
-  { id: "S9-Sizes", path: "9/sizes", step: 9 },
-  { id: "S9-Todo", path: "9/todo", step: 9 },
-  { id: "S9-Summary", path: "9/summary", step: 9 },
+  { id: "S9-BuyList", path: "6/buy", step: 6 },
+  { id: "S9-Sizes", path: "6/sizes", step: 6 },
+  { id: "S9-Todo", path: "6/todo", step: 6 },
+  { id: "S9-Summary", path: "6/summary", step: 6 },
 ];
 
-export const hrefOf = (id: ScreenId, extra = "") => `/journey${SCREENS.find((s) => s.id === id)!.path ? "/" + SCREENS.find((s) => s.id === id)!.path : ""}${extra}`;
+export const hrefOf = (id: ScreenId, extra = "") => {
+  const screen = SCREENS.find((s) => s.id === id);
+  if (!screen) return "/journey/6/buy";
+  return `/journey${screen.path ? "/" + screen.path : ""}${extra}`;
+};
 
 /** The screen for a URL path under /journey ("4/layouts", "8/wall/D"). */
 export function screenFor(rest: string): { id: ScreenId; param?: string } | null {
@@ -60,9 +57,10 @@ export function screenFor(rest: string): { id: ScreenId; param?: string } | null
   if (clean === "2/adjust" || clean === "2/preview") return { id: "S2-Moodboard" }; // preview and adjusting are part of "Your direction"
   if (clean === "3/fixed") return { id: "S3-Fixed" }; // old address: "what can't move" moved after the floor plan
   if (clean === "10/final") return { id: "S9-Summary" }; // old address: the final step is now 9 · Make it happen
+  const legacyFinal = /^9\/(buy|sizes|todo|summary)$/.exec(clean);
+  if (legacyFinal) return screenFor(`6/${legacyFinal[1]}`);
+  if (/^[6-8]\//.test(clean)) return { id: "S9-BuyList" }; // removed steps continue to Make it happen
   const wall5 = /^5\/wall\/([A-Da-d])$/.exec(clean);
   if (wall5) return { id: "S5-Wall", param: wall5[1].toUpperCase() };
-  const wall = /^8\/wall\/([A-Za-z0-9]+)$/.exec(clean);
-  if (wall) return { id: "S8-WallDetail", param: wall[1] };
   return null;
 }

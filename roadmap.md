@@ -1,6 +1,7 @@
 # Roadmap
 
 ## Now
+- [x] Remove Colours, Lighting and Details; signed-in preview verified six steps, Walls to Make it happen, sizes/to-do and legacy links.
 - [x] Fix new-project saving: corrected owner SELECT policy; 3 live privacy/saving tests passed; signed-in Step 1 saved project, bedroom and progress, and Project Home reloaded them after browser journey storage was cleared.
 - [x] Verify current database migrations and request deployment of the latest version (2026-11-06): applied missing furniture layout schema and reference data; checked signed-in activities screen and 12 layout/shopping-list tests.
 - [ ] Get `npm run lint` green on main (83 errors left: ~30 in the web app, ~50 in edge functions, `@ts-nocheck` admin screens). Next web-app files: `pages/Gallery.tsx`, `pages/DesignJourney.tsx`, `generate/LoveThisButton.tsx`, `admin/OpeningRulesManager.tsx`, `admin/FurnitureSpecsManager.tsx`, then the 1-error files. Edge functions (`supabase/functions/*`) are left for a human-reviewed pass.

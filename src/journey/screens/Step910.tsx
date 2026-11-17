@@ -53,7 +53,7 @@ export function BuyList() {
     toast({ title: `${r.name}: ${next === "Buy" ? "suggested shops" : next === "Custom" ? "custom made" : "your own piece"}` });
   };
   return (
-    <Screen board="S9-BuyList" step={9} right="1 of 3 · Buying list" wrapClass="wrap wide"
+    <Screen board="S9-BuyList" step={6} right="1 of 3 · Buying list" wrapClass="wrap wide"
       dock={
         <>
           <Back to="S5-Walls" label="My walls" />
@@ -210,7 +210,7 @@ export function Sizes() {
   };
   const text = lists.map((l) => `${l.title}:\n${l.items.map((i) => `☐ ${i}`).join("\n")}`).join("\n\n");
   return (
-    <Screen board="S9-Sizes" step={9} right="2 of 3 · Sizes" wrapStyle={{ maxWidth: "1200px" }}
+    <Screen board="S9-Sizes" step={6} right="2 of 3 · Sizes" wrapStyle={{ maxWidth: "1200px" }}
       dock={
         <>
           <Back to="S9-BuyList" label="Back to list" />
@@ -388,7 +388,7 @@ export function Todo() {
     }
   };
   return (
-    <Screen board="S9-Todo" step={9} right="3 of 3 · To-do" wrapClass="wrap wide"
+    <Screen board="S9-Todo" step={6} right="3 of 3 · To-do" wrapClass="wrap wide"
       dock={
         <>
           <Back to="S9-Sizes" />
@@ -400,7 +400,7 @@ export function Todo() {
               void saveStepDone(s, 9);
             }}
           >
-            Finish step 9
+            Finish step 6
             <I.next />
           </Go>
         </>
@@ -585,7 +585,7 @@ export function Step9Summary() {
       };
       line(`${roomName(room)} — project file`, 20, true);
       y += 6;
-      for (let i = 1; i <= 9; i++) line(`Step ${i}: ${stepLine(s, i)}`);
+      for (let i = 1; i <= 6; i++) line(`Step ${i}: ${stepLine(s, i)}`);
       y += 10;
       line("Buying list", 15, true);
       for (const r of rows) line(`• ${r.name} — ${r.qty} — ${r.size} — wall ${r.wall} — ${r.action}${r.status ? ` (${r.status})` : ""}`, 10);
@@ -605,9 +605,9 @@ export function Step9Summary() {
   ];
   return (
     <StepSummary
-      step={9}
+      step={6}
       board="S9-Summary"
-      title="What we set up in step 9"
+      title="What we set up in step 6"
       sub="You have a buying list, a measuring checklist and a to-do list. This is the last step — everything you decided, summed up below."
       media={
         <div className="nums">
@@ -659,12 +659,7 @@ export function Step9Summary() {
         },
       ]}
       open={[...(budgetOf(s) === "TBC" || !s.brief.when ? ["Budget and target date"] : []), `${total - measured} measurements to take`, "Products, prices and lead times"]}
-      soFar={[
-        ["1–4", [stepLine(s, 1).split(" · ")[0], s.moodboard?.name, s.layouts.length ? `layout ${(s.chosenLayout ?? 0) + 1}` : null].filter(Boolean).join(", ")],
-        ["5–7", [s.anchor ? `${(s.anchor.material ?? "").split(" ")[0]} ${s.anchor.kind}`.trim().replace(/^\w/, (c) => c.toUpperCase()) : null, `${s.moodboard?.palette.length ?? 0} materials`, s.lighting ? `${s.lighting.layers.length} light layers` : null].filter(Boolean).join(", ")],
-        ["8", stepLine(s, 8)],
-        ["9", "List, sizes and to-do ready"],
-      ]}
+      soFar={soFar(s, 6)}
       back="S9-Todo"
       dock={
         <>
@@ -712,7 +707,7 @@ export function Step9Summary() {
             <div className="stack" style={{ gap: "6px" }}>
               <h2 className="h3">{left.length ? `${left.length} room${left.length > 1 ? "s" : ""} still to design` : "All rooms designed"}</h2>
               <p className="p" style={{ fontSize: "16px", color: "#5E3A18" }}>
-                The {roomName(room).toLowerCase()} is done. {left.length ? <>Each remaining room goes through <b>steps 2–9</b> — your project basics, budget and team carry over.</> : "Your whole project is designed."}
+                The {roomName(room).toLowerCase()} is done. {left.length ? <>Each remaining room goes through <b>steps 2–6</b> — your project basics, budget and team carry over.</> : "Your whole project is designed."}
               </p>
             </div>
             <span className="tag" style={{ background: "#fff", color: "#7A4A1E" }}>

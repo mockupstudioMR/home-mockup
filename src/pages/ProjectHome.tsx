@@ -7,6 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import ShopChoicePanel from "@/components/shop/ShopChoicePanel";
 import { ROOM_LABELS, ensureProject, projectDb, projectsReady } from "@/lib/projectStore";
 import { cn } from "@/lib/utils";
+import { STEP_COUNT, STEP_NAMES, displayStep } from "@/journey/data";
 import { STORAGE_KEY, resumeRoomInJourney } from "@/journey/state";
 
 /** The project name typed in the journey (step 1 summary), for when the database has none yet. */
@@ -19,7 +20,6 @@ const localProjectName = (): string | undefined => {
   }
 };
 
-const STEP_NAMES = ["", "Project", "Inspiration", "Daily life", "Layout", "Furniture", "Colours", "Lighting", "Details", "Make it happen", "Together"];
 const STATE_LABEL: Record<string, string> = {
   core_shell: "Core & shell",
   empty: "Empty",
@@ -83,7 +83,7 @@ const ProjectHome = () => {
           <h1 className="mt-3 text-4xl font-extrabold tracking-tight md:text-6xl">{(data?.ready ? data.project?.name : undefined) ?? localProjectName() ?? "My home"}</h1>
           {data?.ready && rooms.length > 0 && (
             <p className="mx-auto mt-4 max-w-2xl text-lg text-muted-foreground">
-              {done} of {rooms.length} rooms designed. Your project basics carry over; steps 2–9 repeat for each room.
+              {done} of {rooms.length} rooms designed. Your project basics carry over; steps 2–6 repeat for each room.
             </p>
           )}
         </div>
@@ -129,14 +129,14 @@ const ProjectHome = () => {
                       {finished ? (
                         <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-800"><Check className="h-3 w-3" /> Done</span>
                       ) : r.current_step > 2 ? (
-                        <span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-bold text-primary">Step {r.current_step} · {STEP_NAMES[r.current_step]}</span>
+                        <span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-bold text-primary">Step {displayStep(r.current_step)} · {STEP_NAMES[displayStep(r.current_step)]}</span>
                       ) : (
                         <span className="rounded-full bg-muted px-3 py-1 text-xs font-bold text-muted-foreground">Not started</span>
                       )}
                     </div>
-                    <div className="grid grid-cols-9 gap-1" aria-label={`Step ${r.current_step} of 9`}>
-                      {Array.from({ length: 9 }, (_, i) => (
-                        <span key={i} className={cn("h-1.5 rounded-full", i + 1 < r.current_step || finished ? "bg-primary/60" : i + 1 === r.current_step ? "bg-primary" : "bg-muted")} />
+                    <div className="grid grid-cols-6 gap-1" aria-label={`Step ${Math.min(displayStep(r.current_step), STEP_COUNT)} of ${STEP_COUNT}`}>
+                      {Array.from({ length: STEP_COUNT }, (_, i) => (
+                        <span key={i} className={cn("h-1.5 rounded-full", i + 1 < displayStep(r.current_step) || finished ? "bg-primary/60" : i + 1 === displayStep(r.current_step) ? "bg-primary" : "bg-muted")} />
                       ))}
                     </div>
                     <Button
