@@ -280,9 +280,22 @@ type Ctx = {
 };
 const JourneyCtx = createContext<Ctx | null>(null);
 
+/** Account copies are skipped in tests (no backend there). */
+const ACCOUNT = import.meta.env.MODE !== "test";
+
 export function JourneyProvider({ children }: { children: ReactNode }) {
   const [s, setS] = useState<JourneyState>(load);
   const first = useRef(true);
+  const restored = useRef(!ACCOUNT);
+  // A browser with no answers (or older ones) gets the person's journey back from their account.
+  useEffect(() => {
+    if (!ACCOUNT) return;
+    let live = true;
+    void import("./accountState").then(({ newerFromAccount }) => newerFromAccount(load())).then((remote) => {
+      if (live && remote) setS({ ...EMPTY, ...remote });
+    }).catch(() => undefined).finally(() => { restored.current = true; });
+    return () => { live = false; };
+  }, []);
   useEffect(() => {
     if (first.current) {
       first.current = false;
@@ -293,6 +306,10 @@ export function JourneyProvider({ children }: { children: ReactNode }) {
     } catch {
       /* quota */
     }
+    // and with the account, a moment after the last change (not before the account copy has been checked)
+    if (!ACCOUNT || !restored.current) return;
+    const t = window.setTimeout(() => { void import("./accountState").then(({ saveToAccount }) => saveToAccount(s)).catch(() => undefined); }, 1500);
+    return () => window.clearTimeout(t);
   }, [s]);
   const set = useCallback<Ctx["set"]>((patch) => setS((prev) => ({ ...prev, ...(typeof patch === "function" ? patch(prev) : patch) })), []);
   const reset = useCallback(() => setS(EMPTY), []);
