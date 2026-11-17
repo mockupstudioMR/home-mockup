@@ -867,6 +867,33 @@ export function screenBox(obj: THREE.Object3D, camera: THREE.Camera): [number, n
 }
 
 /**
+ * Slides any piece that runs past a corner back onto the wall, so the picture never shows half a sofa.
+ * A piece wider than the wall itself is left centred on it.
+ */
+export function keepInFrame(scene: THREE.Object3D, camera: THREE.OrthographicCamera) {
+  camera.updateMatrixWorld();
+  const right = new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld, 0).normalize();
+  const half = (camera.right - camera.left) / 2;
+  const v = new THREE.Vector3();
+  for (const o of scene.children) {
+    const id = o.userData.id as string | undefined;
+    if (!id || id === "walls" || id === "floor" || id === "doors") continue;
+    const bb = new THREE.Box3().setFromObject(o);
+    if (bb.isEmpty()) continue;
+    let x0 = Infinity, x1 = -Infinity;
+    for (const x of [bb.min.x, bb.max.x]) for (const y of [bb.min.y, bb.max.y]) for (const z of [bb.min.z, bb.max.z]) {
+      v.set(x, y, z).project(camera);
+      x0 = Math.min(x0, v.x); x1 = Math.max(x1, v.x);
+    }
+    let shift = 0; // in screen units (-1…1 across the wall)
+    if (x1 - x0 >= 2) shift = -(x0 + x1) / 2;
+    else if (x0 < -1) shift = -1 - x0;
+    else if (x1 > 1) shift = 1 - x1;
+    if (Math.abs(shift) > 1e-4) o.position.addScaledVector(right, shift * half);
+  }
+}
+
+/**
  * Draws one wall of the person's room as a guide for the image AI, as the same straight-on elevation as the
  * wall's outline in step 5: the wall fills the frame edge to edge and floor to ceiling, with its doors and
  * windows and only the pieces the outline shows on it, at their real size and place. Needs WebGL.
@@ -875,7 +902,8 @@ export function renderGuide(m: ShowroomModel, wall: Wall, width = 1536): Guide {
   const len = wall === "A" || wall === "C" ? m.room.w : m.room.l, H = m.room.h;
   const height = Math.max(256, Math.min(2048, Math.round((width * H) / len)));
   // only what the outline shows on this wall (rugs lie flat and can't be seen straight on)
-  const onWall: ShowroomModel = { ...m, pieces: m.pieces.filter((p) => p.wall === wall && p.category !== "rug"), extras: m.extras.filter((e) => e.wall === wall && e.kind !== "pendant") };
+  // (openings on the other walls are left out too: seen edge-on, their frames and handles poke in at the sides)
+  const onWall: ShowroomModel = { ...m, openings: m.openings.filter((o) => o.wall === wall), pieces: m.pieces.filter((p) => p.wall === wall && p.category !== "rug"), extras: m.extras.filter((e) => e.wall === wall && e.kind !== "pendant") };
   const canvas = document.createElement("canvas");
   canvas.width = width; canvas.height = height;
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, preserveDrawingBuffer: true });
@@ -891,6 +919,7 @@ export function renderGuide(m: ShowroomModel, wall: Wall, width = 1536): Guide {
     const pm = new THREE.PMREMGenerator(renderer);
     try { built.scene.environment = pm.fromScene(built.envScene, 0.03).texture; } catch { /* no reflections */ }
     const camera = elevationCamera(m.room, wall);
+    keepInFrame(built.scene, camera);
     renderer.render(built.scene, camera);
     const image = canvas.toDataURL("image/jpeg", 0.92);
     const boxes: Guide["boxes"] = {};

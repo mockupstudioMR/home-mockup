@@ -172,3 +172,106 @@ export function centreOf(alpha: Float32Array, width: number, box: PxBox): { x: n
   }
   return n ? { x: Math.round(sx / n), y: Math.round(sy / n) } : { x: Math.round((box.x0 + box.x1) / 2), y: Math.round((box.y0 + box.y1) / 2) };
 }
+
+/* ---------- one alternative at a time ---------- */
+
+const diffAt = (a: Rgba, b: Rgba, i: number) => Math.max(Math.abs(a.data[i] - b.data[i]), Math.abs(a.data[i + 1] - b.data[i + 1]), Math.abs(a.data[i + 2] - b.data[i + 2]));
+const inside = (x: number, y: number, b: PxBox) => x >= b.x0 && x < b.x1 && y >= b.y0 && y < b.y1;
+
+/**
+ * The image AI often shifts the whole photo's brightness or colour a little when it redraws one piece; cut as
+ * it is, the piece then sits in a visibly lighter or darker rectangle. This brings the alternative's tones back
+ * to the original's, measured on everything outside the item's area.
+ */
+export function matchTone(base: Rgba, alt: Rgba, box: PxBox, step = 3): Rgba {
+  const s = [0, 0, 0], ss = [0, 0, 0], t = [0, 0, 0], tt = [0, 0, 0];
+  let n = 0;
+  for (let y = 0; y < base.height; y += step) for (let x = 0; x < base.width; x += step) {
+    if (inside(x, y, box)) continue;
+    const i = (y * base.width + x) * 4;
+    for (let c = 0; c < 3; c++) { const a = alt.data[i + c], b = base.data[i + c]; s[c] += a; ss[c] += a * a; t[c] += b; tt[c] += b * b; }
+    n++;
+  }
+  if (n < 50) return alt;
+  const out = new Uint8ClampedArray(alt.data);
+  const gain: number[] = [], off: number[] = [];
+  for (let c = 0; c < 3; c++) {
+    const ma = s[c] / n, mb = t[c] / n;
+    const sa = Math.sqrt(Math.max(1, ss[c] / n - ma * ma)), sb = Math.sqrt(Math.max(1, tt[c] / n - mb * mb));
+    gain[c] = Math.max(0.85, Math.min(1.18, sb / sa));
+    off[c] = mb - gain[c] * ma;
+  }
+  for (let i = 0; i < out.length; i += 4) for (let c = 0; c < 3; c++) out[i + c] = alt.data[i + c] * gain[c] + off[c];
+  return { data: out, width: alt.width, height: alt.height };
+}
+
+export type AltCut = {
+  /** 0–1 per pixel, full picture size. */
+  alpha: Float32Array;
+  box: PxBox;
+  cover: number;
+  /** The new piece runs past its area, so cutting it would show an incomplete piece. */
+  clipped: boolean;
+  /** The change is a plain rectangle: a re-lit patch of the photo rather than the piece itself. */
+  patch: boolean;
+  /** Safe to show: something changed, the piece is whole and it isn't a patch. */
+  usable: boolean;
+};
+
+/**
+ * The pixels one (tone-matched) alternative changed around its item. The area is generous, so a slightly
+ * larger new piece is still cut whole; one that runs past it anyway is marked `clipped` and not shown.
+ */
+export function altMask(base: Rgba, alt: Rgba, b: PctBox): AltCut {
+  const { width: w, height: h } = base, box = pxBox(b, w, h, 0.28), ring = pxBox(b, w, h, 0.5);
+  const bw = box.x1 - box.x0, bh = box.y1 - box.y0, area = Math.max(1, bw * bh);
+  // how much the photo changes where nothing should have changed: the threshold sits above that noise
+  const hist = new Uint32Array(256);
+  let hn = 0;
+  for (let y = ring.y0; y < ring.y1; y += 2) for (let x = ring.x0; x < ring.x1; x += 2) {
+    if (inside(x, y, box)) continue;
+    hist[diffAt(base, alt, (y * w + x) * 4)]++; hn++;
+  }
+  let noise = 0;
+  for (let k = 0, acc = 0; k < 256 && hn; k++) { acc += hist[k]; if (acc >= hn * 0.9) { noise = k; break; } }
+  const threshold = Math.max(26, Math.min(60, noise + 14));
+  let m: Float32Array = new Float32Array(w * h);
+  for (let y = box.y0; y < box.y1; y++) for (let x = box.x0; x < box.x1; x++) if (diffAt(base, alt, (y * w + x) * 4) >= threshold) m[y * w + x] = 1;
+  const r = Math.max(2, Math.round(Math.min(bw, bh) / 60));
+  m = morph(morph(m, w, box, r, true), w, box, r, false);
+  m = morph(morph(m, w, box, 1, false), w, box, 1, true);
+  m = dropSpecks(m, w, box, Math.max(40, Math.round(area * 0.004)));
+  let on = 0, x0 = Infinity, y0 = Infinity, x1 = -1, y1 = -1;
+  for (let y = box.y0; y < box.y1; y++) for (let x = box.x0; x < box.x1; x++) if (m[y * w + x] >= 0.5) {
+    on++; x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y);
+  }
+  const cover = on / area;
+  // runs past the left, right or top of its area (the picture's own edges and the floor below don't count)
+  const side = (len: number, at: (k: number) => number) => { let c = 0; for (let k = 0; k < len; k++) c += at(k) >= 0.5 ? 1 : 0; return c / Math.max(1, len); };
+  const left = box.x0 > 0 ? side(bh, (k) => m[(box.y0 + k) * w + box.x0]) : 0;
+  const right = box.x1 < w ? side(bh, (k) => m[(box.y0 + k) * w + box.x1 - 1]) : 0;
+  const top = box.y0 > 0 ? side(bw, (k) => m[box.y0 * w + box.x0 + k]) : 0;
+  const clipped = Math.max(left, right, top) > 0.2;
+  const bboxArea = on ? (x1 - x0 + 1) * (y1 - y0 + 1) : 1;
+  const patch = on > 0 && on / bboxArea > 0.96 && bboxArea > area * 0.75;
+  m = morph(m, w, box, 2, true);
+  const alpha = feather(m, w, box, Math.max(3, Math.round(r * 1.5)));
+  return { alpha, box, cover, clipped, patch, usable: cover >= 0.02 && !clipped && !patch };
+}
+
+/** Several cut-outs as one (for the main option, which must cover wherever any alternative drew). */
+export function unionAlpha(cuts: AltCut[]): Float32Array {
+  const out = new Float32Array(cuts[0]?.alpha.length ?? 0);
+  for (const c of cuts) for (let i = 0; i < out.length; i++) if (c.alpha[i] > out[i]) out[i] = c.alpha[i];
+  return out;
+}
+
+/** The smallest box around a cut-out (for thumbnails and the hotspot). */
+export function alphaBox(alpha: Float32Array, width: number, height: number, fallback: PxBox): PxBox {
+  let x0 = Infinity, y0 = Infinity, x1 = -1, y1 = -1;
+  for (let p = 0; p < alpha.length; p++) if (alpha[p] > 0.5) {
+    const x = p % width, y = (p - x) / width;
+    if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y;
+  }
+  return x1 < 0 ? fallback : { x0, y0, x1: Math.min(width, x1 + 1), y1: Math.min(height, y1 + 1) };
+}

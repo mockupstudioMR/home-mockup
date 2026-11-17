@@ -119,3 +119,21 @@ describe("the guide is the wall's outline, straight on", () => {
     expect(bc[0]).toBeGreaterThan(70); // near the D corner, so on the right of the picture
   });
 });
+
+describe("keeping every piece whole in a wall picture", () => {
+  it("slides a piece that runs past the corner back onto the wall", async () => {
+    const { keepInFrame } = await import("@/journey/showroom3d/scene");
+    const scene = new THREE.Scene();
+    const sofa = new THREE.Mesh(new THREE.BoxGeometry(1, 0.8, 0.9));
+    sofa.userData.id = "sofa";
+    sofa.position.set(1.9, 0, 0);
+    scene.add(sofa);
+    const cam = new THREE.OrthographicCamera(-2, 2, 1, -1, 0.1, 20);
+    cam.position.set(0, 0, 5);
+    cam.lookAt(0, 0, 0);
+    keepInFrame(scene, cam);
+    const bb = new THREE.Box3().setFromObject(sofa);
+    expect(bb.max.x).toBeLessThanOrEqual(2.0001);
+    expect(bb.min.x).toBeCloseTo(1, 3);
+  });
+});

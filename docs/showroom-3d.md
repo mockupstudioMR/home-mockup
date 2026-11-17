@@ -22,3 +22,11 @@ Runs in the browser: the page must stay open. Cost: one base picture plus two ed
 
 - No visual browser test has been run.
 - The image model may still shift the picture slightly; the drift check limits this but cannot fix it.
+
+## Keeping the pictures realistic (v2)
+
+- Each alternative's tones are matched to the original photo before cutting (`matchTone`), so a piece never sits in a lighter or darker rectangle.
+- Each alternative is cut to its own shape (`altMask`) with a threshold above the photo's own noise. It is dropped (and retried once) when it runs past its area (`clipped`, an incomplete piece) or is just a re-lit rectangle (`patch`). There is no box fallback any more.
+- The guide leaves out other walls' doors and windows, and slides any piece that runs past a corner back onto the wall (`keepInFrame`).
+- The prompts ask for a real photograph with one light direction, contact shadows only, and every piece whole.
+- `PICTURE_VERSION` in `runner.ts` marks walls made the old way as out of date, so they are made again.
