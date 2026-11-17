@@ -4,7 +4,7 @@
  * (furniture, decor, walls & floor, light, power, inside the wall) in one list, in order along the wall.
  * Choices are stored on the walls (s.walls) and in the finishes, so the buying list (step 9) picks them up.
  */
-import { useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/looseDb";
@@ -28,12 +28,8 @@ const metres = (cm: number) => `${(cm / 100).toFixed(2)} m`;
 const isPoint = (i: WallItem) => /socket|switch|dimmer|blind/i.test(i.name);
 const isSet = (wp: WallPlan) => wp.status !== "review";
 
-/**
- * Sample walls shipped with the app (public/showroom-demo/walls/{a..d}): the sample living room, each wall
- * prepared to the wall standard as a Generator PRO scene (scripts/showroom-demo/make_walls.py).
- * Shown, labelled as a sample, until the person's own wall has a prepared scene.
- */
-const SAMPLE_WALLS: Record<string, string> = { "living-room": "/showroom-demo/walls" };
+// The person's own wall in 3D, loaded only when the Picture view is opened.
+const Showroom3D = lazy(() => import("../showroom3d/Showroom3D"));
 const SCRIPT_URL = "/generator-pro/showroom-configurator.js";
 
 /** Finish every wall and the steps they replace (5–8: furniture, colours, lighting, details). */
@@ -273,8 +269,6 @@ function OneWall({ param }: { param?: string }) {
     },
   });
   const picture = wp.image;
-  const sampleBase = SAMPLE_WALLS[curRoom(s) ?? "living-room"];
-  const sample = sampleBase ? `${sampleBase}/${w.toLowerCase()}/` : undefined;
 
   const ordered = o.order.map((n) => wp.items.find((i) => i.n === n)!).filter(Boolean);
   const hidden = wp.items.filter((i) => i.action === "—");
@@ -346,10 +340,12 @@ function OneWall({ param }: { param?: string }) {
             </div>
           ) : scene?.manifest_url && scene.assets_url ? (
             <GeneratorProShowroom scriptUrl={SCRIPT_URL} configUrl={scene.manifest_url} assetsUrl={scene.assets_url} />
-          ) : sample && !(made && picture) ? (
+          ) : !(made && picture) ? (
+            // The person's own wall: their layout's pieces on this wall, in their moodboard's colours.
             <div className="ws-scene">
-              <p className="ws-sample" role="note">Sample wall · from our sample living room. Your own wall appears here once it's prepared.</p>
-              <GeneratorProShowroom key={sample} scriptUrl={SCRIPT_URL} configUrl={`${sample}manifest.json`} assetsUrl={sample} />
+              <Suspense fallback={<p className="p" role="status" style={{ padding: 24 }}>Building your wall…</p>}>
+                <Showroom3D view={w} stageOnly />
+              </Suspense>
             </div>
           ) : picture ? (
             <div className="ws-pic">

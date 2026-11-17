@@ -1,5 +1,6 @@
 /* The 3D showroom (4 · showroom). Uses the journey's tokens (mu.css). */
 .mu .sr3{display:flex;flex-wrap:wrap;gap:18px;align-items:stretch;margin-top:24px}
+.mu .sr3.solo{margin-top:0}
 .mu .sr3-stage{position:relative;flex:999 1 560px;min-width:0;min-height:520px;border-radius:24px;overflow:hidden;background:#EFE7E1;box-shadow:0 30px 60px -44px rgba(52,32,59,.45)}
 .mu .sr3-stage canvas{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:grab}
 .mu .sr3-stage canvas:active{cursor:grabbing}
