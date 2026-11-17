@@ -5,6 +5,8 @@ import { supabase } from "@/lib/looseDb";
 import { Back, Go, Screen } from "../Shell";
 import { useJourney } from "../state";
 import { PlanDrawing } from "./Step4";
+import { LayeredWall } from "../wallScenes/LayeredWall";
+import "../walls.css";
 
 const WALL_OF = { wall_a: "A", wall_b: "B", wall_c: "C", wall_d: "D" } as const;
 
@@ -73,7 +75,7 @@ export function ShowroomHandoff() {
       {hasLiveScene ? (
         <GeneratorProShowroom scriptUrl={SCRIPT_URL} configUrl={scene!.manifest_url} assetsUrl={scene!.assets_url} />
       ) : ownReady ? (
-        <GeneratorProShowroom key={ownReady.manifestUrl} scriptUrl={SCRIPT_URL} configUrl={ownReady.manifestUrl!} assetsUrl={ownReady.assetsUrl!} />
+        <div style={{ padding: 16 }}><LayeredWall wall={WALL_OF[view as keyof typeof WALL_OF]} scene={ownReady} /></div>
       ) : (
         <div style={{ padding: 36 }}>
           <p className="p">{view === "room" ? "Your room's pictures are made one wall at a time." : "This wall's picture isn't ready yet."}</p>

@@ -98,3 +98,24 @@ describe("guide pictures for the wall photographs", () => {
     expect(screenBox(behind, cam)).toBeNull(); // behind the camera
   });
 });
+
+describe("the guide is the wall's outline, straight on", () => {
+  it("frames exactly the wall, left to right as seen from inside", async () => {
+    const { elevationCamera, screenBox } = await import("@/journey/showroom3d/scene");
+    const sofa = piece("sofa", "straight", { cx: 2.3, cz: 0.6, w: 2.4, d: 0.95, wall: "A" });
+    const m = room([sofa]);
+    const b = buildScene(m, false);
+    const cam = elevationCamera(m.room, "A");
+    const box = screenBox(b.scene.children.find((o) => o.userData.id === sofa.id)!, cam)!;
+    // the sofa runs 1.10 – 3.50 m along a 3.75 m wall
+    expect(box[0]).toBeCloseTo((1.1 / 3.75) * 100, 0);
+    expect(box[0] + box[2]).toBeCloseTo((3.5 / 3.75) * 100, 0);
+    expect(box[1] + box[3]).toBeCloseTo(100, 0); // stands on the floor line
+    // wall C is seen from inside too: its plan axis runs right to left
+    const camC = elevationCamera(m.room, "C");
+    const t = piece("table", "rect", { id: "c", cx: 0.6, cz: 4.5, w: 0.8, d: 0.4 });
+    const g = buildPiece(t, { wood: "#8A6440", metal: "#B08D57", accent: "#5E4268", light: "#F1EBE2", seating: "#8C8577" }, false);
+    const bc = screenBox(g, camC)!;
+    expect(bc[0]).toBeGreaterThan(70); // near the D corner, so on the right of the picture
+  });
+});
