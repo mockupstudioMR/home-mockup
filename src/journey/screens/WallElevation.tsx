@@ -81,7 +81,7 @@ export function WallElevation({ o, wp, selected, onPick, compact = false, labels
   const vb = `${-PAD.x} ${-PAD.top} ${L + 2 * PAD.x} ${H + PAD.top + (compact ? 14 : PAD.bottom)}`;
   const items = new Map(wp.items.map((i) => [i.n, i]));
   const pieceItem = (p: OutlinePiece): WallItem | undefined => wp.items.find((i) => i.ref === p.ref);
-  const r = Math.max(10, H * 0.045);
+  const r = Math.max(6, H * 0.026);
   return (
     <svg className="elev-svg" viewBox={vb} role="img" aria-label={`Wall ${o.wall}, ${wp.role.toLowerCase()} wall: outline, ${(L / 100).toFixed(2)} m wide, ${(H / 100).toFixed(2)} m high`}>
       <rect x={0} y={0} width={L} height={H} fill="#FFFDFB" stroke={INK} strokeWidth={2} vectorEffect="non-scaling-stroke" />
