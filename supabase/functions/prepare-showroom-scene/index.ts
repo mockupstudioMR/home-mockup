@@ -56,8 +56,27 @@ Deno.serve(async req => {
       if (!selected.has(entry.category)) selected.set(entry.category, entry);
     }
     const missing = requested.filter(c => !selected.has(c));
+    // Queue missing categories for reviewable generation. Avoid duplicate
+    // in-flight jobs for the same room/camera/category.
+    const queuedJobs: string[] = [];
+    for (const category of missing) {
+      const { data: existing } = await db.from("showroom_asset_jobs").select("id")
+        .eq("project_id", b.projectId).eq("room_id", b.roomId)
+        .eq("camera_key", b.cameraKey).eq("category", category)
+        .in("status", ["queued", "processing", "review"]).limit(1);
+      if (existing?.length) { queuedJobs.push(existing[0].id); continue; }
+      const { data: job, error: jobError } = await db.from("showroom_asset_jobs").insert({
+        project_id: b.projectId, room_id: b.roomId,
+        room_type: b.roomType, camera_key: b.cameraKey, category,
+        width: b.width, height: b.height,
+        reference_path: b.backgroundPath,
+        prompt: `Generate ${category} variation candidates for ${b.roomType}, camera ${b.cameraKey}.`,
+      }).select("id").single();
+      if (jobError) throw jobError;
+      queuedJobs.push(job.id);
+    }
     if (!selected.size) return json({
-      status: "assets_required", reused: [], missing,
+      status: "assets_required", reused: [], missing, queuedJobs,
       message: "No approved, camera-aligned asset library matches this scene. Generate and review layers before publishing.",
     }, 202);
     const layers = [...selected.entries()].map(([category, entry], order) => ({
@@ -86,7 +105,7 @@ Deno.serve(async req => {
     const published = await response.json();
     if (!response.ok) return json({ error: "Publishing failed", details: published }, response.status);
     return json({ status: missing.length ? "partial" : "ready",
-      reused: [...selected.values()].map(x => x.id), missing, published });
+      reused: [...selected.values()].map(x => x.id), missing, queuedJobs, published });
   } catch (e) {
     console.error("[prepare-showroom-scene]", e);
     return json({ error: e instanceof Error ? e.message : "Preparation failed" }, 500);
