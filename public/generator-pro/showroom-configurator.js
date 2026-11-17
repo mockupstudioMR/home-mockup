@@ -4556,6 +4556,8 @@ function instance($$self, $$props, $$invalidate) {
         }
       });
       currentLayers.set(initialState);
+      // Home Mockup patch: a scene can set its own grade (prepared walls are already graded)
+      if (data.enhancements) imageEnhancements.set({ brightness: 100, contrast: 100, saturation: 100, ...data.enhancements });
       const firstMaterialLayer = Object.entries(data.layers || {}).find(([_, layer]) => layer.group === "materials" || layer.group === "product-layer");
       if (firstMaterialLayer) {
         activeMaterial.set(firstMaterialLayer[0]);
@@ -4686,6 +4688,8 @@ function instance($$self, $$props, $$invalidate) {
     if (layer.folder || layer.variations) {
       const selectedVariation = state.selected || 1;
       let shadowUrl, colorUrl;
+      // Home Mockup patch: a layer with a box is a piece drawn at that box (x, y, w, h in scene pixels), not a full-canvas image
+      const at = layer.box && [layer.box.x, layer.box.y, layer.box.w, layer.box.h] || [0, 0, canvasWidth, canvasHeight];
       if (layer.variations && Array.isArray(layer.variations)) {
         shadowUrl = layer.shadow;
         colorUrl = layer.variations[selectedVariation - 1];
@@ -4698,10 +4702,10 @@ function instance($$self, $$props, $$invalidate) {
         if (shadowUrl) {
           const shadowImg = await loadImage(shadowUrl);
           ctx.globalCompositeOperation = "multiply";
-          ctx.drawImage(shadowImg, 0, 0, canvasWidth, canvasHeight);
+          ctx.drawImage(shadowImg, ...at);
         }
         ctx.globalCompositeOperation = shadowUrl ? "lighten" : "source-over";
-        ctx.drawImage(colorImg, 0, 0, canvasWidth, canvasHeight);
+        ctx.drawImage(colorImg, ...at);
       } catch (err) {
         console.error(`Failed to render layer ${layer.name}:`, err);
       }
@@ -4712,6 +4716,9 @@ function instance($$self, $$props, $$invalidate) {
       if (!material) return;
       const selectedSlug = state.selectedVariation || "color-1";
       let shadowUrl, colorUrl;
+      // Home Mockup patch: products can carry their own box (each product has its own size)
+      const box = material.box || product.box || layer.box;
+      const at = box && [box.x, box.y, box.w, box.h] || [0, 0, canvasWidth, canvasHeight];
       if (material.variations && Array.isArray(material.variations)) {
         shadowUrl = material.shadow;
         const colorIndex = parseInt(selectedSlug.replace("color-", "")) - 1;
@@ -4725,10 +4732,10 @@ function instance($$self, $$props, $$invalidate) {
         if (shadowUrl) {
           const shadowImg = await loadImage(shadowUrl);
           ctx.globalCompositeOperation = "multiply";
-          ctx.drawImage(shadowImg, 0, 0, canvasWidth, canvasHeight);
+          ctx.drawImage(shadowImg, ...at);
         }
         ctx.globalCompositeOperation = shadowUrl ? "lighten" : "source-over";
-        ctx.drawImage(colorImg, 0, 0, canvasWidth, canvasHeight);
+        ctx.drawImage(colorImg, ...at);
       } catch (err) {
         console.error(`Failed to render product ${product.id} with material ${material.id}:`, err);
       }

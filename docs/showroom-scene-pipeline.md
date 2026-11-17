@@ -55,7 +55,9 @@ This pipeline takes **already prepared and camera-aligned** scene assets, valida
 
 `title`, `thumbnails` (one per variation) and `hotspot` (pixels of the scene image) are optional. Without a `hotspot` the layer can only be reached from its tab.
 
-All variation images must have the same pixel dimensions and camera registration as the background, with transparent pixels outside the affected region. Images must be prepared externally and visually checked. The server validates that files exist, not their alpha channels, registration or aesthetic quality.
+A layer can also carry `box: {"x", "y", "w", "h"}` (integer scene pixels): its shadow and variations are then sprites drawn into that box, not full-canvas images, so one prepared piece can be placed anywhere along a wall. A top-level `enhancements: {"brightness": 100, "contrast": 100, "saturation": 100}` sets the scene's grade (50–200 each); prepared walls use 100 so the renderer doesn't boost them again.
+
+All full-canvas variation images must have the same pixel dimensions and camera registration as the background; boxed sprites must be cut from images that were. Shadow images are white where nothing changes, colour images black outside the piece (the renderer multiplies the shadow, then lightens the colour). Images must be prepared externally and visually checked. The server validates that files exist, not their alpha channels, registration or aesthetic quality.
 
 The function returns a published scene ID and version. The Home Mockup screen discovers the latest ready scene scoped to the exact project, room, layout and view. If no prepared scene exists, it shows the approved background image without an infinite loading indicator.
 

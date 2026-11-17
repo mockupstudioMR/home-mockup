@@ -22,12 +22,27 @@ Until all three environment values exist, Home Mockup deliberately displays its 
 
 ## Local patches to the bundled renderer (`public/generator-pro/showroom-configurator.js`)
 
-The bundle is vendored. These four changes are marked `Home Mockup patch` in the file; re-apply them if the bundle is rebuilt from Generator PRO:
+The bundle is vendored. These changes are marked `Home Mockup patch` in the file; re-apply them if the bundle is rebuilt from Generator PRO:
 
 1. **Array-mode variation layers start on variation 1.** Without this, layers published as `variations: [url, url, …]` (what `publish-showroom-scene` writes) had no initial state and were never drawn — the room showed only its background.
 2. **Hotspots are keyed by `id`, falling back to the layer name.** Standalone hotspots had no `id`, so every hotspot shared the key `undefined` and only one was positioned. Published manifests now also write `hotspot.id`.
 3. **Hotspot positions use layout sizes, not scaled bounding boxes.** The journey scales each screen with a CSS transform to fit the window; the renderer measured the already-scaled canvas and placed hotspots inside the scaled container, scaling them twice.
 4. **English by default** (was German); the DE/EN toggle is kept. Also: optional `thumbnails` per variation layer are used for the choice strip (full-canvas transparent layers make poor thumbnails).
+5. **A scene can set its own grade.** A manifest `enhancements: {brightness, contrast, saturation}` replaces the renderer's defaults (105 / 105 / 156, which over-colour scenes that are already graded). Prepared walls publish 100 / 100 / 100. The Tune sliders still work on top.
+6. **Pieces drawn at a box.** A variation layer with `box: {x, y, w, h}` (scene pixels) draws its shadow and colour images into that box instead of over the whole canvas; for product layers the box can sit on the material or the product, so each product keeps its own size. One prepared piece can then go anywhere on a wall, and its files stay small.
+
+## How layers are composited (Generator PRO's own method)
+
+For every layer the renderer multiplies its **shadow** image, then draws its **colour** image with *lighten*:
+
+- shadow: white where the room is untouched, the shade the piece throws (on wall and floor), black under the piece itself;
+- colour: the lit piece (or surface) on black.
+
+No transparency is needed, so dark pieces keep clean edges, and the shade is part of the layer, so it stays right whatever wall or floor colour is underneath. Wall and floor finishes are layers too: one shared shadow (black where the surface is) and one colour image per finish.
+
+## Sample walls (step 5 · Picture)
+
+`public/showroom-demo/walls/{a,b,c,d}/` are the sample living room's four walls, prepared to the wall standard (camera key `wall-std-v1-L500`: straight on, eye height 1.40 m, 1920 × 1080, walls up to 5 m at 3 px per cm) by `scripts/showroom-demo/make_walls.py`. Each wall has 4 wall colours, 3 floors and its pieces as sprites with boxes; wall D's cabinet slot has two products of different sizes. The wall screen shows them, labelled as a sample, until the person's own wall has a prepared scene. Pieces are rendered on a neutral room with and without the piece, which gives their shadow image; the sources are in `scripts/showroom-demo/wall-sources/`.
 
 ## Sample scene
 

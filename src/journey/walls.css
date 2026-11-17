@@ -54,6 +54,9 @@
 .mu.b-S5-Wall .ws-draw{padding:18px 22px 10px}
 .mu.b-S5-Wall .ws-draw .elev-svg{width:100%;height:auto;max-height:560px;display:block}
 .mu.b-S5-Wall .ws-pic img{display:block;width:100%;max-height:600px;object-fit:contain;background:#F3ECE7}
+.mu.b-S5-Wall .ws-scene{border-radius:16px;overflow:hidden;background:#F3ECE7}
+.mu.b-S5-Wall .ws-scene showroom-configurator{display:block;width:100%}
+.mu.b-S5-Wall .ws-sample{margin:0;padding:10px 16px;background:var(--tbc-bg,#FBE9DA);color:var(--tbc-ink,#7A4A1E);font-size:14px;font-weight:600}
 .mu.b-S5-Wall .ws-empty{padding:48px 28px;text-align:center}
 .mu.b-S5-Wall .ws-foot{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 18px 14px;border-top:1px solid var(--line);font-size:14px;color:var(--ink2)}
 .mu.b-S5-Wall .ws-foot > span{flex:1;display:flex;align-items:center;gap:8px}

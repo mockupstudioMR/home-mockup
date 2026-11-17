@@ -31,11 +31,21 @@ type LayerInput = {
   thumbnails?: string[];
   /** Where the hotspot sits, in pixels of the scene image. Without it the layer has a tab only. */
   hotspot?: { x: number; y: number };
+  /** A piece drawn at this box (scene pixels) instead of full-canvas images: its shadow and colours are cut to the box. */
+  box?: { x: number; y: number; w: number; h: number };
 };
+/** The scene's own grade. Prepared walls are already graded, so they publish 100/100/100 (the renderer's default boosts saturation). */
+type Grade = { brightness: number; contrast: number; saturation: number };
 type RequestBody = {
   projectId: string; roomId: string; layoutId: string; view: string;
   backgroundPath: string; width: number; height: number; layers: LayerInput[];
+  enhancements?: Grade;
 };
+
+/** A box must overlap the scene and have a real size; pieces may run off an edge (a curtain at the side). */
+const validBox = (b: LayerInput["box"], width: number, height: number) =>
+  !!b && [b.x, b.y, b.w, b.h].every(Number.isInteger) && b.w > 0 && b.h > 0 &&
+  b.w <= width * 2 && b.h <= height * 2 && b.x < width && b.y < height && b.x + b.w > 0 && b.y + b.h > 0;
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers });
@@ -51,6 +61,11 @@ Deno.serve(async (req) => {
       !Array.isArray(body.layers) || body.layers.length < 1 || body.layers.length > 24) {
       return json({ error: "Invalid scene metadata; at least one real layer is required" }, 400);
     }
+    const grade = body.enhancements;
+    if (grade !== undefined && !(["brightness", "contrast", "saturation"] as const)
+      .every(k => Number.isFinite(grade?.[k]) && grade[k] >= 50 && grade[k] <= 200)) {
+      return json({ error: "Invalid enhancements: brightness, contrast and saturation between 50 and 200" }, 400);
+    }
     const paths = [body.backgroundPath];
     const layers: Record<string, unknown> = {};
     for (const layer of body.layers) {
@@ -62,7 +77,8 @@ Deno.serve(async (req) => {
         (layer.title !== undefined && (typeof layer.title !== "string" || layer.title.length > 64)) ||
         (layer.thumbnails !== undefined && (!Array.isArray(layer.thumbnails) || layer.thumbnails.length !== layer.variations.length)) ||
         (layer.hotspot !== undefined && !(Number.isFinite(layer.hotspot?.x) && Number.isFinite(layer.hotspot?.y) &&
-          layer.hotspot.x >= 0 && layer.hotspot.y >= 0 && layer.hotspot.x <= body.width && layer.hotspot.y <= body.height))) {
+          layer.hotspot.x >= 0 && layer.hotspot.y >= 0 && layer.hotspot.x <= body.width && layer.hotspot.y <= body.height)) ||
+        (layer.box !== undefined && !validBox(layer.box, body.width, body.height))) {
         return json({ error: "Invalid layer definition or duplicate layer name" }, 400);
       }
       paths.push(...layer.variations);
@@ -104,6 +120,7 @@ Deno.serve(async (req) => {
         variations: layer.variations.map(publicUrl),
         ...(layer.thumbnails ? { thumbnails: layer.thumbnails.map(publicUrl) } : {}),
         ...(layer.shadow ? { shadow: publicUrl(layer.shadow) } : {}),
+        ...(layer.box ? { box: { x: layer.box.x, y: layer.box.y, w: layer.box.w, h: layer.box.h } } : {}),
         // Generator PRO keys hotspots by id: every hotspot needs a unique one.
         ...(layer.hotspot ? { hotspot: { id: layer.name, title, visible: true, position: { x: Math.round(layer.hotspot.x), y: Math.round(layer.hotspot.y) } } } : {}),
       };
@@ -112,6 +129,7 @@ Deno.serve(async (req) => {
       background: publicUrl(body.backgroundPath),
       imageSize: { width: body.width, height: body.height },
       layers,
+      ...(grade ? { enhancements: { brightness: grade.brightness, contrast: grade.contrast, saturation: grade.saturation } } : {}),
     };
     const { data: latest, error: versionError } = await db.from("showroom_scenes")
       .select("version").eq("project_id", body.projectId).eq("room_id", body.roomId)

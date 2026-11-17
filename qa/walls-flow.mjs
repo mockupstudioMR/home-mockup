@@ -80,6 +80,18 @@ check((await rows.count()) === n + 1, "added a socket to wall A");
 await shot("2-wall-A");
 await page.locator(".ws-mode a", { hasText: "Picture" }).click(); await page.waitForTimeout(500);
 check(await page.locator(".ws-pic img, .ws-empty, showroom-configurator").count() > 0, "picture view shows a picture or says there is none");
+// the sample living room: wall A as a Generator PRO scene, swap the wall colour, every layer drawn
+await page.waitForSelector("showroom-configurator button.hotspot", { timeout: 15000 }).catch(() => {});
+await page.waitForTimeout(2500);
+const gp = page.locator(".ws-scene showroom-configurator");
+check(await page.locator(".ws-sample").count() === 1, "picture view is labelled as the sample wall");
+check(await gp.locator("button.hotspot").count() >= 4, `sample wall A has its hotspots (${await gp.locator("button.hotspot").count()})`);
+await shot("2b-wall-A-picture");
+await gp.locator("button.tab", { hasText: /wall colour/i }).click(); await page.waitForTimeout(500);
+await gp.locator("button.carousel-item").nth(2).click(); await page.waitForTimeout(2000);
+const px = await page.evaluate(() => { const el = document.querySelector(".ws-scene showroom-configurator"); const c = (el.shadowRoot || el).querySelector("canvas"); const d = c.getContext("2d").getImageData(c.width * 0.5, c.height * 0.12, 1, 1).data; return [d[0], d[1], d[2]]; });
+check(px[0] > px[2] + 25, `wall colour swapped to terracotta (${px})`);
+await shot("2c-wall-A-terracotta");
 await page.locator(".ws-mode a", { hasText: "Outline" }).click();
 
 for (const w of ["B", "C", "D"]) {

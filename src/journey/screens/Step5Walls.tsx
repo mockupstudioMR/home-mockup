@@ -28,6 +28,14 @@ const metres = (cm: number) => `${(cm / 100).toFixed(2)} m`;
 const isPoint = (i: WallItem) => /socket|switch|dimmer|blind/i.test(i.name);
 const isSet = (wp: WallPlan) => wp.status !== "review";
 
+/**
+ * Sample walls shipped with the app (public/showroom-demo/walls/{a..d}): the sample living room, each wall
+ * prepared to the wall standard as a Generator PRO scene (scripts/showroom-demo/make_walls.py).
+ * Shown, labelled as a sample, until the person's own wall has a prepared scene.
+ */
+const SAMPLE_WALLS: Record<string, string> = { "living-room": "/showroom-demo/walls" };
+const SCRIPT_URL = "/generator-pro/showroom-configurator.js";
+
 /** Finish every wall and the steps they replace (5–8: furniture, colours, lighting, details). */
 function useFinishWalls() {
   const { s, set } = useJourney();
@@ -226,6 +234,7 @@ function OneWall({ param }: { param?: string }) {
   const [sel, setSel] = useState<number | undefined>(undefined);
   const [mode, setMode] = useState<"outline" | "picture">("outline");
   const [busy, setBusy] = useState(false);
+  const [made, setMade] = useState(false);
   const [link, setLink] = useState("");
   useEffect(() => {
     if (!s.wallFlow) set({ wallFlow: true });
@@ -264,6 +273,8 @@ function OneWall({ param }: { param?: string }) {
     },
   });
   const picture = wp.image;
+  const sampleBase = SAMPLE_WALLS[curRoom(s) ?? "living-room"];
+  const sample = sampleBase ? `${sampleBase}/${w.toLowerCase()}/` : undefined;
 
   const ordered = o.order.map((n) => wp.items.find((i) => i.n === n)!).filter(Boolean);
   const hidden = wp.items.filter((i) => i.action === "—");
@@ -280,6 +291,7 @@ function OneWall({ param }: { param?: string }) {
     try {
       const img = await generatePreview(s, { sourceImage: picture, change: `Wall ${w} (${wp.role.toLowerCase()} wall): ${request}. Keep the rest.` });
       if (img) setWall(w, { image: img, status: "changed" });
+      setMade(Boolean(img));
       setMode("picture");
     } catch (e) {
       toast({ title: "The picture couldn't be made", description: (e as Error).message, variant: "destructive" });
@@ -333,7 +345,12 @@ function OneWall({ param }: { param?: string }) {
               <WallElevation o={o} wp={wp} selected={sel} onPick={(n) => setSel(n === sel ? undefined : n)} />
             </div>
           ) : scene?.manifest_url && scene.assets_url ? (
-            <GeneratorProShowroom scriptUrl="/generator-pro/showroom-configurator.js" configUrl={scene.manifest_url} assetsUrl={scene.assets_url} />
+            <GeneratorProShowroom scriptUrl={SCRIPT_URL} configUrl={scene.manifest_url} assetsUrl={scene.assets_url} />
+          ) : sample && !(made && picture) ? (
+            <div className="ws-scene">
+              <p className="ws-sample" role="note">Sample wall · from our sample living room. Your own wall appears here once it's prepared.</p>
+              <GeneratorProShowroom key={sample} scriptUrl={SCRIPT_URL} configUrl={`${sample}manifest.json`} assetsUrl={sample} />
+            </div>
           ) : picture ? (
             <div className="ws-pic">
               <img src={picture} alt={`Wall ${w}, ${wp.role.toLowerCase()} wall`} />
