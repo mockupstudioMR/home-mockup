@@ -220,6 +220,8 @@ export type JourneyState = {
   spaceAvail?: Record<string, string>;
   checks?: Record<string, boolean[]>;
   todo?: Record<string, boolean>;
+  /** The 3D showroom (4 · showroom): what the person changed there, and the saved style of the room. */
+  showroom?: { edits: import("./showroom3d/model").Edits; record?: import("./showroom3d/record").StyleRecord };
   /** People asked to join. saved = added to the project in the database (not only in this browser). */
   team?: { role: string; email: string; saved?: boolean }[];
   // Step 10 / more rooms
@@ -309,7 +311,7 @@ export const ROOM_KEYS: (keyof JourneyState)[] = [
   "visionMode", "photos", "pinterest", "note", "quickNotes", "analysis", "styles", "moodboard", "preview",
   "activities", "priorities", "keeping", "nothingKept", "fixedCounts", "fixedTbc", "placements", "fixedPhotos",
   "room", "layouts", "chosenLayout", "anchor", "accent", "supporting", "supportImage", "samplesAdded", "surfaces", "decor", "refined", "lighting", "walls", "wallFlow",
-  "buyEdits", "spaceAvail", "checks", "todo",
+  "buyEdits", "spaceAvail", "checks", "todo", "showroom",
 ];
 export const uid = () => Math.random().toString(36).slice(2, 10);
 
