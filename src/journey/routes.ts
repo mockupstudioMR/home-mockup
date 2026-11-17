@@ -3,7 +3,7 @@ export type ScreenId =
   | "Main" | "S1-Why" | "S1-Place" | "S1-Rooms" | "S1-Start" | "S1-State" | "S1-Summary"
   | "S2-Vision" | "S2-Upload" | "S2-Analyzing" | "S2-Matches" | "S2-Moodboard" | "S2-Summary"
   | "S3-Activities" | "S3-Existing" | "S3-Fixed" | "S3-Summary"
-  | "S4-Input" | "S4-Measure" | "S4-Layouts" | "S4-Summary"
+  | "S4-Input" | "S4-Measure" | "S4-Layouts" | "S4-Summary" | "S4-Showroom"
   | "S5-Shops" | "S5-Anchor" | "S5-Summary" | "S6-Palette" | "S6-Summary" | "S7-Lighting" | "S7-Summary"
   | "S8-Walls" | "S8-WallDetail" | "S8-Summary" | "S9-BuyList" | "S9-Sizes" | "S9-Todo" | "S9-Summary" | "S10-Final";
 
@@ -28,6 +28,7 @@ export const SCREENS: { id: ScreenId; path: string; step: number }[] = [
   { id: "S3-Fixed", path: "4/fixed", step: 4 },
   { id: "S4-Layouts", path: "4/layouts", step: 4 },
   { id: "S4-Summary", path: "4/summary", step: 4 },
+  { id: "S4-Showroom", path: "4/showroom", step: 4 },
   { id: "S3-Existing", path: "5/keeping", step: 5 },
   { id: "S5-Shops", path: "5/shops", step: 5 },
   { id: "S5-Anchor", path: "5/anchor", step: 5 },
