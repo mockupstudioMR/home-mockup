@@ -112,7 +112,7 @@ export type MaskResult = {
 export function itemMask(base: Rgba, alts: Rgba[], b: PctBox, threshold = 30): MaskResult {
   const { width: w, height: h } = base, box = pxBox(b, w, h);
   const bw = box.x1 - box.x0, bh = box.y1 - box.y0, area = Math.max(1, bw * bh);
-  let m = new Float32Array(w * h);
+  let m: Float32Array = new Float32Array(w * h);
   for (const alt of alts) {
     for (let y = box.y0; y < box.y1; y++) for (let x = box.x0; x < box.x1; x++) {
       const i = (y * w + x) * 4;
