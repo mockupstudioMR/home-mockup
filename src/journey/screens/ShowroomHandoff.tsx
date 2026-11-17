@@ -40,11 +40,17 @@ export function ShowroomHandoff() {
     },
   });
   const background = backgrounds.find((row) => row.view === view && row.image_path);
-  // Live rendering needs a real scene manifest and prepared WebP assets.
-  const scriptUrl = import.meta.env.VITE_GENERATOR_PRO_SCRIPT_URL as string | undefined;
-  const manifestUrl = import.meta.env.VITE_GENERATOR_PRO_CONFIG_URL as string | undefined;
-  const assetsUrl = import.meta.env.VITE_GENERATOR_PRO_ASSETS_URL as string | undefined;
-  const hasLiveScene = Boolean(scriptUrl && manifestUrl && assetsUrl && view === "room");
+  // The bundled renderer can display approved backgrounds immediately. A
+  // scene becomes interactive only when aligned variation layers are supplied.
+  const sceneBackground = background?.image_path
+    ? new URL(background.image_path, window.location.origin).href : null;
+  const manifestUrl = sceneBackground ? "data:application/json," +
+    encodeURIComponent(JSON.stringify({
+      background: sceneBackground,
+      imageSize: { width: 1920, height: 1080 },
+      layers: {},
+    })) : null;
+  const hasLiveScene = Boolean(manifestUrl);
   if (!layout) {
     return <Screen board="S4-Showroom" step={4} dock={<Back to="S4-Layouts" />}>
       <h1 className="h1">Choose your layout first</h1>
@@ -56,14 +62,14 @@ export function ShowroomHandoff() {
     dock={<><Back to="S4-Summary" /><Go className="btn auto" to="S3-Existing">Continue to furniture</Go></>}>
     <p className="eyebrow">Your room · showroom preview</p>
     <h1 className="h1">Your layout, in your room</h1>
-    <p className="sub">{hasLiveScene ? "Customize your prepared showroom scene." : "This is a reference background. Interactive swaps require a prepared Generator PRO scene."}</p>
+    <p className="sub">Generator PRO renders the approved room background. Furniture and material swapping will be enabled when aligned layer assets are available.</p>
     <div className="chips" role="group" aria-label="Showroom view" style={{ marginTop: 24 }}>
       {views.map(([key, label]) => <button key={key} type="button"
         aria-pressed={view === key} className={`chip${view === key ? " sel" : ""}`}
         onClick={() => setView(key)}>{label}</button>)}
     </div>
     <div className="panel" style={{ marginTop: 24, overflow: "hidden" }}>
-      {hasLiveScene ? <GeneratorProShowroom scriptUrl={scriptUrl!} configUrl={manifestUrl!} assetsUrl={assetsUrl!} /> : background ? <img src={background.image_path} alt={`Approved ${view} reference background`}
+      {hasLiveScene ? <GeneratorProShowroom scriptUrl="/generator-pro/showroom-configurator.js" configUrl={manifestUrl!} assetsUrl={window.location.origin} /> : background ? <img src={background.image_path} alt={`Approved ${view} reference background`}
         style={{ display: "block", width: "100%", maxHeight: 620, objectFit: "contain" }} /> :
         <div style={{ padding: 36 }}>
           <p className="p">{isLoading ? "Loading showroom background…" : error ? "Could not load the showroom background." : "No approved reference image for this view yet."}</p>
