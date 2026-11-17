@@ -80,3 +80,21 @@ describe("the 3D room", () => {
     expect(viewFor("B", r).p[0]).toBeLessThan(1);
   });
 });
+
+describe("guide pictures for the wall photographs", () => {
+  it("knows where each piece is in a wall's picture", async () => {
+    const { screenBox } = await import("@/journey/showroom3d/scene");
+    const m = room([piece("sofa", "curved", { cx: 1.9, cz: 0.6, w: 2.4, d: 0.9 }), piece("table", "oval", { id: "behind", cx: 1.9, cz: 4.8, w: 1, d: 0.6 })]);
+    const b = buildScene(m, false), c = viewFor("A", m.room, 1.5);
+    const cam = new THREE.PerspectiveCamera(c.f, 1.5, 0.08, 80);
+    cam.position.set(c.p[0], c.p[1], c.p[2]); cam.lookAt(c.t[0], c.t[1], c.t[2]); cam.updateMatrixWorld();
+    const sofa = b.scene.children.find((o) => o.userData.id === "sofa-curved")!;
+    const box = screenBox(sofa, cam)!;
+    expect(box[0]).toBeGreaterThan(10);
+    expect(box[0] + box[2]).toBeLessThan(90);
+    expect(box[1] + box[3]).toBeGreaterThan(55); // stands low in the picture
+    expect(box[2]).toBeGreaterThan(30); // 2.4 m of a 3.75 m wall
+    const behind = b.scene.children.find((o) => o.userData.id === "behind")!;
+    expect(screenBox(behind, cam)).toBeNull(); // behind the camera
+  });
+});
