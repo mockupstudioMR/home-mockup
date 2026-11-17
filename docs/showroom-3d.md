@@ -1,37 +1,24 @@
-# The 3D showroom (4 · showroom)
+# Showroom: layered wall pictures (and the hidden 3D room)
 
-Every person gets their own room in 3D straight after choosing a layout. It needs no prepared image assets: it is drawn in the browser from what the journey already knows. A prepared Generator PRO scene, when one exists for the project, room, layout and view, still takes its place.
+People see their room as **real, hyper-realistic pictures, one per wall**, where every piece is a swappable layer with its main option and two alternatives. The pictures are made in step 5 ("Your walls") for all four walls as soon as the step opens, and shown in each wall's Picture view with the Generator PRO layer viewer.
 
-## Where each part comes from
+## How one wall's picture is made (`src/journey/wallScenes/runner.ts`)
 
-| In the room | Source in the journey state |
-|---|---|
-| Room size | `room.widthM`, `room.lengthM`, `room.ceilingM` (example size until confirmed) |
-| Doors, windows, radiators | `placements` (4.3 "What can't move") |
-| Pieces, positions, footprints, facing | the chosen layout's `items`; kept pieces from `keeping` |
-| Colours | `moodboard.palette` — each colour's `use` decides what it goes on; lightness fills gaps |
-| Shapes and materials | words about each piece in `preview.read`, its label, and the step 5 anchor, matched to `showroom3d/library.ts` |
-| Curtains, art, mirror, pendant | only when they are on a wall in `walls[...].items` |
+1. **Guide.** The 3D room (`showroom3d/`, not shown to users) draws the wall straight on: real room size, doors, windows, and every layout piece at its size, order and place, in the moodboard's colours. It also reports where each item is in the picture.
+2. **Photograph.** `generate-wall-scene` (mode `base`) turns the guide into a photograph, copying style, materials and light from the person's step 2 preview. Geometry comes from the guide.
+3. **Alternatives.** For each item (wall colour, floor, door, each piece on the wall, curtains, art, mirror), two alternatives (`wallScenes/items.ts`): a product the person picked from their own shop on that wall first, otherwise options in the moodboard palette or another shape from the library. `generate-wall-scene` (mode `variation`) redraws only that item.
+4. **Layers.** Each alternative is compared with the photograph inside the item's box (`wallScenes/layers.ts`). The changed pixels of all alternatives make one mask; the original and both alternatives are cut to it, so swapping is seamless. Alternatives that moved the rest of the photo are retried once, then dropped.
+5. **Publish.** Layers, thumbnails and a Generator PRO manifest go to the `design-images` bucket under the person's folder; the wall's scene is kept in `showroom.scenes` with the journey and inserted into `showroom_scenes` (needs migration `20261118000000_showroom_scenes_owner_insert.sql`).
 
-Nothing is added that the person does not have: no invented rug, art or plants.
+A wall's scene carries a key of everything it was made from; when the room changes, it shows as "Room changed · make again". Failed walls are retried only when the person asks.
 
-## Files
+Runs in the browser: the page must stay open. Cost: one base picture plus two edits per item, roughly 10–15 image calls per wall.
 
-- `src/journey/showroom3d/model.ts` — journey state → room model (pure, tested)
-- `src/journey/showroom3d/library.ts` — the shape library and the word matching
-- `src/journey/showroom3d/scene.ts` — the three.js room; `buildScene` needs no renderer
-- `src/journey/showroom3d/record.ts` — the saved style record
-- `src/journey/showroom3d/Showroom3D.tsx` — the screen (lazy-loaded with three.js)
+## The hidden 3D room
 
-## Saving
-
-What the person changes is kept in `showroom.edits` (per piece: colour, shape). The style record — exact palette values, every element's colour, material, shape, wall and position, and each wall's order — is kept in `showroom.record` with the journey, and mirrored to `showroom_style_records` (one row per room) when the project tables exist. Apply migration `20261117230000_showroom_style_records.sql` for the database copy; without it the record stays in the browser.
-
-## Adding a shape
-
-Add it to its category in `library.ts` (id, name, note, the words that point to it), draw it in the matching builder in `scene.ts` at a typical size facing +z, and add the name to `src/i18n/ar.json`. The test "draws every shape in the library" covers it automatically.
+`src/journey/showroom3d/` builds the room from journey state only (see `model.ts`). It is kept for guide renders, and later for video, AR or other 3D content. The saved style record (`record.ts`, exact colours, every element's shape and place, each wall's order) is kept in `showroom.record` and mirrored to `showroom_style_records` (migration `20261117230000_showroom_style_records.sql`).
 
 ## Not done
 
-- No visual browser test has been run on this screen yet.
-- Shapes are matched from the preview's description, not from the picture itself.
+- No visual browser test has been run.
+- The image model may still shift the picture slightly; the drift check limits this but cannot fix it.

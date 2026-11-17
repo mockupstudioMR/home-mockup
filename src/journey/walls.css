@@ -100,3 +100,21 @@
 .mu.b-S5-Wall .ws-add button{display:flex;align-items:center;gap:6px;min-height:44px;padding:0 12px;border-radius:12px;border:1.5px dashed var(--line2);background:#fff;font:600 13px var(--body);color:var(--ink2);cursor:pointer}
 .mu.b-S5-Wall .ws-add .ic{width:16px;height:16px}
 @media (max-width:1000px){.mu.b-S5-Wall .ws-stage{position:static}.mu.b-S5-Wall .ws-list{max-width:none}}
+
+/* Step 5 · the room's layered pictures, made for all walls up front */
+.mu.b-S5-Walls .wo-pics{margin:18px 0 6px;padding:16px 18px;border-radius:22px;background:#fff;border:1px solid var(--line,#EEE1D9);display:flex;flex-direction:column;gap:12px}
+.mu.b-S5-Walls .wo-pics-h{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between}
+.mu.b-S5-Walls .wo-pics-h>div{display:flex;flex-direction:column;gap:2px;flex:1 1 360px}
+.mu.b-S5-Walls .wo-pics-h b{font-size:17px}
+.mu.b-S5-Walls .wo-pics-l{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+@media (max-width:900px){.mu.b-S5-Walls .wo-pics-l{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.mu.b-S5-Walls .wo-pics-l li{display:flex;flex-direction:column;gap:6px;padding:10px 12px;border-radius:14px;background:var(--cream,#FBF4EF);border:1px solid var(--line,#EEE1D9)}
+.mu.b-S5-Walls .wo-pics-l a{display:flex;gap:10px;align-items:flex-start;min-height:44px;text-decoration:none;color:var(--ink)}
+.mu.b-S5-Walls .wo-pics-l i{flex:none;width:28px;height:28px;border-radius:50%;background:#fff;border:1.5px solid var(--line2,#E2D2CA);font-style:normal;font-weight:700;font-size:13px;display:flex;align-items:center;justify-content:center}
+.mu.b-S5-Walls .wo-pics-l b{display:block;font-size:14px}
+.mu.b-S5-Walls .wo-pics-l small{display:block;font-size:12px;color:var(--ink2);line-height:1.4}
+.mu.b-S5-Walls .wo-pics-l .st-ready i{background:var(--plum);border-color:var(--plum);color:#fff}
+.mu.b-S5-Walls .wo-pics-l .st-making{border-color:var(--plum);box-shadow:0 0 0 3px var(--plum-l)}
+.mu.b-S5-Walls .wo-pics-l .st-failed small{color:#8A3B1A}
+.mu.b-S5-Walls .wo-pics-l .bar{height:6px;border-radius:6px;background:#EADCD3;overflow:hidden}
+.mu.b-S5-Walls .wo-pics-l .bar span{display:block;height:100%;background:var(--plum);transition:width .4s}

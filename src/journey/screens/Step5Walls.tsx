@@ -4,7 +4,7 @@
  * (furniture, decor, walls & floor, light, power, inside the wall) in one list, in order along the wall.
  * Choices are stored on the walls (s.walls) and in the finishes, so the buying list (step 9) picks them up.
  */
-import { lazy, Suspense, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/looseDb";
@@ -21,6 +21,7 @@ import { outlineFor, wallLength, type Outline } from "../wallOutline";
 import { useWalls, WALLS } from "./Step8";
 import { PlanDrawing } from "./Step4";
 import { WallElevation } from "./WallElevation";
+import { useRoomPictures, type WallStatus } from "../wallScenes/useRoomPictures";
 import "../walls.css";
 
 const lc = (t: string) => t.charAt(0).toLowerCase() + t.slice(1);
@@ -28,8 +29,6 @@ const metres = (cm: number) => `${(cm / 100).toFixed(2)} m`;
 const isPoint = (i: WallItem) => /socket|switch|dimmer|blind/i.test(i.name);
 const isSet = (wp: WallPlan) => wp.status !== "review";
 
-// The person's own wall in 3D, loaded only when the Picture view is opened.
-const Showroom3D = lazy(() => import("../showroom3d/Showroom3D"));
 const SCRIPT_URL = "/generator-pro/showroom-configurator.js";
 
 /** Finish every wall and the steps they replace (5–8: furniture, colours, lighting, details). */
@@ -55,6 +54,53 @@ function wallLine(wp: WallPlan) {
   const parts = [...furn, ...light];
   const text = parts.length ? parts.join(" · ") : "Kept clear";
   return `${text.charAt(0).toUpperCase()}${text.slice(1)}${points ? ` · ${points} point${points > 1 ? "s" : ""}` : ""}`;
+}
+
+const STATUS_TEXT: Record<WallStatus, string> = {
+  ready: "Ready", making: "Making now", waiting: "Waiting", failed: "Couldn't be made", outdated: "Room changed · make again", stopped: "Stopped", none: "Not made yet",
+};
+
+/** The room's hyper-realistic pictures: one per wall, every piece swappable. Made for all walls up front. */
+function RoomPictures() {
+  const { status, progress, running, start, stop, ready, scenes } = useRoomPictures(true);
+  const again = WALLS.filter((w) => status(w) !== "ready" && status(w) !== "making" && status(w) !== "waiting");
+  return (
+    <section className="wo-pics" aria-label="Your room's pictures">
+      <div className="wo-pics-h">
+        <div>
+          <b>Your room as real pictures</b>
+          <span className="small">Each wall as a photograph in the style of your preview, with every piece in its place. Tap any piece to swap it for one of two alternatives.</span>
+        </div>
+        {running ? (
+          <button type="button" className="link-btn" onClick={stop}>Stop</button>
+        ) : again.length > 0 && ready === true ? (
+          <button type="button" className="btn auto" onClick={() => start(again)}>{again.length === 4 ? "Make my room's pictures" : `Make ${again.length === 1 ? `wall ${again[0]}` : `${again.length} walls`} again`}</button>
+        ) : null}
+      </div>
+      {ready !== true && <p className="small" role="note">{ready}</p>}
+      <ul className="wo-pics-l">
+        {WALLS.map((w) => {
+          const st = status(w);
+          const p = progress?.wall === w ? progress : null;
+          return (
+            <li key={w} className={`st-${st}`}>
+              <Go to="S5-Wall" extra={`/${w}`}>
+                <i>{w}</i>
+                <span>
+                  <b>Wall {w} · {STATUS_TEXT[st]}</b>
+                  <small>
+                    {p ? `${p.step} · ${p.done} of ${p.total}` : st === "failed" ? scenes[w]?.error : st === "ready" ? `${scenes[w]?.layers?.length ?? 0} swappable pieces` : ""}
+                  </small>
+                </span>
+              </Go>
+              {p && <span className="bar" aria-hidden="true"><span style={{ width: `${Math.max(4, (p.done / Math.max(1, p.total)) * 100)}%` }} /></span>}
+            </li>
+          );
+        })}
+      </ul>
+      {running && <p className="small" role="status">This takes a few minutes per wall. Keep this page open; you can open the walls meanwhile.</p>}
+    </section>
+  );
 }
 
 /** 5 · Your walls — the four walls as outlines, straight after the layout. */
@@ -110,6 +156,7 @@ export function YourWalls() {
           </div>
         </div>
       </div>
+      <RoomPictures />
       <div className="wo-before" aria-label="Carried over">
         <span>Carried over:</span>
         <Go to="S4-Layouts">Layout <b>{lay?.name ?? "not chosen"}</b></Go>
@@ -269,6 +316,12 @@ function OneWall({ param }: { param?: string }) {
     },
   });
   const picture = wp.image;
+  const pics = useRoomPictures();
+  const own = pics.scenes[w];
+  const ownStatus = pics.status(w);
+  // Open on the picture once this wall has its layered photograph.
+  const hasOwn = own?.status === "ready";
+  useEffect(() => { if (hasOwn) setMode("picture"); }, [hasOwn, w]);
 
   const ordered = o.order.map((n) => wp.items.find((i) => i.n === n)!).filter(Boolean);
   const hidden = wp.items.filter((i) => i.action === "—");
@@ -338,14 +391,18 @@ function OneWall({ param }: { param?: string }) {
             <div className="ws-draw">
               <WallElevation o={o} wp={wp} selected={sel} onPick={(n) => setSel(n === sel ? undefined : n)} />
             </div>
+          ) : own?.status === "ready" && own.manifestUrl && own.assetsUrl && !made ? (
+            // The person's own wall: a photograph in their preview's style, every piece swappable.
+            <div className="ws-scene">
+              {ownStatus === "outdated" && <p className="ws-sample" role="note">Your room changed since this picture was made. Make it again from "All walls".</p>}
+              <GeneratorProShowroom key={own.manifestUrl} scriptUrl={SCRIPT_URL} configUrl={own.manifestUrl} assetsUrl={own.assetsUrl} />
+            </div>
           ) : scene?.manifest_url && scene.assets_url ? (
             <GeneratorProShowroom scriptUrl={SCRIPT_URL} configUrl={scene.manifest_url} assetsUrl={scene.assets_url} />
-          ) : !(made && picture) ? (
-            // The person's own wall: their layout's pieces on this wall, in their moodboard's colours.
-            <div className="ws-scene">
-              <Suspense fallback={<p className="p" role="status" style={{ padding: 24 }}>Building your wall…</p>}>
-                <Showroom3D view={w} stageOnly />
-              </Suspense>
+          ) : !(made && picture) && (ownStatus === "making" || ownStatus === "waiting") ? (
+            <div className="ws-empty" role="status">
+              <p className="p">{ownStatus === "making" ? "Making this wall's picture…" : "This wall's picture is next in line…"}</p>
+              <p className="small">{pics.progress?.wall === w ? `${pics.progress.step} · ${pics.progress.done} of ${pics.progress.total}` : "Pictures are made one wall at a time."}</p>
             </div>
           ) : picture ? (
             <div className="ws-pic">
@@ -353,8 +410,9 @@ function OneWall({ param }: { param?: string }) {
             </div>
           ) : (
             <div className="ws-empty">
-              <p className="p">No picture of this wall yet.</p>
-              <p className="small">Sizes always come from the outline. A picture appears here once your room has one.</p>
+              <p className="p">{ownStatus === "failed" ? "This wall's picture couldn't be made." : "No picture of this wall yet."}</p>
+              <p className="small">{ownStatus === "failed" && own?.error ? own.error : pics.ready === true ? "Sizes always come from the outline. The picture copies your preview's style." : pics.ready}</p>
+              {pics.ready === true && !pics.running && <button type="button" className="btn auto" style={{ marginTop: 12 }} onClick={() => pics.start([w])}>Make this wall's picture</button>}
             </div>
           )}
           <div className="ws-foot">

@@ -822,3 +822,90 @@ export function createShowroom(canvas: HTMLCanvasElement, model: ShowroomModel, 
     },
   };
 }
+
+/* ---------- guide pictures for the hyper-realistic walls ---------- */
+
+export type Guide = {
+  /** The wall seen straight on, as a JPEG data address. */
+  image: string;
+  width: number; height: number;
+  /** Where each item is in the picture, in percent: [x, y, w, h], clipped to the frame. Keyed by item id. */
+  boxes: Record<string, [number, number, number, number]>;
+};
+
+/** Where an object lands in a camera's picture, in percent of the frame, or null when it is out of view. */
+export function screenBox(obj: THREE.Object3D, camera: THREE.Camera): [number, number, number, number] | null {
+  const bb = new THREE.Box3().setFromObject(obj);
+  if (bb.isEmpty()) return null;
+  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity, ahead = 0;
+  const v = new THREE.Vector3();
+  const camPos = new THREE.Vector3().setFromMatrixPosition(camera.matrixWorld), dir = new THREE.Vector3();
+  camera.getWorldDirection(dir);
+  for (const x of [bb.min.x, bb.max.x]) for (const y of [bb.min.y, bb.max.y]) for (const z of [bb.min.z, bb.max.z]) {
+    v.set(x, y, z);
+    if (v.clone().sub(camPos).dot(dir) <= 0.05) continue; // behind the camera
+    ahead++;
+    v.project(camera);
+    x0 = Math.min(x0, v.x); x1 = Math.max(x1, v.x); y0 = Math.min(y0, v.y); y1 = Math.max(y1, v.y);
+  }
+  if (!ahead) return null;
+  const px = (n: number) => Math.max(0, Math.min(100, ((n + 1) / 2) * 100));
+  const py = (n: number) => Math.max(0, Math.min(100, ((1 - n) / 2) * 100));
+  const L = px(x0), R = px(x1), T = py(y1), B = py(y0);
+  return R - L > 0.5 && B - T > 0.5 ? [L, T, R - L, B - T] : null;
+}
+
+/**
+ * Draws one wall of the person's room as a guide for the image AI: the exact camera, the doors and windows,
+ * and every piece at its real size and place. Needs a browser with WebGL.
+ */
+export function renderGuide(m: ShowroomModel, wall: Wall, width = 1536, height = 1024): Guide {
+  const canvas = document.createElement("canvas");
+  canvas.width = width; canvas.height = height;
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, preserveDrawingBuffer: true });
+  try {
+    renderer.setPixelRatio(1);
+    renderer.setSize(width, height, false);
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.useLegacyLights = true;
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    const built = buildScene(m, false);
+    const pm = new THREE.PMREMGenerator(renderer);
+    try { built.scene.environment = pm.fromScene(built.envScene, 0.03).texture; } catch { /* no reflections */ }
+    const c = viewFor(wall, m.room, width / height);
+    const camera = new THREE.PerspectiveCamera(c.f, width / height, 0.08, 80);
+    camera.position.set(c.p[0], c.p[1], c.p[2]);
+    camera.lookAt(c.t[0], c.t[1], c.t[2]);
+    camera.updateMatrixWorld();
+    renderer.render(built.scene, camera);
+    const image = canvas.toDataURL("image/jpeg", 0.92);
+    const boxes: Guide["boxes"] = {};
+    for (const o of built.scene.children) {
+      const id = o.userData.id as string | undefined;
+      if (!id) continue;
+      const b = screenBox(o, camera);
+      if (b) boxes[id] = b;
+    }
+    // walls, floor and doors are parts of the shell: find them inside it
+    built.scene.traverse((o) => {
+      const id = o.userData.id as string | undefined;
+      if (!id || boxes[id] || (id === "walls" && o.userData.wall !== wall)) return;
+      if (id !== "walls" && id !== "floor" && id !== "doors") return;
+      const b = screenBox(o, camera);
+      if (b) boxes[id] = b;
+    });
+    pm.dispose();
+    built.scene.traverse((o) => {
+      const mesh = o as THREE.Mesh;
+      mesh.geometry?.dispose?.();
+      const mt = mesh.material as Mat | Mat[] | undefined;
+      (Array.isArray(mt) ? mt : mt ? [mt] : []).forEach((x) => x.dispose());
+    });
+    return { image, width, height, boxes };
+  } finally {
+    renderer.dispose();
+    renderer.forceContextLoss?.();
+  }
+}
