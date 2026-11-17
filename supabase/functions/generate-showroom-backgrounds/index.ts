@@ -65,7 +65,8 @@ Deno.serve(async (req) => {
     if (row.view !== "room") {
       const { data: roomRow } = await db.from("showroom_backgrounds").select("image_path")
         .eq("starting_state", row.starting_state).eq("room_type", row.room_type).eq("view", "room").maybeSingle();
-      reference = roomRow?.image_path ?? null;
+      // Only full URLs can be sent to the image service (test rows use app paths).
+      reference = roomRow?.image_path?.startsWith("http") ? roomRow.image_path : null;
     }
 
     const text = `${row.prompt}${reference ? " Use the attached picture as the same room: keep its walls, floor, ceiling, windows, door and light exactly the same, only change the camera to this view." : ""} Landscape 16:9.`;
