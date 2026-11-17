@@ -17,7 +17,7 @@ ALTER TABLE public.showroom_scenes ENABLE ROW LEVEL SECURITY;
 -- enforce the same access rules if URLs contain private content.
 CREATE POLICY "Project owners read showroom scenes" ON public.showroom_scenes
 FOR SELECT TO authenticated USING (
-  EXISTS (SELECT 1 FROM public.projects p WHERE p.id = project_id AND p.user_id = auth.uid())
+  EXISTS (SELECT 1 FROM public.projects p WHERE p.id = project_id AND p.owner_id = auth.uid())
 );
 CREATE INDEX IF NOT EXISTS showroom_scenes_lookup
 ON public.showroom_scenes(project_id,room_id,layout_id,view,status,version DESC);
