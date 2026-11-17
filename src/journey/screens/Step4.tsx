@@ -1041,7 +1041,7 @@ export function Step4Summary() {
       open={open}
       soFar={soFar(s, 4)}
       back="S4-Layouts"
-      next="S3-Existing"
+      next="S4-Showroom"
     />
   );
 }
