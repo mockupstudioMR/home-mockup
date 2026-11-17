@@ -103,12 +103,49 @@ async function uploader(folderKey: string) {
 
 /* ---------- AI calls ---------- */
 
-async function ai(body: Record<string, unknown>): Promise<string> {
+type AiBody = {
+  mode: "base" | "variation"; imageUrl: string; styleImageUrl?: string; wall?: string; style?: string;
+  palette?: { name: string; hex: string; use?: string }[]; pieces?: { name: string; detail: string; box: PctBox }[];
+  item?: { name: string; current: string; target: string; box: PctBox; group?: string }; productImageUrl?: string;
+  moodboardDescription?: string; styleText?: string; roomType?: string;
+};
+/** Set once the wall-picture function turns out not to be deployed: from then on the preview function is used. */
+let wallFnMissing = false;
+const NOT_THERE = /failed to send a request|not.?found|function.*(missing|does not exist)|404/i;
+const STOP = /credits|blocked|sign in/i;
+const pct = (b: PctBox) => `${Math.round(b[0])}% from the left, ${Math.round(b[1])}% from the top, ${Math.round(b[2])}% wide, ${Math.round(b[3])}% high`;
+
+/** The same request through generate-design (the preview's function, always deployed), as a surgical edit. */
+async function viaPreviewFunction(b: AiBody): Promise<string> {
+  const palette = (b.palette ?? []).map((p) => `${p.name} ${p.hex}${p.use ? ` for ${p.use.toLowerCase()}` : ""}`).join(", ");
+  const change = b.mode === "base"
+    ? `Render this exact straight-on wall elevation as a real, photorealistic interior photograph of wall ${b.wall ?? ""}. Turn every simple 3D shape into the real piece it stands for, with real materials and textures, in the ${b.style ?? "chosen"} style${b.styleText ? ` (${b.styleText})` : ""}. Colours: ${palette}. Pieces, left to right: ${(b.pieces ?? []).map((p) => `${p.name} (${p.detail}) at ${pct(p.box)}`).join("; ")}. Keep every piece, door and window exactly where it is and exactly its size; keep the straight-on view with the wall filling the frame.`
+    : `Replace only the ${b.item!.current} (${pct(b.item!.box)}) with ${b.item!.target}. Same position, size and perspective.`;
+  const layer = b.mode === "base" ? undefined : b.item?.group === "walls" || b.item?.group === "floor" ? "architecture" : b.item?.group === "furniture" ? "furniture" : "decor";
+  const { data, error } = await invokeAi<{ imageUrl?: string; error?: string }>("generate-design", {
+    body: { stylePreference: (b.style ?? "").toLowerCase().replace(/[&\s]+/g, "-"), colorPalette: (b.palette ?? []).map((p) => p.name).join(", "), roomType: b.roomType ?? "living-room", budgetFeel: "mid", mustHaveElements: [], detectedColors: (b.palette ?? []).map((p) => p.hex), sourceImageUrl: b.imageUrl, modificationPrompt: change, ...(layer ? { refinementLayer: layer } : {}) },
+    timeoutMs: 150_000,
+  });
+  if (data?.imageUrl) return data.imageUrl;
+  throw new Error(getAiErrorMessage(error ?? data, "The picture could not be made."));
+}
+
+async function ai(body: AiBody): Promise<string> {
   for (let attempt = 1; attempt <= 3; attempt++) {
+    if (wallFnMissing) {
+      try { return await viaPreviewFunction(body); } catch (e) {
+        const msg = (e as Error).message;
+        if (STOP.test(msg) || attempt === 3) throw e;
+        await new Promise((r) => setTimeout(r, 4000 * attempt));
+        continue;
+      }
+    }
     const { data, error } = await invokeAi<{ imageUrl?: string; error?: string; retryable?: boolean }>("generate-wall-scene", { body, timeoutMs: 150_000 });
     if (data?.imageUrl) return data.imageUrl;
+    const raw = `${error?.message ?? ""} ${data?.error ?? ""}`;
+    if (NOT_THERE.test(raw)) { wallFnMissing = true; attempt--; continue; }
     const msg = getAiErrorMessage(error ?? data, "The picture could not be made.");
-    if (/credits|blocked|sign in/i.test(msg) || attempt === 3) throw new Error(msg);
+    if (STOP.test(msg) || attempt === 3) throw new Error(msg);
     await new Promise((r) => setTimeout(r, 4000 * attempt));
   }
   throw new Error("The picture could not be made.");
@@ -132,7 +169,7 @@ async function inBatches<T>(jobs: (() => Promise<T>)[], n: number, onDone: () =>
 async function makeWall(s: JourneyState, m: ShowroomModel, wall: Wall, report: (p: Progress) => void, stopped: () => boolean): Promise<WallScene> {
   const key = wallKey(s, m, wall);
   const { renderGuide } = await import("../showroom3d/scene");
-  report({ wall, step: "Drawing your wall from your layout", done: 0, total: 1 });
+  report({ wall, step: "Drawing your wall from its outline", done: 0, total: 1 });
   const guide = renderGuide(m, wall);
   const items = wallItems(s, m, wall).filter((it) => guide.boxes[it.id]);
   const total = 2 + items.reduce((n, it) => n + it.alts.length, 0);
@@ -142,7 +179,9 @@ async function makeWall(s: JourneyState, m: ShowroomModel, wall: Wall, report: (
   const guideUrl = await storeDesignImage(guide.image);
   const pieces = m.pieces.filter((p) => guide.boxes[p.id] && p.category !== "rug").map((p) => ({ name: p.kept ? `${p.name} (the client's own, keep as it is)` : p.name, detail: `${p.shapeName}, ${p.fabric ?? ""} ${m.palette.find((x) => x.hex === p.color)?.name ?? p.color}`.replace(/\s+/g, " "), box: guide.boxes[p.id] }));
   report({ wall, step: "Making the photograph of your wall", done, total });
-  const baseData = await ai({ mode: "base", imageUrl: /^https:/.test(guideUrl) ? guideUrl : guide.image, styleImageUrl: previewImage(s), wall, style: s.moodboard?.name, palette: m.palette, pieces, moodboardDescription: s.moodboard?.description });
+  if (!/^https:/.test(guideUrl)) throw new Error("Your wall's drawing could not be saved. Check that you're signed in and try again.");
+  const styleText = (s.preview?.read ?? []).filter((r) => r.key !== "lighting").map((r) => r.text).join(" ").slice(0, 600);
+  const baseData = await ai({ mode: "base", imageUrl: guideUrl, styleImageUrl: previewImage(s), wall, style: s.moodboard?.name, palette: m.palette, pieces, moodboardDescription: s.moodboard?.description, styleText, roomType: s.current ?? s.startRoom });
   if (stopped()) throw new Error("Stopped.");
   const background = await storeDesignImage(baseData);
   const base = await pixels(baseData);
@@ -154,7 +193,7 @@ async function makeWall(s: JourneyState, m: ShowroomModel, wall: Wall, report: (
   const results = await inBatches(jobs.map((j) => async () => {
     if (stopped()) throw new Error("Stopped.");
     const box = guide.boxes[j.item.id], a = j.item.alts[j.alt];
-    const req = { mode: "variation", imageUrl: /^https:/.test(background) ? background : baseData, item: { name: j.item.title, current: j.item.current, target: a.target, box }, productImageUrl: a.productImageUrl };
+    const req: AiBody = { mode: "variation", imageUrl: /^https:/.test(background) ? background : baseData, item: { name: j.item.title, current: j.item.current, target: a.target, box, group: j.item.group }, productImageUrl: a.productImageUrl, style: s.moodboard?.name, palette: m.palette, roomType: s.current ?? s.startRoom };
     for (let tries = 1; tries <= 2; tries++) {
       const px = await pixels(await ai(req), base.width, base.height);
       if (driftOutside(base, px, pxBox(box, base.width, base.height, 0.15)) <= ALIGN_LIMIT) return px;

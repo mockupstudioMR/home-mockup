@@ -45,7 +45,7 @@ function basePrompt(b: Body) {
   const palette = (b.palette ?? []).map((p) => `${p.name} ${p.hex}${p.use ? ` (${p.use})` : ""}`).join("; ");
   const pieces = (b.pieces ?? []).map((p, i) => `${i + 1}. ${p.name}: ${p.detail} — at ${pct(p.box)}`).join("\n");
   return `Turn the FIRST image into a photorealistic interior photograph.
-The first image is a simple 3D guide of one wall (wall ${b.wall ?? ""}) of the client's own room, seen straight on. It is exact about geometry: keep the camera, the perspective, the wall, floor and ceiling lines, every door and window, and the position, size and order of every piece of furniture exactly where they are in the guide. Do not add, remove, move or resize any piece.
+The first image is a simple 3D guide of one wall (wall ${b.wall ?? ""}) of the client's own room: a straight-on elevation, exactly like an architect's wall drawing, with the wall filling the frame from floor to ceiling and corner to corner. It is exact about geometry: keep this straight-on view (no added perspective, no wider shot), every door and window, and the position, size and order of every piece of furniture exactly where they are in the guide. Do not add, remove, move or resize any piece. Only turn the simple shapes into the real, photographed pieces and finishes.
 ${b.styleImageUrl ? "The SECOND image is the client's chosen design. Copy its style, materials, textures, finishes, light and mood onto the pieces in the guide, as if the same designer furnished this wall." : ""}
 Design direction: ${b.style ?? "the client's style"}.
 Colours (use these exact colours for what they are used for): ${palette || "neutral, warm"}.

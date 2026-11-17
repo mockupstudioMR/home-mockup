@@ -833,6 +833,17 @@ export type Guide = {
   boxes: Record<string, [number, number, number, number]>;
 };
 
+/** A camera looking straight at a wall from inside the room, framing exactly the wall: its length and its height. */
+export function elevationCamera(room: ShowroomModel["room"], wall: Wall) {
+  const { w: W, l: L, h: H } = room, len = wall === "A" || wall === "C" ? W : L, depth = wall === "A" || wall === "C" ? L : W;
+  const cam = new THREE.OrthographicCamera(-len / 2, len / 2, H / 2, -H / 2, 0.01, depth + 1);
+  const at = { A: [W / 2, H / 2, depth - 0.02, W / 2, H / 2, 0], C: [W / 2, H / 2, L - depth + 0.02, W / 2, H / 2, L], B: [W - depth + 0.02, H / 2, L / 2, W, H / 2, L / 2], D: [depth - 0.02, H / 2, L / 2, 0, H / 2, L / 2] }[wall];
+  cam.position.set(at[0], at[1], at[2]);
+  cam.lookAt(at[3], at[4], at[5]);
+  cam.updateMatrixWorld();
+  return cam;
+}
+
 /** Where an object lands in a camera's picture, in percent of the frame, or null when it is out of view. */
 export function screenBox(obj: THREE.Object3D, camera: THREE.Camera): [number, number, number, number] | null {
   const bb = new THREE.Box3().setFromObject(obj);
@@ -856,10 +867,15 @@ export function screenBox(obj: THREE.Object3D, camera: THREE.Camera): [number, n
 }
 
 /**
- * Draws one wall of the person's room as a guide for the image AI: the exact camera, the doors and windows,
- * and every piece at its real size and place. Needs a browser with WebGL.
+ * Draws one wall of the person's room as a guide for the image AI, as the same straight-on elevation as the
+ * wall's outline in step 5: the wall fills the frame edge to edge and floor to ceiling, with its doors and
+ * windows and only the pieces the outline shows on it, at their real size and place. Needs WebGL.
  */
-export function renderGuide(m: ShowroomModel, wall: Wall, width = 1536, height = 1024): Guide {
+export function renderGuide(m: ShowroomModel, wall: Wall, width = 1536): Guide {
+  const len = wall === "A" || wall === "C" ? m.room.w : m.room.l, H = m.room.h;
+  const height = Math.max(256, Math.min(2048, Math.round((width * H) / len)));
+  // only what the outline shows on this wall (rugs lie flat and can't be seen straight on)
+  const onWall: ShowroomModel = { ...m, pieces: m.pieces.filter((p) => p.wall === wall && p.category !== "rug"), extras: m.extras.filter((e) => e.wall === wall && e.kind !== "pendant") };
   const canvas = document.createElement("canvas");
   canvas.width = width; canvas.height = height;
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, preserveDrawingBuffer: true });
@@ -871,14 +887,10 @@ export function renderGuide(m: ShowroomModel, wall: Wall, width = 1536, height =
     renderer.useLegacyLights = true;
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-    const built = buildScene(m, false);
+    const built = buildScene(onWall, false);
     const pm = new THREE.PMREMGenerator(renderer);
     try { built.scene.environment = pm.fromScene(built.envScene, 0.03).texture; } catch { /* no reflections */ }
-    const c = viewFor(wall, m.room, width / height);
-    const camera = new THREE.PerspectiveCamera(c.f, width / height, 0.08, 80);
-    camera.position.set(c.p[0], c.p[1], c.p[2]);
-    camera.lookAt(c.t[0], c.t[1], c.t[2]);
-    camera.updateMatrixWorld();
+    const camera = elevationCamera(m.room, wall);
     renderer.render(built.scene, camera);
     const image = canvas.toDataURL("image/jpeg", 0.92);
     const boxes: Guide["boxes"] = {};
@@ -891,8 +903,11 @@ export function renderGuide(m: ShowroomModel, wall: Wall, width = 1536, height =
     // walls, floor and doors are parts of the shell: find them inside it
     built.scene.traverse((o) => {
       const id = o.userData.id as string | undefined;
-      if (!id || boxes[id] || (id === "walls" && o.userData.wall !== wall)) return;
-      if (id !== "walls" && id !== "floor" && id !== "doors") return;
+      if (!id || boxes[id] || (id !== "walls" && id !== "floor" && id !== "doors")) return;
+      // only this wall's own surface and door
+      let w: unknown;
+      for (let p: THREE.Object3D | null = o; p && !w; p = p.parent) w = p.userData.wall;
+      if (id !== "floor" && w !== wall) return;
       const b = screenBox(o, camera);
       if (b) boxes[id] = b;
     });

@@ -225,7 +225,7 @@ export type JourneyState = {
    * The showroom: edits made in the (now hidden) 3D room, the saved style of the room, and each wall's
    * hyper-realistic layered picture (wallScenes/runner).
    */
-  showroom?: { edits: import("./showroom3d/model").Edits; record?: import("./showroom3d/record").StyleRecord; scenes?: Partial<Record<Wall, import("./wallScenes/runner").WallScene>> };
+  showroom?: { edits: import("./showroom3d/model").Edits; record?: import("./showroom3d/record").StyleRecord; scenes?: Partial<Record<Wall, import("./wallScenes/runner").WallScene>>; /** The option picked for each item on each wall picture (0 = main option). */ picks?: Partial<Record<Wall, Record<string, number>>> };
   /** People asked to join. saved = added to the project in the database (not only in this browser). */
   team?: { role: string; email: string; saved?: boolean }[];
   // Step 10 / more rooms

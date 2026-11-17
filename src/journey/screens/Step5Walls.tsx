@@ -22,6 +22,7 @@ import { useWalls, WALLS } from "./Step8";
 import { PlanDrawing } from "./Step4";
 import { WallElevation } from "./WallElevation";
 import { useRoomPictures, type WallStatus } from "../wallScenes/useRoomPictures";
+import { LayeredWall } from "../wallScenes/LayeredWall";
 import "../walls.css";
 
 const lc = (t: string) => t.charAt(0).toLowerCase() + t.slice(1);
@@ -395,7 +396,7 @@ function OneWall({ param }: { param?: string }) {
             // The person's own wall: a photograph in their preview's style, every piece swappable.
             <div className="ws-scene">
               {ownStatus === "outdated" && <p className="ws-sample" role="note">Your room changed since this picture was made. Make it again from "All walls".</p>}
-              <GeneratorProShowroom key={own.manifestUrl} scriptUrl={SCRIPT_URL} configUrl={own.manifestUrl} assetsUrl={own.assetsUrl} />
+              <LayeredWall wall={w} scene={own} />
             </div>
           ) : scene?.manifest_url && scene.assets_url ? (
             <GeneratorProShowroom scriptUrl={SCRIPT_URL} configUrl={scene.manifest_url} assetsUrl={scene.assets_url} />
