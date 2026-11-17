@@ -11,12 +11,13 @@ import RoomActivitiesManager from "@/components/admin/RoomActivitiesManager";
 import OpeningRulesManager from "@/components/admin/OpeningRulesManager";
 import PromptTemplateManager from "@/components/admin/PromptTemplateManager";
 import FurnitureSpecsManager from "@/components/admin/FurnitureSpecsManager";
+import ShowroomBackgroundsManager from "@/components/admin/ShowroomBackgroundsManager";
 import { AdminShell, Crumb } from "../ui";
 
 type Spec = Tables<"furniture_specs">;
 type Scope = Tables<"scope_defaults"> & { room_type?: string };
-type Tab = "sizes" | "furniture" | "activities" | "openings" | "prompts" | "all";
-const TABS: [Tab, string][] = [["sizes", "Standard sizes"], ["furniture", "Room furniture"], ["activities", "Room activities"], ["openings", "Opening rules"], ["prompts", "Prompt templates"]];
+type Tab = "sizes" | "furniture" | "activities" | "openings" | "prompts" | "showroom" | "all";
+const TABS: [Tab, string][] = [["sizes", "Standard sizes"], ["furniture", "Room furniture"], ["activities", "Room activities"], ["openings", "Opening rules"], ["prompts", "Prompt templates"], ["showroom", "Showroom backgrounds"]];
 const STATES: [Scope["starting_state"], string][] = [["core_shell", "Core & shell"], ["empty", "Empty"], ["partially_furnished", "Partly furnished"], ["redo_all", "Redo it all"]];
 export const AREA_LABEL: Record<string, string> = {
   furniture: "All furniture", walls_finishes: "Walls & paint", floors: "Flooring", lighting: "Lighting", built_ins: "Built-ins", electrical: "Electrics",
@@ -59,6 +60,7 @@ export function Sizes() {
           {tab === "activities" && <RoomActivitiesManager />}
           {tab === "openings" && <OpeningRulesManager />}
           {tab === "prompts" && <PromptTemplateManager />}
+          {tab === "showroom" && <ShowroomBackgroundsManager />}
           {tab === "all" && <FurnitureSpecsManager />}
         </div>
       )}
