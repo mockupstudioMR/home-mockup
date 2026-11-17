@@ -83,12 +83,13 @@ export function ShowroomHandoff() {
       )}
     </div>
     )}
-    <section className="panel" style={{ marginTop: 24, padding: 24 }}>
+    {/* The 3D room has its own "From above" view of the plan; the drawing is only needed beside a prepared scene. */}
+    {!own3d && <section className="panel" style={{ marginTop: 24, padding: 24 }}>
       <h2 className="h3">Confirmed layout · {layout.name}</h2>
-      <p className="small">The room above is drawn from this plan.</p>
+      <p className="small">This plan is your actual layout.</p>
       <div style={{ display: "flex", justifyContent: "center", overflow: "auto", marginTop: 16 }}>
         <PlanDrawing layout={layout} s={s} box={{ w: 300, h: 392 }} />
       </div>
-    </section>
+    </section>}
   </Screen>;
 }

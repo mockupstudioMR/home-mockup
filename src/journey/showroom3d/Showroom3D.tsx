@@ -31,7 +31,8 @@ function itemsOf(m: ShowroomModel): Item[] {
   ];
 }
 
-export default function Showroom3D({ view: wanted }: { view: View }) {
+/** `stageOnly`: just the room (no side panel or wall strip), for screens that already list the wall's pieces. */
+export default function Showroom3D({ view: wanted, stageOnly = false }: { view: View; stageOnly?: boolean }) {
   const { s, set } = useJourney();
   const edits: Edits = s.showroom?.edits ?? NO_EDITS;
   const model = useMemo(() => buildModel(s, edits), [s, edits]);
@@ -98,7 +99,7 @@ export default function Showroom3D({ view: wanted }: { view: View }) {
   const rec = s.showroom?.record;
 
   return (
-    <div className="sr3">
+    <div className={stageOnly ? "sr3 solo" : "sr3"}>
       <section className="sr3-stage" aria-label="Your room in 3D">
         <canvas ref={canvas} role="img" aria-label={`Your ${model.style} room in 3D, ${Math.round(model.room.w * 100)} by ${Math.round(model.room.l * 100)} centimetres`} />
         <div className="sr3-over tr" role="group" aria-label="More views">
@@ -109,7 +110,7 @@ export default function Showroom3D({ view: wanted }: { view: View }) {
           <button type="button" className="sr3-v" aria-pressed={!evening} onClick={() => setEvening(false)}>Day</button>
           <button type="button" className="sr3-v" aria-pressed={evening} onClick={() => setEvening(true)}>Evening</button>
         </div>
-        {isWall(view) ? (
+        {isWall(view) && !stageOnly ? (
           <div className="sr3-wall">
             <p><b>Wall {view} · {wallLen} cm</b>{order.length ? "Pieces in order, left to right as you face the wall" : "No furniture stands against this wall"}</p>
             {order.length > 0 && (
@@ -135,7 +136,7 @@ export default function Showroom3D({ view: wanted }: { view: View }) {
         )}
       </section>
 
-      <aside className="sr3-panel" aria-label="Change your room">
+      {!stageOnly && <aside className="sr3-panel" aria-label="Change your room">
         <p className="sr3-cap">Your room · from your own moodboard</p>
         <div>
           <b style={{ fontSize: 20 }}>{model.style}</b>
@@ -217,7 +218,7 @@ export default function Showroom3D({ view: wanted }: { view: View }) {
             ))}
           </details>
         )}
-      </aside>
+      </aside>}
     </div>
   );
 }
