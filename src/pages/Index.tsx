@@ -70,7 +70,7 @@ const Index = () => {
         </p>
         <p className="script" style={{ marginTop: "14px" }}>your creativity leads, technology keeps up</p>
         <div className="row" style={{ justifyContent: "center", marginTop: "32px", gap: "14px" }}>
-          <button type="button" className="btn auto" onClick={() => handleEntryClick("/choose-path")}>
+          <button type="button" className="btn auto" onClick={() => handleEntryClick("/journey")}>
             Get started
             <ArrowRight className="ic" style={{ width: 20, height: 20 }} />
           </button>
