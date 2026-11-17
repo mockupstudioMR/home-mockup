@@ -51,15 +51,17 @@ Design direction: ${b.style ?? "the client's style"}.
 Colours (use these exact colours for what they are used for): ${palette || "neutral, warm"}.
 Pieces on this wall, left to right:
 ${pieces || "none"}
-Make it look like a real high-end interior photograph: real materials, soft natural daylight, accurate contact shadows, no people, no text, no watermark, no added objects. Same aspect ratio as the guide.`;
+It must look like a real photograph taken by an interior photographer with a full-frame camera, not a render: soft daylight from one consistent direction with gentle falloff across the wall, real fabric weave, wood grain and plaster texture, slight natural imperfections, true-to-life colour.
+Shadows only where light really makes them: soft contact shadows under and behind each piece, consistent with the one light direction. No dark halos, no floating shadows, no shadow rectangles or patches.
+Every piece complete and whole: nothing cut off by the frame, nothing partly entering at the left or right edge, no half pieces. No people, no text, no watermark, no added objects. Same aspect ratio as the guide.`;
 }
 
 function variationPrompt(b: Body) {
   const it = b.item!;
   return `Edit this interior photograph. Change ONLY the ${it.current} (${pct(it.box)} of the image).
 Replace it with: ${b.productImageUrl ? `the product shown in the SECOND image — copy its shape, proportions, material and colour faithfully` : it.target}.
-Keep its position, footprint, size and perspective the same, so it stands exactly where the old one stood.
-Every pixel outside that area must stay exactly as it is: same walls, floor, light, shadows elsewhere, other furniture and camera. Do not crop, zoom, reframe or recolour the rest of the photograph. Keep the photo's lighting on the new piece and give it a natural contact shadow. No text, no watermark. Same size and aspect ratio as the input.`;
+Keep its position, footprint, size and perspective the same, so it stands exactly where the old one stood. The whole new piece must fit inside that area, complete, never cut off; it may be a little smaller than the old one, never larger.
+Every pixel outside that area must stay exactly as it is: same walls, floor, light, shadows elsewhere, other furniture and camera. Do not crop, zoom, reframe or recolour the rest of the photograph. Do not change the photo's brightness, colour balance, contrast or grain anywhere. Light the new piece from the same direction as the rest of the photo and give it only a soft natural contact shadow where it touches the floor or wall; no shadow patches or halos. No text, no watermark. Same size and aspect ratio as the input.`;
 }
 
 Deno.serve(async (req) => {

@@ -13,7 +13,7 @@ import { getAiErrorMessage } from "@/lib/aiErrorMessage";
 import { storeDesignImage } from "../services";
 import type { JourneyState, Wall } from "../state";
 import { buildModel, type ShowroomModel } from "../showroom3d/model";
-import { centreOf, composite, cutLayer, driftOutside, itemMask, pxBox, type PctBox, type Rgba } from "./layers";
+import { alphaBox, altMask, centreOf, composite, cutLayer, driftOutside, matchTone, pxBox, unionAlpha, type AltCut, type PctBox, type Rgba } from "./layers";
 import { wallItems, type WallItem } from "./items";
 
 export type WallScene = {
@@ -32,15 +32,17 @@ export type WallScene = {
 export type Progress = { wall: Wall; step: string; done: number; total: number };
 
 export const WALLS: Wall[] = ["A", "B", "C", "D"];
-const ALIGN_LIMIT = 20; // mean change outside the item (0–255) above which an alternative moved the photo
+const ALIGN_LIMIT = 14; // mean change outside the item (0–255), after matching tones, above which an alternative moved the photo
 const PARALLEL = 4;
+/** Raised when the way pictures are made changes, so walls made the old way are made again. */
+const PICTURE_VERSION = 2;
 
 const previewImage = (s: JourneyState) => s.preview?.versions[s.preview.current]?.image;
 
 /** A short fingerprint of everything a wall's picture is made from. */
 export function wallKey(s: JourneyState, m: ShowroomModel, wall: Wall) {
   const pieces = m.pieces.filter((p) => p.wall === wall).map((p) => [p.id, p.shape, p.color, Math.round(p.fromCm), Math.round(p.toCm)]);
-  const raw = JSON.stringify([wall, previewImage(s) ?? "", m.palette.map((p) => p.hex), m.room, m.openings.filter((o) => o.wall === wall), pieces, m.extras.filter((e) => e.wall === wall).map((e) => [e.id, e.color]), m.surfaces]);
+  const raw = JSON.stringify([PICTURE_VERSION, wall, previewImage(s) ?? "", m.palette.map((p) => p.hex), m.room, m.openings.filter((o) => o.wall === wall), pieces, m.extras.filter((e) => e.wall === wall).map((e) => [e.id, e.color]), m.surfaces]);
   let h = 2166136261;
   for (let i = 0; i < raw.length; i++) h = Math.imul(h ^ raw.charCodeAt(i), 16777619);
   return (h >>> 0).toString(36);
@@ -115,12 +117,15 @@ const NOT_THERE = /failed to send a request|not.?found|function.*(missing|does n
 const STOP = /credits|blocked|sign in/i;
 const pct = (b: PctBox) => `${Math.round(b[0])}% from the left, ${Math.round(b[1])}% from the top, ${Math.round(b[2])}% wide, ${Math.round(b[3])}% high`;
 
+/** What makes the pictures read as photographs, not renders: shared by both functions' prompts. */
+const REAL = "It must look like a real photograph taken by an interior photographer with a full-frame camera: soft daylight from one consistent direction, gentle falloff across the wall, real fabric weave, wood grain and plaster texture, slight natural imperfections. Shadows only where light really makes them: soft contact shadows under and behind each piece, no dark halos, no floating shadows, no shadow rectangles or patches. Every piece complete and whole, never cut off by the frame or by another piece; nothing partly entering at the edges. No CGI look, no plastic surfaces, no text, no watermark.";
+
 /** The same request through generate-design (the preview's function, always deployed), as a surgical edit. */
 async function viaPreviewFunction(b: AiBody): Promise<string> {
   const palette = (b.palette ?? []).map((p) => `${p.name} ${p.hex}${p.use ? ` for ${p.use.toLowerCase()}` : ""}`).join(", ");
   const change = b.mode === "base"
-    ? `Render this exact straight-on wall elevation as a real, photorealistic interior photograph of wall ${b.wall ?? ""}. Turn every simple 3D shape into the real piece it stands for, with real materials and textures, in the ${b.style ?? "chosen"} style${b.styleText ? ` (${b.styleText})` : ""}. Colours: ${palette}. Pieces, left to right: ${(b.pieces ?? []).map((p) => `${p.name} (${p.detail}) at ${pct(p.box)}`).join("; ")}. Keep every piece, door and window exactly where it is and exactly its size; keep the straight-on view with the wall filling the frame.`
-    : `Replace only the ${b.item!.current} (${pct(b.item!.box)}) with ${b.item!.target}. Same position, size and perspective.`;
+    ? `Render this exact straight-on wall elevation as a real, photorealistic interior photograph of wall ${b.wall ?? ""}. Turn every simple 3D shape into the real piece it stands for, with real materials and textures, in the ${b.style ?? "chosen"} style${b.styleText ? ` (${b.styleText})` : ""}. Colours: ${palette}. Pieces, left to right: ${(b.pieces ?? []).map((p) => `${p.name} (${p.detail}) at ${pct(p.box)}`).join("; ")}. Keep every piece, door and window exactly where it is and exactly its size; keep the straight-on view with the wall filling the frame. ${REAL}`
+    : `Replace only the ${b.item!.current} (${pct(b.item!.box)}) with ${b.item!.target}. Same position, size and perspective; the whole new piece fits inside that area, complete, never cut off. Keep the photo's exact light, colours, brightness and grain everywhere else, with a soft natural contact shadow only where the new piece touches the floor or wall.`;
   const layer = b.mode === "base" ? undefined : b.item?.group === "walls" || b.item?.group === "floor" ? "architecture" : b.item?.group === "furniture" ? "furniture" : "decor";
   const { data, error } = await invokeAi<{ imageUrl?: string; error?: string }>("generate-design", {
     body: { stylePreference: (b.style ?? "").toLowerCase().replace(/[&\s]+/g, "-"), colorPalette: (b.palette ?? []).map((p) => p.name).join(", "), roomType: b.roomType ?? "living-room", budgetFeel: "mid", mustHaveElements: [], detectedColors: (b.palette ?? []).map((p) => p.hex), sourceImageUrl: b.imageUrl, modificationPrompt: change, ...(layer ? { refinementLayer: layer } : {}) },
@@ -190,15 +195,21 @@ async function makeWall(s: JourneyState, m: ShowroomModel, wall: Wall, report: (
   // every alternative of every item, a few at a time
   type Job = { item: WallItem; alt: number };
   const jobs: Job[] = items.flatMap((item) => item.alts.map((_, alt) => ({ item, alt })));
-  const results = await inBatches(jobs.map((j) => async () => {
+  const results = await inBatches(jobs.map((j) => async (): Promise<{ px: Rgba; cut: AltCut }> => {
     if (stopped()) throw new Error("Stopped.");
     const box = guide.boxes[j.item.id], a = j.item.alts[j.alt];
     const req: AiBody = { mode: "variation", imageUrl: /^https:/.test(background) ? background : baseData, item: { name: j.item.title, current: j.item.current, target: a.target, box, group: j.item.group }, productImageUrl: a.productImageUrl, style: s.moodboard?.name, palette: m.palette, roomType: s.current ?? s.startRoom };
+    // an alternative is kept only when it sits in the photo like the original: same tones, the rest of the
+    // photo untouched, the new piece whole (not cut off by its area) and not a re-lit rectangle
     for (let tries = 1; tries <= 2; tries++) {
-      const px = await pixels(await ai(req), base.width, base.height);
-      if (driftOutside(base, px, pxBox(box, base.width, base.height, 0.15)) <= ALIGN_LIMIT) return px;
+      const raw = await pixels(await ai(req), base.width, base.height);
+      const area = pxBox(box, base.width, base.height, 0.28);
+      const px = matchTone(base, raw, area);
+      if (driftOutside(base, px, area) > ALIGN_LIMIT) continue;
+      const cut = altMask(base, px, box as PctBox);
+      if (cut.usable) return { px, cut };
     }
-    throw new Error("The alternative moved the rest of the picture.");
+    throw new Error("The alternative did not fit the photo.");
   }), PARALLEL, () => tick("Making the alternatives"));
   if (stopped()) throw new Error("Stopped.");
 
@@ -209,24 +220,27 @@ async function makeWall(s: JourneyState, m: ShowroomModel, wall: Wall, report: (
   const skipped: string[] = [];
   let order = 10;
   for (const item of items) {
-    const ok: { px: Rgba; name: string }[] = [];
+    const ok: { px: Rgba; cut: AltCut; name: string }[] = [];
     item.alts.forEach((a, i) => {
       const r = results[jobs.findIndex((j) => j.item === item && j.alt === i)];
-      if (r?.status === "fulfilled") ok.push({ px: r.value as Rgba, name: a.name });
+      if (r?.status === "fulfilled") { const v = r.value as { px: Rgba; cut: AltCut }; ok.push({ ...v, name: a.name }); }
     });
     if (!ok.length) { skipped.push(item.title); continue; }
-    const mask = itemMask(base, ok.map((o) => o.px), guide.boxes[item.id] as PctBox);
-    const variants = [{ px: base, name: item.mainName }, ...ok];
+    // each alternative is cut to its own shape; the main option covers wherever any of them drew,
+    // and since it is the photo itself it never shows a seam
+    const all = unionAlpha(ok.map((o) => o.cut));
+    const area = alphaBox(all, base.width, base.height, ok[0].cut.box);
+    const variants = [{ px: base, alpha: all, name: item.mainName }, ...ok.map((o) => ({ px: o.px, alpha: o.cut.alpha, name: o.name }))];
     const name = item.id.replace(/[^a-zA-Z0-9_-]/g, "-");
     const urls: string[] = [], thumbs: string[] = [];
     for (const [i, v] of variants.entries()) {
-      const layer = cutLayer(v.px, mask.alpha);
+      const layer = cutLayer(v.px, v.alpha);
       const blob = await toBlob(layer, "image/webp");
       urls.push(await up.put(`${name}-${i + 1}.${blob.type === "image/webp" ? "webp" : "png"}`, blob, blob.type));
-      const t = await toBlob(composite(base, layer), "image/jpeg", mask.box, 260);
+      const t = await toBlob(composite(base, layer), "image/jpeg", area, 260);
       thumbs.push(await up.put(`${name}-${i + 1}-thumb.jpg`, t, "image/jpeg"));
     }
-    const c = centreOf(mask.alpha, base.width, mask.box);
+    const c = centreOf(all, base.width, area);
     layers[name] = {
       title: item.title, group: item.group, order: order++, visible: true,
       variations: urls, thumbnails: thumbs, variationNames: variants.map((v) => v.name),

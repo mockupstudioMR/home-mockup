@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { EMPTY, type JourneyState } from "@/journey/state";
 import { buildModel } from "@/journey/showroom3d/model";
-import { centreOf, composite, cutLayer, driftOutside, itemMask, pxBox, type Rgba } from "@/journey/wallScenes/layers";
+import { altMask, centreOf, composite, cutLayer, driftOutside, itemMask, matchTone, pxBox, type Rgba } from "@/journey/wallScenes/layers";
 import { wallItems } from "@/journey/wallScenes/items";
 import { wallKey } from "@/journey/wallScenes/runner";
 
@@ -16,6 +16,31 @@ const inSofa = (x: number, y: number) => x >= 40 && x < 80 && y >= 40 && y < 65;
 const base = picture((x, y) => (inSofa(x, y) ? [94, 43, 79] : [185, 179, 170]));
 const green = picture((x, y) => (inSofa(x, y) ? [31, 92, 74] : [186, 179, 171]));
 const box: [number, number, number, number] = [(40 / W) * 100, (40 / H) * 100, (40 / W) * 100, (25 / H) * 100];
+
+describe("keeping alternatives true to the photo", () => {
+  const area = () => pxBox(box, W, H, 0.28);
+  it("brings an alternative's shifted tones back, so the piece doesn't sit in a lighter rectangle", () => {
+    const lighter = picture((x, y) => (inSofa(x, y) ? [31, 92, 74] : [210, 204, 195]));
+    const fixed = matchTone(base, lighter, area());
+    const i = (5 * W + 5) * 4;
+    expect(Math.abs(fixed.data[i] - 185)).toBeLessThan(3);
+    const cut = altMask(base, fixed, box);
+    expect(cut.usable).toBe(true);
+    expect(cut.alpha[(10 * W + 10)]).toBe(0);
+    expect(cut.alpha[(52 * W + 60)]).toBeGreaterThan(0.9);
+  });
+  it("won't show a new piece that runs past its area (an incomplete sofa)", () => {
+    const longer = picture((x, y) => (x >= 4 && x < 80 && y >= 40 && y < 65 ? [31, 92, 74] : [185, 179, 170]));
+    const cut = altMask(base, longer, box);
+    expect(cut.clipped).toBe(true);
+    expect(cut.usable).toBe(false);
+  });
+  it("won't show a re-lit rectangle instead of a piece", () => {
+    const a = area();
+    const patched = picture((x, y) => (x >= a.x0 && x < a.x1 && y >= a.y0 && y < a.y1 ? [140, 140, 140] : [185, 179, 170]));
+    expect(altMask(base, patched, box).usable).toBe(false);
+  });
+});
 
 describe("cutting an alternative into a layer", () => {
   it("finds the item's pixels and nothing outside its box", () => {
