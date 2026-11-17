@@ -39,7 +39,7 @@ describe("Chosen layouts survive background work", () => {
     mocks.makeLayout.mockResolvedValueOnce(layout("First")).mockImplementationOnce(() => new Promise<Layout>((resolve) => { finish = resolve; }));
     mount();
     await waitFor(() => expect(saved().layouts).toHaveLength(1));
-    fireEvent.click(screen.getByRole("button", { name: /\+ Sofa/ }));
+    fireEvent.change(screen.getByRole("combobox", { name: "Add another piece" }), { target: { value: "Sofa" } });
     fireEvent.click(screen.getByRole("button", { name: /Layout 1.*First/ }));
     await act(async () => { finish(layout("Second")); });
     expect(saved().layouts).toHaveLength(2);
