@@ -90,6 +90,8 @@ export function RoomInput() {
             const pr = room0.planRead;
             const written = printedForRoom(room0, pr?.box, pr?.picked !== "tap");
             if (!written || JSON.stringify(written) === JSON.stringify(x.room.written)) return { room: room0 };
+            // Late background readers must not erase a layout the person is already choosing.
+            if (x.layouts.length) return { room: room0 };
             replaced = !!x.room.confirmed && !x.room.sizeSource;
             // the reader's door-scaled guess keeps the room's proportions for a side that isn't printed
             const est = pr?.guessM ? { widthM: pr.guessM[0], lengthM: pr.guessM[1] } : { widthM: x.room.widthM ?? EX_W, lengthM: x.room.lengthM ?? EX_L };
@@ -663,21 +665,27 @@ export function Layouts() {
   };
 
   useEffect(() => {
-    if (once.current || s.layouts.length >= 2) return;
+    if (once.current || s.layouts.length) return;
     once.current = true;
+    let cancelled = false;
     (async () => {
       setBusy(true);
       try {
-        const a = s.layouts[0] ?? (await makeLayout(s, { emphasis: 0 }));
-        set({ layouts: [a] });
+        const a = await makeLayout(s, { emphasis: 0 });
+        if (cancelled) return;
+        set((x) => x.layouts.length ? {} : { layouts: [a] });
         const b = await makeLayout(s, { emphasis: 1, avoid: [a.name] });
-        set({ layouts: [a, b], chosenLayout: 0 });
+        if (cancelled) return;
+        set((x) => x.layouts.some((layout) => layout.id === a.id)
+          ? { layouts: [...x.layouts, b], chosenLayout: x.chosenLayout ?? 0 }
+          : {});
       } catch (e) {
-        toast({ title: "Layouts aren't ready", description: (e as Error).message, variant: "destructive" });
+        if (!cancelled) toast({ title: "Layouts aren't ready", description: (e as Error).message, variant: "destructive" });
       } finally {
-        setBusy(false);
+        if (!cancelled) setBusy(false);
       }
     })();
+    return () => { cancelled = true; once.current = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

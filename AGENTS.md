@@ -1,5 +1,7 @@
 # Architecture rules
 
+- Layout generation appends options to current state and ignores results after leaving the screen; late plan readers must not clear displayed layouts, so selection and edits survive background work.
+
 - Project SELECT policies must check row ownership directly before membership helpers so INSERT RETURNING can read newly created owner rows within the same statement snapshot.
 
 - Keep furniture groupings, plan symbols, side clearances, and wall-gap rules in database reference tables; publish only active groupings and preserve customized reference values when seeding defaults.
