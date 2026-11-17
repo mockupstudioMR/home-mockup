@@ -225,7 +225,6 @@ function StepBar({ step }: { step: number }) {
             to={STEP_FIRST[n]}
             className={`seg st-${st}`}
             ariaLabel={`Step ${n}: ${STEP_TITLES[n]}${st === "done" ? " (done)" : st === "now" ? " (you are here)" : ""}`}
-            title={`${n} · ${STEP_NAMES[n]}`}
           >
             <span className="seg-tip" aria-hidden="true">
               {n} · {STEP_NAMES[n]}
