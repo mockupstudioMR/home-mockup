@@ -137,3 +137,16 @@ describe("keeping every piece whole in a wall picture", () => {
     expect(bb.min.x).toBeCloseTo(1, 3);
   });
 });
+
+describe("a wall drawn on a wider canvas", () => {
+  it("still shows the whole wall, centred, at one scale", async () => {
+    const { elevationCamera } = await import("@/journey/showroom3d/scene");
+    const room = { w: 4, l: 3, h: 2.5, example: false };
+    const cam = elevationCamera(room, "A", 2);
+    expect(cam.top - cam.bottom).toBeCloseTo(2.5, 5);
+    expect(cam.right - cam.left).toBeCloseTo(5, 5);
+    const tall = elevationCamera(room, "A", 1);
+    expect(tall.right - tall.left).toBeCloseTo(4, 5);
+    expect(tall.top - tall.bottom).toBeCloseTo(4, 5);
+  });
+});

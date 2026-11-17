@@ -15,6 +15,7 @@ import type { JourneyState, Wall } from "../state";
 import { buildModel, type ShowroomModel } from "../showroom3d/model";
 import { alphaBox, altMask, centreOf, composite, cutAlt, cutLayer, driftOutside, matchTone, pxBox, unionAlpha, type AltCut, type PctBox, type Rgba } from "./layers";
 import { wallItems, type WallItem } from "./items";
+import { canvasFor, composeWall, loadRules, saveComposition, wallLength, type ItemAssets } from "./composition";
 
 export type WallScene = {
   status: "making" | "ready" | "failed";
@@ -27,6 +28,8 @@ export type WallScene = {
   /** Items that got no usable alternative, by title. */
   skipped?: string[];
   error?: string;
+  /** The canvas it was drawn on (one of the stored presets) and its scale. */
+  canvas?: { preset: string; width: number; height: number; pxPerCm: number };
   at: string;
 };
 export type Progress = { wall: Wall; step: string; done: number; total: number };
@@ -35,7 +38,7 @@ export const WALLS: Wall[] = ["A", "B", "C", "D"];
 const ALIGN_LIMIT = 14; // mean change outside the item (0–255), after matching tones, above which an alternative moved the photo
 const PARALLEL = 4;
 /** Raised when the way pictures are made changes, so walls made the old way are made again. */
-const PICTURE_VERSION = 3;
+const PICTURE_VERSION = 4;
 
 const previewImage = (s: JourneyState) => s.preview?.versions[s.preview.current]?.image;
 
@@ -175,7 +178,12 @@ async function makeWall(s: JourneyState, m: ShowroomModel, wall: Wall, report: (
   const key = wallKey(s, m, wall);
   const { renderGuide } = await import("../showroom3d/scene");
   report({ wall, step: "Drawing your wall from its outline", done: 0, total: 1 });
-  const guide = renderGuide(m, wall);
+  // the wall on its stored canvas preset, at one scale, so every picture and layer of it shares one size
+  const rules = await loadRules();
+  const canvas = canvasFor(wallLength(m, wall) * 100, m.room.h * 100, rules.presets);
+  const guide = renderGuide(m, wall, canvas.width, canvas.height);
+  const comp = composeWall(m, wall, guide.boxes, canvas, rules.specs);
+  const placed = new Map(comp.items.map((it) => [it.key, it]));
   const items = wallItems(s, m, wall).filter((it) => guide.boxes[it.id]);
   const total = 2 + items.reduce((n, it) => n + it.alts.length, 0);
   let done = 0;
@@ -188,8 +196,10 @@ async function makeWall(s: JourneyState, m: ShowroomModel, wall: Wall, report: (
   const styleText = (s.preview?.read ?? []).filter((r) => r.key !== "lighting").map((r) => r.text).join(" ").slice(0, 600);
   const baseData = await ai({ mode: "base", imageUrl: guideUrl, styleImageUrl: previewImage(s), wall, style: s.moodboard?.name, palette: m.palette, pieces, moodboardDescription: s.moodboard?.description, styleText, roomType: s.current ?? s.startRoom });
   if (stopped()) throw new Error("Stopped.");
-  const background = await storeDesignImage(baseData);
-  const base = await pixels(baseData);
+  // the photo brought to the canvas size, so it lines up with the guide and every layer pixel for pixel
+  const base = await pixels(baseData, canvas.width, canvas.height);
+  const up = await uploader(`${key}-${wall.toLowerCase()}-${Date.now().toString(36)}`);
+  const background = await up.put("background.jpg", await toBlob(base, "image/jpeg"), "image/jpeg").catch(() => storeDesignImage(baseData));
   tick("Making the alternatives");
 
   // every alternative of every item, a few at a time
@@ -197,16 +207,16 @@ async function makeWall(s: JourneyState, m: ShowroomModel, wall: Wall, report: (
   const jobs: Job[] = items.flatMap((item) => item.alts.map((_, alt) => ({ item, alt })));
   const results = await inBatches(jobs.map((j) => async (): Promise<{ px: Rgba; cut: AltCut }> => {
     if (stopped()) throw new Error("Stopped.");
-    const box = guide.boxes[j.item.id], a = j.item.alts[j.alt];
+    const box = guide.boxes[j.item.id], a = j.item.alts[j.alt], grow = placed.get(j.item.id)?.cutPadding ?? 0.28;
     const req: AiBody = { mode: "variation", imageUrl: /^https:/.test(background) ? background : baseData, item: { name: j.item.title, current: j.item.current, target: a.target, box, group: j.item.group }, productImageUrl: a.productImageUrl, style: s.moodboard?.name, palette: m.palette, roomType: s.current ?? s.startRoom };
     // an alternative is kept only when it sits in the photo like the original: same tones, the rest of the
     // photo untouched, the new piece whole (not cut off by its area) and not a re-lit rectangle
     for (let tries = 1; tries <= 2; tries++) {
       const raw = await pixels(await ai(req), base.width, base.height);
-      const area = pxBox(box, base.width, base.height, 0.28);
+      const area = pxBox(box, base.width, base.height, grow);
       const px = matchTone(base, raw, area);
       if (driftOutside(base, px, area) > ALIGN_LIMIT) continue;
-      const cut = altMask(base, px, box as PctBox);
+      const cut = altMask(base, px, box as PctBox, grow);
       if (cut.usable) return { px, cut };
     }
     throw new Error("The alternative did not fit the photo.");
@@ -214,11 +224,10 @@ async function makeWall(s: JourneyState, m: ShowroomModel, wall: Wall, report: (
   if (stopped()) throw new Error("Stopped.");
 
   report({ wall, step: "Cutting the layers", done, total });
-  const up = await uploader(`${key}-${wall.toLowerCase()}-${Date.now().toString(36)}`);
   const layers: Record<string, unknown> = {};
+  const assets: Record<string, ItemAssets> = {};
   const saved: NonNullable<WallScene["layers"]> = [];
   const skipped: string[] = [];
-  let order = 10;
   for (const item of items) {
     const ok: { px: Rgba; cut: AltCut; name: string }[] = [];
     item.alts.forEach((a, i) => {
@@ -241,19 +250,23 @@ async function makeWall(s: JourneyState, m: ShowroomModel, wall: Wall, report: (
       const t = await toBlob(composite(base, layer), "image/jpeg", area, 260);
       thumbs.push(await up.put(`${name}-${i + 1}-thumb.jpg`, t, "image/jpeg"));
     }
-    const c = centreOf(all, base.width, area);
+    const at = placed.get(item.id);
+    const c = at?.hotspot ?? centreOf(all, base.width, area);
+    assets[item.id] = { variations: urls, thumbnails: thumbs, names: variants.map((v) => v.name) };
     layers[name] = {
-      title: item.title, group: item.group, order: order++, visible: true,
+      title: item.title, group: item.group, order: at?.zOrder ?? 10, visible: true,
       variations: urls, thumbnails: thumbs, variationNames: variants.map((v) => v.name),
       hotspot: { id: name, title: item.title, visible: true, position: c },
     };
     saved.push({ id: item.id, title: item.title, names: variants.map((v) => v.name) });
   }
   if (!saved.length) throw new Error("None of the alternatives could be made for this wall. Try again.");
-  const manifest = { background, imageSize: { width: base.width, height: base.height }, layers, enhancements: { brightness: 100, contrast: 100, saturation: 100 } };
+  const composition = { preset: canvas.preset, pxPerCm: canvas.pxPerCm, wall: { lengthCm: canvas.lengthCm, heightCm: canvas.heightCm, x: canvas.wallX, y: canvas.wallY }, items: comp.items };
+  const manifest = { background, imageSize: { width: base.width, height: base.height }, layers, composition, enhancements: { brightness: 100, contrast: 100, saturation: 100 } };
   const manifestUrl = await up.put("manifest.json", new Blob([JSON.stringify(manifest)], { type: "application/json" }), "application/json");
+  void saveComposition(s, comp, { sceneKey: key, guideUrl, background, manifestUrl, assets });
   tick("Done");
-  return { status: "ready", key, manifestUrl, assetsUrl: up.assetsUrl, background, layers: saved, skipped, at: new Date().toISOString() };
+  return { status: "ready", key, manifestUrl, assetsUrl: up.assetsUrl, background, layers: saved, skipped, canvas: { preset: canvas.preset, width: canvas.width, height: canvas.height, pxPerCm: canvas.pxPerCm }, at: new Date().toISOString() };
 }
 
 /** Record a finished wall in the database too, so the scene is found from any device (best effort). */

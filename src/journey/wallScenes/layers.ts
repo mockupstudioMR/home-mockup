@@ -222,8 +222,8 @@ export type AltCut = {
  * The pixels one (tone-matched) alternative changed around its item. The area is generous, so a slightly
  * larger new piece is still cut whole; one that runs past it anyway is marked `clipped` and not shown.
  */
-export function altMask(base: Rgba, alt: Rgba, b: PctBox): AltCut {
-  const { width: w, height: h } = base, box = pxBox(b, w, h, 0.28), ring = pxBox(b, w, h, 0.5);
+export function altMask(base: Rgba, alt: Rgba, b: PctBox, grow = 0.28): AltCut {
+  const { width: w, height: h } = base, box = pxBox(b, w, h, grow), ring = pxBox(b, w, h, grow + 0.22);
   const bw = box.x1 - box.x0, bh = box.y1 - box.y0, area = Math.max(1, bw * bh);
   // how much the photo changes where nothing should have changed: the threshold sits above that noise
   const hist = new Uint32Array(256);

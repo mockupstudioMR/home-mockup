@@ -30,3 +30,14 @@ Runs in the browser: the page must stay open. Cost: one base picture plus two ed
 - The guide leaves out other walls' doors and windows, and slides any piece that runs past a corner back onto the wall (`keepInFrame`).
 - The prompts ask for a real photograph with one light direction, contact shadows only, and every piece whole.
 - `PICTURE_VERSION` in `runner.ts` marks walls made the old way as out of date, so they are made again.
+
+## Wall compositions (v4)
+
+| Table | What it holds |
+|---|---|
+| `showroom_canvas_presets` | The six canvas sizes walls are drawn at (4:3 to 3:1, longest side at most 2048, multiples of 16). |
+| `showroom_item_specs` | One rule per `furniture_specs` box: mount, height of a wall-hung piece, depth band (drawing order), layer group, cut padding, shadow margin, hotspot position, smallest size in pixels, and whether it appears in wall pictures. Seeded for every box; new boxes get one by trigger. Read through the view `showroom_item_specs_full`. |
+| `wall_compositions` | One row per person, layout and wall: the wall's size in cm, the preset, canvas size, px per cm, where the wall sits in the canvas, and the guide, photo and manifest files. |
+| `wall_composition_items` | Every piece on that wall: place in cm and px, drawing order, hotspot, a low-resolution flag, and its layer files, thumbnails and names. |
+
+Each wall picks the preset closest to its own length-to-height ratio and is fitted whole at one scale. The guide, the photo, every layer and every thumbnail share that canvas size. Pieces are drawn back to front by depth band. Hotspots come from each box's rule. The manifest also carries the composition.
