@@ -29,7 +29,8 @@ function ensureGeneratorScript(url: string): Promise<void> {
       const script = document.createElement("script");
       script.src = url;
       script.async = true;
-      script.onload = () => customElements.whenDefined("showroom-configurator").then(resolve, reject);
+      script.type = 'module';
+      script.onload = () => customElements.get("showroom-configurator") ? resolve() : reject(new Error("Generator bundle did not register showroom-configurator"));
       script.onerror = () => reject(new Error("Generator PRO bundle could not be loaded"));
       document.head.appendChild(script);
     }).catch(error => {
