@@ -1116,7 +1116,7 @@ function create_if_block_2(ctx) {
   );
   const get_key = (ctx2) => (
     /*hotspot*/
-    ctx2[137].id
+    ctx2[137].id || ctx2[137].layerName
   );
   for (let i = 0; i < each_value_7.length; i += 1) {
     let child_ctx = get_each_context_7(ctx, each_value_7, i);
@@ -2735,7 +2735,7 @@ function create_each_block_5(key_1, ctx) {
         ctx[110].variations
       ) ? (
         /*variation*/
-        ctx[131]
+        (ctx[110].thumbnails && ctx[110].thumbnails[ctx[132] - 1]) || ctx[131]
       ) : (
         /*getAssetUrl*/
         ctx[36](`${/*activeLayer*/
@@ -2776,7 +2776,7 @@ function create_each_block_5(key_1, ctx) {
         ctx[110].variations
       ) ? (
         /*variation*/
-        ctx[131]
+        (ctx[110].thumbnails && ctx[110].thumbnails[ctx[132] - 1]) || ctx[131]
       ) : (
         /*getAssetUrl*/
         ctx[36](`${/*activeLayer*/
@@ -4236,7 +4236,7 @@ function instance($$self, $$props, $$invalidate) {
     // Default to position 6 on the 1-10 scale
   });
   component_subscribe($$self, imageEnhancements, (value) => $$invalidate(12, $imageEnhancements = value));
-  const currentLanguage = writable("de");
+  const currentLanguage = writable("en"); // Home Mockup patch: English by default (DE/EN toggle kept)
   component_subscribe($$self, currentLanguage, (value) => $$invalidate(15, $currentLanguage = value));
   const translations = {
     de: {
@@ -4534,7 +4534,8 @@ function instance($$self, $$props, $$invalidate) {
       const productConfigPromises = [];
       Object.entries(data.layers || {}).forEach(([name, layer]) => {
         var _a, _b, _c, _d, _e;
-        if (layer.folder) {
+        if (layer.folder || Array.isArray(layer.variations)) {
+          // Home Mockup patch: array-mode variation layers (published manifests) start on variation 1
           initialState[name] = { selected: 1 };
         } else if (layer.group === "product-layer") {
           const loadParts = ((_a = data.load) == null ? void 0 : _a.split(":")) || [];
@@ -4857,14 +4858,19 @@ function instance($$self, $$props, $$invalidate) {
   let canvasRect = { width: 0, height: 0, left: 0, top: 0 };
   const updateCanvasRect = () => {
     if (canvasElement) {
+      // Home Mockup patch: use layout sizes (offset*), not getBoundingClientRect().
+      // The host app scales screens with a CSS transform to fit the window; bounding
+      // rects are already scaled, and hotspots are placed inside the scaled container,
+      // so using them scaled the hotspot positions twice.
       const rect = canvasElement.getBoundingClientRect();
       const container = canvasElement.parentElement;
       const containerRect = container.getBoundingClientRect();
+      const scale = canvasElement.offsetWidth ? rect.width / canvasElement.offsetWidth : 1;
       $$invalidate(7, canvasRect = {
-        width: rect.width,
-        height: rect.height,
-        left: rect.left - containerRect.left,
-        top: rect.top - containerRect.top
+        width: canvasElement.offsetWidth || rect.width,
+        height: canvasElement.offsetHeight || rect.height,
+        left: (rect.left - containerRect.left) / (scale || 1),
+        top: (rect.top - containerRect.top) / (scale || 1)
       });
     }
   };

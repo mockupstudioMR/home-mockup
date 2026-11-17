@@ -25,6 +25,12 @@ type LayerInput = {
   order: number;
   variations: string[];
   shadow?: string;
+  /** Shown on the tab and the hotspot, e.g. "Sofa". Defaults to the name. */
+  title?: string;
+  /** Small previews, one per variation (full-canvas transparent layers make poor thumbnails). */
+  thumbnails?: string[];
+  /** Where the hotspot sits, in pixels of the scene image. Without it the layer has a tab only. */
+  hotspot?: { x: number; y: number };
 };
 type RequestBody = {
   projectId: string; roomId: string; layoutId: string; view: string;
@@ -52,10 +58,15 @@ Deno.serve(async (req) => {
         layers[layer.name] || !Number.isFinite(layer.order) ||
         !Array.isArray(layer.variations) || layer.variations.length < 2 ||
         layer.variations.length > 20 ||
-        !["furniture", "walls", "floor", "lighting", "decor"].includes(layer.group)) {
+        !["furniture", "walls", "floor", "lighting", "decor"].includes(layer.group) ||
+        (layer.title !== undefined && (typeof layer.title !== "string" || layer.title.length > 64)) ||
+        (layer.thumbnails !== undefined && (!Array.isArray(layer.thumbnails) || layer.thumbnails.length !== layer.variations.length)) ||
+        (layer.hotspot !== undefined && !(Number.isFinite(layer.hotspot?.x) && Number.isFinite(layer.hotspot?.y) &&
+          layer.hotspot.x >= 0 && layer.hotspot.y >= 0 && layer.hotspot.x <= body.width && layer.hotspot.y <= body.height))) {
         return json({ error: "Invalid layer definition or duplicate layer name" }, 400);
       }
       paths.push(...layer.variations);
+      if (layer.thumbnails) paths.push(...layer.thumbnails);
       if (layer.shadow) paths.push(layer.shadow);
     }
     if (paths.some(path => typeof path !== "string" || !SAFE.test(path) ||
@@ -84,12 +95,17 @@ Deno.serve(async (req) => {
     for (const layer of body.layers) {
       // Generator PRO supports direct URL variations in array mode.
       // The shadow is optional; all assets share the scene's pixel dimensions.
+      const title = layer.title?.trim() || layer.name;
       layers[layer.name] = {
+        title,
         group: layer.group,
         order: layer.order,
         visible: true,
         variations: layer.variations.map(publicUrl),
+        ...(layer.thumbnails ? { thumbnails: layer.thumbnails.map(publicUrl) } : {}),
         ...(layer.shadow ? { shadow: publicUrl(layer.shadow) } : {}),
+        // Generator PRO keys hotspots by id: every hotspot needs a unique one.
+        ...(layer.hotspot ? { hotspot: { id: layer.name, title, visible: true, position: { x: Math.round(layer.hotspot.x), y: Math.round(layer.hotspot.y) } } } : {}),
       };
     }
     const manifest = {

@@ -1042,6 +1042,7 @@ export function Step4Summary() {
       soFar={soFar(s, 4)}
       back="S4-Layouts"
       next="S4-Showroom"
+      nextLabel="Next: see it in your showroom"
     />
   );
 }

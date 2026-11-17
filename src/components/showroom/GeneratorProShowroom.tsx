@@ -1,24 +1,10 @@
-import { useEffect, useRef, useState } from "react";
+import { createElement, useEffect, useRef, useState } from "react";
 
 /**
  * Generator PRO is a Svelte custom element. Its config attribute points to a
  * fetchable JSON manifest; assets is the base URL for WebP layer files.
  * This component never pretends a static background is a composited scene.
  */
-declare global {
-  namespace JSX {
-    interface IntrinsicElements {
-      "showroom-configurator": React.DetailedHTMLProps<React.HTMLAttributes<HTMLElement>, HTMLElement> & {
-        config?: string;
-        assets?: string;
-        themecolor?: string;
-        showlogo?: string;
-        showpoweredby?: string;
-      };
-    }
-  }
-}
-
 type Props = { configUrl: string; assetsUrl: string; scriptUrl: string; };
 let loadedScript: Promise<void> | null = null;
 
@@ -62,6 +48,10 @@ export function GeneratorProShowroom({ configUrl, assetsUrl, scriptUrl }: Props)
     <p className="p">Interactive showroom unavailable: {message}</p>
   </div>;
   if (status !== "ready") return <div role="status" className="panel" style={{ padding: 24 }}>Loading interactive showroom…</div>;
-  return <showroom-configurator key={configUrl} config={configUrl} assets={assetsUrl}
-    themecolor="#AB92C8" showlogo="false" showpoweredby="false" />;
+  // A Svelte custom element: created by tag name so no JSX type declarations are needed.
+  // Strings are passed as attributes, which is what the element reads.
+  return createElement("showroom-configurator", {
+    key: configUrl, config: configUrl, assets: assetsUrl,
+    themecolor: "#5E4268", showlogo: "false", showpoweredby: "false",
+  });
 }

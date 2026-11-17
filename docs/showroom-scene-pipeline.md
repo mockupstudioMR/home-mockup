@@ -32,7 +32,13 @@ This pipeline takes **already prepared and camera-aligned** scene assets, valida
         "approved-demo/living-room/sofa-cream.webp",
         "approved-demo/living-room/sofa-sage.webp"
       ],
-      "shadow": "approved-demo/living-room/sofa-shadow.webp"
+      "shadow": "approved-demo/living-room/sofa-shadow.webp",
+      "title": "Sofa",
+      "thumbnails": [
+        "approved-demo/living-room/sofa-cream-thumb.jpg",
+        "approved-demo/living-room/sofa-sage-thumb.jpg"
+      ],
+      "hotspot": { "x": 1060, "y": 760 }
     },
     {
       "name": "floor",
@@ -46,6 +52,8 @@ This pipeline takes **already prepared and camera-aligned** scene assets, valida
   ]
 }
 ```
+
+`title`, `thumbnails` (one per variation) and `hotspot` (pixels of the scene image) are optional. Without a `hotspot` the layer can only be reached from its tab.
 
 All variation images must have the same pixel dimensions and camera registration as the background, with transparent pixels outside the affected region. Images must be prepared externally and visually checked. The server validates that files exist, not their alpha channels, registration or aesthetic quality.
 
