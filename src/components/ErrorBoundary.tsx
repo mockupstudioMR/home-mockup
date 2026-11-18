@@ -59,7 +59,7 @@ export class ErrorBoundary extends Component<Props, State> {
         body="The error has been recorded. You can try again, or go back to the start."
         detail={error.message}
         primary={{ label: "Try again", onClick: this.retry }}
-        secondary={{ label: "Go to start", onClick: () => window.location.assign("/") }}
+        secondary={{ label: "Go to start", onClick: () => window.location.assign(import.meta.env.BASE_URL) }}
         fullScreen={this.props.variant === "app"}
       />
     );

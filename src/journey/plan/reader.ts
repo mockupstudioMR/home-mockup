@@ -2,6 +2,7 @@
  * The floor-plan reader (public/py/floorplan.py) as a promise: runs in a Web Worker so the page stays smooth.
  * Pure geometry from the drawing — proportions, doors and windows on each wall — with no AI involved.
  */
+import { asset } from "@/lib/asset";
 export type PlanOpening = { type: "door" | "window"; wall: "A" | "B" | "C" | "D"; pos: number; start: number; end: number; len_px: number };
 export type PlanRead =
   | {
@@ -26,7 +27,7 @@ export type PlanRead =
 
 /** Where Pyodide comes from. A pinned public CDN by default; can point at a self-hosted copy. */
 const INDEX_URL = (import.meta.env.VITE_PYODIDE_URL as string | undefined) ?? "https://cdn.jsdelivr.net/pyodide/v0.26.4/full/";
-const SCRIPT_URL = "/py/floorplan.py";
+const SCRIPT_URL = asset("/py/floorplan.py");
 /** The door width the reader assumes for its first scale guess, in metres (as in floorplan.py). */
 export const PLAN_DOOR_M = 0.85;
 

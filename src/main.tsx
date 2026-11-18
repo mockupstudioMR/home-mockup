@@ -3,6 +3,7 @@ import App from "./App.tsx";
 import "./index.css";
 import { installGlobalErrorReporting } from "./lib/errorReporting";
 import { installI18n } from "./i18n";
+import { asset } from "@/lib/asset";
 
 installGlobalErrorReporting();
 installI18n();
@@ -46,7 +47,7 @@ if (isPreviewHost || isInIframe) {
   }
 } else if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("/sw.js").catch(() => {
+    navigator.serviceWorker.register(asset("/sw.js")).catch(() => {
       /* silent */
     });
   });

@@ -6,6 +6,7 @@
 import { symbolForName } from "../../../supabase/functions/_shared/layoutRules";
 import type { LayoutItem } from "../state";
 import type { Dir } from "./facing";
+import { asset } from "@/lib/asset";
 
 /** Each symbol's drawn size in cm (width along its back × depth). */
 export const SYMBOL_SIZE: Record<string, [number, number]> = {
@@ -43,7 +44,7 @@ export const SYMBOL_SIZE: Record<string, [number, number]> = {
   "wardrobe": [200.0, 60.0]
 };
 
-export const symbolUrl = (key: string) => `/furniture-symbols/${key}.svg`;
+export const symbolUrl = (key: string) => asset(`/furniture-symbols/${key}.svg`);
 
 /** The symbol for a piece on the plan: the one its size row names, else one chosen from its name and kind. */
 export function symbolOf(i: Pick<LayoutItem, "symbol" | "label" | "kind">): string {

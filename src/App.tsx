@@ -80,7 +80,7 @@ const App = () => (
           <Sonner />
           <LanguageSwitcher />
           <ErrorBoundary variant="app">
-            <BrowserRouter>
+            <BrowserRouter basename={import.meta.env.BASE_URL.replace(/\/$/, "") || undefined}>
               <Suspense fallback={null}>
                 <DevRoleSwitcher />
               </Suspense>

@@ -24,13 +24,14 @@ import { WallElevation } from "./WallElevation";
 import { useRoomPictures, type WallStatus } from "../wallScenes/useRoomPictures";
 import { LayeredWall } from "../wallScenes/LayeredWall";
 import "../walls.css";
+import { asset } from "@/lib/asset";
 
 const lc = (t: string) => t.charAt(0).toLowerCase() + t.slice(1);
 const metres = (cm: number) => `${(cm / 100).toFixed(2)} m`;
 const isPoint = (i: WallItem) => /socket|switch|dimmer|blind/i.test(i.name);
 const isSet = (wp: WallPlan) => wp.status !== "review";
 
-const SCRIPT_URL = "/generator-pro/showroom-configurator.js";
+const SCRIPT_URL = asset("/generator-pro/showroom-configurator.js");
 
 /** Finish every wall and the steps they replace (5–8: furniture, colours, lighting, details). */
 function useFinishWalls() {
