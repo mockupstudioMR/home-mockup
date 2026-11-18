@@ -110,7 +110,7 @@ const anna: JourneyState = {
 describe("what can be swapped on each wall", () => {
   it("lists the wall's own pieces with a main option and two alternatives", () => {
     const m = buildModel(anna), items = wallItems(anna, m, "A");
-    expect(items.map((i) => i.id)).toEqual(["walls", "floor", "lay-0", "lay-1"]);
+    expect(items.map((i) => i.id)).toEqual(["walls", "floor", "lay-0", "lay-1", "decor-A"]);
     for (const it of items) expect(it.alts.length).toBe(2);
     const sofa = items.find((i) => i.id === "lay-0")!;
     expect(sofa.current).toBe("plum velvet curved sofa");
@@ -124,9 +124,19 @@ describe("what can be swapped on each wall", () => {
     const shelf = wallItems(anna, buildModel(anna), "A").find((i) => i.id === "lay-1")!;
     expect(shelf.alts.some((a) => /#[0-9A-F]{6}/.test(a.target))).toBe(true);
   });
-  it("never offers alternatives for a kept piece, and adds the door on its wall", () => {
-    const b = wallItems(anna, buildModel(anna), "B");
-    expect(b.some((i) => /piano/i.test(i.title))).toBe(false);
+  it("offers a painting or shelves above the main piece of a wall with nothing hung on it", () => {
+    const decor = wallItems(anna, buildModel(anna), "A").find((i) => i.id === "decor-A")!;
+    expect(decor.mainName).toBe("Bare wall");
+    expect(decor.alts.map((a) => a.name)).toEqual(["Large painting", "Floating shelves"]);
+  });
+  it("makes the window's frames swappable", () => {
+    const win = wallItems(anna, buildModel(anna), "C").find((i) => i.id.startsWith("window-"))!;
+    expect(win.alts.length).toBe(2);
+  });
+  it("keeps a kept piece clickable but never offers alternatives, and adds the door on its wall", () => {
+    const piano = wallItems(anna, buildModel(anna), "B").find((i) => /piano/i.test(i.title))!;
+    expect(piano.alts).toEqual([]);
+    expect(piano.note).toMatch(/kept/);
     expect(wallItems(anna, buildModel(anna), "D").some((i) => i.id === "doors")).toBe(true);
   });
   it("knows when a wall's picture is out of date", () => {

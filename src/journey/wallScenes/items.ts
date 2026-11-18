@@ -18,6 +18,8 @@ export type WallItem = {
   /** The name of the main option, as shown in the picker. */
   mainName: string;
   alts: Alt[];
+  /** Shown instead of options when the item can't be swapped (a piece being kept, say); it stays clickable. */
+  note?: string;
 };
 
 const NOUN: Record<Category, string> = {
@@ -87,9 +89,25 @@ export function wallItems(s: JourneyState, m: ShowroomModel, wall: Wall): WallIt
     });
   }
 
+  // windows: their frames
+  for (const o of m.openings.filter((x) => x.wall === wall && x.kind === "window")) {
+    const wd = colourName(m, m.surfaces.wood);
+    items.push({
+      id: `window-${o.id}`, title: "Window", group: "walls", current: "white window frame and sill (keep the glass and the view)", mainName: "White frames",
+      alts: [
+        { name: "Black metal frames", target: "the same window with slim black metal frames and sill, the same glass and view" },
+        { name: `${wd[0].toUpperCase()}${wd.slice(1)} wood frames`, target: `the same window with natural ${wd} wood frames and sill, the same glass and view` },
+      ],
+    });
+  }
+
   for (const p of m.pieces) {
-    if (!seenOn(p, wall) || p.kept || p.category === "piano") continue;
-    if (p.category !== "rug" && !p.onWall && p.category !== "table" && !p.shownOn) continue;
+    if (!seenOn(p, wall)) continue;
+    if (p.kept || p.category === "piano") {
+      // still clickable: it's theirs, so it stays as it is
+      items.push({ id: p.id, title: p.name, group: GROUP[p.category] ?? "furniture", current: p.name, mainName: p.kept ? "Yours" : p.shapeName, alts: [], note: p.kept ? "Yours, kept as it is." : "Stays as it is." });
+      continue;
+    }
     const noun = NOUN[p.category], cn = colourName(m, p.color), mat = p.fabric ? ` ${p.fabric}` : "";
     const shapes = LIBRARY[p.category].filter((x) => x.id !== p.shape);
     const [c1] = otherColours(m, p.color, true);
@@ -105,6 +123,21 @@ export function wallItems(s: JourneyState, m: ShowroomModel, wall: Wall): WallIt
     });
   }
 
+  // the wall above the main low piece: bare, or a painting, or shelves
+  if (!m.extras.some((e) => e.wall === wall && (e.kind === "art" || e.kind === "mirror"))) {
+    const main = m.pieces.filter((p) => seenOn(p, wall) && p.onWall && p.h < 1.4 && p.category !== "rug").sort((a, b) => b.w - a.w)[0];
+    if (main) {
+      const accent = colourName(m, m.surfaces.accent), wd = colourName(m, m.surfaces.wood);
+      items.push({
+        id: `decor-${wall}`, title: "Wall decor", group: "decor", current: `the empty wall area above the ${main.name.toLowerCase()}`, mainName: "Bare wall",
+        alts: [
+          { name: "Large painting", target: `one large framed abstract painting in ${accent} and soft neutral tones, hung centred in this area, its frame fully inside it` },
+          { name: "Floating shelves", target: `two floating ${wd} wood shelves styled with a few books, ceramics and a small trailing plant, centred in this area` },
+        ],
+      });
+    }
+  }
+
   for (const e of m.extras) {
     if (e.wall !== wall || e.kind === "pendant") continue;
     const cn = colourName(m, e.color), [c1] = otherColours(m, e.color, true), metal = colourName(m, m.surfaces.metal);
@@ -116,11 +149,11 @@ export function wallItems(s: JourneyState, m: ShowroomModel, wall: Wall): WallIt
         { name: "Arched mirror", target: `an arched mirror with a slim ${metal} frame, the same height` },
         { name: "Wood-framed round", target: `a round mirror with a wide ${colourName(m, m.surfaces.wood)} wood frame, the same size` },
       ] : [
-        { name: "Botanical prints", target: "a pair of framed botanical prints in the same space" },
-        { name: "Abstract canvas", target: `one large abstract canvas in ${colourName(m, m.surfaces.accent)} and ${metal} tones, in the same space` },
+        { name: "Large painting", target: `one large abstract canvas in ${colourName(m, m.surfaces.accent)} and ${metal} tones, in the same space` },
+        { name: "Floating shelves", target: `two floating ${colourName(m, m.surfaces.wood)} wood shelves styled with books and ceramics, in the same space` },
       ];
     const picked = products.get(`name:${e.name.toLowerCase()}`) ?? [];
     items.push({ id: e.id, title: e.name, group: "decor", current: e.kind === "curtains" ? `${cn} curtains` : e.kind === "mirror" ? `${metal} framed mirror` : "artwork on the wall", mainName: "From your preview", alts: two(picked, ai) });
   }
-  return items.filter((it) => it.alts.length > 0);
+  return items.filter((it) => it.alts.length > 0 || it.note);
 }

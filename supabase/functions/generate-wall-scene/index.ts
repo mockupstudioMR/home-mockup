@@ -46,11 +46,12 @@ function basePrompt(b: Body) {
   const pieces = (b.pieces ?? []).map((p, i) => `${i + 1}. ${p.name}: ${p.detail} — at ${pct(p.box)}`).join("\n");
   return `Turn the FIRST image into a photorealistic interior photograph.
 The first image is a simple 3D guide of one wall (wall ${b.wall ?? ""}) of the client's own room: a straight-on elevation, exactly like an architect's wall drawing, with the wall filling the frame from floor to ceiling and corner to corner. It is exact about geometry: keep this straight-on view (no added perspective, no wider shot), every door and window, and the position, size and order of every piece of furniture exactly where they are in the guide. Do not add, remove, move or resize any piece. Only turn the simple shapes into the real, photographed pieces and finishes.
-${b.styleImageUrl ? "The SECOND image is the client's chosen design. Copy its style, materials, textures, finishes, light and mood onto the pieces in the guide, as if the same designer furnished this wall." : ""}
+${b.styleImageUrl ? "The SECOND image is the client's chosen design. Take ONLY its colours, materials, textures, finishes, light and mood from it. Do NOT copy its furniture, its decor, its layout, its camera angle or its room: this picture shows only the one wall in the guide, straight on." : ""}
 Design direction: ${b.style ?? "the client's style"}.
 Colours (use these exact colours for what they are used for): ${palette || "neutral, warm"}.
 Pieces on this wall, left to right:
-${pieces || "none"}
+${pieces || "none: this wall is kept clear"}
+These are the ONLY pieces in the picture. Add nothing that is not listed: no other furniture, lamps, plants, shelves, cabinets, curtains, art, rugs or objects, and no side walls or ceiling beyond what the guide shows.${pieces ? "" : " Show only the bare wall with its windows and doors, the skirting and a strip of floor."}
 It must look like a real photograph taken by an interior photographer with a full-frame camera, not a render: soft daylight from one consistent direction with gentle falloff across the wall, real fabric weave, wood grain and plaster texture, slight natural imperfections, true-to-life colour.
 Shadows only where light really makes them: soft contact shadows under and behind each piece, consistent with the one light direction. No dark halos, no floating shadows, no shadow rectangles or patches.
 Every piece complete and whole: nothing cut off by the frame, nothing partly entering at the left or right edge, no half pieces.

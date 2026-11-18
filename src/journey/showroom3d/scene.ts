@@ -577,7 +577,7 @@ function buildShell(scene: THREE.Scene, m: ShowroomModel, eve: boolean) {
       if (o.kind === "window") {
         const hgt = o.head - o.sill, ring = rectShape(-o.width / 2, 0, o.width, hgt), hole = new THREE.Path();
         hole.moveTo(-o.width / 2 + 0.055, 0.055); hole.lineTo(o.width / 2 - 0.055, 0.055); hole.lineTo(o.width / 2 - 0.055, hgt - 0.055); hole.lineTo(-o.width / 2 + 0.055, hgt - 0.055); hole.closePath(); ring.holes.push(hole);
-        add(og, new THREE.ExtrudeGeometry(ring, { depth: 0.22, bevelEnabled: false }), white, 0, o.sill, -0.22);
+        add(og, new THREE.ExtrudeGeometry(ring, { depth: 0.22, bevelEnabled: false }), white, 0, o.sill, -0.22).userData.id = `window-${o.id}`;
         add(og, box(0.05, hgt - 0.1, 0.05), white, 0, o.sill + hgt / 2, -0.12);
         add(og, new THREE.PlaneGeometry(o.width - 0.1, hgt - 0.1), glass("#DCEBF2", 0.12), 0, o.sill + hgt / 2, -0.13, true);
         add(og, box(o.width + 0.12, 0.035, 0.16), white, 0, o.sill - 0.015, 0.06);
@@ -936,7 +936,7 @@ export function renderGuide(m: ShowroomModel, wall: Wall, width = 1536, canvasHe
     // walls, floor and doors are parts of the shell: find them inside it
     built.scene.traverse((o) => {
       const id = o.userData.id as string | undefined;
-      if (!id || boxes[id] || (id !== "walls" && id !== "floor" && id !== "doors")) return;
+      if (!id || boxes[id] || (id !== "walls" && id !== "floor" && id !== "doors" && !id.startsWith("window-"))) return;
       // only this wall's own surface and door
       let w: unknown;
       for (let p: THREE.Object3D | null = o; p && !w; p = p.parent) w = p.userData.wall;
@@ -944,6 +944,26 @@ export function renderGuide(m: ShowroomModel, wall: Wall, width = 1536, canvasHe
       const b = screenBox(o, camera);
       if (b) boxes[id] = b;
     });
+    // a rug lies flat, so the camera can't see it: it gets the strip of floor in front of the wall, under its span
+    const floorPct = ((1 - new THREE.Vector3(0, 0, 0).applyMatrix4(camera.matrixWorldInverse).applyMatrix4(camera.projectionMatrix).y) / 2) * 100;
+    const v = new THREE.Vector3();
+    for (const r of m.pieces.filter((p) => p.category === "rug" && seenOn(p, wall))) {
+      let x0 = Infinity, x1 = -Infinity;
+      for (const dx of [-r.w / 2, r.w / 2]) for (const dz of [-r.d / 2, r.d / 2]) { v.set(r.cx + dx, 0, r.cz + dz).project(camera); x0 = Math.min(x0, v.x); x1 = Math.max(x1, v.x); }
+      const L = Math.max(0, ((x0 + 1) / 2) * 100), R = Math.min(100, ((x1 + 1) / 2) * 100), T = Math.max(0, floorPct - 7), B = Math.min(100, floorPct + 6);
+      if (R - L > 2) boxes[r.id] = [L, T, R - L, B - T];
+    }
+    // the wall above its main low piece, for a painting or shelves, when there is nothing hung there yet
+    if (!m.extras.some((e) => e.wall === wall && (e.kind === "art" || e.kind === "mirror"))) {
+      const main = onWall.pieces.filter((p) => p.onWall && p.h < 1.4 && boxes[p.id]).sort((a, b) => b.w - a.w)[0];
+      const b = main && boxes[main.id];
+      const ceiling = Math.max(0, 100 - floorPct); // the canvas margin above the ceiling line equals the one below the floor
+      if (b) {
+        const room = b[1] - ceiling - 10, h = Math.min(room - 6, 30), box: [number, number, number, number] = [b[0] + b[2] * 0.18, b[1] - 6 - h, b[2] * 0.64, h];
+        const hitsWindow = Object.entries(boxes).some(([k, w]) => k.startsWith("window-") && w[0] < box[0] + box[2] && box[0] < w[0] + w[2] && w[1] < box[1] + box[3] && box[1] < w[1] + w[3]);
+        if (h >= 10 && !hitsWindow) boxes[`decor-${wall}`] = box;
+      }
+    }
     pm.dispose();
     built.scene.traverse((o) => {
       const mesh = o as THREE.Mesh;
