@@ -118,6 +118,46 @@ export function homeWalls(items: (Box & { kind: string; label?: string })[], roo
   });
 }
 
+/* ---------- keeping doors (and windows) clear ---------- */
+
+/** A piece along a wall, in cm from its left end: `against` when it stands against the wall itself. */
+export type Span = { id: string; x: number; w: number; h: number; against: boolean; group?: string };
+/** Something that must stay clear: a door from the floor up, a window from its sill up (cm above the floor). */
+export type Block = { x: number; w: number; from: number };
+
+/**
+ * How far (cm, along the wall) each piece must slide so nothing stands in front of a door, nothing taller
+ * than a sill stands in front of a window, and pieces against the wall don't overlap each other. A table
+ * with its chairs moves as one. Each piece moves as little as it can; one that fits nowhere stays put.
+ */
+export function keepClear(len: number, spans: Span[], blocks: Block[], margin = 10): Record<string, number> {
+  type Unit = { key: string; ids: string[]; x: number; w: number; h: number; against: boolean };
+  const units = new Map<string, Unit>();
+  for (const sp of spans) {
+    const key = sp.group ?? sp.id, u = units.get(key);
+    if (!u) { units.set(key, { key, ids: [sp.id], x: sp.x, w: sp.w, h: sp.h, against: sp.against }); continue; }
+    const x1 = Math.max(u.x + u.w, sp.x + sp.w);
+    u.x = Math.min(u.x, sp.x); u.w = x1 - u.x; u.h = Math.max(u.h, sp.h); u.against ||= sp.against; u.ids.push(sp.id);
+  }
+  const placed: { x: number; w: number }[] = [];
+  const out: Record<string, number> = {};
+  const hits = (u: Unit, x: number) =>
+    blocks.some((b) => u.h > b.from && x < b.x + b.w + margin && b.x - margin < x + u.w) ||
+    (u.against && placed.some((p) => x < p.x + p.w && p.x < x + u.w));
+  // pieces against the wall first (they are the ones that can't share space), then left to right
+  for (const u of [...units.values()].sort((a, b) => Number(b.against) - Number(a.against) || a.x - b.x)) {
+    const lim = Math.max(0, len - u.w);
+    const cands = [u.x];
+    for (const b of blocks) cands.push(b.x - margin - u.w, b.x + b.w + margin);
+    if (u.against) for (const p of placed) cands.push(p.x - u.w, p.x + p.w);
+    const ok = cands.map((x) => Math.max(0, Math.min(lim, x))).filter((x) => !hits(u, x)).sort((a, b) => Math.abs(a - u.x) - Math.abs(b - u.x));
+    const x = ok.length ? ok[0] : u.x;
+    if (u.against) placed.push({ x, w: u.w });
+    for (const id of u.ids) out[id] = x - u.x;
+  }
+  return out;
+}
+
 /** Typical height of a piece, in cm, from its kind and name. */
 export function pieceHeight(kind: string, label = "") {
   const t = `${kind} ${label}`.toLowerCase();
@@ -167,12 +207,15 @@ export function outlineFor(s: JourneyState, w: Wall, wp: WallPlan): Outline {
   const room = s.room.widthM && s.room.lengthM ? { w: s.room.widthM, l: s.room.lengthM } : undefined;
   const home = homeWalls(items, room), sets = seatSets(items);
   const setPieces: OutlinePiece[] = [];
+  const gapCm = new Map<string, number>();
   for (const [li, it] of items.entries()) {
     if (it.kind === "rug" || home[li] !== w) continue;
     const [a, b] = alongWall(w, it);
     const width = Math.max(30, cm(b - a));
     const h = pieceHeight(it.kind, it.label);
     const piece: OutlinePiece = { ref: `lay-${li}`, label: it.label || it.kind, kind: it.kind, kept: it.kind === "keep", x: clamp(cm(a), 0, length - width), w: width, h, y: H - h };
+    const gapPct = { A: it.y, C: 100 - (it.y + it.h), D: it.x, B: 100 - (it.x + it.w) }[w];
+    gapCm.set(piece.ref, (gapPct / 100) * (w === "A" || w === "C" ? (s.room.lengthM ?? EXAMPLE.length) : (s.room.widthM ?? EXAMPLE.width)) * 100);
     const set = sets.get(li);
     if (set && set[0] !== li) {
       // a chair at a table: seen from the side when it stands beyond the table's end, else from the front
@@ -200,6 +243,15 @@ export function outlineFor(s: JourneyState, w: Wall, wp: WallPlan): Outline {
     const h = k.h ?? pieceHeight("keep", k.name);
     pieces.push({ ref: `keep-${k.id}`, label: k.name, kind: "keep", kept: true, x: clamp(cm(facing(w, k.pos ?? 50)) - width / 2, 0, length - width), w: width, h, y: H - h });
   }
+
+  // Nothing stands in front of a door (or, taller than the sill, in front of a window); pieces against the
+  // wall don't overlap. Kept pieces are against their wall.
+  const blocks: Block[] = [
+    ...openings.map((op) => ({ x: op.x, w: op.w, from: op.kind === "door" ? 0 : H - (op.y + op.h) })),
+    ...fixed.filter((f) => f.kind === "column" || f.kind === "builtin" || f.kind === "stack").map((f) => ({ x: f.x, w: f.w, from: 0 })),
+  ];
+  const shift = keepClear(length, pieces.map((p) => ({ id: p.ref, x: p.x, w: p.w, h: p.h, against: p.kept || (gapCm.get(p.ref) ?? 0) <= 40, group: p.set ?? p.ref })), blocks);
+  for (const p of pieces) p.x = clamp(p.x + (shift[p.ref] ?? 0), 0, length - p.w);
 
   // A pin for every item on the wall.
   const door = openings.find((o) => o.kind === "door");

@@ -38,7 +38,7 @@ export const WALLS: Wall[] = ["A", "B", "C", "D"];
 const ALIGN_LIMIT = 14; // mean change outside the item (0–255), after matching tones, above which an alternative moved the photo
 const PARALLEL = 4;
 /** Raised when the way pictures are made changes, so walls made the old way are made again. */
-const PICTURE_VERSION = 6;
+const PICTURE_VERSION = 7;
 
 const previewImage = (s: JourneyState) => s.preview?.versions[s.preview.current]?.image;
 

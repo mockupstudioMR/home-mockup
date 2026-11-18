@@ -8,7 +8,7 @@
  */
 import { facingOf } from "../plan/facing";
 import type { JourneyState, Swatch, Wall } from "../state";
-import { alongWall, homeWalls, nearestWall } from "../wallOutline";
+import { alongWall, homeWalls, keepClear, nearestWall, seatSets } from "../wallOutline";
 import { categoryOf, fabricIn, LIBRARY, matchShape, shapeById, wordsNear, type Category, type Fabric } from "./library";
 
 export type Edit = { color?: string; shape?: string };
@@ -230,6 +230,27 @@ export function buildModel(s: JourneyState, edits: Edits = {}): ShowroomModel {
     const along = Math.max(0, Math.min(100 - wp, pos - wp / 2));
     const box = wall === "A" ? { x: along, y: 1, w: wp, h: dp } : wall === "C" ? { x: along, y: 99 - dp, w: wp, h: dp } : wall === "D" ? { x: 1, y: along, w: dp, h: wp } : { x: 99 - dp, y: along, w: dp, h: wp };
     addPiece(`keep-${k.id}`, k.name, "keep", box, ({ A: "down", C: "up", D: "right", B: "left" } as const)[wall], true, k.h ? k.h / 100 : undefined);
+  }
+
+  // Nothing stands in front of a door, or taller than the sill in front of a window, and pieces against a
+  // wall don't overlap: each slides along its wall as little as it can (a table with its chairs as one).
+  const sets = seatSets(lay?.items ?? []);
+  const groupOf = (id: string) => { const i = Number(id.replace("lay-", "")); const set = id.startsWith("lay-") ? sets.get(i) : undefined; return set ? `lay-${set[0]}` : id; };
+  for (const w of ["A", "B", "C", "D"] as Wall[]) {
+    const len = lenOf(w) * 100;
+    const on = pieces.filter((p) => p.wall === w && p.category !== "rug");
+    const blocks = openings.filter((o) => o.wall === w).map((o) => {
+      const c = (w === "A" || w === "B" ? o.at : lenOf(w) - o.at) * 100;
+      return { x: c - o.width * 50, w: o.width * 100, from: o.sill * 100 };
+    });
+    if (!on.length || !blocks.length && on.filter((p) => p.onWall).length < 2) continue;
+    const shift = keepClear(len, on.map((p) => ({ id: p.id, x: p.fromCm, w: p.toCm - p.fromCm, h: p.h * 100, against: p.onWall, group: groupOf(p.id) })), blocks);
+    for (const p of on) {
+      const d = shift[p.id] ?? 0;
+      if (!d) continue;
+      p.fromCm += d; p.toCm += d;
+      if (w === "A") p.cx += d / 100; else if (w === "C") p.cx -= d / 100; else if (w === "B") p.cz += d / 100; else p.cz -= d / 100;
+    }
   }
 
   // What was put on each wall in step 5 that isn't floor furniture: curtains, art, mirrors, a pendant.
