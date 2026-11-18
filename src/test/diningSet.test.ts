@@ -38,3 +38,18 @@ describe("a table and its chairs", () => {
     expect(left.x + left.w / 2).toBeLessThan(t.x + t.w / 2);
   });
 });
+
+describe("a piece in a corner", () => {
+  it("stands against the wall its long side runs along", () => {
+    // a bookshelf tight in the top-left corner, a little nearer the left wall but running along the top one
+    expect(nearestWall({ x: 0.5, y: 1.5, w: 18, h: 6 })).toBe("A");
+    expect(nearestWall({ x: 1.5, y: 0.5, w: 6, h: 18 })).toBe("D");
+    expect(nearestWall({ x: 40, y: 2, w: 20, h: 10 })).toBe("A");
+  });
+  it("is drawn as tall shelving", () => {
+    const s = { ...EMPTY, room: { ...EMPTY.room, widthM: 4, lengthM: 5, ceilingM: 2.6 }, layouts: [{ id: "l", name: "L", items: [{ label: "Bookshelf", kind: "bookshelf", x: 0.5, y: 1.5, w: 18, h: 6 }], zones: [], notes: [] }], chosenLayout: 0 } as JourneyState;
+    const p = outlineFor(s, "A", { items: [] } as never).pieces[0];
+    expect(p?.label).toBe("Bookshelf");
+    expect(p.h).toBe(200);
+  });
+});

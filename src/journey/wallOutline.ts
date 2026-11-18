@@ -57,7 +57,14 @@ const facing = (w: Wall, pos: number) => (w === "C" || w === "D" ? 100 - pos : p
 /** Which wall a layout piece stands against: the nearest one (same rule as the layout and composeWalls). */
 export function nearestWall(i: { x: number; y: number; w: number; h: number }): Wall {
   const d = { A: i.y, C: 100 - (i.y + i.h), D: i.x, B: 100 - (i.x + i.w) };
-  return (Object.entries(d) as [Wall, number][]).sort((a, b) => a[1] - b[1])[0][0];
+  const [first, second] = (Object.entries(d) as [Wall, number][]).sort((a, b) => a[1] - b[1]);
+  // in a corner (two walls about as near), a piece stands against the wall its long side runs along:
+  // a bookshelf in the top-left corner, wider than deep, belongs to the top wall
+  if (second[1] - first[1] <= 4) {
+    const along = (w: Wall) => (w === "A" || w === "C" ? i.w : i.h);
+    if (along(second[0]) > along(first[0]) * 1.15) return second[0];
+  }
+  return first[0];
 }
 
 /* ---------- sets: a table and the chairs around it ---------- */
@@ -100,7 +107,7 @@ export function wallsShowing(items: (Box & { kind: string; label?: string })[]):
 export function pieceHeight(kind: string, label = "") {
   const t = `${kind} ${label}`.toLowerCase();
   if (/piano/.test(t)) return 125;
-  if (/shelv|bookcase|wardrobe|cabinet tall|tall/.test(t)) return 200;
+  if (/shel(f|v)|bookcase|wardrobe|cabinet tall|tall/.test(t)) return 200;
   if (/\bbed\b/.test(t)) return 105;
   if (/sofa|couch/.test(t)) return 85;
   if (/chair|armchair/.test(t)) return 90;

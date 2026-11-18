@@ -75,7 +75,7 @@ function PieceShape({ p, selected, image }: { p: OutlinePiece; selected: boolean
         <path d={`M${x} ${y + h * 0.42} h${w}`} {...common} fill="none" />
       </g>
     );
-  if (/shelv|bookcase|wardrobe/.test(t))
+  if (/shel(f|v)|bookcase|wardrobe/.test(t))
     return (
       <g>
         <rect x={x} y={y} width={w} height={h} {...common} />
