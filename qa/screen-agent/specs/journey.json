@@ -727,7 +727,7 @@
     "must": true
    },
    {
-    "text": "Next: Inspiration",
+    "text": "Continue to step 2: Inspiration",
     "kind": "button",
     "must": true
    }
@@ -1820,7 +1820,7 @@
     "must": true
    },
    {
-    "text": "Show me layouts",
+    "text": "Next: what can't move",
     "kind": "button",
     "must": true
    },
@@ -3332,5 +3332,256 @@
    }
   ],
   "design": "designs/journey/S9-Summary.jpg"
+ },
+ {
+  "board": "S5-Walls",
+  "title": "5 · Your walls — outlines from the layout",
+  "page": "Your room, wall by wall",
+  "items": [
+   {
+    "text": "Step 5 of 10",
+    "kind": "progress",
+    "must": true
+   },
+   {
+    "text": "Save & exit",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "Step 5 · Your walls",
+    "kind": "eyebrow",
+    "must": true
+   },
+   {
+    "text": "Your room, wall by wall",
+    "kind": "title",
+    "must": true
+   },
+   {
+    "text": "To set up",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Back",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "Start with wall A",
+    "kind": "button",
+    "must": false
+   }
+  ],
+  "design": "designs/journey/S5-Walls.jpg"
+ },
+ {
+  "board": "S5-Wall",
+  "title": "5.1 · One wall — everything on it, in one list",
+  "page": "One wall, everything on it",
+  "items": [
+   {
+    "text": "Step 5 of 10",
+    "kind": "progress",
+    "must": true
+   },
+   {
+    "text": "Save & exit",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "Sofa wall",
+    "kind": "title",
+    "must": true
+   },
+   {
+    "text": "Make a picture with my choices",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "On this wall",
+    "kind": "heading",
+    "must": true
+   },
+   {
+    "text": "1 Shelving Furniture & decor · Example size Buy new",
+    "kind": "control",
+    "must": false
+   },
+   {
+    "text": "Buy new",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "2 Socket Light & power · Existing · kept · A-E1 Keep",
+    "kind": "control",
+    "must": false
+   },
+   {
+    "text": "Keep",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "3 Curved velvet sofa Furniture & decor · curved sofa Chosen",
+    "kind": "control",
+    "must": false
+   },
+   {
+    "text": "Chosen",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Curved velvet sofa [price] Your style match",
+    "kind": "control",
+    "must": false
+   },
+   {
+    "text": "Emerald curved sofa [price]",
+    "kind": "control",
+    "must": false
+   },
+   {
+    "text": "Ochre curved sofa [price]",
+    "kind": "control",
+    "must": false
+   },
+   {
+    "text": "Grey curved sofa [price]",
+    "kind": "control",
+    "must": false
+   },
+   {
+    "text": "Straight velvet sofa [price] Your shop",
+    "kind": "control",
+    "must": false
+   },
+   {
+    "text": "Seen one you like? Paste its link",
+    "kind": "label",
+    "must": false
+   },
+   {
+    "text": "Use it",
+    "kind": "button",
+    "must": false
+   },
+   {
+    "text": "4 Art above the sofa Furniture & decor · About 110 × 70 cm Buy new",
+    "kind": "control",
+    "must": false
+   },
+   {
+    "text": "5 AC unit Inside the wall · Position TBC To check",
+    "kind": "control",
+    "must": false
+   },
+   {
+    "text": "To check",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "6 Grey plaster Walls · Feature finish New finish",
+    "kind": "control",
+    "must": false
+   },
+   {
+    "text": "New finish",
+    "kind": "content",
+    "must": false
+   },
+   {
+    "text": "Grey plaster",
+    "kind": "control",
+    "must": false
+   },
+   {
+    "text": "Warm greige",
+    "kind": "control",
+    "must": false
+   },
+   {
+    "text": "Green accent",
+    "kind": "control",
+    "must": false
+   },
+   {
+    "text": "Plum accent",
+    "kind": "control",
+    "must": false
+   },
+   {
+    "text": "7 Socket Light & power · Position TBC · A-E2 Keep",
+    "kind": "control",
+    "must": false
+   },
+   {
+    "text": "Walnut flooring",
+    "kind": "control",
+    "must": false
+   },
+   {
+    "text": "Light oak flooring",
+    "kind": "control",
+    "must": false
+   },
+   {
+    "text": "Terrazzo",
+    "kind": "control",
+    "must": false
+   },
+   {
+    "text": "Micro-cement",
+    "kind": "control",
+    "must": false
+   },
+   {
+    "text": "Keep the current floor",
+    "kind": "control",
+    "must": false
+   },
+   {
+    "text": "Socket",
+    "kind": "control",
+    "must": false
+   },
+   {
+    "text": "Switch",
+    "kind": "control",
+    "must": false
+   },
+   {
+    "text": "Wall light",
+    "kind": "control",
+    "must": false
+   },
+   {
+    "text": "Data point",
+    "kind": "control",
+    "must": false
+   },
+   {
+    "text": "Anything else for this wall?",
+    "kind": "label",
+    "must": true
+   },
+   {
+    "text": "All walls",
+    "kind": "button",
+    "must": true
+   },
+   {
+    "text": "Next: wall B",
+    "kind": "button",
+    "must": false
+   }
+  ],
+  "design": "designs/journey/S5-Wall.jpg"
  }
 ]

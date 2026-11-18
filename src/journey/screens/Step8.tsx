@@ -11,7 +11,7 @@ import { soFar } from "../story";
 import { saveStepDone } from "../sync";
 import { wallRoles } from "./Step4";
 
-const WALLS: Wall[] = ["A", "B", "C", "D"];
+export const WALLS: Wall[] = ["A", "B", "C", "D"];
 const lc = (t: string) => t.charAt(0).toLowerCase() + t.slice(1);
 const cap = (t: string) => t.charAt(0).toUpperCase() + t.slice(1);
 /** Pin positions on a wall picture, in reading order. */
@@ -35,7 +35,7 @@ export function composeWalls(s: JourneyState): Record<Wall, WallPlan> {
     const role = roles[w] ?? "Open";
     const items: Omit<WallItem, "n" | "x" | "y">[] = [];
     // furniture & decor
-    for (const it of lay?.items ?? []) {
+    for (const [li, it] of (lay?.items ?? []).entries()) {
       const at = it.kind === "chair" && s.accent?.wall ? s.accent.wall : near(it);
       if (it.kind === "rug" || at !== w || !it.label) continue;
       if (it.kind === "keep") continue;
@@ -45,9 +45,10 @@ export function composeWalls(s: JourneyState): Record<Wall, WallPlan> {
         name: anchor ? `${s.anchor!.shape} ${s.anchor!.kind}` : it.kind === "chair" && s.accent ? s.accent.name : it.kind === "table" ? s.supporting[0]?.name ?? it.label : it.label,
         note: anchor ? `${s.anchor!.w} × ${s.anchor!.d} × ${s.anchor!.h} cm · standard` : it.kind === "chair" && s.accent ? `${s.accent.decision === "skip" ? "Skipped" : "Accent piece"}` : "Example size",
         action: "Buy",
+        ref: `lay-${li}`,
       });
     }
-    for (const k of s.keeping.filter((k) => (k.wall ?? "B") === w)) items.push({ group: "furniture", name: k.name, note: k.measured ? "Measured" : "Size TBC", action: "Keep" });
+    for (const k of s.keeping.filter((k) => (k.wall ?? "B") === w)) items.push({ group: "furniture", name: k.name, note: k.measured ? "Measured" : "Size TBC", action: "Keep", ref: `keep-${k.id}` });
     if (role === "Entry" && s.supporting.find((x) => /console/i.test(x.name))) {
       const c = s.supporting.find((x) => /console/i.test(x.name))!;
       items.push({ group: "furniture", name: `${c.material.replace(/^Fluted /, "")} console`.replace(/^\w/, (x) => x.toUpperCase()), note: "Example 100 × 30 × 80 cm", action: "Buy" });
@@ -95,7 +96,7 @@ export function composeWalls(s: JourneyState): Record<Wall, WallPlan> {
 }
 
 /** The walls, composed once and then kept in the journey (status and changes are the person's). */
-function useWalls() {
+export function useWalls() {
   const { s, set } = useJourney();
   const composed = useMemo(() => composeWalls(s), [s]);
   const walls = WALLS.reduce((acc, w) => ({ ...acc, [w]: s.walls[w] ? { ...composed[w], ...s.walls[w], items: s.walls[w]!.items?.length ? s.walls[w]!.items : composed[w].items } : composed[w] }), {} as Record<Wall, WallPlan>);
@@ -147,7 +148,22 @@ export function Walls() {
   };
   const locPos: Record<Wall, React.CSSProperties> = { A: { left: "62px", top: "5px" }, B: { right: "5px", top: "77px" }, C: { left: "62px", bottom: "5px" }, D: { left: "5px", top: "77px" } };
   return (
-    <Screen board="S8-Walls" step={8} right={roomName(curRoom(s))} wrapClass="wrap wide">
+    <Screen board="S8-Walls" step={8} right={roomName(curRoom(s))} wrapClass="wrap wide"
+      dock={
+        <>
+          <Back to="S7-Lighting" />
+          <Go className="btn ghost" to="S8-Summary" onClick={finish}>
+            Keep all 4 walls · finish step 8
+          </Go>
+          {next && (
+            <button className="btn" type="button" onClick={() => go("S8-WallDetail", `/${next}`)}>
+              Review wall {next}
+              <I.next />
+            </button>
+          )}
+        </>
+      }
+    >
       <div className="row" style={{ gap: "32px", alignItems: "center", flexWrap: "wrap" }}>
         <div className="left" style={{ flex: "1 1 520px" }}>
           <p className="eyebrow">Your room, wall by wall</p>
@@ -162,7 +178,7 @@ export function Walls() {
               <span style={{ width: `${(kept / 4) * 100}%` }} />
             </div>
             <span className="small" style={{ fontSize: "15px" }}>
-              <b style={{ color: "#3B3350" }}>{kept} of 4</b> walls kept
+              <b style={{ color: "#34203B" }}>{kept} of 4</b> walls kept
             </span>
           </div>
         </div>
@@ -212,18 +228,6 @@ export function Walls() {
       <p className="small" style={{ marginTop: "18px" }}>
         Walls you haven't photographed are illustrative proposals based on your preview. Electrical positions and specs: TBC.
       </p>
-      <div className="actions">
-        <Back to="S7-Lighting" />
-        <Go className="btn ghost auto" to="S8-Summary" style={{ marginLeft: "auto" }} onClick={finish}>
-          Keep all 4 walls · finish step 8
-        </Go>
-        {next && (
-          <button className="btn auto" type="button" onClick={() => go("S8-WallDetail", `/${next}`)}>
-            Review wall {next}
-            <I.next />
-          </button>
-        )}
-      </div>
     </Screen>
   );
 }
@@ -279,7 +283,31 @@ export function WallDetail({ param }: { param?: string }) {
   const hasDoor = wp.role === "Entry";
   const hasWindow = wp.role === "Window";
   return (
-    <Screen board="S8-WallDetail" step={8} right={`Wall ${w} of 4`} wrapClass="wrap wide" wrapStyle={{ paddingTop: "32px" }}>
+    <Screen
+      board="S8-WallDetail"
+      step={8}
+      right={`Wall ${w} of 4`}
+      wrapClass="wrap wide"
+      wrapStyle={{ paddingTop: "32px" }}
+      dock={
+        <>
+          <Back to="S8-Walls" label="All walls" />
+          <button
+            className="btn ghost"
+            type="button"
+            onClick={() => {
+              setWall(w, { status: "kept" });
+              after();
+            }}
+          >
+            Keep wall as it is
+          </button>
+          <button className={`btn${busy ? " dis" : ""}`} type="button" onClick={apply}>
+            {busy ? "Updating the wall…" : `Apply and see wall ${w}`}
+          </button>
+        </>
+      }
+    >
       <nav className="wtabs" aria-label="Walls">
         {WALLS.map((x) => (
           <Go key={x} className={x === w ? "on" : walls[x].status !== "review" ? "ok" : ""} to={x === w ? "S8-WallDetail" : "S8-WallDetail"} extra={`/${x}`}>
@@ -365,20 +393,6 @@ export function WallDetail({ param }: { param?: string }) {
               <label htmlFor="chg">Your change</label>
               <textarea id="chg" className="textarea" style={{ minHeight: "104px" }} placeholder={`e.g. keep the ${wp.items[0] ? lc(wp.items[0].name) : "furniture"}, add a dimmable wall light`} value={request} onChange={(e) => setWall(w, { change: e.target.value })} />
             </div>
-            <button className={`btn${busy ? " dis" : ""}`} type="button" style={{ minHeight: "60px", fontSize: "18px" }} onClick={apply}>
-              {busy ? "Updating the wall…" : `Apply and see wall ${w}`}
-            </button>
-            <button
-              className="btn ghost"
-              type="button"
-              style={{ minHeight: "56px", fontSize: "17px" }}
-              onClick={() => {
-                setWall(w, { status: "kept" });
-                after();
-              }}
-            >
-              Keep wall as it is
-            </button>
           </div>
         </aside>
       </div>

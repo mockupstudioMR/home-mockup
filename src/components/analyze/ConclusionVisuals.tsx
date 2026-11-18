@@ -13,6 +13,12 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { getThumbnailImageUrl, optimizeImageFileSafe } from "@/lib/imageOptimization";
 import { MOODBOARD_DRAG_MIME } from "./TagVisual";
+import {
+  appendTranscript,
+  collectFinalTranscript,
+  getSpeechRecognition,
+  type SpeechRecognitionLike,
+} from "@/lib/speechRecognition";
 
 interface DraggedItem { label: string; imageUrl?: string | null; source?: string }
 
@@ -502,23 +508,20 @@ const ConclusionVisuals = ({
   const [addDetailMode, setAddDetailMode] = useState<"choose" | "describe">("choose");
   const [describeText, setDescribeText] = useState("");
   const [describeListening, setDescribeListening] = useState(false);
-  const describeRecognitionRef = useRef<any>(null);
+  const describeRecognitionRef = useRef<SpeechRecognitionLike | null>(null);
   const architectureUploadRef = useRef<HTMLInputElement | null>(null);
 
   const startDescribeListening = () => {
-    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    const SR = getSpeechRecognition();
     if (!SR) return;
     const recognition = new SR();
     recognition.lang = "en-US";
     recognition.interimResults = true;
     recognition.continuous = true;
-    recognition.onresult = (event: any) => {
-      let finalTranscript = "";
-      for (let i = event.resultIndex; i < event.results.length; i++) {
-        if (event.results[i].isFinal) finalTranscript += event.results[i][0].transcript + " ";
-      }
+    recognition.onresult = (event) => {
+      const finalTranscript = collectFinalTranscript(event);
       if (finalTranscript) {
-        setDescribeText((prev) => (prev ? prev + " " + finalTranscript.trim() : finalTranscript.trim()));
+        setDescribeText((prev) => appendTranscript(prev, finalTranscript));
       }
     };
     recognition.onerror = () => setDescribeListening(false);

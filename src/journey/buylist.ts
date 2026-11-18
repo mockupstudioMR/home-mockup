@@ -1,5 +1,5 @@
 /** The buying list (step 9.1), put together from every decision made in steps 3–8. */
-import type { JourneyState, Wall } from "./state";
+import type { JourneyState, Wall, WallItem } from "./state";
 import { dims } from "./sizes";
 import { KEEP_FLOOR, decorFor, surfacesFor } from "./finishes";
 
@@ -25,6 +25,37 @@ export const SOURCES: Action[] = ["Buy", "Custom", "Keep · yours"];
 export const statusFor = (a: Action, r: Pick<BuyRow, "tab" | "name" | "status">) =>
   a === "Custom" ? "Quote TBC" : a === "Keep · yours" || a === "Keep" ? undefined : r.status;
 
+const ACTION_OF: Record<WallItem["action"], Action | undefined> = { Buy: "Buy", Changed: "Buy", Custom: "Custom", Keep: "Keep", "Use mine": "Keep · yours", TBC: undefined, "—": undefined };
+
+/**
+ * Rooms designed wall by wall (step 5): furniture, decor and light fittings come from each wall's items,
+ * with the piece picked on the wall screen when there is one. Points and finishes keep their own rows.
+ */
+export function wallRows(s: JourneyState): BuyRow[] {
+  const rows: BuyRow[] = [];
+  for (const w of ["A", "B", "C", "D"] as Wall[]) {
+    for (const it of s.walls[w]?.items ?? []) {
+      const fitting = it.group === "lighting" && !/socket|switch|dimmer|blind/i.test(it.name);
+      if (it.group !== "furniture" && !fitting) continue;
+      const action = ACTION_OF[it.action];
+      if (!action) continue;
+      const keep = action === "Keep" || action === "Keep · yours";
+      rows.push({
+        id: `w-${w}-${it.ref ?? it.n}`,
+        tab: fitting ? "finishes" : "furniture",
+        name: it.choice?.name ?? it.name,
+        qty: "1",
+        size: /cm/.test(it.note) ? it.note.replace(/ cm.*$/, "") : keep && /measured/i.test(it.note) ? "Measured" : keep ? "Measure actual W × D × H" : "Example size",
+        wall: w,
+        action,
+        status: it.choice ? "Chosen" : keep ? undefined : action === "Custom" ? "Quote TBC" : fitting ? "Spec TBC" : "Fit TBC",
+        ...(it.choice?.image ? { image: it.choice.image } : { colour: fitting ? "#B08D57" : keep ? "#4A3022" : "#9E8E7A" }),
+      });
+    }
+  }
+  return rows;
+}
+
 export function composeBuyList(s: JourneyState): BuyRow[] {
   const rows: BuyRow[] = [];
   const pal = s.moodboard?.palette ?? [];
@@ -40,40 +71,43 @@ export function composeBuyList(s: JourneyState): BuyRow[] {
   const entryWall = wallOfRole(/entry/i) ?? s.placements.find((p) => p.kind === "doors")?.wall ?? "D";
   const keepWall = s.keeping[0]?.wall ?? "B";
 
-  if (s.anchor) {
-    const colour = word(s.anchor.material);
-    const generic = cap(`${colour && colour !== s.anchor.shape.toLowerCase() ? colour + " " : ""}${s.anchor.shape.toLowerCase()} ${s.anchor.kind}`);
-    const product = s.anchor.product;
-    rows.push({ id: "anchor", tab: "furniture", name: product ? product.name : generic, qty: "1", size: dims(s.anchor), wall: anchorWall, action: "Buy", status: product ? "Chosen" : "Fit TBC", ...sw(0), ...(product?.image ? { image: product.image } : {}) });
-  }
-  if (s.accent && s.accent.decision !== "skip")
-    rows.push({ id: "accent", tab: "furniture", name: s.accent.name.replace("statement", "accent"), qty: "1", size: "80 × 85 × 85", wall: s.accent.wall ?? windowWall, action: "Buy", status: "Fit TBC", ...sw(1) });
-  const sup = s.supporting.map((x) => x.name);
-  for (const [i, n] of sup.entries()) {
-    const size = /coffee/i.test(n) ? "110 × 65 × 38" : /side/i.test(n) ? "Ø 45 × H 50" : /console/i.test(n) ? "100 × 30 × 80" : "Example size";
-    const wall = /coffee/i.test(n) ? "Centre" : /side/i.test(n) ? s.accent?.wall ?? windowWall : /console/i.test(n) ? entryWall : "TBC";
-    rows.push({ id: `sup${i}`, tab: "furniture", name: /console/i.test(n) ? "Slim console" : n, qty: "1", size, wall, action: "Buy", status: "Fit TBC", ...sw(i === 1 ? metalI : woodI) });
-  }
-  for (const k of s.keeping) {
-    const set = !!k.extraLabel;
-    rows.push({
-      id: `keep-${k.id}`,
-      tab: "furniture",
-      name: `${k.status === "buy" ? "Your pick:" : k.status === "bought" ? "Bought" : "Existing"} ${k.name.toLowerCase().replace(/^upright /, "")}${set ? ` + ${k.extraLabel!.split(" ")[0].toLowerCase()}` : ""}`,
-      qty: set ? "1 set" : "1",
-      size: k.measured ? `${dims(k)}` : "Measure actual W × D × H",
-      wall: k.wall ?? keepWall,
-      action: k.status === "buy" ? "Buy" : "Keep",
-      status: k.status === "buy" ? "You buy it" : k.status === "bought" ? "Arriving" : "required",
-      image: k.photos[0],
-      colour: "#4A3022",
-    });
-  }
-  const furnRead = (s.preview?.read ?? []).find((r) => r.key === "furniture")?.keywords.join(" ").toLowerCase() ?? "";
-  if (/shelv/.test(furnRead)) {
-    const wood = (pal[woodI]?.material ?? "walnut").split(" ").slice(-1)[0].toLowerCase();
-    const metal = word(pal[metalI]?.material?.split(" ").slice(-1)[0] ?? "brass");
-    rows.push({ id: "builtin", tab: "furniture", name: `${cap(wood)} shelving + ${metal} inset`, qty: "1 set", size: "Wall width × depth × height TBC", wall: anchorWall, action: "Custom", status: "Quote TBC", ...sw(woodI) });
+  if (s.wallFlow) rows.push(...wallRows(s));
+  else {
+    if (s.anchor) {
+      const colour = word(s.anchor.material);
+      const generic = cap(`${colour && colour !== s.anchor.shape.toLowerCase() ? colour + " " : ""}${s.anchor.shape.toLowerCase()} ${s.anchor.kind}`);
+      const product = s.anchor.product;
+      rows.push({ id: "anchor", tab: "furniture", name: product ? product.name : generic, qty: "1", size: dims(s.anchor), wall: anchorWall, action: "Buy", status: product ? "Chosen" : "Fit TBC", ...sw(0), ...(product?.image ? { image: product.image } : {}) });
+    }
+    if (s.accent && s.accent.decision !== "skip")
+      rows.push({ id: "accent", tab: "furniture", name: s.accent.name.replace("statement", "accent"), qty: "1", size: "80 × 85 × 85", wall: s.accent.wall ?? windowWall, action: "Buy", status: "Fit TBC", ...sw(1) });
+    const sup = s.supporting.map((x) => x.name);
+    for (const [i, n] of sup.entries()) {
+      const size = /coffee/i.test(n) ? "110 × 65 × 38" : /side/i.test(n) ? "Ø 45 × H 50" : /console/i.test(n) ? "100 × 30 × 80" : "Example size";
+      const wall = /coffee/i.test(n) ? "Centre" : /side/i.test(n) ? s.accent?.wall ?? windowWall : /console/i.test(n) ? entryWall : "TBC";
+      rows.push({ id: `sup${i}`, tab: "furniture", name: /console/i.test(n) ? "Slim console" : n, qty: "1", size, wall, action: "Buy", status: "Fit TBC", ...sw(i === 1 ? metalI : woodI) });
+    }
+    for (const k of s.keeping) {
+      const set = !!k.extraLabel;
+      rows.push({
+        id: `keep-${k.id}`,
+        tab: "furniture",
+        name: `${k.status === "buy" ? "Your pick:" : k.status === "bought" ? "Bought" : "Existing"} ${k.name.toLowerCase().replace(/^upright /, "")}${set ? ` + ${k.extraLabel!.split(" ")[0].toLowerCase()}` : ""}`,
+        qty: set ? "1 set" : "1",
+        size: k.measured ? `${dims(k)}` : "Measure actual W × D × H",
+        wall: k.wall ?? keepWall,
+        action: k.status === "buy" ? "Buy" : "Keep",
+        status: k.status === "buy" ? "You buy it" : k.status === "bought" ? "Arriving" : "required",
+        image: k.photos[0],
+        colour: "#4A3022",
+      });
+    }
+    const furnRead = (s.preview?.read ?? []).find((r) => r.key === "furniture")?.keywords.join(" ").toLowerCase() ?? "";
+    if (/shelv/.test(furnRead)) {
+      const wood = (pal[woodI]?.material ?? "walnut").split(" ").slice(-1)[0].toLowerCase();
+      const metal = word(pal[metalI]?.material?.split(" ").slice(-1)[0] ?? "brass");
+      rows.push({ id: "builtin", tab: "furniture", name: `${cap(wood)} shelving + ${metal} inset`, qty: "1 set", size: "Wall width × depth × height TBC", wall: anchorWall, action: "Custom", status: "Quote TBC", ...sw(woodI) });
+    }
   }
   const lay = s.layouts[s.chosenLayout ?? 0];
   if (lay?.items.some((i) => i.kind === "rug")) rows.push({ id: "rug", tab: "furniture", name: "Rug", qty: "1", size: "240 × 340", wall: "Centre", action: "Buy", status: "Layout TBC", colour: "#A4462F" });
@@ -83,8 +117,9 @@ export function composeBuyList(s: JourneyState): BuyRow[] {
   const hasWindows = s.placements.some((p) => p.kind === "windows");
   if (hasWindows) rows.push({ id: "curtains", tab: "furniture", name: "Curtains + track", qty: "1 set", size: "Track width, drop, fullness TBC", wall: windowWall, action: "Buy", status: "Measure first", ...sw(0) });
   // Pieces swapped for the person's own on step 8.
-  for (const [w, plan] of Object.entries(walls) as [Wall, { items?: { name: string; action: string }[] }][])
-    for (const it of plan?.items ?? []) if (it.action === "Use mine") rows.push({ id: `mine-${w}-${it.name}`, tab: "furniture", name: it.name, qty: "1", size: /mirror/i.test(it.name) ? "Ø 80" : "Your own", wall: w, action: "Keep · yours", colour: "#C4A060" });
+  if (!s.wallFlow)
+    for (const [w, plan] of Object.entries(walls) as [Wall, { items?: { name: string; action: string }[] }][])
+      for (const it of plan?.items ?? []) if (it.action === "Use mine") rows.push({ id: `mine-${w}-${it.name}`, tab: "furniture", name: it.name, qty: "1", size: /mirror/i.test(it.name) ? "Ø 80" : "Your own", wall: w, action: "Keep · yours", colour: "#C4A060" });
   // Decor, as switched on in step 6.5
   const DECOR: Record<string, { id: string; qty: string; size: string; wall: string; action: Action; colour: string }> = {
     "Art & mirror": { id: "art", qty: "1–2", size: "Example 80 × 100 each", wall: keepWall, action: "Own or buy", colour: "#2F5B4A" },
@@ -110,7 +145,7 @@ export function composeBuyList(s: JourneyState): BuyRow[] {
   });
   if (surf.floor !== KEEP_FLOOR) rows.push({ id: "f-floor", tab: "finishes", name: surf.floor, qty: "m² TBC", size: "Room area + 10%", wall: "Floor", action: "Buy", status: "Measure first", ...sw(woodI) });
   for (const l of s.lighting?.layers ?? []) rows.push({ id: `l-${l.key}`, tab: "finishes", name: l.decision === "change" && l.change ? l.change : l.name, qty: "1", size: l.key === "overall" ? "Drop TBC" : "Example size", wall: l.key === "overall" ? "Ceiling" : l.key === "task" ? s.accent?.wall ?? windowWall : keepWall, action: "Buy", status: "Spec TBC", ...sw(metalI) });
-  if (Object.values(walls).some((w) => w?.items?.some((i) => i.name === "Wall sconce"))) rows.push({ id: "l-sconce", tab: "finishes", name: "Wall sconce", qty: "1", size: "Example size", wall: entryWall, action: "Buy", status: "Spec TBC", ...sw(metalI) });
+  if (!s.wallFlow && Object.values(walls).some((w) => w?.items?.some((i) => i.name === "Wall sconce"))) rows.push({ id: "l-sconce", tab: "finishes", name: "Wall sconce", qty: "1", size: "Example size", wall: entryWall, action: "Buy", status: "Spec TBC", ...sw(metalI) });
   rows.push({ id: "e-sockets", tab: "finishes", name: "Sockets", qty: s.lighting?.sockets ? String(s.lighting.sockets) : "TBC", size: "Standard plate", wall: "All", action: "Buy", status: "Electrician", ...sw(metalI) });
   rows.push({ id: "e-switch", tab: "finishes", name: s.lighting?.dimmer ? "Switch + dimmer" : "Switches", qty: s.lighting?.switches ? String(s.lighting.switches) : "TBC", size: "Standard plate", wall: entryWall, action: "Buy", status: "Electrician", ...sw(metalI) });
   if (s.lighting?.blind) rows.push({ id: "e-blind", tab: "finishes", name: "Blind power", qty: "1", size: "Outlet", wall: windowWall, action: "Buy", status: "Electrician", ...sw(metalI) });

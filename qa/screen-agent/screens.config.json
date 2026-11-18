@@ -232,6 +232,16 @@
    "route": "/journey/10/final",
    "role": "user",
    "seed": "journey-state.json"
+  },
+  "S5-Walls": {
+   "route": "/journey/5/walls",
+   "role": "user",
+   "seed": "journey-state.json"
+  },
+  "S5-Wall": {
+   "route": "/journey/5/wall/A",
+   "role": "user",
+   "seed": "journey-state.json"
   }
  },
  "admin": {

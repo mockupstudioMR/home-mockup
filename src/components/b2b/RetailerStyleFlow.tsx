@@ -8,6 +8,7 @@ import {
   ArrowLeft, ArrowRight, Upload, Link2, X, Loader2, Sparkles, Layers, Palette, Globe, Wand2,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import type { Json } from "@/integrations/supabase/types";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { optimizeImageSourceToDataUrl } from "@/lib/imageOptimization";
@@ -210,10 +211,10 @@ const RetailerStyleFlow = ({ onBack }: Props) => {
       setImages((prev) => [...prev, data.imageUrl as string].slice(0, MAX_ITEMS));
       setLinks((prev) => [...prev, url]);
       toast({ title: "Product added", description: data.title || url });
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast({
         title: "Couldn't read that link",
-        description: err?.message || "Upload the product photo instead",
+        description: (err instanceof Error && err.message) || "Upload the product photo instead",
         variant: "destructive",
       });
     } finally {
@@ -247,9 +248,9 @@ const RetailerStyleFlow = ({ onBack }: Props) => {
           sales_channel: salesChannel || null,
           product_links: links,
           product_images: images,
-          analysis: { ...result, brand } as any,
-        } as any).select("id").single();
-        if (row) setProfileId((row as any).id as string);
+          analysis: { ...result, brand } as unknown as Json,
+        }).select("id").single();
+        if (row) setProfileId(row.id);
       }
     } catch (err) {
       console.error("Retailer analysis error", err);

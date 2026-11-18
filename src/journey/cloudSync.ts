@@ -13,7 +13,7 @@ export const ROOM_STEP_KEYS: Record<number, (keyof JourneyState)[]> = {
   5: ["anchor"],
   6: ["accent", "supporting", "supportImage", "samplesAdded", "surfaces", "decor", "refined"],
   7: ["lighting"],
-  8: ["walls"],
+  8: ["walls", "wallFlow", "showroom"],
   9: ["buyEdits", "spaceAvail", "checks", "todo"],
 };
 

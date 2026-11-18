@@ -1,4 +1,4 @@
-/** Steps 9 and 10 — buying list, sizes, to-do, summary; then everything together. */
+/** Step 9 — buying list, sizes, to-do, and the final summary with everything together. */
 import { useMemo, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Back, Go, Screen, useGo } from "../Shell";
@@ -53,7 +53,17 @@ export function BuyList() {
     toast({ title: `${r.name}: ${next === "Buy" ? "suggested shops" : next === "Custom" ? "custom made" : "your own piece"}` });
   };
   return (
-    <Screen board="S9-BuyList" step={9} right="1 of 3 · Buying list" wrapClass="wrap wide">
+    <Screen board="S9-BuyList" step={6} right="1 of 3 · Buying list" wrapClass="wrap wide"
+      dock={
+        <>
+          <Back to="S5-Walls" label="My walls" />
+          <Go className="btn auto" to="S9-Sizes" onClick={() => void saveBuyList(s, rows)}>
+            Next: confirm the sizes
+            <I.next />
+          </Go>
+        </>
+      }
+    >
       <div className="row between" style={{ alignItems: "flex-end" }}>
         <div className="left" style={{ flex: "1 1 560px" }}>
           <p className="eyebrow">Make it happen</p>
@@ -165,13 +175,6 @@ export function BuyList() {
           ))}
         </div>
       </section>
-      <div className="actions">
-        <Back to="S8-Walls" />
-        <Go className="btn auto" to="S9-Sizes" style={{ marginLeft: "auto" }} onClick={() => void saveBuyList(s, rows)}>
-          Next: confirm the sizes
-          <I.next />
-        </Go>
-      </div>
     </Screen>
   );
 }
@@ -207,7 +210,20 @@ export function Sizes() {
   };
   const text = lists.map((l) => `${l.title}:\n${l.items.map((i) => `☐ ${i}`).join("\n")}`).join("\n\n");
   return (
-    <Screen board="S9-Sizes" step={9} right="2 of 3 · Sizes" wrapStyle={{ maxWidth: "1200px" }}>
+    <Screen board="S9-Sizes" step={6} right="2 of 3 · Sizes" wrapStyle={{ maxWidth: "1200px" }}
+      dock={
+        <>
+          <Back to="S9-BuyList" label="Back to list" />
+          <button className="link-btn hide-sm" type="button" onClick={() => share(`Measuring checklist · ${roomName(curRoom(s))}`, text, toast)}>
+            Send checklist to whoever's measuring
+          </button>
+          <Go className="btn auto" to="S9-Todo">
+            Next: your to-do list
+            <I.next />
+          </Go>
+        </>
+      }
+    >
       <p className="eyebrow">Make it happen</p>
       <h1 className="h1">Measure once. Order with confidence.</h1>
       <p className="sub">Replace every example size with a real one before you buy. A preview image can't tell you dimensions — a tape measure can.</p>
@@ -288,7 +304,7 @@ export function Sizes() {
                 <div className="stack" style={{ gap: 6 }} onClick={(e) => e.stopPropagation()}>
                   {l.items.map((it, i) => (
                     <label key={it} className="row" style={{ gap: 10, fontSize: 15, flexWrap: "nowrap" }}>
-                      <input type="checkbox" checked={st[i]} onChange={() => toggle(l.id, i, l.items.length, l.auto)} style={{ width: 20, height: 20, accentColor: "#665A85" }} />
+                      <input type="checkbox" checked={st[i]} onChange={() => toggle(l.id, i, l.items.length, l.auto)} style={{ width: 20, height: 20, accentColor: "#5E4268" }} />
                       {it}
                     </label>
                   ))}
@@ -301,21 +317,11 @@ export function Sizes() {
                 <span>
                   {done} of {l.items.length}
                 </span>
-                <span style={{ color: "#665A85" }}>{done === l.items.length ? "Done" : done ? "Continue" : "Start"}</span>
+                <span style={{ color: "#5E4268" }}>{done === l.items.length ? "Done" : done ? "Continue" : "Start"}</span>
               </div>
             </a>
           );
         })}
-      </div>
-      <div className="actions">
-        <Back to="S9-BuyList" label="Back to list" />
-        <button className="link-btn" type="button" style={{ marginLeft: "auto" }} onClick={() => share(`Measuring checklist · ${roomName(curRoom(s))}`, text, toast)}>
-          Send checklist to whoever's measuring
-        </button>
-        <Go className="btn auto" to="S9-Todo">
-          Next: your to-do list
-          <I.next />
-        </Go>
       </div>
     </Screen>
   );
@@ -382,7 +388,24 @@ export function Todo() {
     }
   };
   return (
-    <Screen board="S9-Todo" step={9} right="3 of 3 · To-do" wrapClass="wrap wide">
+    <Screen board="S9-Todo" step={6} right="3 of 3 · To-do" wrapClass="wrap wide"
+      dock={
+        <>
+          <Back to="S9-Sizes" />
+          <Go
+            className="btn"
+            to="S9-Summary"
+            onClick={() => {
+              set((x) => ({ done: Array.from(new Set([...x.done, 9])) }));
+              void saveStepDone(s, 9);
+            }}
+          >
+            Finish step 6
+            <I.next />
+          </Go>
+        </>
+      }
+    >
       <div className="left">
         <p className="eyebrow">How to make it real</p>
         <h1 className="h1" style={{ fontSize: "clamp(36px,4vw,60px)" }}>
@@ -491,31 +514,18 @@ export function Todo() {
             <p className="small" style={{ margin: "0" }}>
               We open an email in your mail app for you to send. People added to the project see the plan, walls and their part of the list.
             </p>
-            <Go
-              className="btn"
-              to="S9-Summary"
-              style={{ minHeight: "60px", fontSize: "18px" }}
-              onClick={() => {
-                set((x) => ({ done: Array.from(new Set([...x.done, 9])) }));
-                void saveStepDone(s, 9);
-              }}
-            >
-              Finish step 9
-              <I.next />
-            </Go>
           </div>
         </aside>
-      </div>
-      <div className="actions">
-        <Back to="S9-Sizes" />
       </div>
     </Screen>
   );
 }
 
-/** 9.4 · Step 9 summary */
+/** 9.4 · Step 9 summary — the final screen: every step summed up, what you get, and the next room. */
 export function Step9Summary() {
-  const { s } = useJourney();
+  const { s, set } = useJourney();
+  const go = useGo();
+  const { toast } = useToast();
   const rows = useMemo(() => buyList(s), [s]);
   const t = tally(rows);
   const lists = checklists(s);
@@ -526,12 +536,79 @@ export function Step9Summary() {
   const started = lists.filter((l) => l.items.some((_, i) => s.checks?.[l.id]?.[i] ?? l.auto?.[i]));
   const invited = s.team ?? [];
   const notYet = TEAM.map(([, r]) => r).filter((r) => !invited.some((m) => m.role === r));
+
+  const room = curRoom(s) ?? "living-room";
+  const all = orderedRooms(s);
+  const done = Array.from(new Set([...s.roomsDone, room]));
+  const left = all.filter((r) => !done.includes(r));
+  const next = left[0];
+  const hero = s.preview?.versions[s.preview.current]?.image;
+  const wallsReviewed = Object.values(s.walls).filter((w) => w?.status !== "review").length;
+  const measuredAll = !!s.room.confirmed && s.keeping.every((k) => k.measured);
+  const tbc = [
+    !measuredAll && "Room & item measurements",
+    (budgetOf(s) === "TBC" || !s.brief.when) && "Budget & dates",
+    "Exact products & suppliers",
+    "Costs & lead times",
+    "Construction details",
+    "Electrical specs & positions",
+    "Water, AC & data points",
+  ].filter(Boolean) as string[];
+
+  const continueWith = async () => {
+    if (!next) return go("Main");
+    const keep: Partial<JourneyState> = {};
+    for (const k of ROOM_KEYS) (keep as Record<string, unknown>)[k] = s[k];
+    const roomId = await startNextRoom(s, next);
+    set((x) => {
+      const reset: Partial<JourneyState> = {};
+      for (const k of ROOM_KEYS) (reset as Record<string, unknown>)[k] = (EMPTY as Record<string, unknown>)[k];
+      return { ...reset, archive: { ...(x.archive ?? {}), [room]: keep }, roomsDone: done, current: next, roomId: roomId ?? x.roomId, done: [1] };
+    });
+    go("S2-Vision");
+  };
+  const downloadFile = async () => {
+    try {
+      const { jsPDF } = await import("jspdf");
+      const doc = new jsPDF({ unit: "pt", format: "a4" });
+      let y = 56;
+      const line = (t: string, size = 11, bold = false) => {
+        doc.setFont("helvetica", bold ? "bold" : "normal").setFontSize(size);
+        for (const l of doc.splitTextToSize(t, 480)) {
+          if (y > 790) {
+            doc.addPage();
+            y = 56;
+          }
+          doc.text(l, 56, y);
+          y += size + 6;
+        }
+      };
+      line(`${roomName(room)} — project file`, 20, true);
+      y += 6;
+      for (let i = 1; i <= 6; i++) line(`Step ${i}: ${stepLine(s, i)}`);
+      y += 10;
+      line("Buying list", 15, true);
+      for (const r of rows) line(`• ${r.name} — ${r.qty} — ${r.size} — wall ${r.wall} — ${r.action}${r.status ? ` (${r.status})` : ""}`, 10);
+      y += 10;
+      line("Still TBC", 15, true);
+      for (const t of tbc) line(`• ${t}`, 10);
+      doc.save(`${roomName(room).toLowerCase().replace(/\s+/g, "-")}-project.pdf`);
+    } catch {
+      toast({ title: "The file couldn't be made", variant: "destructive" });
+    }
+  };
+  const deliverables = [
+    { k: "a", title: "Design review", text: "Keep the whole design, or adjust one wall or item.", ok: wallsReviewed === 4, tag: wallsReviewed === 4 ? "Ready" : `${wallsReviewed} of 4 walls`, to: "S5-Walls" as const, label: "Review", icon: () => <I.sparkle /> },
+    { k: "b", title: "Buying pack", text: "Real sizes, chosen products, quantities, budget and lead times.", ok: measuredAll, tag: measuredAll ? "Ready" : "Needs sizes", to: "S9-BuyList" as const, label: "Open", icon: () => <Ic>{p("M6 6h15l-2 9H8zM6 6 5 3H2M9 20h.01M18 20h.01")}</Ic> },
+    { k: "c", title: "Installation pack", text: "Measured plan, wall elevations, finish schedule and approved electrical plan.", ok: false, tag: "After survey", to: "S9-Sizes" as const, label: "Open", icon: () => <I.ruler /> },
+    { k: "d", title: "Project checklist", text: "Owners, dates, deliveries, install tasks and final checks.", ok: true, tag: "Ready", to: "S9-Todo" as const, label: "Open", icon: () => <Ic>{p("M9 11l3 3 8-8M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h9")}</Ic> },
+  ];
   return (
     <StepSummary
-      step={9}
+      step={6}
       board="S9-Summary"
-      title="What we set up in step 9"
-      sub="You have a buying list, a measuring checklist and a to-do list. Last step: see it all together."
+      title="What we set up in step 6"
+      sub="You have a buying list, a measuring checklist and a to-do list. This is the last step — everything you decided, summed up below."
       media={
         <div className="nums">
           <div>
@@ -582,131 +659,27 @@ export function Step9Summary() {
         },
       ]}
       open={[...(budgetOf(s) === "TBC" || !s.brief.when ? ["Budget and target date"] : []), `${total - measured} measurements to take`, "Products, prices and lead times"]}
-      soFar={[
-        ["1–4", [stepLine(s, 1).split(" · ")[0], s.moodboard?.name, s.layouts.length ? `layout ${(s.chosenLayout ?? 0) + 1}` : null].filter(Boolean).join(", ")],
-        ["5–7", [s.anchor ? `${(s.anchor.material ?? "").split(" ")[0]} ${s.anchor.kind}`.trim().replace(/^\w/, (c) => c.toUpperCase()) : null, `${s.moodboard?.palette.length ?? 0} materials`, s.lighting ? `${s.lighting.layers.length} light layers` : null].filter(Boolean).join(", ")],
-        ["8", stepLine(s, 8)],
-        ["9", "List, sizes and to-do ready"],
-      ]}
+      soFar={soFar(s, 6)}
       back="S9-Todo"
-      next="S10-Final"
-    />
-  );
-}
-
-/** 10 · See everything together */
-export function Final() {
-  const { s, set } = useJourney();
-  const go = useGo();
-  const { toast } = useToast();
-  const room = curRoom(s) ?? "living-room";
-  const all = orderedRooms(s);
-  const done = Array.from(new Set([...s.roomsDone, room]));
-  const left = all.filter((r) => !done.includes(r));
-  const next = left[0];
-  const hero = s.preview?.versions[s.preview.current]?.image;
-  const rows = useMemo(() => buyList(s), [s]);
-  const wallsReviewed = Object.values(s.walls).filter((w) => w?.status !== "review").length;
-  const measuredAll = !!s.room.confirmed && s.keeping.every((k) => k.measured);
-  const tbc = [
-    !measuredAll && "Room & item measurements",
-    (budgetOf(s) === "TBC" || !s.brief.when) && "Budget & dates",
-    "Exact products & suppliers",
-    "Costs & lead times",
-    "Construction details",
-    "Electrical specs & positions",
-    "Water, AC & data points",
-  ].filter(Boolean) as string[];
-
-  const continueWith = async () => {
-    if (!next) return go("Main");
-    const keep: Partial<JourneyState> = {};
-    for (const k of ROOM_KEYS) (keep as Record<string, unknown>)[k] = s[k];
-    const roomId = await startNextRoom(s, next);
-    set((x) => {
-      const reset: Partial<JourneyState> = {};
-      for (const k of ROOM_KEYS) (reset as Record<string, unknown>)[k] = (EMPTY as Record<string, unknown>)[k];
-      return { ...reset, archive: { ...(x.archive ?? {}), [room]: keep }, roomsDone: done, current: next, roomId: roomId ?? x.roomId, done: [1] };
-    });
-    go("S2-Vision");
-  };
-  const downloadFile = async () => {
-    try {
-      const { jsPDF } = await import("jspdf");
-      const doc = new jsPDF({ unit: "pt", format: "a4" });
-      let y = 56;
-      const line = (t: string, size = 11, bold = false) => {
-        doc.setFont("helvetica", bold ? "bold" : "normal").setFontSize(size);
-        for (const l of doc.splitTextToSize(t, 480)) {
-          if (y > 790) {
-            doc.addPage();
-            y = 56;
-          }
-          doc.text(l, 56, y);
-          y += size + 6;
-        }
-      };
-      line(`${roomName(room)} — project file`, 20, true);
-      y += 6;
-      for (let i = 1; i <= 8; i++) line(`Step ${i}: ${stepLine(s, i)}`);
-      y += 10;
-      line("Buying list", 15, true);
-      for (const r of rows) line(`• ${r.name} — ${r.qty} — ${r.size} — wall ${r.wall} — ${r.action}${r.status ? ` (${r.status})` : ""}`, 10);
-      y += 10;
-      line("Still TBC", 15, true);
-      for (const t of tbc) line(`• ${t}`, 10);
-      doc.save(`${roomName(room).toLowerCase().replace(/\s+/g, "-")}-project.pdf`);
-    } catch {
-      toast({ title: "The file couldn't be made", variant: "destructive" });
-    }
-  };
-  const deliverables = [
-    { k: "a", title: "Design review", text: "Keep the whole design, or adjust one wall or item.", ok: wallsReviewed === 4, tag: wallsReviewed === 4 ? "Ready" : `${wallsReviewed} of 4 walls`, to: "S8-Walls" as const, label: "Review", icon: () => <I.sparkle /> },
-    { k: "b", title: "Buying pack", text: "Real sizes, chosen products, quantities, budget and lead times.", ok: measuredAll, tag: measuredAll ? "Ready" : "Needs sizes", to: "S9-BuyList" as const, label: "Open", icon: () => <Ic>{p("M6 6h15l-2 9H8zM6 6 5 3H2M9 20h.01M18 20h.01")}</Ic> },
-    { k: "c", title: "Installation pack", text: "Measured plan, wall elevations, finish schedule and approved electrical plan.", ok: false, tag: "After survey", to: "S9-Sizes" as const, label: "Open", icon: () => <I.ruler /> },
-    { k: "d", title: "Project checklist", text: "Owners, dates, deliveries, install tasks and final checks.", ok: true, tag: "Ready", to: "S9-Todo" as const, label: "Open", icon: () => <Ic>{p("M9 11l3 3 8-8M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h9")}</Ic> },
-  ];
-  return (
-    <Screen board="S10-Final" step={10} right={roomName(room)} wrapClass="wrap wide">
-      <p className="script">your {roomName(room).toLowerCase()}</p>
-      <h1 className="h1" style={{ marginTop: "4px" }}>
-        Ready to make your room real
-      </h1>
-      <p className="sub">The preview, your plan, every wall, the buying list and the work schedule — in one place.</p>
-      <nav className="vt" aria-label="View" style={{ justifyContent: "center", marginTop: "32px" }}>
-        <Go className="on" to="S10-Final">
-          <Ic>
-            <rect x="3" y="5" width="18" height="14" rx="2" />
-            {p("M3 15l5-5 4 4 3-3 6 6")}
-          </Ic>
-          Room
-        </Go>
-        <Go to="S4-Layouts">
-          <Ic>{p("M3 3h18v18H3zM3 12h7v9M14 3v6h7")}</Ic>
-          Plan
-        </Go>
-        <Go to="S8-Walls">
-          <Ic>
-            <rect x="4" y="4" width="7" height="7" rx="1.5" />
-            <rect x="13" y="4" width="7" height="7" rx="1.5" />
-            <rect x="4" y="13" width="7" height="7" rx="1.5" />
-            <rect x="13" y="13" width="7" height="7" rx="1.5" />
-          </Ic>
-          Walls
-        </Go>
-        <Go to="S9-BuyList">
-          <Ic>{p("M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01")}</Ic>
-          Buying list
-        </Go>
-        <Go to="S9-Todo">
-          <Ic>
-            <rect x="3" y="5" width="18" height="16" rx="2" />
-            {p("M3 10h18M8 3v4M16 3v4")}
-          </Ic>
-          Schedule
-        </Go>
-      </nav>
-      <div className="ph hero" style={{ marginTop: "20px", borderRadius: "30px" }}>
+      dock={
+        <>
+          <Back to="S9-Todo" />
+          {next ? (
+            <button className="btn auto" type="button" onClick={continueWith}>
+              <span className="hide-sm">Continue with room {all.indexOf(next) + 1}: {roomName(next)} — from step 2</span>
+              <span className="show-sm">Next room: {roomName(next)}</span>
+              <I.next />
+            </button>
+          ) : (
+            <Go className="btn auto" to="Main" onClick={() => (window.location.href = "/project", false)}>
+              Back to my project
+              <I.next />
+            </Go>
+          )}
+        </>
+      }
+    >
+      <div className="ph hero" style={{ marginTop: "32px", borderRadius: "30px" }}>
         {hero && <img className="img" src={hero} alt={`Final ${roomName(room).toLowerCase()}`} style={{ borderRadius: "30px" }} />}
         <span className="num">{(s.preview?.current ?? 0) + 1}</span>
       </div>
@@ -734,7 +707,7 @@ export function Final() {
             <div className="stack" style={{ gap: "6px" }}>
               <h2 className="h3">{left.length ? `${left.length} room${left.length > 1 ? "s" : ""} still to design` : "All rooms designed"}</h2>
               <p className="p" style={{ fontSize: "16px", color: "#5E3A18" }}>
-                The {roomName(room).toLowerCase()} is done. {left.length ? <>Each remaining room goes through <b>steps 2–10</b> — your project basics, budget and team carry over.</> : "Your whole project is designed."}
+                The {roomName(room).toLowerCase()} is done. {left.length ? <>Each remaining room goes through <b>steps 2–6</b> — your project basics, budget and team carry over.</> : "Your whole project is designed."}
               </p>
             </div>
             <span className="tag" style={{ background: "#fff", color: "#7A4A1E" }}>
@@ -747,10 +720,10 @@ export function Final() {
               const isDone = done.includes(r);
               const isNext = r === next;
               return isNext ? (
-                <button key={r} className="rmi" type="button" onClick={continueWith} style={{ padding: "14px 16px", borderRadius: "14px", background: "#fff", border: "2px solid #665A85", color: "#3B3350", cursor: "pointer", font: "inherit" }}>
+                <button key={r} className="rmi" type="button" onClick={continueWith} style={{ padding: "14px 16px", borderRadius: "14px", background: "#fff", border: "2px solid #5E4268", color: "#34203B", cursor: "pointer", font: "inherit" }}>
                   <Icon />
                   <b>{roomName(r)}</b>
-                  <span className="st" style={{ color: "#544872" }}>
+                  <span className="st" style={{ color: "#4A3254" }}>
                     Next →
                   </span>
                 </button>
@@ -788,19 +761,8 @@ export function Final() {
           <Ic>{p("M12 3v12M7 8l5-5 5 5M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6")}</Ic>
           Share
         </button>
-        {next ? (
-          <button className="btn auto" type="button" style={{ marginLeft: "auto" }} onClick={continueWith}>
-            Continue with room {all.indexOf(next) + 1}: {roomName(next)} — from step 2
-            <I.next />
-          </button>
-        ) : (
-          <Go className="btn auto" to="Main" style={{ marginLeft: "auto" }} onClick={() => (window.location.href = "/project", false)}>
-            Back to my project
-            <I.next />
-          </Go>
-        )}
       </div>
-    </Screen>
+    </StepSummary>
   );
 }
 

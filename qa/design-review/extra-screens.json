@@ -4,11 +4,12 @@
   "Home": { "title": "Landing page", "route": "/", "role": null },
   "B2B": { "title": "B2B solutions", "route": "/b2b-solutions", "role": null },
   "Auth": { "title": "Sign in / sign up", "route": "/auth", "role": null },
-  "ChoosePath": { "title": "Choose your path", "route": "/choose-path", "role": "user", "allowRedirect": true },
+  "ChoosePath": { "title": "Start: choose your path", "route": "/start", "role": "user", "allowRedirect": true },
   "Quiz": { "title": "Style quiz", "route": "/quiz", "role": "user", "allowRedirect": true },
   "Gallery": { "title": "Gallery", "route": "/gallery", "role": "user", "allowRedirect": true },
   "Project": { "title": "Project file", "route": "/project", "role": "user", "allowRedirect": true }
  },
+ "titles": { "S4-Showroom": "Your 3D showroom" },
  "groups": [
   { "key": "public", "area": "public", "prefix": "", "title": "Website & entry", "sub": "Landing, sign-in, paths and quiz" },
   { "key": "journey-0", "area": "journey", "prefix": "Main", "title": "Journey home", "sub": "Before the steps" },

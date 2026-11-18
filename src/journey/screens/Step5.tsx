@@ -91,7 +91,17 @@ export function Shops() {
   const shops = ctx?.shops ?? [];
   const n = shops.length + s.catalogPhotos.length;
   return (
-    <Screen board="S5-Shops" step={5} right={roomName(curRoom(s))}>
+    <Screen board="S5-Shops" step={5} right={roomName(curRoom(s))}
+      dock={
+        <>
+          <Back to="S3-Existing" />
+          <Go className="btn auto" to="S5-Walls">
+            Back to my walls
+            <I.next />
+          </Go>
+        </>
+      }
+    >
       <p className="eyebrow">Before we pick the pieces</p>
       <h1 className="h1">Where do you want to shop?</h1>
       <p className="sub">We look for furniture that matches your {s.moodboard?.name ?? "chosen"} style and your room sizes — in the places you choose.</p>
@@ -267,13 +277,6 @@ export function Shops() {
           </p>
         </div>
       </section>
-      <div className="actions">
-        <Back to="S3-Existing" />
-        <Go className="btn auto" to="S5-Anchor" style={{ marginLeft: "auto" }}>
-          Show me furniture
-          <I.next />
-        </Go>
-      </div>
     </Screen>
   );
 }
@@ -409,7 +412,29 @@ export function Anchor() {
   const keepName = s.keeping[0]?.name;
   const label = `${a.shape} ${kind}`.replace(/^\w/, (c) => c.toUpperCase());
   return (
-    <Screen board="S5-Anchor" step={5} right={roomName(curRoom(s))} wrapClass="wrap wide" wrapStyle={{ paddingTop: "28px" }}>
+    <Screen
+      board="S5-Anchor"
+      step={5}
+      right={roomName(curRoom(s))}
+      wrapClass="wrap wide"
+      wrapStyle={{ paddingTop: "28px" }}
+      dock={
+        <>
+          <Back to="S5-Shops" />
+          <Go
+            className="btn"
+            to="S5-Summary"
+            onClick={() => {
+              set((x) => ({ done: Array.from(new Set([...x.done, 5])) }));
+              void saveStepDone(s, 5);
+            }}
+          >
+            <I.check />
+            Keep the {label.toLowerCase()}
+          </Go>
+        </>
+      }
+    >
       <div className="palbar" aria-label="Your palette">
         <span className="lbl" style={{ marginRight: "6px" }}>
           Your palette
@@ -438,7 +463,7 @@ export function Anchor() {
             ) : (
               <>
                 {s.preview?.versions[s.preview.current] && <img className="img" src={s.preview.versions[s.preview.current].image} alt="" style={{ opacity: 0.35 }} />}
-                <span style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, color: "#3B3350" }}>
+                <span style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, color: "#34203B" }}>
                   {busy ? `Drawing your ${label.toLowerCase()}…` : ""}
                 </span>
               </>
@@ -489,7 +514,7 @@ export function Anchor() {
                   <option key={v.label}>{v.label}</option>
                 ))}
               </select>
-              <span className="row" style={{ gap: "8px", fontSize: "14px", color: "#544872" }}>
+              <span className="row" style={{ gap: "8px", fontSize: "14px", color: "#4A3254" }}>
                 <Ic style={{ width: "18px", height: "18px" }}>
                   <ellipse cx="12" cy="5" rx="8" ry="3" />
                   {p("M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3")}
@@ -591,17 +616,6 @@ export function Anchor() {
             )}
           </section>
           <div className="actions">
-            <Go
-              className="btn auto"
-              to="S5-Summary"
-              onClick={() => {
-                set((x) => ({ done: Array.from(new Set([...x.done, 5])) }));
-                void saveStepDone(s, 5);
-              }}
-            >
-              <I.check />
-              Keep the {label.toLowerCase()}
-            </Go>
             <Go className="btn ghost auto" to="S2-Moodboard">
               <Ic>{p("M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16zM13 20h7")}</Ic>
               Adjust
@@ -765,7 +779,7 @@ export function Step5Summary() {
       ]}
       soFar={soFar(s, 5)}
       back="S5-Anchor"
-      next="S6-Palette"
+      next="S9-BuyList"
     />
   );
 }

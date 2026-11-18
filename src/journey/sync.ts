@@ -161,3 +161,17 @@ export async function startNextRoom(s: JourneyState, room: string) {
     return null;
   }
 }
+
+/** The showroom's saved style of the current room: its colours, elements, shapes and wall order (best effort). */
+export async function saveStyleRecord(s: JourneyState, record: unknown) {
+  if (isQa() || !s.projectId || !s.roomId || !(await projectsReady())) return false;
+  try {
+    const { error } = await supabase.from("showroom_style_records").upsert(
+      { project_id: s.projectId, room_id: s.roomId, layout_id: s.layouts[s.chosenLayout ?? 0]?.id ?? null, record, updated_at: new Date().toISOString() },
+      { onConflict: "project_id,room_id" },
+    );
+    return !error;
+  } catch {
+    return false;
+  }
+}

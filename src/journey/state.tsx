@@ -73,6 +73,12 @@ export type WallItem = {
   code?: string;
   x: number;
   y: number;
+  /** The layout piece ("lay-3") or kept piece ("keep-<id>") it stands for, so the wall outline can place it. */
+  ref?: string;
+  /** The real piece picked for it on the wall screen (step 5). */
+  choice?: { name: string; image?: string; url?: string; productId?: string; price?: number; currency?: string };
+  /** Added on the wall screen by the person (e.g. an extra socket). */
+  added?: boolean;
 };
 export type WallPlan = {
   role: string; // "Sofa"
@@ -208,16 +214,24 @@ export type JourneyState = {
   };
   // Step 8 — wall by wall
   walls: Partial<Record<Wall, WallPlan>>;
+  /** This room is designed wall by wall (step 5 "Your walls"): every choice lives on the walls, not in steps 5–8. */
+  wallFlow?: boolean;
   // Step 9 — make it happen
   buyEdits?: Record<string, { size?: string; action?: string }>;
   /** Space available, per buying-list row (the second of the three sizes). */
   spaceAvail?: Record<string, string>;
   checks?: Record<string, boolean[]>;
   todo?: Record<string, boolean>;
+  /** The 3D showroom (4 · showroom): what the person changed there, and the saved style of the room. */
+  /**
+   * The showroom: edits made in the (now hidden) 3D room, the saved style of the room, and each wall's
+   * hyper-realistic layered picture (wallScenes/runner).
+   */
+  showroom?: { edits: import("./showroom3d/model").Edits; record?: import("./showroom3d/record").StyleRecord; scenes?: Partial<Record<Wall | "room", import("./wallScenes/runner").WallScene>>; /** The option picked for each item on each wall picture, and the whole-room picture (0 = main option). */ picks?: Partial<Record<Wall | "room", Record<string, number>>> };
   /** People asked to join. saved = added to the project in the database (not only in this browser). */
   team?: { role: string; email: string; saved?: boolean }[];
   // Step 10 / more rooms
-  /** The room being designed now (steps 2–10 repeat per room). Defaults to the start room. */
+  /** The room being designed now (steps 2–9 repeat per room). Defaults to the start room. */
   current?: string;
   roomsDone: string[];
   /** Each finished room's answers, kept for the project page. */
@@ -268,9 +282,22 @@ type Ctx = {
 };
 const JourneyCtx = createContext<Ctx | null>(null);
 
+/** Account copies are skipped in tests (no backend there). */
+const ACCOUNT = import.meta.env.MODE !== "test";
+
 export function JourneyProvider({ children }: { children: ReactNode }) {
   const [s, setS] = useState<JourneyState>(load);
   const first = useRef(true);
+  const restored = useRef(!ACCOUNT);
+  // A browser with no answers (or older ones) gets the person's journey back from their account.
+  useEffect(() => {
+    if (!ACCOUNT) return;
+    let live = true;
+    void import("./accountState").then(({ newerFromAccount }) => newerFromAccount(load())).then((remote) => {
+      if (live && remote) setS({ ...EMPTY, ...remote });
+    }).catch(() => undefined).finally(() => { restored.current = true; });
+    return () => { live = false; };
+  }, []);
   useEffect(() => {
     if (first.current) {
       first.current = false;
@@ -281,6 +308,10 @@ export function JourneyProvider({ children }: { children: ReactNode }) {
     } catch {
       /* quota */
     }
+    // and with the account, a moment after the last change (not before the account copy has been checked)
+    if (!ACCOUNT || !restored.current) return;
+    const t = window.setTimeout(() => { void import("./accountState").then(({ saveToAccount }) => saveToAccount(s)).catch(() => undefined); }, 1500);
+    return () => window.clearTimeout(t);
   }, [s]);
   const set = useCallback<Ctx["set"]>((patch) => setS((prev) => ({ ...prev, ...(typeof patch === "function" ? patch(prev) : patch) })), []);
   const reset = useCallback(() => setS(EMPTY), []);
@@ -299,16 +330,16 @@ export function useJourney() {
 export const orderedRooms = (s: JourneyState) => (s.startRoom ? [s.startRoom, ...s.rooms.filter((r) => r !== s.startRoom)] : s.rooms);
 /** The room being designed now. */
 export const curRoom = (s: JourneyState) => s.current ?? s.startRoom;
-/** Answers that belong to one room (steps 2–10); the rest are the project's. */
+/** Answers that belong to one room (steps 2–9); the rest are the project's. */
 export const ROOM_KEYS: (keyof JourneyState)[] = [
   "visionMode", "photos", "pinterest", "note", "quickNotes", "analysis", "styles", "moodboard", "preview",
   "activities", "priorities", "keeping", "nothingKept", "fixedCounts", "fixedTbc", "placements", "fixedPhotos",
-  "room", "layouts", "chosenLayout", "anchor", "accent", "supporting", "supportImage", "samplesAdded", "surfaces", "decor", "refined", "lighting", "walls",
-  "buyEdits", "spaceAvail", "checks", "todo",
+  "room", "layouts", "chosenLayout", "anchor", "accent", "supporting", "supportImage", "samplesAdded", "surfaces", "decor", "refined", "lighting", "walls", "wallFlow",
+  "buyEdits", "spaceAvail", "checks", "todo", "showroom",
 ];
 export const uid = () => Math.random().toString(36).slice(2, 10);
 
-/** Open the journey on another room of the project (used by the project page). Steps 2–10 start fresh for it. */
+/** Open the journey on another room of the project (used by the project page). Steps 2–9 start fresh for it. */
 export function resumeRoomInJourney(roomType: string, roomId?: string) {
   try {
     const cur: JourneyState = { ...EMPTY, ...JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "{}") };
@@ -325,6 +356,6 @@ export function resumeRoomInJourney(roomType: string, roomId?: string) {
 /** The first screen of the step after the last finished one. */
 export function resumePath(s: JourneyState) {
   const last = Math.max(0, ...s.done);
-  const firsts = ["1/why", "2/vision", "3/activities", "4/input", "5/shops", "6/palette", "7/lighting", "8/walls", "9/buy", "10/final", "10/final"];
+  const firsts = ["1/why", "2/vision", "3/activities", "4/input", "5/walls", "5/walls", "5/walls", "5/walls", "9/buy", "10/final", "10/final"];
   return `/journey/${firsts[Math.min(10, last)]}`;
 }

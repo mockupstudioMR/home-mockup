@@ -25,7 +25,17 @@ export function Vision() {
     } else go("S2-Upload");
   };
   return (
-    <Screen board="S2-Vision" step={2} right={roomName(curRoom(s))}>
+    <Screen board="S2-Vision" step={2} right={roomName(curRoom(s))}
+      dock={
+        <>
+          <Back to="S1-Summary" />
+          <button className={`btn${s.visionMode ? "" : " dis"}`} type="button" disabled={!s.visionMode} onClick={() => s.visionMode && pick(s.visionMode)}>
+            Continue
+            <I.next />
+          </button>
+        </>
+      }
+    >
       <p className="eyebrow">Start your journey</p>
       <h1 className="h1">Capture the vision</h1>
       <p className="sub">How would you like to share your style?</p>
@@ -85,9 +95,6 @@ export function Vision() {
           </span>
         </Opt>
       </div>
-      <div className="actions">
-        <Back to="S1-Summary" />
-      </div>
     </Screen>
   );
 }
@@ -129,7 +136,20 @@ export function Upload() {
   const canAnalyze = s.photos.length > 0 || (describe && (s.note ?? "").trim().length > 3);
 
   return (
-    <Screen board="S2-Upload" step={2} right={roomName(curRoom(s))}>
+    <Screen board="S2-Upload" step={2} right={roomName(curRoom(s))}
+      dock={
+        <>
+          <Back to="S2-Vision" />
+          <Go className={`btn${canAnalyze && !busy ? "" : " dis"}`} to="S2-Analyzing" onClick={() => canAnalyze && !busy}>
+            <Ic>
+              <path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z" />
+              <path d="M19 3v4M17 5h4" />
+            </Ic>
+            Analyze Styles
+          </Go>
+        </>
+      }
+    >
       <h1 className="h1" style={{ marginTop: "0" }}>
         {describe ? "Describe your style" : "Upload Room Inspiration"}
       </h1>
@@ -233,17 +253,7 @@ export function Upload() {
             );
           })}
         </div>
-        <Go className={`btn${canAnalyze && !busy ? "" : " dis"}`} to="S2-Analyzing" style={{ marginTop: "32px" }} onClick={() => canAnalyze && !busy}>
-          <Ic>
-            <path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z" />
-            <path d="M19 3v4M17 5h4" />
-          </Ic>
-          Analyze Styles
-        </Go>
       </section>
-      <div className="actions">
-        <Back to="S2-Vision" />
-      </div>
     </Screen>
   );
 }
@@ -426,7 +436,29 @@ export function Matches() {
   };
 
   return (
-    <Screen board="S2-Matches" step={2} right={roomName(curRoom(s))}>
+    <Screen board="S2-Matches" step={2} right={roomName(curRoom(s))}
+      dock={
+        <>
+          <Back to={discover ? "S2-Vision" : "S2-Upload"} label={discover ? "Back" : "Back to photos"} />
+          <span className="note">
+            <b>
+              {added.length} piece{added.length === 1 ? "" : "s"}
+            </b>{" "}
+            and{" "}
+            <b>
+              {words.length} word{words.length === 1 ? "" : "s"}
+            </b>{" "}
+            on your moodboard
+          </span>
+          <Go className={`btn${ready ? "" : " dis"}`} to="S2-Moodboard" onClick={() => ready && create()}>
+            <Ic>
+              <path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z" />
+            </Ic>
+            Create my moodboard
+          </Go>
+        </>
+      }
+    >
       <h1 className="h1" style={{ marginTop: "0" }}>
         {discover ? "Discover styles" : "Style Matches"}
       </h1>
@@ -489,38 +521,7 @@ export function Matches() {
             </button>
           </div>
         )}
-        <div className="sticky">
-          <div className="thumbs">
-            {added.slice(0, 4).map((p) => (
-              <img key={p.id} src={p.image} alt="" />
-            ))}
-          </div>
-          <span style={{ fontSize: "17px" }}>
-            <b>
-              {added.length} piece{added.length === 1 ? "" : "s"}
-            </b>{" "}
-            and{" "}
-            <b>
-              {words.length} word{words.length === 1 ? "" : "s"}
-            </b>{" "}
-            on your moodboard
-          </span>
-          <Go
-            className={`btn auto${ready ? "" : " dis"}`}
-            to="S2-Moodboard"
-            style={{ marginLeft: "auto", background: "#FBF8F6", color: "#3B3350" }}
-            onClick={() => ready && create()}
-          >
-            <Ic>
-              <path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z" />
-            </Ic>
-            Create my moodboard
-          </Go>
-        </div>
       </section>
-      <div className="actions">
-        <Back to={discover ? "S2-Vision" : "S2-Upload"} label={discover ? "Back" : "Back to photos"} />
-      </div>
     </Screen>
   );
 }
@@ -587,7 +588,7 @@ function paletteShares(palette: Swatch[]) {
 const onColour = (hex: string) => {
   const n = parseInt(hex.replace("#", "").padEnd(6, "0").slice(0, 6), 16);
   const l = (0.299 * ((n >> 16) & 255) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255)) / 255;
-  return l > 0.6 ? "#2F2840" : "#FFFFFF";
+  return l > 0.6 ? "#34203B" : "#FFFFFF";
 };
 
 /** 2.4 · Your direction — the moodboard and the one preview on one screen: keep it or say what to change. */
@@ -653,7 +654,26 @@ export function Moodboard() {
   };
 
   return (
-    <Screen board="S2-Moodboard" step={2} right={roomName(curRoom(s))} wrapClass="wrap wide">
+    <Screen board="S2-Moodboard" step={2} right={roomName(curRoom(s))} wrapClass="wrap wide"
+      dock={
+        <>
+          <Back to={s.visionMode === "discover" ? "S2-Matches" : "S2-Upload"} label={s.visionMode === "discover" ? "Back to styles" : "Back to your photos"} />
+          <span className="note">Next: how you use the room and its layout</span>
+          <Go
+            className={`btn${v ? "" : " dis"}`}
+            to="S2-Summary"
+            onClick={() => {
+              if (!v) return false;
+              set((p) => ({ preview: { ...p.preview!, kept: true }, done: Array.from(new Set([...p.done, 2])) }));
+              void saveStepDone(s, 2);
+            }}
+          >
+            <I.check />
+            Keep this direction
+          </Go>
+        </>
+      }
+    >
       <div className="dr-top">
         <div className="stack" style={{ gap: "6px", maxWidth: "720px" }}>
           <p className="dr-script">your direction, curated for you</p>
@@ -782,23 +802,6 @@ export function Moodboard() {
       </div>
 
       <section className="dr-decide" aria-label="Decide">
-        <Go
-          className="dr-keep"
-          to="S2-Summary"
-          onClick={() => {
-            if (!v) return false;
-            set((p) => ({ preview: { ...p.preview!, kept: true }, done: Array.from(new Set([...p.done, 2])) }));
-            void saveStepDone(s, 2);
-          }}
-        >
-          <span className="tile">
-            <I.check />
-          </span>
-          <span className="stack" style={{ gap: "2px" }}>
-            <b>Keep this direction</b>
-            <span>Next: how you use the room and its layout</span>
-          </span>
-        </Go>
         <form className="dr-adjust" onSubmit={(e) => void update(e)}>
           <label htmlFor="adjust">Or adjust it</label>
           <div className="row" style={{ gap: "10px", flexWrap: "nowrap" }}>
@@ -809,10 +812,6 @@ export function Moodboard() {
           </div>
         </form>
       </section>
-
-      <div className="actions" style={{ marginTop: "20px" }}>
-        <Back to={s.visionMode === "discover" ? "S2-Matches" : "S2-Upload"} label={s.visionMode === "discover" ? "Back to styles" : "Back to your photos"} />
-      </div>
     </Screen>
   );
 }

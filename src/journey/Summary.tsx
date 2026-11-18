@@ -2,7 +2,7 @@
 import type { ReactNode } from "react";
 import { Back, Go, Screen, StepStrip } from "./Shell";
 import { I, ROOM_ICON_SM } from "./icons";
-import { STEP_TITLES, roomName } from "./data";
+import { STEP_COUNT, STEP_TITLES, roomName } from "./data";
 import { curRoom, orderedRooms, useJourney } from "./state";
 import type { ScreenId } from "./routes";
 
@@ -38,7 +38,7 @@ export function RoomsLeft({ step }: { step: number }) {
             <div key={r} className={`rmi${i === 0 ? " cur" : ""}`}>
               <Icon />
               <b>{roomName(r)}</b>
-              <span className="st">{i === 0 ? `Step ${step} of 10 ✓` : s.roomsDone.includes(r) ? "✓ Done" : "Not started"}</span>
+              <span className="st">{i === 0 ? `Step ${step} of ${STEP_COUNT} ✓` : s.roomsDone.includes(r) ? "✓ Done" : "Not started"}</span>
             </div>
           );
         })}
@@ -46,7 +46,7 @@ export function RoomsLeft({ step }: { step: number }) {
       <div className="rep">
         <I.repeat />
         <span>
-          After the {roomName(current).toLowerCase()}, <b>steps 2–10 repeat for each room</b>. Your project basics from step 1 carry over.
+          After the {roomName(current).toLowerCase()}, <b>steps 2–6 repeat for each room</b>. Your project basics from step 1 carry over.
         </span>
       </div>
     </div>
@@ -64,7 +64,7 @@ function RoomsLine() {
       <I.repeat />
       <span>
         <b>Rooms still to design: {left}</b>
-        {left ? ` — after the ${roomName(current).toLowerCase()}, steps 2–10 repeat for each room.` : " — this is the last one."}
+        {left ? ` — after the ${roomName(current).toLowerCase()}, steps 2–6 repeat for each room.` : " — this is the last one."}
       </span>
     </div>
   );
@@ -76,7 +76,7 @@ function RoomsLine() {
  * project so far on the right.
  */
 export function StepSummary({
-  step, board, sub, title, media, decisions, open, soFar, back, next, nextLabel,
+  step, board, sub, title, media, decisions, open, soFar, back, next, nextLabel, dock, children,
 }: {
   step: number;
   board: string;
@@ -87,13 +87,34 @@ export function StepSummary({
   open: string[];
   soFar: [string, string][];
   back: ScreenId;
-  next: ScreenId;
+  /** Where "Next" goes. Omit on the final step and pass `dock` instead. */
+  next?: ScreenId;
   nextLabel?: string;
+  /** Replaces the default Back/Next dock (final step: next room or back to the project). */
+  dock?: ReactNode;
+  /** Extra sections below the summary columns (final step: deliverables, rooms, download). */
+  children?: ReactNode;
   /** Kept for callers; the compact summary always lists decisions in their own block. */
   decWrap?: boolean;
 }) {
   return (
-    <Screen board={board} step={step} right="Summary" wrapStyle={{ maxWidth: "1160px" }}>
+    <Screen
+      board={board}
+      step={step}
+      right="Summary"
+      wrapStyle={{ maxWidth: "1160px" }}
+      dock={
+        dock ?? (
+          <>
+            <Back to={back} />
+            {next && <Go className="btn" to={next}>
+              {nextLabel ?? `Next: ${STEP_TITLES[step + 1]}`}
+              <I.next />
+            </Go>}
+          </>
+        )
+      }
+    >
       <div className="sm">
         <p className="script">
           Step {step} complete · {STEP_TITLES[step]}
@@ -151,13 +172,7 @@ export function StepSummary({
             <RoomsLine />
           </aside>
         </div>
-        <div className="sm-foot">
-          <Back to={back} />
-          <Go className="btn auto" to={next}>
-            {nextLabel ?? `Next: ${STEP_TITLES[step + 1]}`}
-            <I.next />
-          </Go>
-        </div>
+        {children}
       </div>
     </Screen>
   );

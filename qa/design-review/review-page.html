@@ -258,7 +258,10 @@ async function boot() {
 function editsFor(id) { return state.edits.filter((e) => e.screenId === id && e.status !== "rejected"); }
 function groupOf(s) {
   const groups = state.meta?.groups || [];
-  return groups.find((g) => g.area === s.area && (!g.prefix || s.board === g.prefix || s.board.startsWith(g.prefix))) || { key: s.area, title: s.area, sub: "" };
+  // snapshots name each screen's chapter (s.group); older ones are matched by board prefix
+  return (s.group && groups.find((g) => g.key === s.group)) ||
+    groups.find((g) => g.area === s.area && g.prefix !== undefined && (!g.prefix || s.board === g.prefix || s.board.startsWith(g.prefix))) ||
+    { key: s.area, title: s.area, sub: "" };
 }
 function render() {
   const m = state.meta || {};

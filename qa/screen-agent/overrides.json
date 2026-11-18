@@ -95,6 +95,12 @@
     "Colors"
    ],
    "_why": "The Colors tab was removed on 2026-10-28 (Monica); the palette strip and side card still show the colours."
+  },
+  "S5-Wall": {
+   "soft": [
+    "Seen one you like? Paste its link",
+    "Use it"
+   ]
   }
  },
  "admin": {

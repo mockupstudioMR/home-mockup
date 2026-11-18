@@ -3,13 +3,13 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
+import Logo from "@/components/Logo";
 import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import {
   Download,
   Trash2,
   Heart,
-  Home,
   Plus,
   Loader2,
   Play,
@@ -464,8 +464,9 @@ const Gallery = () => {
             <button
               onClick={() => navigate("/")}
               className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+              aria-label="Home"
             >
-              <Home className="w-4 h-4" />
+              <Logo size={30} />
             </button>
             <h1 className="text-2xl font-bold">My HomeMockUps</h1>
           </div>

@@ -98,7 +98,25 @@ export function Activities() {
   };
   const n = s.activities.length;
   return (
-    <Screen board="S3-Activities" step={3} right={roomName(curRoom(s))}>
+    <Screen board="S3-Activities" step={3} right={roomName(curRoom(s))}
+      dock={
+        <>
+          <Back to="S2-Moodboard" />
+          <Go
+            className={`btn auto${n ? "" : " dis"}`}
+            to="S3-Summary"
+            onClick={() => {
+              if (!n) return false;
+              set((x) => ({ done: Array.from(new Set([...x.done, 3])) }));
+              void saveStepDone(s, 3);
+            }}
+          >
+            Finish step 3 · {n} selected
+            <I.next />
+          </Go>
+        </>
+      }
+    >
       <p className="eyebrow">Design around your everyday life</p>
       <h1 className="h1">What happens in this room?</h1>
       <p className="sub">Pick everything you do here. Do you play an instrument, paint or work from the sofa? Add it.</p>
@@ -123,22 +141,6 @@ export function Activities() {
             Add
           </button>
         </div>
-      </div>
-      <div className="actions">
-        <Back to="S2-Moodboard" />
-        <Go
-          className={`btn auto${n ? "" : " dis"}`}
-          to="S3-Summary"
-          style={{ marginLeft: "auto" }}
-          onClick={() => {
-            if (!n) return false;
-            set((x) => ({ done: Array.from(new Set([...x.done, 3])) }));
-            void saveStepDone(s, 3);
-          }}
-        >
-          Finish step 3 · {n} selected
-          <I.next />
-        </Go>
       </div>
     </Screen>
   );
@@ -304,7 +306,7 @@ function KeepPanel({ item, update, remove, s }: { item: KeepItem; update: (k: Pa
               ))}
             </select>
           </div>
-          <div className="row" style={{ gap: "10px", padding: "10px 14px", borderRadius: "12px", background: "#F0EAF1", fontSize: "14px", color: "#544872" }}>
+          <div className="row" style={{ gap: "10px", padding: "10px 14px", borderRadius: "12px", background: "#F0EAF1", fontSize: "14px", color: "#4A3254" }}>
             <Ic style={{ width: "18px", height: "18px" }}>
               <ellipse cx="12" cy="5" rx="8" ry="3" />
               {p("M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3")}
@@ -443,7 +445,24 @@ export function Existing() {
     </button>
   );
   return (
-    <Screen board="S3-Existing" step={5} right={roomName(curRoom(s))} wrapStyle={{ maxWidth: "1100px" }}>
+    <Screen board="S3-Existing" step={5} right={roomName(curRoom(s))} wrapStyle={{ maxWidth: "1100px" }}
+      dock={
+        <>
+          <Back to="S5-Walls" label="My walls" />
+          {s.keeping.length ? (
+            <Go className="btn" to="S5-Shops">
+              Next: suggest new pieces
+              <I.next />
+            </Go>
+          ) : (
+            <Go className="btn ghost" to="S5-Shops" onClick={() => void set({ keeping: [], nothingKept: true })}>
+              Nothing yet — suggest everything
+              <I.next />
+            </Go>
+          )}
+        </>
+      }
+    >
       <div className="ex-head">
         <p className="ex-script">before we suggest anything new</p>
         <h1 className="ex-h1">
@@ -537,8 +556,8 @@ export function Existing() {
         </>
       )}
 
-      <div className="ex-foot">
-        {counts.length ? (
+      {counts.length > 0 && (
+        <div className="ex-foot">
           <p className="ex-tally">
             {counts.map((c) => (
               <span key={c.id}>
@@ -548,24 +567,8 @@ export function Existing() {
             ))}
             <span className="ex-hand sm">— we'll suggest the rest</span>
           </p>
-        ) : (
-          <Back to="S4-Summary" />
-        )}
-        <div className="row" style={{ gap: "20px", alignItems: "center" }}>
-          {counts.length > 0 && <Back to="S4-Summary" />}
-          {s.keeping.length ? (
-            <Go className="btn auto" to="S5-Shops">
-              Next: suggest new pieces
-              <I.next />
-            </Go>
-          ) : (
-            <Go className="btn ghost auto" to="S5-Shops" onClick={() => void set({ keeping: [], nothingKept: true })}>
-              Nothing yet — suggest everything
-              <I.next />
-            </Go>
-          )}
         </div>
-      </div>
+      )}
     </Screen>
   );
 }
@@ -573,9 +576,9 @@ export function Existing() {
 type FixedDef = { kind: FixedKind; title: string; text: string; one: string; icon: () => JSX.Element; inWalls?: boolean; mark: string; color: string };
 const FIXED: FixedDef[] = [
   { kind: "windows", title: "Windows", text: "Include balcony doors", one: "Window", mark: "", color: "#9FC3D6", icon: () => <Ic><rect x="4" y="3" width="16" height="18" rx="1" />{p("M12 3v18M4 12h16")}</Ic> },
-  { kind: "doors", title: "Doors", text: "And which way they open", one: "Door", mark: "D", color: "#665A85", icon: ROOM_ICON.hallway },
+  { kind: "doors", title: "Doors", text: "And which way they open", one: "Door", mark: "D", color: "#5E4268", icon: ROOM_ICON.hallway },
   { kind: "radiators", title: "Radiators", text: "Or other heaters", one: "Radiator", mark: "R", color: "#9E8E7A", icon: SCOPE_ICON.heating },
-  { kind: "columns", title: "Columns", text: "Pillars, beams, boxed pipes", one: "Column", mark: "C", color: "#3B3350", icon: () => <Ic>{p("M7 3h10M7 21h10M9 3v18M15 3v18")}</Ic> },
+  { kind: "columns", title: "Columns", text: "Pillars, beams, boxed pipes", one: "Column", mark: "C", color: "#34203B", icon: () => <Ic>{p("M7 3h10M7 21h10M9 3v18M15 3v18")}</Ic> },
   { kind: "sockets", title: "Sockets & switches", text: "Each socket or switch you want kept", one: "Socket", mark: "S", color: "#B4975A", icon: SCOPE_ICON.electrical, inWalls: true },
   { kind: "builtins", title: "Built-ins", text: "Fireplace, alcoves, fitted units", one: "Built-in", mark: "B", color: "#8A6A4A", icon: () => <Ic>{p("M3 3h18v18H3zM3 12h7v9M14 3v6h7")}</Ic> },
   { kind: "water", title: "Water supply & drains", text: "Taps, drains, washing-machine points", one: "Water point", mark: "W", color: "#5B8BA6", icon: SCOPE_ICON.water, inWalls: true },
@@ -651,7 +654,17 @@ export function Fixed() {
   const shots = [...pl.filter((x) => x.photo), ...needPhoto.slice(0, 2)];
 
   return (
-    <Screen board="S3-Fixed" step={4} right={roomName(curRoom(s))} wrapStyle={{ maxWidth: "1080px" }}>
+    <Screen board="S3-Fixed" step={4} right={roomName(curRoom(s))} wrapStyle={{ maxWidth: "1080px" }}
+      dock={
+        <>
+          <Back to="S4-Measure" />
+          <Go className="btn auto" to="S4-Layouts">
+            Show me layouts
+            <I.next />
+          </Go>
+        </>
+      }
+    >
       <p className="eyebrow">Your room, as it is</p>
       <h1 className="h1">What can't move?</h1>
       <p className="sub">Count what's built into the room, then snap a photo and show us where each one is.</p>
@@ -831,13 +844,6 @@ export function Fixed() {
           </p>
         </div>
       </section>
-      <div className="actions">
-        <Back to="S4-Measure" />
-        <Go className="btn auto" to="S4-Layouts" style={{ marginLeft: "auto" }}>
-          Show me layouts
-          <I.next />
-        </Go>
-      </div>
     </Screen>
   );
 }

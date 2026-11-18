@@ -25,27 +25,12 @@ export function stepLine(s: JourneyState, step: number): string {
       return s.layouts.length ? `Layout ${(s.chosenLayout ?? 0) + 1} on a ${w} × ${l} m room` : "Layout not chosen";
     }
     case 5: {
-      const a = s.anchor;
-      if (!a) return s.keeping.length ? `Keeping the ${list(s.keeping.map((k) => k.name.toLowerCase().replace(/^upright /, "")))}` : "Main piece not chosen";
-      const colour = (a.material ?? "").split(" ")[0];
-      const keep = s.keeping.length ? `, keeping the ${list(s.keeping.map((k) => k.name.toLowerCase().replace(/^upright /, "")))}` : "";
-      return `${a.shape} ${colour && colour !== a.material ? colour + " " : ""}${a.kind}${keep}`;
-    }
-    case 6: {
-      const n = s.moodboard?.palette.length ?? 0;
-      const a = s.accent && s.accent.decision !== "skip" ? `, ${s.accent.name.replace(" statement", "").toLowerCase()} accent chair`.replace(" chair accent chair", " accent chair") : "";
-      return `${n} materials${a}`;
-    }
-    case 7: {
-      const n = s.lighting?.layers.length ?? 0;
-      const metal = s.moodboard?.palette.find((x) => /brass|black|nickel|bronze|copper|steel|chrome/i.test(x.material ?? x.name));
-      return n ? `${n} light layers${metal ? ` in ${(metal.material ?? metal.name).split(" ").slice(-1)[0].toLowerCase()}` : ""}` : "Lighting not set";
-    }
-    case 8: {
       const ws = Object.values(s.walls);
       const changed = ws.filter((w) => w?.status === "changed").length;
       return ws.length ? `${ws.length} walls, ${changed} changed` : "Walls not reviewed";
     }
+    case 6:
+      return "List, sizes and to-do ready";
     default:
       return "";
   }

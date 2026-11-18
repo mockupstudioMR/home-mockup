@@ -11,7 +11,7 @@ import { analyzePlan, makeLayout, uploadPhoto } from "../services";
 import { onPlanReaderStatus, readPlan, warmPlanReader, type PlanRead } from "../plan/reader";
 import { applyPlanRead, fromReference, printedForRoom, withWritten, type ScaleRef } from "../plan/apply";
 import { readPlanText } from "../plan/printedText";
-import { layoutChecks, pieceInfo } from "../plan/layoutCheck";
+import { layoutChecks, moveOntoWalls, pieceInfo } from "../plan/layoutCheck";
 import { pdfToImages } from "@/lib/pdfToImages";
 import { list, soFar } from "../story";
 import { saveStepDone } from "../sync";
@@ -90,6 +90,8 @@ export function RoomInput() {
             const pr = room0.planRead;
             const written = printedForRoom(room0, pr?.box, pr?.picked !== "tap");
             if (!written || JSON.stringify(written) === JSON.stringify(x.room.written)) return { room: room0 };
+            // Late background readers must not erase a layout the person is already choosing.
+            if (x.layouts.length) return { room: room0 };
             replaced = !!x.room.confirmed && !x.room.sizeSource;
             // the reader's door-scaled guess keeps the room's proportions for a side that isn't printed
             const est = pr?.guessM ? { widthM: pr.guessM[0], lengthM: pr.guessM[1] } : { widthM: x.room.widthM ?? EX_W, lengthM: x.room.lengthM ?? EX_L };
@@ -186,7 +188,17 @@ export function RoomInput() {
     </li>
   );
   return (
-    <Screen board="S4-Input" step={4} right={roomName(curRoom(s))} wrapStyle={{ maxWidth: "1120px" }}>
+    <Screen board="S4-Input" step={4} right={roomName(curRoom(s))} wrapStyle={{ maxWidth: "1120px" }}
+      dock={
+        <>
+          <Back to="S3-Summary" />
+          <Go className={`btn${s.room.input ? "" : " dis"}`} to="S4-Measure" onClick={() => !!s.room.input}>
+            Continue
+            <I.next />
+          </Go>
+        </>
+      }
+    >
       <p className="eyebrow">Choose where life happens</p>
       <h1 className="h1">Show us the room</h1>
       <p className="sub">{busy ?? "Now we fit your direction to the real space. Pick whichever is easiest."}</p>
@@ -242,9 +254,6 @@ export function RoomInput() {
         </span>
         <Ic style={{ marginLeft: "auto" }}>{p("M5 12h14M13 6l6 6-6 6")}</Ic>
       </Go>
-      <div className="actions">
-        <Back to="S3-Summary" />
-      </div>
     </Screen>
   );
 }
@@ -263,23 +272,23 @@ function featureStyle(pl: Placement, W: number, H: number, t: number): CSSProper
   const wall = pl.wall!;
   if (pl.kind === "windows") {
     const len = Math.min(180, (wall === "A" || wall === "C" ? W : H) * 0.4);
-    const base: CSSProperties = { position: "absolute", background: "#9FC3D6", borderLeft: "3px solid #3B3350", borderRight: "3px solid #3B3350" };
+    const base: CSSProperties = { position: "absolute", background: "#9FC3D6", borderLeft: "3px solid #34203B", borderRight: "3px solid #34203B" };
     if (wall === "C") return [{ ...base, bottom: -t, left: along(len, W), width: len, height: t }];
     if (wall === "A") return [{ ...base, top: -t, left: along(len, W), width: len, height: t }];
-    if (wall === "B") return [{ ...base, right: -t, top: along(len, H), width: t, height: len, borderLeft: 0, borderRight: 0, borderTop: "3px solid #3B3350", borderBottom: "3px solid #3B3350" }];
-    return [{ ...base, left: -t, top: along(len, H), width: t, height: len, borderLeft: 0, borderRight: 0, borderTop: "3px solid #3B3350", borderBottom: "3px solid #3B3350" }];
+    if (wall === "B") return [{ ...base, right: -t, top: along(len, H), width: t, height: len, borderLeft: 0, borderRight: 0, borderTop: "3px solid #34203B", borderBottom: "3px solid #34203B" }];
+    return [{ ...base, left: -t, top: along(len, H), width: t, height: len, borderLeft: 0, borderRight: 0, borderTop: "3px solid #34203B", borderBottom: "3px solid #34203B" }];
   }
   if (pl.kind === "doors") {
     const len = 90;
     const gap: CSSProperties = { position: "absolute", background: "#F6F0EB" };
-    const sw: CSSProperties = { position: "absolute", width: len, height: len, borderTop: "2px solid #665A85", borderRight: "2px dashed #B4A9C4" };
+    const sw: CSSProperties = { position: "absolute", width: len, height: len, borderTop: "2px solid #5E4268", borderRight: "2px dashed #B4A9C4" };
     if (wall === "D") return [{ ...gap, left: -t, top: along(len, H), width: t, height: len }, { ...sw, left: 0, top: along(len, H), borderRadius: "0 90px 0 0" }];
-    if (wall === "B") return [{ ...gap, right: -t, top: along(len, H), width: t, height: len }, { ...sw, right: 0, top: along(len, H), borderTop: "2px solid #665A85", borderRight: 0, borderLeft: "2px dashed #B4A9C4", borderRadius: "90px 0 0 0" }];
-    if (wall === "A") return [{ ...gap, top: -t, left: along(len, W), width: len, height: t }, { ...sw, top: 0, left: along(len, W), borderTop: 0, borderLeft: "2px solid #665A85", borderBottom: "2px dashed #B4A9C4", borderRight: 0, borderRadius: "0 0 0 90px" }];
-    return [{ ...gap, bottom: -t, left: along(len, W), width: len, height: t }, { ...sw, bottom: 0, left: along(len, W), borderTop: 0, borderRight: 0, borderLeft: "2px solid #665A85", borderBottom: "2px dashed #B4A9C4", borderRadius: "0 90px 0 0" }];
+    if (wall === "B") return [{ ...gap, right: -t, top: along(len, H), width: t, height: len }, { ...sw, right: 0, top: along(len, H), borderTop: "2px solid #5E4268", borderRight: 0, borderLeft: "2px dashed #B4A9C4", borderRadius: "90px 0 0 0" }];
+    if (wall === "A") return [{ ...gap, top: -t, left: along(len, W), width: len, height: t }, { ...sw, top: 0, left: along(len, W), borderTop: 0, borderLeft: "2px solid #5E4268", borderBottom: "2px dashed #B4A9C4", borderRight: 0, borderRadius: "0 0 0 90px" }];
+    return [{ ...gap, bottom: -t, left: along(len, W), width: len, height: t }, { ...sw, bottom: 0, left: along(len, W), borderTop: 0, borderRight: 0, borderLeft: "2px solid #5E4268", borderBottom: "2px dashed #B4A9C4", borderRadius: "0 90px 0 0" }];
   }
   const big = pl.kind === "radiators" ? { l: 120, t: 14 } : { l: 26, t: 26 };
-  const color = pl.kind === "radiators" ? { background: "#C9BBA9", border: "1px solid #9E8E7A" } : { background: "#3B3350" };
+  const color = pl.kind === "radiators" ? { background: "#C9BBA9", border: "1px solid #9E8E7A" } : { background: "#34203B" };
   const s: CSSProperties = { position: "absolute", borderRadius: 4, ...color };
   if (wall === "C") return [{ ...s, bottom: 6, left: along(big.l, W), width: big.l, height: big.t }];
   if (wall === "A") return [{ ...s, top: 6, left: along(big.l, W), width: big.l, height: big.t }];
@@ -370,7 +379,7 @@ function PlanOutline() {
         }}
         style={{ position: "absolute", ...style, display: "flex", alignItems: "center", justifyContent: "center", touchAction: "none", zIndex: 2 }}
       >
-        <span style={vertical ? { width: 6, height: 28, borderRadius: 3, background: "#665A85" } : { height: 6, width: 28, borderRadius: 3, background: "#665A85" }} />
+        <span style={vertical ? { width: 6, height: 28, borderRadius: 3, background: "#5E4268" } : { height: 6, width: 28, borderRadius: 3, background: "#5E4268" }} />
       </span>
     );
   };
@@ -400,7 +409,7 @@ function PlanOutline() {
           .map((b, i) => (
             <span key={i} aria-hidden="true" style={{ position: "absolute", left: `${b[0] * 100}%`, top: `${b[1] * 100}%`, width: `${(b[2] - b[0]) * 100}%`, height: `${(b[3] - b[1]) * 100}%`, border: "2px dashed rgba(102,90,133,.45)", borderRadius: 4, pointerEvents: "none" }} />
           ))}
-        <span aria-label="The room we measured" style={{ position: "absolute", left: `${box[0] * 100}%`, top: `${box[1] * 100}%`, width: `${(box[2] - box[0]) * 100}%`, height: `${(box[3] - box[1]) * 100}%`, border: "3px solid #665A85", background: "rgba(102,90,133,.12)", pointerEvents: "none" }} />
+        <span aria-label="The room we measured" style={{ position: "absolute", left: `${box[0] * 100}%`, top: `${box[1] * 100}%`, width: `${(box[2] - box[0]) * 100}%`, height: `${(box[3] - box[1]) * 100}%`, border: "3px solid #5E4268", background: "rgba(102,90,133,.12)", pointerEvents: "none" }} />
         {([0, 1, 2, 3] as const).map(edge)}
       </div>
     </div>
@@ -459,7 +468,27 @@ export function Measure() {
   const ORDER: FixedKind[] = ["windows", "radiators", "doors", "columns"];
   const shown = pl.filter((x) => ORDER.includes(x.kind)).sort((a, b) => ORDER.indexOf(a.kind) - ORDER.indexOf(b.kind) || a.n - b.n);
   return (
-    <Screen board="S4-Measure" step={4} right={roomName(curRoom(s))} wrapClass="wrap wide">
+    <Screen
+      board="S4-Measure"
+      step={4}
+      right={roomName(curRoom(s))}
+      wrapClass="wrap wide"
+      dock={
+        <>
+          <Back to="S4-Input" />
+          <Go
+            className="btn"
+            to="S3-Fixed"
+            onClick={() => {
+              if (!shown.some((x) => x.kind === "doors" && x.wall)) toast({ title: "Tip: place at least one door", description: "Layouts keep a clear route from the door." });
+            }}
+          >
+            Next: what can't move
+            <I.next />
+          </Go>
+        </>
+      }
+    >
       <div className="left">
         <p className="eyebrow">Choose where life happens</p>
         <h1 className="h1" style={{ fontSize: "clamp(36px,4vw,56px)" }}>
@@ -585,17 +614,6 @@ export function Measure() {
                 </div>
               )}
             </div>
-            <Go
-              className="btn"
-              to="S3-Fixed"
-              style={{ minHeight: "64px", fontSize: "19px" }}
-              onClick={() => {
-                if (!shown.some((x) => x.kind === "doors" && x.wall)) toast({ title: "Tip: place at least one door", description: "Layouts keep a clear route from the door." });
-              }}
-            >
-              Next: what can't move
-              <I.next />
-            </Go>
             <Go className="link-btn" to="S4-Input" style={{ justifyContent: "center" }}>
               {s.room.input === "plan" ? "Upload a different plan" : "Upload a plan instead"}
             </Go>
@@ -632,6 +650,8 @@ export function Layouts() {
     set((x) => ({
       layouts: x.layouts.map((L, i) => (i === chosen ? { ...L, original: L.original ?? L.items, items: fn(L.items) } : L)),
     }));
+  /** A new layout with its TV unit, sideboard or shelving put against a wall when it came out standing in the room. */
+  const onWalls = <T extends { items: LayoutItem[] }>(x: T): T => ({ ...x, items: moveOntoWalls(s, x.items, w, l).items });
   const changeItem = (n: number, item: LayoutItem) => editItems((items) => items.map((it, i) => (i === n ? item : it)));
   const addPiece = (k: (typeof ADDABLE)[number]) => {
     if (!lay) return;
@@ -647,21 +667,27 @@ export function Layouts() {
   };
 
   useEffect(() => {
-    if (once.current || s.layouts.length >= 2) return;
+    if (once.current || s.layouts.length) return;
     once.current = true;
+    let cancelled = false;
     (async () => {
       setBusy(true);
       try {
-        const a = s.layouts[0] ?? (await makeLayout(s, { emphasis: 0 }));
-        set({ layouts: [a] });
-        const b = await makeLayout(s, { emphasis: 1, avoid: [a.name] });
-        set({ layouts: [a, b], chosenLayout: 0 });
+        const a = onWalls(await makeLayout(s, { emphasis: 0 }));
+        if (cancelled) return;
+        set((x) => x.layouts.length ? {} : { layouts: [a] });
+        const b = onWalls(await makeLayout(s, { emphasis: 1, avoid: [a.name] }));
+        if (cancelled) return;
+        set((x) => x.layouts.some((layout) => layout.id === a.id)
+          ? { layouts: [...x.layouts, b], chosenLayout: x.chosenLayout ?? 0 }
+          : {});
       } catch (e) {
-        toast({ title: "Layouts aren't ready", description: (e as Error).message, variant: "destructive" });
+        if (!cancelled) toast({ title: "Layouts aren't ready", description: (e as Error).message, variant: "destructive" });
       } finally {
-        setBusy(false);
+        if (!cancelled) setBusy(false);
       }
     })();
+    return () => { cancelled = true; once.current = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -669,7 +695,7 @@ export function Layouts() {
   const another = async () => {
     setBusy(true);
     try {
-      const next = await makeLayout(s, { emphasis: s.layouts.length % 2, avoid: s.layouts.map((x) => x.name) });
+      const next = onWalls(await makeLayout(s, { emphasis: s.layouts.length % 2, avoid: s.layouts.map((x) => x.name) }));
       set((x) => {
         if (x.layouts.length < 3) return { layouts: [...x.layouts, next] };
         const drop = x.layouts.findIndex((_, i) => i !== chosen);
@@ -688,7 +714,30 @@ export function Layouts() {
   const pieces = lay ? pieceInfo(s, lay.items, w, l) : [];
   const keptN = pieces.filter((x) => x.kept).length;
   return (
-    <Screen board="S4-Layouts" step={4} right={`${roomName(curRoom(s))} · ${m(w)} × ${m(l)} m`} wrapClass="wrap wide">
+    <Screen
+      board="S4-Layouts"
+      step={4}
+      right={`${roomName(curRoom(s))} · ${m(w)} × ${m(l)} m`}
+      wrapClass="wrap wide"
+      dock={
+        <>
+          <Back to="S3-Fixed" />
+          <span className="note">{example ? `Sizes use example room measurements (${m(w)} × ${m(l)} m) until you confirm them.` : "Piece sizes are standard until you choose the actual pieces in step 5."}</span>
+          <Go
+            className={`btn${s.layouts.length ? "" : " dis"}`}
+            to="S4-Summary"
+            onClick={() => {
+              if (!s.layouts.length) return false;
+              set((x) => ({ chosenLayout: chosen, done: Array.from(new Set([...x.done, 4])) }));
+              void saveStepDone(s, 4);
+            }}
+          >
+            Choose layout {chosen + 1} and finish step 4
+            <I.next />
+          </Go>
+        </>
+      }
+    >
       <div className="ly-top">
         <div className="stack" style={{ gap: "6px", maxWidth: "760px" }}>
           <p className="ly-script">built from your real walls</p>
@@ -774,7 +823,7 @@ export function Layouts() {
                   </button>
                 )}
               </div>
-              <LayoutPlan layout={lay} s={s} edit={{ selected: sel, onSelect: setSel, onChange: changeItem }} />
+              <LayoutPlan layout={lay} s={s} max={{ w: 400, h: 480 }} edit={{ selected: sel, onSelect: setSel, onChange: changeItem }} />
               <p className="small ly-hint">{picked ? "Drag to move · corner to resize · arrow keys nudge" : "Tap a piece to move, resize or remove it."}</p>
               <div className="ly-legend">
                 <span>
@@ -877,6 +926,13 @@ export function Layouts() {
                   <div key={c.label} className={c.ok ? "ok" : "warn"}>
                     <b>{c.value}</b>
                     <span>{c.label}</span>
+                    {c.fix === "onto-walls" && (
+                      <button type="button" className="btn ghost sm" onClick={() => {
+                        const r = moveOntoWalls(s, lay!.items, w, l);
+                        if (r.moved.length) editItems(() => r.items);
+                        else toast({ title: "No free spot on a wall", description: "Every wall is taken near the door or by other pieces. Move it by hand, or remove a piece." });
+                      }}>Move it against a wall</button>
+                    )}
                   </div>
                 ))}
               </div>
@@ -910,22 +966,6 @@ export function Layouts() {
         </aside>
       </div>
 
-      <div className="ly-foot">
-        <Back to="S3-Fixed" />
-        <span className="small">{example ? `Sizes use example room measurements (${m(w)} × ${m(l)} m) until you confirm them.` : "Piece sizes are standard until you choose the actual pieces in step 5."}</span>
-        <Go
-          className={`btn auto${s.layouts.length ? "" : " dis"}`}
-          to="S4-Summary"
-          onClick={() => {
-            if (!s.layouts.length) return false;
-            set((x) => ({ chosenLayout: chosen, done: Array.from(new Set([...x.done, 4])) }));
-            void saveStepDone(s, 4);
-          }}
-        >
-          Choose layout {chosen + 1} and finish step 4
-          <I.next />
-        </Go>
-      </div>
     </Screen>
   );
 }
@@ -1018,7 +1058,8 @@ export function Step4Summary() {
       open={open}
       soFar={soFar(s, 4)}
       back="S4-Layouts"
-      next="S3-Existing"
+      next="S5-Walls"
+      nextLabel="Next: your walls"
     />
   );
 }
