@@ -147,6 +147,10 @@ export function composeWall(m: ShowroomModel, wall: Wall, boxes: Record<string, 
   for (const e of m.extras) if (boxes[e.id]) found.push({ key: e.id, label: e.name, spec: specFor(e.kind === "pendant" ? "lamp" : e.kind, e.name, specs) });
   if (boxes.doors) found.push({ key: "doors", label: "Door", spec: specFor("door", "door", specs) });
   for (const k of ["walls", "floor"]) if (boxes[k]) found.push({ key: k, label: k === "walls" ? "Wall colour" : "Floor", spec: specFor("surface", k, specs) });
+  for (const k of Object.keys(boxes)) {
+    if (k.startsWith("window-")) found.push({ key: k, label: "Window", spec: { ...specFor("door", "window", specs), hotspot: [0.5, 0.82] } });
+    else if (k.startsWith("decor-")) found.push({ key: k, label: "Wall decor", spec: { ...defaultSpec("art"), cutPadding: 0.15 } });
+  }
   const items = found.map(({ key, label, spec }) => {
     const [bx, by, bw, bh] = boxes[key];
     const x = Math.round((bx / 100) * canvas.width), y = Math.round((by / 100) * canvas.height);

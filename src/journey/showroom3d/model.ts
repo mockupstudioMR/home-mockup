@@ -8,7 +8,7 @@
  */
 import { facingOf } from "../plan/facing";
 import type { JourneyState, Swatch, Wall } from "../state";
-import { alongWall, nearestWall, wallsShowing } from "../wallOutline";
+import { alongWall, homeWalls, nearestWall } from "../wallOutline";
 import { categoryOf, fabricIn, LIBRARY, matchShape, shapeById, wordsNear, type Category, type Fabric } from "./library";
 
 export type Edit = { color?: string; shape?: string };
@@ -186,7 +186,7 @@ export function buildModel(s: JourneyState, edits: Edits = {}): ShowroomModel {
   const pieces: PieceModel[] = [];
   const lay = s.layouts[s.chosenLayout ?? 0];
   const keptInLayout = new Set<string>();
-  const addPiece = (id: string, name: string, kind: string, box: { x: number; y: number; w: number; h: number }, facing: keyof typeof ROT | undefined, kept: boolean, hM?: number) => {
+  const addPiece = (id: string, name: string, kind: string, box: { x: number; y: number; w: number; h: number }, facing: keyof typeof ROT | undefined, kept: boolean, hM?: number, home?: Wall) => {
     const fw = (box.w / 100) * W, fd = (box.h / 100) * L;
     const category = categoryOf(kind, name, fw, fd);
     const turned = facing === "left" || facing === "right";
@@ -194,7 +194,7 @@ export function buildModel(s: JourneyState, edits: Edits = {}): ShowroomModel {
     const m = matchShape(category, kept ? name : described);
     const edit = edits[id];
     const shape = (edit?.shape && shapeById(category, edit.shape)) || m.shape;
-    const wall = nearestWall(box);
+    const wall = home ?? nearestWall({ ...box, kind, label: name }, { w: W, l: L });
     const [a, b] = alongWall(wall, box);
     const len = lenOf(wall) * 100;
     const gapM = { A: (box.y / 100) * L, C: ((100 - box.y - box.h) / 100) * L, D: (box.x / 100) * W, B: ((100 - box.x - box.w) / 100) * W }[wall];
@@ -210,12 +210,17 @@ export function buildModel(s: JourneyState, edits: Edits = {}): ShowroomModel {
       shape: shape.id, shapeName: shape.name, described, matched: m.matched,
     });
   };
-  const showing = wallsShowing(lay?.items ?? []);
+  const home = homeWalls(lay?.items ?? [], { w: W, l: L });
   for (const [i, it] of (lay?.items ?? []).entries()) {
     const kept = it.kind === "keep";
     if (kept) keptInLayout.add(it.label.toLowerCase());
-    addPiece(`lay-${i}`, it.label || it.kind, it.kind, it, facingOf(it, W, L), kept);
-    if (showing[i].length > 1) pieces[pieces.length - 1].shownOn = showing[i];
+    addPiece(`lay-${i}`, it.label || it.kind, it.kind, it, facingOf(it, W, L), kept, undefined, home[i]);
+  }
+  // a rug shows on the wall of the piece it lies under the most (the sofa's, say)
+  for (const r of pieces.filter((p) => p.category === "rug")) {
+    const over = (p: PieceModel) => Math.max(0, Math.min(r.cx + r.w / 2, p.cx + p.w / 2) - Math.max(r.cx - r.w / 2, p.cx - p.w / 2) + 0.5) * Math.max(0, Math.min(r.cz + r.d / 2, p.cz + p.d / 2) - Math.max(r.cz - r.d / 2, p.cz - p.d / 2) + 0.5);
+    const under = pieces.filter((p) => p !== r && p.category !== "rug").sort((a, b) => over(b) - over(a))[0];
+    if (under && over(under) > 0) r.wall = under.wall;
   }
   for (const k of s.keeping) {
     if (k.status === "buy" || keptInLayout.has(k.name.toLowerCase()) || [...keptInLayout].some((n) => n.includes(k.name.toLowerCase()) || k.name.toLowerCase().includes(n))) continue;

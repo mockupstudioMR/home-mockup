@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { EMPTY, type JourneyState, type LayoutItem } from "@/journey/state";
-import { nearestWall, outlineFor, seatSets, wallsShowing } from "@/journey/wallOutline";
+import { homeWalls, nearestWall, outlineFor, seatSets } from "@/journey/wallOutline";
 
 // a dining table in the right half of the room with two chairs above and two below it
 const table: LayoutItem = { label: "Dining table", kind: "dining table", x: 55, y: 40, w: 30, h: 18 };
@@ -20,11 +20,10 @@ describe("a table and its chairs", () => {
     expect(sets.get(3)?.[0]).toBe(0);
     expect(sets.has(5)).toBe(false);
   });
-  it("show together on every wall any of them faces", () => {
-    const walls = wallsShowing(items);
-    const all = new Set(items.slice(0, 5).map(nearestWall));
-    for (let i = 0; i < 5; i++) expect(new Set(walls[i])).toEqual(all);
-    expect(walls[5]).toEqual([nearestWall(sofa)]);
+  it("go together on one wall, the one nearest the whole set", () => {
+    const walls = homeWalls(items);
+    expect(new Set(walls.slice(0, 5)).size).toBe(1);
+    expect(walls[0]).toBe("B");
   });
   it("draw the whole table between its chairs on the wall facing its end, chairs in profile", () => {
     const s = { ...EMPTY, room: { ...EMPTY.room, widthM: 4, lengthM: 5, ceilingM: 2.6 }, layouts: [{ id: "l", name: "L", items, zones: [], notes: [] }], chosenLayout: 0 } as JourneyState;
@@ -51,5 +50,18 @@ describe("a piece in a corner", () => {
     const p = outlineFor(s, "A", { items: [] } as never).pieces[0];
     expect(p?.label).toBe("Bookshelf");
     expect(p.h).toBe(200);
+  });
+});
+
+describe("each piece on exactly one wall", () => {
+  const room = { w: 4.74, l: 3.75 };
+  it("puts a long piece on a wall its long side runs along, not one it shows its end to", () => {
+    // a TV unit near the left wall but running left to right: it belongs to the top or bottom wall
+    expect(["A", "C"]).toContain(nearestWall({ x: 2, y: 55, w: 40, h: 6, kind: "tv unit" }, room));
+    // a desk against the left wall, running top to bottom
+    expect(nearestWall({ x: 2, y: 70, w: 12, h: 25, kind: "desk" }, room)).toBe("D");
+  });
+  it("puts a bed with its head to the nearest wall", () => {
+    expect(nearestWall({ x: 30, y: 1, w: 35, h: 50, kind: "bed" }, room)).toBe("A");
   });
 });

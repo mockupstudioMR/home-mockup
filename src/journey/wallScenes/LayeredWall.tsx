@@ -10,9 +10,11 @@ import type { WallScene } from "./runner";
 type Layer = {
   title: string; group: string; order: number;
   variations: string[]; thumbnails?: string[]; variationNames?: string[];
+  /** Shown for an item that can't be swapped (yet): it is still clickable. */
+  note?: string;
   hotspot?: { position: { x: number; y: number } };
 };
-type Manifest = { background: string; imageSize: { width: number; height: number }; layers: Record<string, Layer> };
+type Manifest = { background: string; imageSize: { width: number; height: number }; layers: Record<string, Layer>; hotspots?: Record<string, Layer> };
 
 const cache = new Map<string, Promise<Manifest>>();
 function loadManifest(url: string) {
@@ -34,7 +36,8 @@ export function LayeredWall({ wall, scene }: { wall: Wall; scene: WallScene }) {
   useEffect(() => {
     let live = true;
     setM(null); setErr("");
-    if (scene.manifestUrl) loadManifest(scene.manifestUrl).then((x) => live && setM(x), (e: Error) => live && setErr(e.message));
+    // items with nothing to swap come as plain hotspots: shown with the layers, so every item is clickable
+    if (scene.manifestUrl) loadManifest(scene.manifestUrl).then((x) => live && setM({ ...x, layers: { ...(x.hotspots ?? {}), ...x.layers } }), (e: Error) => live && setErr(e.message));
     return () => { live = false; };
   }, [scene.manifestUrl]);
 
@@ -57,7 +60,7 @@ export function LayeredWall({ wall, scene }: { wall: Wall; scene: WallScene }) {
     <div className="lw">
       <div className="lw-stage" style={{ aspectRatio: `${W} / ${H}` }}>
         <img className="lw-img" src={m.background} alt={`Wall ${wall}, as a photograph`} />
-        {layers.map(([name, l]) => (
+        {layers.filter(([, l]) => l.variations.length > 0).map(([name, l]) => (
           <img key={name} className="lw-img" src={l.variations[Math.min(picks[name] ?? 0, l.variations.length - 1)]} alt="" aria-hidden="true" />
         ))}
         {!hide && layers.map(([name, l]) => l.hotspot && (
@@ -84,7 +87,12 @@ export function LayeredWall({ wall, scene }: { wall: Wall; scene: WallScene }) {
           {changed > 0 && <button type="button" className="lw-tab" onClick={() => set((p) => ({ showroom: { ...(p.showroom ?? { edits: {} }), edits: p.showroom?.edits ?? {}, picks: { ...(p.showroom?.picks ?? {}), [wall]: {} } } }))}>Back to my preview</button>}
         </div>
       </div>
-      {open && cur && (
+      {open && cur && !cur.variations.length && (
+        <div className="lw-opts" role="note" aria-label={cur.title}>
+          <p className="p"><b>{cur.title}</b>{cur.variationNames?.[0] ? ` · ${cur.variationNames[0]}` : ""}. {cur.note}</p>
+        </div>
+      )}
+      {open && cur && cur.variations.length > 0 && (
         <div className="lw-opts" role="group" aria-label={`${cur.title}: options`}>
           {cur.variations.map((_, i) => (
             <button key={i} type="button" className={`lw-opt${(picks[open] ?? 0) === i ? " on" : ""}`} aria-pressed={(picks[open] ?? 0) === i} onClick={() => pick(open, i)}>

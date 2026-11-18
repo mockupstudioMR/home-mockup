@@ -54,17 +54,25 @@ export function alongWall(w: Wall, i: { x: number; y: number; w: number; h: numb
 /** A stored position (0–100 along the plan's x for A/C, y for B/D) as seen from inside. */
 const facing = (w: Wall, pos: number) => (w === "C" || w === "D" ? 100 - pos : pos);
 
-/** Which wall a layout piece stands against: the nearest one (same rule as the layout and composeWalls). */
-export function nearestWall(i: { x: number; y: number; w: number; h: number }): Wall {
+export type RoomSize = { w: number; l: number };
+
+/**
+ * Which wall a layout piece belongs to, so every piece is drawn on exactly one wall:
+ * - a long piece (a TV unit, a desk, a sideboard, a coffee table) on the nearer of the two walls its long
+ *   side runs along, never on a wall it only shows its end to;
+ * - a squarish piece, a bed (it stands with its head to the wall) or a kept piece on the nearest wall.
+ * Give the room's size in metres when known, so "long" is measured in metres rather than plan percent.
+ */
+export function nearestWall(i: { x: number; y: number; w: number; h: number; kind?: string; label?: string }, room?: RoomSize): Wall {
   const d = { A: i.y, C: 100 - (i.y + i.h), D: i.x, B: 100 - (i.x + i.w) };
-  const [first, second] = (Object.entries(d) as [Wall, number][]).sort((a, b) => a[1] - b[1]);
-  // in a corner (two walls about as near), a piece stands against the wall its long side runs along:
-  // a bookshelf in the top-left corner, wider than deep, belongs to the top wall
-  if (second[1] - first[1] <= 4) {
-    const along = (w: Wall) => (w === "A" || w === "C" ? i.w : i.h);
-    if (along(second[0]) > along(first[0]) * 1.15) return second[0];
+  const byGap = (ws: Wall[]) => ws.sort((a, b) => d[a] - d[b])[0];
+  const t = `${i.kind ?? ""} ${i.label ?? ""}`.toLowerCase();
+  const wM = i.w * (room?.w ?? 1), dM = i.h * (room?.l ?? 1);
+  if (!/\bbed\b|keep|rug/.test(t)) {
+    if (wM >= dM * 1.3) return byGap(["A", "C"]);
+    if (dM >= wM * 1.3) return byGap(["B", "D"]);
   }
-  return first[0];
+  return byGap(["A", "B", "C", "D"]);
 }
 
 /* ---------- sets: a table and the chairs around it ---------- */
@@ -95,12 +103,19 @@ export function seatSets(items: (Box & { kind: string; label?: string })[]): Map
 }
 
 /**
- * The walls an item is seen on: the wall it is nearest to, and for a table and its chairs, every wall any of
- * them is nearest to, so a set always shows whole (never two chairs without their table).
+ * The one wall each item is drawn on. A table and the chairs at it go together on the wall nearest the
+ * whole set, so the set always shows whole and no piece is drawn on two walls.
  */
-export function wallsShowing(items: (Box & { kind: string; label?: string })[]): Wall[][] {
+export function homeWalls(items: (Box & { kind: string; label?: string })[], room?: RoomSize): Wall[] {
   const sets = seatSets(items);
-  return items.map((it, i) => [...new Set((sets.get(i) ?? [i]).map((j) => nearestWall(items[j])))]);
+  return items.map((it, i) => {
+    const set = sets.get(i);
+    if (!set) return nearestWall(it, room);
+    const xs = set.map((j) => items[j]);
+    const x0 = Math.min(...xs.map((b) => b.x)), y0 = Math.min(...xs.map((b) => b.y));
+    const x1 = Math.max(...xs.map((b) => b.x + b.w)), y1 = Math.max(...xs.map((b) => b.y + b.h));
+    return nearestWall({ x: x0, y: y0, w: x1 - x0, h: y1 - y0, kind: "set" }, room);
+  });
 }
 
 /** Typical height of a piece, in cm, from its kind and name. */
@@ -149,10 +164,11 @@ export function outlineFor(s: JourneyState, w: Wall, wp: WallPlan): Outline {
   const lay = s.layouts[s.chosenLayout ?? 0];
   const pieces: OutlinePiece[] = [];
   const items = lay?.items ?? [];
-  const showing = wallsShowing(items), sets = seatSets(items);
+  const room = s.room.widthM && s.room.lengthM ? { w: s.room.widthM, l: s.room.lengthM } : undefined;
+  const home = homeWalls(items, room), sets = seatSets(items);
   const setPieces: OutlinePiece[] = [];
   for (const [li, it] of items.entries()) {
-    if (it.kind === "rug" || !showing[li].includes(w)) continue;
+    if (it.kind === "rug" || home[li] !== w) continue;
     const [a, b] = alongWall(w, it);
     const width = Math.max(30, cm(b - a));
     const h = pieceHeight(it.kind, it.label);
@@ -174,7 +190,7 @@ export function outlineFor(s: JourneyState, w: Wall, wp: WallPlan): Outline {
   pieces.sort((a, b) => (a.set ? 1 : 0) - (b.set ? 1 : 0));
   for (const k of s.keeping.filter((k) => (k.wall ?? "B") === w)) {
     // A kept piece already drawn by the layout (its "keep" item) isn't drawn twice.
-    const inLayout = (lay?.items ?? []).some((it: LayoutItem) => it.kind === "keep" && nearestWall(it) === w);
+    const inLayout = (lay?.items ?? []).some((it: LayoutItem) => it.kind === "keep" && nearestWall(it, room) === w);
     if (inLayout) {
       const p = pieces.find((x) => x.kept);
       if (p) p.ref = `keep-${k.id}`;

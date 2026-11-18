@@ -38,7 +38,7 @@ export const WALLS: Wall[] = ["A", "B", "C", "D"];
 const ALIGN_LIMIT = 14; // mean change outside the item (0–255), after matching tones, above which an alternative moved the photo
 const PARALLEL = 4;
 /** Raised when the way pictures are made changes, so walls made the old way are made again. */
-const PICTURE_VERSION = 5;
+const PICTURE_VERSION = 6;
 
 const previewImage = (s: JourneyState) => s.preview?.versions[s.preview.current]?.image;
 
@@ -127,7 +127,7 @@ const REAL = "It must look like a real photograph taken by an interior photograp
 async function viaPreviewFunction(b: AiBody): Promise<string> {
   const palette = (b.palette ?? []).map((p) => `${p.name} ${p.hex}${p.use ? ` for ${p.use.toLowerCase()}` : ""}`).join(", ");
   const change = b.mode === "base"
-    ? `Render this exact straight-on wall elevation as a real, photorealistic interior photograph of wall ${b.wall ?? ""}. Turn every simple 3D shape into the real piece it stands for, with real materials and textures, in the ${b.style ?? "chosen"} style${b.styleText ? ` (${b.styleText})` : ""}. Colours: ${palette}. Pieces, left to right: ${(b.pieces ?? []).map((p) => `${p.name} (${p.detail}) at ${pct(p.box)}`).join("; ")}. Keep every piece, door and window exactly where it is and exactly its size; keep the straight-on view with the wall filling the frame. ${REAL}`
+    ? `Render this exact straight-on wall elevation as a real, photorealistic interior photograph of wall ${b.wall ?? ""}. Turn every simple 3D shape into the real piece it stands for, with real materials and textures, in the ${b.style ?? "chosen"} style${b.styleText ? ` (${b.styleText})` : ""}. Colours: ${palette}. Pieces, left to right: ${(b.pieces ?? []).map((p) => `${p.name} (${p.detail}) at ${pct(p.box)}`).join("; ")}. Keep every piece, door and window exactly where it is and exactly its size; keep the straight-on view with the wall filling the frame. ${(b.pieces ?? []).length ? "These are the ONLY pieces: add no other furniture, lamps, plants, shelves, cabinets, art, rugs or objects." : "This wall is kept clear: show only the bare wall with its windows and doors, the skirting and a strip of floor, with no furniture or decor at all."} Do not copy furniture or layout from any other picture of the room. ${REAL}`
     : `Replace only the ${b.item!.current} (${pct(b.item!.box)}) with ${b.item!.target}. Same position, size and perspective; the whole new piece fits inside that area, complete, never cut off. Keep the photo's exact light, colours, brightness and grain everywhere else, with a soft natural contact shadow only where the new piece touches the floor or wall.`;
   const layer = b.mode === "base" ? undefined : b.item?.group === "walls" || b.item?.group === "floor" ? "architecture" : b.item?.group === "furniture" ? "furniture" : "decor";
   const { data, error } = await invokeAi<{ imageUrl?: string; error?: string }>("generate-design", {
@@ -190,7 +190,10 @@ async function makeWall(s: JourneyState, m: ShowroomModel, wall: Wall, report: (
   const tick = (step: string) => report({ wall, step, done: Math.min(total, ++done), total });
 
   const guideUrl = await storeDesignImage(guide.image);
-  const pieces = m.pieces.filter((p) => guide.boxes[p.id] && p.category !== "rug").map((p) => ({ name: p.kept ? `${p.name} (the client's own, keep as it is)` : p.shownOn ? `${p.name} (part of one dining set with its table and chairs: draw the whole table and every chair complete, chairs tucked in at the table)` : p.name, detail: `${p.shapeName}, ${p.fabric ?? ""} ${m.palette.find((x) => x.hex === p.color)?.name ?? p.color}`.replace(/\s+/g, " "), box: guide.boxes[p.id] }));
+  const hasTable = m.pieces.some((p) => guide.boxes[p.id] && (p.category === "dining" || p.category === "desk"));
+  const pieces = m.pieces.filter((p) => guide.boxes[p.id]).map((p) => ({ name: p.kept ? `${p.name} (the client's own, keep as it is)` : p.category === "rug" ? `${p.name} (lying flat on the floor in front of the wall, seen as the strip of floor at the bottom)` : hasTable && (p.category === "dchair" || p.category === "chair") ? `${p.name} (at the table: the table and every chair whole, chairs tucked in)` : p.name, detail: `${p.shapeName}, ${p.fabric ?? ""} ${m.palette.find((x) => x.hex === p.color)?.name ?? p.color}`.replace(/\s+/g, " "), box: guide.boxes[p.id] }));
+  // what hangs on the wall counts too (curtains, art, mirrors), so "only these" never removes them
+  for (const e of m.extras) if (guide.boxes[e.id]) pieces.push({ name: e.name, detail: `${e.kind}, ${m.palette.find((x) => x.hex === e.color)?.name ?? e.color}`, box: guide.boxes[e.id] });
   report({ wall, step: "Making the photograph of your wall", done, total });
   if (!/^https:/.test(guideUrl)) throw new Error("Your wall's drawing could not be saved. Check that you're signed in and try again.");
   const styleText = (s.preview?.read ?? []).filter((r) => r.key !== "lighting").map((r) => r.text).join(" ").slice(0, 600);
@@ -226,6 +229,8 @@ async function makeWall(s: JourneyState, m: ShowroomModel, wall: Wall, report: (
   report({ wall, step: "Cutting the layers", done, total });
   const layers: Record<string, unknown> = {};
   const assets: Record<string, ItemAssets> = {};
+  /** Items with nothing to swap: clickable spots kept apart from the layers (the Generator PRO viewer reads only layers). */
+  const spots: Record<string, unknown> = {};
   const saved: NonNullable<WallScene["layers"]> = [];
   const skipped: string[] = [];
   for (const item of items) {
@@ -234,7 +239,17 @@ async function makeWall(s: JourneyState, m: ShowroomModel, wall: Wall, report: (
       const r = results[jobs.findIndex((j) => j.item === item && j.alt === i)];
       if (r?.status === "fulfilled") { const v = r.value as { px: Rgba; cut: AltCut }; ok.push({ ...v, name: a.name }); }
     });
-    if (!ok.length) { skipped.push(item.title); continue; }
+    if (!ok.length) {
+      // still clickable: its hotspot opens what it is, with no layer to swap
+      if (!item.note) skipped.push(item.title);
+      const at = placed.get(item.id);
+      if (at) spots[item.id.replace(/[^a-zA-Z0-9_-]/g, "-")] = {
+        title: item.title, group: item.group, order: at.zOrder, visible: true, variations: [], thumbnails: [], variationNames: [item.mainName],
+        note: item.note ?? "Only the main option for now: its alternatives didn't fit the photo. Make the wall again to try once more.",
+        hotspot: { id: item.id, title: item.title, visible: true, position: at.hotspot },
+      };
+      continue;
+    }
     // each alternative is cut to its own shape; the main option covers wherever any of them drew,
     // and since it is the photo itself it never shows a seam
     const all = unionAlpha(ok.map((o) => o.cut));
@@ -262,7 +277,7 @@ async function makeWall(s: JourneyState, m: ShowroomModel, wall: Wall, report: (
   }
   if (!saved.length) throw new Error("None of the alternatives could be made for this wall. Try again.");
   const composition = { preset: canvas.preset, pxPerCm: canvas.pxPerCm, wall: { lengthCm: canvas.lengthCm, heightCm: canvas.heightCm, x: canvas.wallX, y: canvas.wallY }, items: comp.items };
-  const manifest = { background, imageSize: { width: base.width, height: base.height }, layers, composition, enhancements: { brightness: 100, contrast: 100, saturation: 100 } };
+  const manifest = { background, imageSize: { width: base.width, height: base.height }, layers, hotspots: spots, composition, enhancements: { brightness: 100, contrast: 100, saturation: 100 } };
   const manifestUrl = await up.put("manifest.json", new Blob([JSON.stringify(manifest)], { type: "application/json" }), "application/json");
   void saveComposition(s, comp, { sceneKey: key, guideUrl, background, manifestUrl, assets });
   tick("Done");

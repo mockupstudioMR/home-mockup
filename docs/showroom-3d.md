@@ -45,3 +45,14 @@ Each wall picks the preset closest to its own length-to-height ratio and is fitt
 ## Table sets (v5)
 
 A dining table or desk and the chairs within about 8% of the room from it form one set (`seatSets` in `wallOutline.ts`). The set shows whole on every wall any of its pieces is nearest to (`wallsShowing`; `PieceModel.shownOn`, `seenOn`). Two chairs never appear without their table. In the outline, chairs beyond the table's end are drawn in profile with their backs outward. A chair hidden behind another on the same side is drawn once, and tables have a solid top, an apron and tapered legs. In the pictures, chairs are layered in front of their table, and the prompts ask for the whole set, complete and styled.
+
+## One wall per piece, everything clickable (v6)
+
+- Each piece is drawn on exactly one wall (`homeWalls`, `nearestWall` in `wallOutline.ts`). A long piece goes on the nearer of the two walls its long side runs along. A bed, a kept piece or a squarish piece goes on its nearest wall. A table set goes on the wall nearest the whole set. A rug goes on the wall of the piece it lies under the most.
+- Swappable items:
+  - wall colour, floor, door, window frames;
+  - every piece on the wall, including chairs, tables and rugs (a rug gets the floor strip in front of the wall);
+  - curtains, art and mirrors;
+  - a "Wall decor" spot above the main low piece of a wall with nothing hung on it. Its main option is the bare wall; the alternatives are a large painting or floating shelves.
+- Kept pieces, and items whose alternatives didn't fit, are still clickable. They are stored as `hotspots` in the manifest, apart from `layers`, so the Generator PRO viewer is unaffected, and they show a note.
+- The base prompt lists everything on the wall, hanging items included, and forbids anything else. A clear wall is drawn bare. The preview is used only for colours, materials and mood, never for its furniture or camera.
