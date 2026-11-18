@@ -9,6 +9,7 @@ import { I, Ic } from "@/journey/icons";
 import { useScanImage, useTerms } from "@/admin/data";
 import { A, AdminShell, Bdg, Chip, Conf, Crop, Crumb, Scan as ScanImg, ago, useAdminNav, type Box } from "../ui";
 import { getPending, getProgress, pdfToImages, retryFailed, setPending, startBatch, subscribe } from "../scanStore";
+import { asset } from "@/lib/asset";
 
 const p = (d: string) => <path d={d} />;
 type Batch = Tables<"ingest_batches">;
@@ -299,7 +300,7 @@ export function Setup() {
     }
     if (!qa || pend.files.length || new URLSearchParams(window.location.search).get("demo") !== "1") return;
     void Promise.all(
-      ["room-hero.jpg", "insp-2.jpg", "insp-3.jpg"].map(async (f) => new File([await (await fetch(`/journey-sample/${f}`)).blob()], f.replace("room-hero", "plum-living"), { type: "image/jpeg" })),
+      ["room-hero.jpg", "insp-2.jpg", "insp-3.jpg"].map(async (f) => new File([await (await fetch(asset(`/journey-sample/${f}`))).blob()], f.replace("room-hero", "plum-living"), { type: "image/jpeg" })),
     ).then((files) => {
       setPending({ files });
       setName("Living rooms · plum & green");

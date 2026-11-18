@@ -7,6 +7,7 @@ import { useJourney } from "../state";
 import { PlanDrawing } from "./Step4";
 import { LayeredWall } from "../wallScenes/LayeredWall";
 import "../walls.css";
+import { asset } from "@/lib/asset";
 
 const WALL_OF = { wall_a: "A", wall_b: "B", wall_c: "C", wall_d: "D" } as const;
 
@@ -14,7 +15,7 @@ const views = [
   ["room", "Whole room"], ["wall_a", "Wall A"], ["wall_b", "Wall B"],
   ["wall_c", "Wall C"], ["wall_d", "Wall D"],
 ] as const;
-const SCRIPT_URL = "/generator-pro/showroom-configurator.js";
+const SCRIPT_URL = asset("/generator-pro/showroom-configurator.js");
 
 /**
  * Layout-to-showroom handoff. What is shown for the chosen view:

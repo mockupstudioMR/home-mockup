@@ -1,0 +1,36 @@
+# A second home for the app, besides Lovable: every push to main is built and published to GitHub Pages at
+# https://mockupstudiomr.github.io/home-mockup/ (same database and sign-in as the Lovable site).
+name: GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci || npm install --no-audit --no-fund
+      # served from /home-mockup/; .env holds the public Supabase address and key
+      - run: npx vite build --base=/home-mockup/
+      # any deep link (e.g. /home-mockup/project) opens the app, which then shows the right screen
+      - run: cp dist/index.html dist/404.html && touch dist/.nojekyll
+      - uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./dist
+          publish_branch: gh-pages
+          force_orphan: true

@@ -671,7 +671,7 @@ export function Step9Summary() {
               <I.next />
             </button>
           ) : (
-            <Go className="btn auto" to="Main" onClick={() => (window.location.href = "/project", false)}>
+            <Go className="btn auto" to="Main" onClick={() => (window.location.href = `${import.meta.env.BASE_URL}project`, false)}>
               Back to my project
               <I.next />
             </Go>
