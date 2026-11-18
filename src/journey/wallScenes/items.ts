@@ -44,9 +44,9 @@ function otherColours(m: ShowroomModel, hex: string, avoidWall: boolean): string
 }
 
 /** The products the person picked for this wall in step 5 (with a photo), by the layout piece they stand for. */
-function productsOn(s: JourneyState, wall: Wall) {
+function productsOn(s: JourneyState, wall: Wall | "room") {
   const out = new Map<string, Alt[]>();
-  for (const it of s.walls[wall]?.items ?? []) {
+  for (const it of (wall === "room" ? (["A", "B", "C", "D"] as Wall[]) : [wall]).flatMap((w) => s.walls[w]?.items ?? [])) {
     if (!it.choice?.image || !/^https:\/\//.test(it.choice.image)) continue;
     const key = it.ref ?? `name:${it.name.toLowerCase()}`;
     out.set(key, [...(out.get(key) ?? []), { name: it.choice.name, target: it.choice.name, productImageUrl: it.choice.image, productId: it.choice.productId }]);
@@ -57,7 +57,8 @@ function productsOn(s: JourneyState, wall: Wall) {
 const two = (picked: Alt[], ai: Alt[]) => [...picked, ...ai].slice(0, 2);
 
 /** The swappable items of one wall, in drawing order (surfaces first, then furniture, then decor). */
-export function wallItems(s: JourneyState, m: ShowroomModel, wall: Wall): WallItem[] {
+/** The swappable items of one wall, or of the whole room ("room": every piece, free-standing ones too). */
+export function wallItems(s: JourneyState, m: ShowroomModel, wall: Wall | "room"): WallItem[] {
   const items: WallItem[] = [];
   const products = productsOn(s, wall);
   const wallName = colourName(m, m.surfaces.wall);
@@ -77,7 +78,7 @@ export function wallItems(s: JourneyState, m: ShowroomModel, wall: Wall): WallIt
       { name: "Light oak planks", target: "light natural oak wide-plank floor, matt oiled" },
     ],
   });
-  const door = m.openings.find((o) => o.wall === wall && o.kind === "door");
+  const door = m.openings.find((o) => (wall === "room" || o.wall === wall) && o.kind === "door");
   if (door) {
     const dn = colourName(m, m.surfaces.door), [d1] = otherColours(m, m.surfaces.door, false);
     items.push({
@@ -90,7 +91,7 @@ export function wallItems(s: JourneyState, m: ShowroomModel, wall: Wall): WallIt
   }
 
   // windows: their frames
-  for (const o of m.openings.filter((x) => x.wall === wall && x.kind === "window")) {
+  for (const o of m.openings.filter((x) => (wall === "room" || x.wall === wall) && x.kind === "window")) {
     const wd = colourName(m, m.surfaces.wood);
     items.push({
       id: `window-${o.id}`, title: "Window", group: "walls", current: "white window frame and sill (keep the glass and the view)", mainName: "White frames",
@@ -115,6 +116,11 @@ export function wallItems(s: JourneyState, m: ShowroomModel, wall: Wall): WallIt
     if (c1) ai.push({ name: `${colourName(m, c1)[0].toUpperCase()}${colourName(m, c1).slice(1)}${mat}`, target: `the same ${p.shapeName.toLowerCase()} ${noun} in ${colourName(m, c1)} (${c1})${mat}` });
     if (shapes[0]) ai.push({ name: shapes[0].name, target: `a ${shapes[0].name.toLowerCase()} ${noun} (${shapes[0].note.toLowerCase()}) in ${cn}${mat}, the same size` });
     if (ai.length < 2 && shapes[1]) ai.push({ name: shapes[1].name, target: `a ${shapes[1].name.toLowerCase()} ${noun} in ${cn}${mat}, the same size` });
+    // always two to choose from: with few moodboard colours or shapes, two classic finishes
+    for (const f of [{ name: "Light oak", what: "light natural oak" }, { name: "Matt black", what: "matt black" }]) {
+      if (ai.length >= 2) break;
+      ai.push({ name: f.name, target: `the same ${p.shapeName.toLowerCase()} ${noun} in ${f.what}${p.fabric ? ` with ${p.fabric} in a neutral tone` : ""}, the same size` });
+    }
     const picked = products.get(p.id) ?? products.get(`name:${p.name.toLowerCase()}`) ?? [];
     items.push({
       id: p.id, title: p.name, group: GROUP[p.category] ?? "furniture",
@@ -124,7 +130,7 @@ export function wallItems(s: JourneyState, m: ShowroomModel, wall: Wall): WallIt
   }
 
   // the wall above the main low piece: bare, or a painting, or shelves
-  if (!m.extras.some((e) => e.wall === wall && (e.kind === "art" || e.kind === "mirror"))) {
+  if (wall !== "room" && !m.extras.some((e) => e.wall === wall && (e.kind === "art" || e.kind === "mirror"))) {
     const main = m.pieces.filter((p) => seenOn(p, wall) && p.onWall && p.h < 1.4 && p.category !== "rug").sort((a, b) => b.w - a.w)[0];
     if (main) {
       const accent = colourName(m, m.surfaces.accent), wd = colourName(m, m.surfaces.wood);
@@ -139,7 +145,7 @@ export function wallItems(s: JourneyState, m: ShowroomModel, wall: Wall): WallIt
   }
 
   for (const e of m.extras) {
-    if (e.wall !== wall || e.kind === "pendant") continue;
+    if ((wall !== "room" && e.wall !== wall) || e.kind === "pendant") continue;
     const cn = colourName(m, e.color), [c1] = otherColours(m, e.color, true), metal = colourName(m, m.surfaces.metal);
     const ai: Alt[] =
       e.kind === "curtains" ? [

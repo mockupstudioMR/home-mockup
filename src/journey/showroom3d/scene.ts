@@ -837,7 +837,58 @@ export type Guide = {
 };
 
 /** A camera looking straight at a wall from inside the room, framing exactly the wall: its length and its height. */
-export function elevationCamera(room: ShowroomModel["room"], wall: Wall, aspect?: number) {
+/** Looking down at a seating wall so the floor (and the rug) in front of it shows. */
+const FLOOR_PITCH = (16 * Math.PI) / 180;
+
+/**
+ * How much floor to show in front of a wall: for a wall with seating or a rug, enough to take in the rug and
+ * the seating's legs (at least 1.2 m, at most 60% of the room's depth); none for other walls.
+ */
+export function floorDepthFor(m: ShowroomModel, wall: Wall): number {
+  const depth = wall === "A" || wall === "C" ? m.room.l : m.room.w;
+  const seat = m.pieces.filter((p) => seenOn(p, wall) && ["sofa", "chair", "bench", "rug", "table", "side", "bed"].includes(p.category));
+  if (!seat.length) return 0;
+  const far = (p: PieceModel) => ({ A: p.cz + p.d / 2, C: m.room.l - (p.cz - p.d / 2), D: p.cx + p.w / 2, B: m.room.w - (p.cx - p.w / 2) })[wall];
+  return Math.max(1.2, Math.min(depth * 0.6, Math.max(...seat.map(far)) + 0.4));
+}
+
+/** A wall seen from slightly above, so `floorM` metres of floor in front of it show: the camera and the extent it covers. */
+function floorCamera(room: ShowroomModel["room"], wall: Wall, floorM: number, aspect?: number) {
+  const { w: W, l: L, h: H } = room, depth = wall === "A" || wall === "C" ? L : W;
+  const n = { A: [0, 0, -1], C: [0, 0, 1], B: [1, 0, 0], D: [-1, 0, 0] }[wall];
+  const T = new THREE.Vector3(...({ A: [W / 2, H / 2, 0], C: [W / 2, H / 2, L], B: [W, H / 2, L / 2], D: [0, H / 2, L / 2] }[wall] as [number, number, number]));
+  const N = new THREE.Vector3(n[0], n[1], n[2]), dist = depth + 3;
+  const cam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.01, dist + depth + 6);
+  cam.position.copy(T).addScaledVector(N, -dist).add(new THREE.Vector3(0, dist * Math.tan(FLOOR_PITCH), 0));
+  cam.lookAt(T);
+  cam.updateMatrixWorld();
+  // the wall's corners and the floor `floorM` out in front of it, in the camera's view
+  const side = new THREE.Vector3().crossVectors(N, new THREE.Vector3(0, 1, 0)).normalize();
+  const len = wall === "A" || wall === "C" ? W : L;
+  const pts: THREE.Vector3[] = [];
+  for (const s of [-len / 2, len / 2]) {
+    const base = T.clone().addScaledVector(side, s).setY(0);
+    pts.push(base.clone().setY(H), base.clone(), base.clone().addScaledVector(N, -floorM));
+  }
+  let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
+  for (const p of pts) { const v = p.applyMatrix4(cam.matrixWorldInverse); x0 = Math.min(x0, v.x); x1 = Math.max(x1, v.x); y0 = Math.min(y0, v.y); y1 = Math.max(y1, v.y); }
+  let hw = (x1 - x0) / 2, hh = (y1 - y0) / 2;
+  const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2;
+  const extent = { w: hw * 2, h: hh * 2 };
+  if (aspect && aspect > 0) { if (aspect >= hw / hh) hw = hh * aspect; else hh = hw / aspect; }
+  cam.left = cx - hw; cam.right = cx + hw; cam.top = cy + hh; cam.bottom = cy - hh;
+  cam.updateProjectionMatrix();
+  return { cam, extent };
+}
+
+/** The size (metres) a wall's picture covers: its length × height, or with floor in front, the taller view. */
+export function wallViewExtent(room: ShowroomModel["room"], wall: Wall, floorM = 0) {
+  if (floorM > 0) return floorCamera(room, wall, floorM).extent;
+  return { w: wall === "A" || wall === "C" ? room.w : room.l, h: room.h };
+}
+
+export function elevationCamera(room: ShowroomModel["room"], wall: Wall, aspect?: number, floorM = 0): THREE.OrthographicCamera {
+  if (floorM > 0) return floorCamera(room, wall, floorM, aspect).cam;
   const { w: W, l: L, h: H } = room, len = wall === "A" || wall === "C" ? W : L, depth = wall === "A" || wall === "C" ? L : W;
   // on a canvas of another shape, the whole wall still fits (at one scale), centred, with a little of the room around it
   let hw = len / 2, hh = H / 2;
@@ -954,12 +1005,13 @@ export function keepInFrame(scene: THREE.Object3D, camera: THREE.OrthographicCam
  * wall's outline in step 5: the wall fills the frame edge to edge and floor to ceiling, with its doors and
  * windows and only the pieces the outline shows on it, at their real size and place. Needs WebGL.
  */
-export function renderGuide(m: ShowroomModel, wall: Wall, width = 1536, canvasHeight?: number): Guide {
+export function renderGuide(m: ShowroomModel, wall: Wall, width = 1536, canvasHeight?: number, floorM = 0): Guide {
   const len = wall === "A" || wall === "C" ? m.room.w : m.room.l, H = m.room.h;
   const height = canvasHeight ?? Math.max(256, Math.min(2048, Math.round((width * H) / len)));
   // only what the outline shows on this wall (rugs lie flat and can't be seen straight on)
   // (openings on the other walls are left out too: seen edge-on, their frames and handles poke in at the sides)
-  const onWall: ShowroomModel = { ...m, openings: m.openings.filter((o) => o.wall === wall), pieces: m.pieces.filter((p) => seenOn(p, wall) && p.category !== "rug"), extras: m.extras.filter((e) => e.wall === wall && e.kind !== "pendant") };
+  // (a rug lies flat: it only shows when the view takes in the floor)
+  const onWall: ShowroomModel = { ...m, openings: m.openings.filter((o) => o.wall === wall), pieces: m.pieces.filter((p) => seenOn(p, wall) && (p.category !== "rug" || floorM > 0)), extras: m.extras.filter((e) => e.wall === wall && e.kind !== "pendant") };
   const canvas = document.createElement("canvas");
   canvas.width = width; canvas.height = height;
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, preserveDrawingBuffer: true });
@@ -974,7 +1026,9 @@ export function renderGuide(m: ShowroomModel, wall: Wall, width = 1536, canvasHe
     const built = buildScene(onWall, false);
     const pm = new THREE.PMREMGenerator(renderer);
     try { built.scene.environment = pm.fromScene(built.envScene, 0.03).texture; } catch { /* no reflections */ }
-    const camera = elevationCamera(m.room, wall, canvasHeight ? width / height : undefined);
+    const camera = elevationCamera(m.room, wall, canvasHeight ? width / height : undefined, floorM);
+    // seen from above, the other walls would stand in the way: only this wall is drawn
+    if (floorM > 0) built.scene.traverse((o) => { if (o.userData.id === "walls" && o.userData.wall && o.userData.wall !== wall) o.visible = false; });
     keepInFrame(built.scene, camera, len / 2);
     renderer.render(built.scene, camera);
     const image = canvas.toDataURL("image/jpeg", 0.92);
@@ -997,9 +1051,12 @@ export function renderGuide(m: ShowroomModel, wall: Wall, width = 1536, canvasHe
       if (b) boxes[id] = b;
     });
     // a rug lies flat, so the camera can't see it: it gets the strip of floor in front of the wall, under its span
-    const floorPct = ((1 - new THREE.Vector3(0, 0, 0).applyMatrix4(camera.matrixWorldInverse).applyMatrix4(camera.projectionMatrix).y) / 2) * 100;
+    const { w: RW, l: RL, h: RH } = m.room;
+    const baseAt = { A: [RW / 2, 0, 0], C: [RW / 2, 0, RL], B: [RW, 0, RL / 2], D: [0, 0, RL / 2] }[wall] as [number, number, number];
+    const pctY = (y: number) => ((1 - new THREE.Vector3(baseAt[0], y, baseAt[2]).project(camera).y) / 2) * 100;
+    const floorPct = pctY(0), ceilPct = pctY(RH);
     const v = new THREE.Vector3();
-    for (const r of m.pieces.filter((p) => p.category === "rug" && seenOn(p, wall))) {
+    for (const r of floorM > 0 ? [] : m.pieces.filter((p) => p.category === "rug" && seenOn(p, wall))) {
       let x0 = Infinity, x1 = -Infinity;
       for (const dx of [-r.w / 2, r.w / 2]) for (const dz of [-r.d / 2, r.d / 2]) { v.set(r.cx + dx, 0, r.cz + dz).project(camera); x0 = Math.min(x0, v.x); x1 = Math.max(x1, v.x); }
       const L = Math.max(0, ((x0 + 1) / 2) * 100), R = Math.min(100, ((x1 + 1) / 2) * 100), T = Math.max(0, floorPct - 7), B = Math.min(100, floorPct + 6);
@@ -1009,13 +1066,73 @@ export function renderGuide(m: ShowroomModel, wall: Wall, width = 1536, canvasHe
     if (!m.extras.some((e) => e.wall === wall && (e.kind === "art" || e.kind === "mirror"))) {
       const main = onWall.pieces.filter((p) => p.onWall && p.h < 1.4 && boxes[p.id]).sort((a, b) => b.w - a.w)[0];
       const b = main && boxes[main.id];
-      const ceiling = Math.max(0, 100 - floorPct); // the canvas margin above the ceiling line equals the one below the floor
+      const ceiling = Math.max(0, ceilPct);
       if (b) {
         const room = b[1] - ceiling - 10, h = Math.min(room - 6, 30), box: [number, number, number, number] = [b[0] + b[2] * 0.18, b[1] - 6 - h, b[2] * 0.64, h];
         const hitsWindow = Object.entries(boxes).some(([k, w]) => k.startsWith("window-") && w[0] < box[0] + box[2] && box[0] < w[0] + w[2] && w[1] < box[1] + box[3] && box[1] < w[1] + w[3]);
         if (h >= 10 && !hitsWindow) boxes[`decor-${wall}`] = box;
       }
     }
+    pm.dispose();
+    const ids = idPass(renderer, built.scene, camera, width, height);
+    built.scene.traverse((o) => {
+      const mesh = o as THREE.Mesh;
+      mesh.geometry?.dispose?.();
+      const mt = [mesh.material, mesh.userData.orig] as (Mat | Mat[] | undefined)[];
+      mt.flatMap((x) => (Array.isArray(x) ? x : x ? [x] : [])).forEach((x) => x.dispose());
+    });
+    return { image, width, height, boxes, ids };
+  } finally {
+    renderer.dispose();
+    renderer.forceContextLoss?.();
+  }
+}
+
+/**
+ * Draws the whole room from its corner at eye height, as the guide for the whole-room picture: every piece,
+ * free-standing ones included, the rug and what hangs on the walls. Same result shape as `renderGuide`.
+ */
+export function renderRoomGuide(m: ShowroomModel, width = 1792, height = 1008): Guide {
+  const canvas = document.createElement("canvas");
+  canvas.width = width; canvas.height = height;
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, preserveDrawingBuffer: true });
+  try {
+    renderer.setPixelRatio(1);
+    renderer.setSize(width, height, false);
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.useLegacyLights = true;
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    const built = buildScene({ ...m, extras: m.extras.filter((e) => e.kind !== "pendant") }, false);
+    const pm = new THREE.PMREMGenerator(renderer);
+    try { built.scene.environment = pm.fromScene(built.envScene, 0.03).texture; } catch { /* no reflections */ }
+    const v = viewFor("room", m.room, width / height);
+    const camera = new THREE.PerspectiveCamera(v.f, width / height, 0.05, 40);
+    camera.position.set(v.p[0], v.p[1], v.p[2]);
+    camera.lookAt(v.t[0], v.t[1], v.t[2]);
+    camera.updateMatrixWorld();
+    renderer.render(built.scene, camera);
+    const image = canvas.toDataURL("image/jpeg", 0.92);
+    const boxes: Guide["boxes"] = {};
+    for (const o of built.scene.children) {
+      const id = o.userData.id as string | undefined;
+      if (!id) continue;
+      const b = screenBox(o, camera);
+      if (b) boxes[id] = b;
+    }
+    // the shell: walls (all of them, as one), floor, doors and windows
+    const union = (a: [number, number, number, number] | undefined, b: [number, number, number, number]) => {
+      if (!a) return b;
+      const x0 = Math.min(a[0], b[0]), y0 = Math.min(a[1], b[1]), x1 = Math.max(a[0] + a[2], b[0] + b[2]), y1 = Math.max(a[1] + a[3], b[1] + b[3]);
+      return [x0, y0, x1 - x0, y1 - y0] as [number, number, number, number];
+    };
+    built.scene.traverse((o) => {
+      const id = o.userData.id as string | undefined;
+      if (!id || (id !== "walls" && id !== "floor" && id !== "doors" && !id.startsWith("window-"))) return;
+      const b = screenBox(o, camera);
+      if (b) boxes[id] = union(id === "walls" || id === "doors" ? boxes[id] : undefined, b);
+    });
     pm.dispose();
     const ids = idPass(renderer, built.scene, camera, width, height);
     built.scene.traverse((o) => {

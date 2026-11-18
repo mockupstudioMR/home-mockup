@@ -64,7 +64,8 @@ const STATUS_TEXT: Record<WallStatus, string> = {
 /** The room's hyper-realistic pictures: one per wall, every piece swappable. Made for all walls up front. */
 function RoomPictures() {
   const { status, progress, running, start, stop, ready, scenes } = useRoomPictures(true);
-  const again = WALLS.filter((w) => status(w) !== "ready" && status(w) !== "making" && status(w) !== "waiting");
+  const all = [...WALLS, "room"] as const;
+  const again = all.filter((w) => status(w) !== "ready" && status(w) !== "making" && status(w) !== "waiting");
   return (
     <section className="wo-pics" aria-label="Your room's pictures">
       <div className="wo-pics-h">
@@ -75,20 +76,20 @@ function RoomPictures() {
         {running ? (
           <button type="button" className="link-btn" onClick={stop}>Stop</button>
         ) : again.length > 0 && ready === true ? (
-          <button type="button" className="btn auto" onClick={() => start(again)}>{again.length === 4 ? "Make my room's pictures" : `Make ${again.length === 1 ? `wall ${again[0]}` : `${again.length} walls`} again`}</button>
+          <button type="button" className="btn auto" onClick={() => start(again)}>{again.length === all.length ? "Make my room's pictures" : `Make ${again.length === 1 ? (again[0] === "room" ? "the whole room" : `wall ${again[0]}`) : `${again.length} pictures`} again`}</button>
         ) : null}
       </div>
       {ready !== true && <p className="small" role="note">{ready}</p>}
       <ul className="wo-pics-l">
-        {WALLS.map((w) => {
+        {all.map((w) => {
           const st = status(w);
           const p = progress?.wall === w ? progress : null;
           return (
             <li key={w} className={`st-${st}`}>
-              <Go to="S5-Wall" extra={`/${w}`}>
-                <i>{w}</i>
+              <Go to={w === "room" ? "S4-Showroom" : "S5-Wall"} extra={w === "room" ? undefined : `/${w}`}>
+                <i>{w === "room" ? "◰" : w}</i>
                 <span>
-                  <b>Wall {w} · {STATUS_TEXT[st]}</b>
+                  <b>{w === "room" ? "Whole room" : `Wall ${w}`} · {STATUS_TEXT[st]}</b>
                   <small>
                     {p ? `${p.step} · ${p.done} of ${p.total}` : st === "failed" ? scenes[w]?.error : st === "ready" ? `${scenes[w]?.layers?.length ?? 0} swappable pieces` : ""}
                   </small>

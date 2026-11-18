@@ -8,7 +8,7 @@
  */
 import { facingOf } from "../plan/facing";
 import type { JourneyState, Swatch, Wall } from "../state";
-import { alongWall, homeWalls, keepClear, nearestWall, seatSets } from "../wallOutline";
+import { alongWall, freeStanding, homeWalls, keepClear, nearestWall, seatSets } from "../wallOutline";
 import { categoryOf, fabricIn, LIBRARY, matchShape, shapeById, wordsNear, type Category, type Fabric } from "./library";
 
 export type Edit = { color?: string; shape?: string };
@@ -27,6 +27,13 @@ export type PieceModel = {
   rot: number;
   /** The nearest wall, and whether the piece actually stands against it (within 40 cm). */
   wall: Wall; onWall: boolean;
+  /** How far out from its wall it stands, metres. */
+  gap?: number;
+  /**
+   * Stands out in the room rather than at its wall (more than about 60 cm out, and not in front of a piece that
+   * is): left out of the wall's outline and picture, and shown in the whole-room picture.
+   */
+  free?: boolean;
   /** Every wall picture it appears in: its own wall, and for a table and its chairs every wall the set faces. */
   shownOn?: Wall[];
   /** Where it sits along that wall as seen from inside the room, centimetres. */
@@ -42,7 +49,7 @@ export type PieceModel = {
   edited: boolean;
 };
 /** Whether a piece appears in a wall's picture (a table set shows whole on every wall it faces). */
-export const seenOn = (p: Pick<PieceModel, "wall" | "shownOn">, wall: Wall) => p.wall === wall || !!p.shownOn?.includes(wall);
+export const seenOn = (p: Pick<PieceModel, "wall" | "shownOn" | "free">, wall: Wall | "room") => wall === "room" || (!p.free && (p.wall === wall || !!p.shownOn?.includes(wall)));
 export type Extra = { id: string; kind: "curtains" | "art" | "mirror" | "pendant"; name: string; wall: Wall; at: number; y: number; color: string; colorFrom: string; edited: boolean };
 export type PaletteEntry = { name: string; hex: string; use: string; role: string };
 export type Surface = { id: "walls" | "floor" | "doors"; name: string; color: string; colorFrom: string; edited: boolean };
@@ -204,23 +211,25 @@ export function buildModel(s: JourneyState, edits: Edits = {}): ShowroomModel {
       cx: ((box.x + box.w / 2) / 100) * W, cz: ((box.y + box.h / 2) / 100) * L,
       w: Math.max(0.2, turned ? fd : fw), d: Math.max(0.2, turned ? fw : fd), h: hM ?? HEIGHT[category],
       rot: facing ? ROT[facing] : 0,
-      wall, onWall: gapM <= 0.4, fromCm: Math.round((a / 100) * len), toCm: Math.round((b / 100) * len),
+      wall, onWall: gapM <= 0.4, gap: gapM, fromCm: Math.round((a / 100) * len), toCm: Math.round((b / 100) * len),
       ...withEdit(id, col),
       fabric: fabricIn(described) ?? (category === "sofa" || category === "chair" || category === "bed" || category === "bench" ? "linen" : undefined),
       shape: shape.id, shapeName: shape.name, described, matched: m.matched,
     });
   };
   const home = homeWalls(lay?.items ?? [], { w: W, l: L });
+  const standing = freeStanding(lay?.items ?? [], { w: W, l: L });
   for (const [i, it] of (lay?.items ?? []).entries()) {
     const kept = it.kind === "keep";
     if (kept) keptInLayout.add(it.label.toLowerCase());
     addPiece(`lay-${i}`, it.label || it.kind, it.kind, it, facingOf(it, W, L), kept, undefined, home[i]);
+    if (standing.free[i]) pieces[pieces.length - 1].free = true;
   }
   // a rug shows on the wall of the piece it lies under the most (the sofa's, say)
   for (const r of pieces.filter((p) => p.category === "rug")) {
     const over = (p: PieceModel) => Math.max(0, Math.min(r.cx + r.w / 2, p.cx + p.w / 2) - Math.max(r.cx - r.w / 2, p.cx - p.w / 2) + 0.5) * Math.max(0, Math.min(r.cz + r.d / 2, p.cz + p.d / 2) - Math.max(r.cz - r.d / 2, p.cz - p.d / 2) + 0.5);
     const under = pieces.filter((p) => p !== r && p.category !== "rug").sort((a, b) => over(b) - over(a))[0];
-    if (under && over(under) > 0) r.wall = under.wall;
+    if (under && over(under) > 0) { r.wall = under.wall; r.free = under.free; }
   }
   for (const k of s.keeping) {
     if (k.status === "buy" || keptInLayout.has(k.name.toLowerCase()) || [...keptInLayout].some((n) => n.includes(k.name.toLowerCase()) || k.name.toLowerCase().includes(n))) continue;
@@ -238,13 +247,13 @@ export function buildModel(s: JourneyState, edits: Edits = {}): ShowroomModel {
   const groupOf = (id: string) => { const i = Number(id.replace("lay-", "")); const set = id.startsWith("lay-") ? sets.get(i) : undefined; return set ? `lay-${set[0]}` : id; };
   for (const w of ["A", "B", "C", "D"] as Wall[]) {
     const len = lenOf(w) * 100;
-    const on = pieces.filter((p) => p.wall === w && p.category !== "rug");
+    const on = pieces.filter((p) => p.wall === w && p.category !== "rug" && !p.free);
     const blocks = openings.filter((o) => o.wall === w).map((o) => {
       const c = (w === "A" || w === "B" ? o.at : lenOf(w) - o.at) * 100;
-      return { x: c - o.width * 50, w: o.width * 100, from: o.sill * 100 };
+      return { x: c - o.width * 50, w: o.width * 100, from: o.sill * 100, depth: o.kind === "door" ? 95 : 45 };
     });
     if (!on.length || !blocks.length && on.filter((p) => p.onWall).length < 2) continue;
-    const shift = keepClear(len, on.map((p) => ({ id: p.id, x: p.fromCm, w: p.toCm - p.fromCm, h: p.h * 100, against: p.onWall, group: groupOf(p.id) })), blocks);
+    const shift = keepClear(len, on.map((p) => ({ id: p.id, x: p.fromCm, w: p.toCm - p.fromCm, h: p.h * 100, against: p.onWall, gap: (p.gap ?? 0) * 100, group: groupOf(p.id) })), blocks);
     for (const p of on) {
       const d = shift[p.id] ?? 0;
       if (!d) continue;

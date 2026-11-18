@@ -33,6 +33,8 @@ export type Outline = {
   pins: Record<number, { x: number; y: number }>;
   /** Item numbers in reading order: left to right along the wall. */
   order: number[];
+  /** Pieces that belong to this wall but stand out in the room: listed, not drawn. */
+  free: { ref: string; label: string; gapCm: number }[];
 };
 
 const EXAMPLE = { width: 3.75, length: 4.9, ceiling: 2.7 };
@@ -118,12 +120,60 @@ export function homeWalls(items: (Box & { kind: string; label?: string })[], roo
   });
 }
 
+/* ---------- free-standing pieces ---------- */
+
+const NEAR_CM = 60;
+const IN_FRONT_CM = 120;
+
+/**
+ * Which pieces stand out in the room rather than at their wall: more than about 60 cm out (a table set: the
+ * whole set), unless they stand in front of a piece that is at the wall (a coffee table before the sofa).
+ * A wall's outline and picture show only what is at the wall; free-standing pieces are listed under it and
+ * shown in the whole-room picture. Rugs are never free-standing: they go with the piece above them.
+ */
+export function freeStanding(items: (Box & { kind: string; label?: string })[], room?: RoomSize): { free: boolean[]; gap: number[] } {
+  const W = (room?.w ?? EXAMPLE.width) * 100, L = (room?.l ?? EXAMPLE.length) * 100;
+  const home = homeWalls(items, room), sets = seatSets(items);
+  const gapOf = (b: Box, w: Wall) => ({ A: (b.y / 100) * L, C: ((100 - b.y - b.h) / 100) * L, D: (b.x / 100) * W, B: ((100 - b.x - b.w) / 100) * W })[w];
+  const box = (i: number): Box => {
+    const set = sets.get(i);
+    if (!set) return items[i];
+    const xs = set.map((j) => items[j]);
+    const x0 = Math.min(...xs.map((b) => b.x)), y0 = Math.min(...xs.map((b) => b.y));
+    return { x: x0, y: y0, w: Math.max(...xs.map((b) => b.x + b.w)) - x0, h: Math.max(...xs.map((b) => b.y + b.h)) - y0 };
+  };
+  const gaps = items.map((_, i) => gapOf(box(i), home[i]));
+  const near = items.map((it, i) => it.kind === "rug" || it.kind === "keep" || gaps[i] <= NEAR_CM);
+  // only small pieces you sit at or set things on stand "in front" of another (never a TV unit or shelving)
+  const FRONT = /table|chair|stool|ottoman|pouf|bench|lamp|plant/;
+  const BOUND = /tv|media|sideboard|console|book|shel|wardrobe|dresser|cabinet|storage|piano/;
+  const free = items.map((it, i) => {
+    if (near[i]) return false;
+    const t = `${it.kind} ${it.label ?? ""}`.toLowerCase();
+    if (!FRONT.test(t) || BOUND.test(t)) return true;
+    // in front of a piece at the same wall, close by and overlapping along the wall
+    const [a, b] = alongWall(home[i], box(i));
+    return !items.some((o, j) => {
+      if (j === i || !near[j] || o.kind === "rug" || home[j] !== home[i]) return false;
+      const [c, d] = alongWall(home[j], o);
+      const overlap = Math.min(b, d) - Math.max(a, c);
+      const depth = home[j] === "A" || home[j] === "C" ? (o.h / 100) * L : (o.w / 100) * W;
+      const between = gaps[i] - (gapOf(o, home[j]) + depth); // floor between the front of the one and the back of the other
+      return overlap > 0.3 * Math.min(b - a, d - c) && between <= IN_FRONT_CM;
+    });
+  });
+  return { free, gap: gaps };
+}
+
 /* ---------- keeping doors (and windows) clear ---------- */
 
 /** A piece along a wall, in cm from its left end: `against` when it stands against the wall itself. */
-export type Span = { id: string; x: number; w: number; h: number; against: boolean; group?: string };
-/** Something that must stay clear: a door from the floor up, a window from its sill up (cm above the floor). */
-export type Block = { x: number; w: number; from: number };
+export type Span = { id: string; x: number; w: number; h: number; against: boolean; group?: string; /** cm out from the wall */ gap?: number };
+/**
+ * Something that must stay clear: a door from the floor up, a window from its sill up (cm above the floor),
+ * for pieces standing within `depth` cm of the wall (a door's swing; a piece 2 m out doesn't block it).
+ */
+export type Block = { x: number; w: number; from: number; depth?: number };
 
 /**
  * How far (cm, along the wall) each piece must slide so nothing stands in front of a door, nothing taller
@@ -131,24 +181,24 @@ export type Block = { x: number; w: number; from: number };
  * with its chairs moves as one. Each piece moves as little as it can; one that fits nowhere stays put.
  */
 export function keepClear(len: number, spans: Span[], blocks: Block[], margin = 10): Record<string, number> {
-  type Unit = { key: string; ids: string[]; x: number; w: number; h: number; against: boolean };
+  type Unit = { key: string; ids: string[]; x: number; w: number; h: number; against: boolean; gap: number };
   const units = new Map<string, Unit>();
   for (const sp of spans) {
     const key = sp.group ?? sp.id, u = units.get(key);
-    if (!u) { units.set(key, { key, ids: [sp.id], x: sp.x, w: sp.w, h: sp.h, against: sp.against }); continue; }
+    if (!u) { units.set(key, { key, ids: [sp.id], x: sp.x, w: sp.w, h: sp.h, against: sp.against, gap: sp.gap ?? 0 }); continue; }
     const x1 = Math.max(u.x + u.w, sp.x + sp.w);
-    u.x = Math.min(u.x, sp.x); u.w = x1 - u.x; u.h = Math.max(u.h, sp.h); u.against ||= sp.against; u.ids.push(sp.id);
+    u.x = Math.min(u.x, sp.x); u.w = x1 - u.x; u.h = Math.max(u.h, sp.h); u.against ||= sp.against; u.gap = Math.min(u.gap, sp.gap ?? 0); u.ids.push(sp.id);
   }
   const placed: { x: number; w: number }[] = [];
   const out: Record<string, number> = {};
   const hits = (u: Unit, x: number) =>
-    blocks.some((b) => u.h > b.from && x < b.x + b.w + margin && b.x - margin < x + u.w) ||
+    blocks.some((b) => u.h > b.from && u.gap < (b.depth ?? Infinity) && x < b.x + b.w + margin && b.x - margin < x + u.w) ||
     (u.against && placed.some((p) => x < p.x + p.w && p.x < x + u.w));
   // pieces against the wall first (they are the ones that can't share space), then left to right
   for (const u of [...units.values()].sort((a, b) => Number(b.against) - Number(a.against) || a.x - b.x)) {
     const lim = Math.max(0, len - u.w);
     const cands = [u.x];
-    for (const b of blocks) cands.push(b.x - margin - u.w, b.x + b.w + margin);
+    for (const b of blocks) if (u.gap < (b.depth ?? Infinity)) cands.push(b.x - margin - u.w, b.x + b.w + margin);
     if (u.against) for (const p of placed) cands.push(p.x - u.w, p.x + p.w);
     const ok = cands.map((x) => Math.max(0, Math.min(lim, x))).filter((x) => !hits(u, x)).sort((a, b) => Math.abs(a - u.x) - Math.abs(b - u.x));
     const x = ok.length ? ok[0] : u.x;
@@ -205,11 +255,13 @@ export function outlineFor(s: JourneyState, w: Wall, wp: WallPlan): Outline {
   const pieces: OutlinePiece[] = [];
   const items = lay?.items ?? [];
   const room = s.room.widthM && s.room.lengthM ? { w: s.room.widthM, l: s.room.lengthM } : undefined;
-  const home = homeWalls(items, room), sets = seatSets(items);
+  const home = homeWalls(items, room), sets = seatSets(items), standing = freeStanding(items, room);
+  const freeList: Outline["free"] = [];
   const setPieces: OutlinePiece[] = [];
   const gapCm = new Map<string, number>();
   for (const [li, it] of items.entries()) {
     if (it.kind === "rug" || home[li] !== w) continue;
+    if (standing.free[li]) { freeList.push({ ref: `lay-${li}`, label: it.label || it.kind, gapCm: Math.round(standing.gap[li] / 10) * 10 }); continue; }
     const [a, b] = alongWall(w, it);
     const width = Math.max(30, cm(b - a));
     const h = pieceHeight(it.kind, it.label);
@@ -247,10 +299,10 @@ export function outlineFor(s: JourneyState, w: Wall, wp: WallPlan): Outline {
   // Nothing stands in front of a door (or, taller than the sill, in front of a window); pieces against the
   // wall don't overlap. Kept pieces are against their wall.
   const blocks: Block[] = [
-    ...openings.map((op) => ({ x: op.x, w: op.w, from: op.kind === "door" ? 0 : H - (op.y + op.h) })),
-    ...fixed.filter((f) => f.kind === "column" || f.kind === "builtin" || f.kind === "stack").map((f) => ({ x: f.x, w: f.w, from: 0 })),
+    ...openings.map((op) => (op.kind === "door" ? { x: op.x, w: op.w, from: 0, depth: 95 } : { x: op.x, w: op.w, from: H - (op.y + op.h), depth: 45 })),
+    ...fixed.filter((f) => f.kind === "column" || f.kind === "builtin" || f.kind === "stack").map((f) => ({ x: f.x, w: f.w, from: 0, depth: 45 })),
   ];
-  const shift = keepClear(length, pieces.map((p) => ({ id: p.ref, x: p.x, w: p.w, h: p.h, against: p.kept || (gapCm.get(p.ref) ?? 0) <= 40, group: p.set ?? p.ref })), blocks);
+  const shift = keepClear(length, pieces.map((p) => ({ id: p.ref, x: p.x, w: p.w, h: p.h, against: p.kept || (gapCm.get(p.ref) ?? 0) <= 40, gap: p.kept ? 0 : gapCm.get(p.ref) ?? 0, group: p.set ?? p.ref })), blocks);
   for (const p of pieces) p.x = clamp(p.x + (shift[p.ref] ?? 0), 0, length - p.w);
 
   // A pin for every item on the wall.
@@ -331,7 +383,7 @@ export function outlineFor(s: JourneyState, w: Wall, wp: WallPlan): Outline {
     .filter((i) => i.action !== "—")
     .map((i) => i.n)
     .sort((a, b) => pins[a].x - pins[b].x || pins[a].y - pins[b].y);
-  return { wall: w, length, height, example, openings, fixed, pieces, points, pins, order };
+  return { wall: w, length, height, example, openings, fixed, pieces, points, pins, order, free: freeList };
 }
 
 /** The item a pin number stands for (pins are numbered 1… in reading order). */

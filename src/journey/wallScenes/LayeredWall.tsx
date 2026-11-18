@@ -4,8 +4,8 @@
  * kept with the journey. Reads the wall's manifest (background, and per item its aligned variation layers).
  */
 import { useEffect, useMemo, useState } from "react";
-import { useJourney, type Wall } from "../state";
-import type { WallScene } from "./runner";
+import { useJourney } from "../state";
+import type { Pic, WallScene } from "./runner";
 
 type Layer = {
   title: string; group: string; order: number;
@@ -27,7 +27,7 @@ function loadManifest(url: string) {
   return p;
 }
 
-export function LayeredWall({ wall, scene }: { wall: Wall; scene: WallScene }) {
+export function LayeredWall({ wall, scene }: { wall: Pic; scene: WallScene }) {
   const { s, set } = useJourney();
   const [m, setM] = useState<Manifest | null>(null);
   const [err, setErr] = useState("");
@@ -59,7 +59,7 @@ export function LayeredWall({ wall, scene }: { wall: Wall; scene: WallScene }) {
   return (
     <div className="lw">
       <div className="lw-stage" style={{ aspectRatio: `${W} / ${H}` }}>
-        <img className="lw-img" src={m.background} alt={`Wall ${wall}, as a photograph`} />
+        <img className="lw-img" src={m.background} alt={wall === "room" ? "Your whole room, as a photograph" : `Wall ${wall}, as a photograph`} />
         {/* the photo already shows every main option: only swapped pieces are laid over it, front ones last */}
         {layers.filter(([n, l]) => (picks[n] ?? 0) > 0 && l.variations.length > 1).map(([name, l]) => (
           <img key={name} className="lw-img" src={l.variations[Math.min(picks[name] ?? 0, l.variations.length - 1)]} alt="" aria-hidden="true" />
