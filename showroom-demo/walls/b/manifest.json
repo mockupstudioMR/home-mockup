@@ -1,0 +1,195 @@
+{
+ "background": "background.webp",
+ "imageSize": {
+  "width": 1920,
+  "height": 1080
+ },
+ "cameraKey": "wall-std-v1-L500",
+ "wall": "B",
+ "role": "Piano",
+ "lengthCm": 490,
+ "enhancements": {
+  "brightness": 100,
+  "contrast": 100,
+  "saturation": 100
+ },
+ "layers": {
+  "wall": {
+   "title": "Wall colour",
+   "group": "walls",
+   "order": 10,
+   "visible": true,
+   "shadow": "/showroom-demo/walls/b/wall-shadow.webp",
+   "variations": [
+    "/showroom-demo/walls/b/wall-1.webp",
+    "/showroom-demo/walls/b/wall-2.webp",
+    "/showroom-demo/walls/b/wall-3.webp",
+    "/showroom-demo/walls/b/wall-4.webp"
+   ],
+   "thumbnails": [
+    "/showroom-demo/walls/b/wall-1-thumb.jpg",
+    "/showroom-demo/walls/b/wall-2-thumb.jpg",
+    "/showroom-demo/walls/b/wall-3-thumb.jpg",
+    "/showroom-demo/walls/b/wall-4-thumb.jpg"
+   ],
+   "variationNames": [
+    "Warm limewash",
+    "Sage",
+    "Terracotta",
+    "Mauve"
+   ],
+   "hotspot": {
+    "id": "wall",
+    "title": "Wall colour",
+    "visible": true,
+    "position": {
+     "x": 960,
+     "y": 155
+    }
+   }
+  },
+  "floor": {
+   "title": "Floor",
+   "group": "floor",
+   "order": 11,
+   "visible": true,
+   "shadow": "/showroom-demo/walls/b/floor-shadow.webp",
+   "variations": [
+    "/showroom-demo/walls/b/floor-1.webp",
+    "/showroom-demo/walls/b/floor-2.webp",
+    "/showroom-demo/walls/b/floor-3.webp"
+   ],
+   "thumbnails": [
+    "/showroom-demo/walls/b/floor-1-thumb.jpg",
+    "/showroom-demo/walls/b/floor-2-thumb.jpg",
+    "/showroom-demo/walls/b/floor-3-thumb.jpg"
+   ],
+   "variationNames": [
+    "Walnut",
+    "Oak",
+    "Pale oak"
+   ],
+   "hotspot": {
+    "id": "floor",
+    "title": "Floor",
+    "visible": true,
+    "position": {
+     "x": 576,
+     "y": 1010
+    }
+   }
+  },
+  "art": {
+   "title": "Art",
+   "group": "decor",
+   "order": 20,
+   "visible": true,
+   "shadow": "/showroom-demo/walls/b/art-shadow.webp",
+   "variations": [
+    "/showroom-demo/walls/b/art-1.webp"
+   ],
+   "thumbnails": [
+    "/showroom-demo/walls/b/art-thumb.jpg"
+   ],
+   "box": {
+    "x": 807,
+    "y": 76,
+    "w": 893,
+    "h": 404
+   },
+   "hotspot": {
+    "id": "art",
+    "title": "Art",
+    "visible": true,
+    "position": {
+     "x": 960,
+     "y": 323
+    }
+   }
+  },
+  "points": {
+   "title": "Socket",
+   "group": "lighting",
+   "order": 21,
+   "visible": true,
+   "shadow": "/showroom-demo/walls/b/points-shadow.webp",
+   "variations": [
+    "/showroom-demo/walls/b/points-1.webp"
+   ],
+   "thumbnails": [
+    "/showroom-demo/walls/b/points-thumb.jpg"
+   ],
+   "box": {
+    "x": 1237,
+    "y": 76,
+    "w": 463,
+    "h": 754
+   },
+   "hotspot": {
+    "id": "points",
+    "title": "Socket",
+    "visible": true,
+    "position": {
+     "x": 1260,
+     "y": 800
+    }
+   }
+  },
+  "piano": {
+   "title": "Piano",
+   "group": "furniture",
+   "order": 22,
+   "visible": true,
+   "shadow": "/showroom-demo/walls/b/piano-shadow.webp",
+   "variations": [
+    "/showroom-demo/walls/b/piano-1.webp"
+   ],
+   "thumbnails": [
+    "/showroom-demo/walls/b/piano-thumb.jpg"
+   ],
+   "box": {
+    "x": 586,
+    "y": 76,
+    "w": 1114,
+    "h": 956
+   },
+   "hotspot": {
+    "id": "piano",
+    "title": "Piano",
+    "visible": true,
+    "position": {
+     "x": 960,
+     "y": 703
+    }
+   }
+  },
+  "lamp": {
+   "title": "Floor lamp",
+   "group": "lighting",
+   "order": 23,
+   "visible": true,
+   "shadow": "/showroom-demo/walls/b/lamp-shadow.webp",
+   "variations": [
+    "/showroom-demo/walls/b/lamp-1.webp"
+   ],
+   "thumbnails": [
+    "/showroom-demo/walls/b/lamp-thumb.jpg"
+   ],
+   "box": {
+    "x": 1225,
+    "y": 76,
+    "w": 475,
+    "h": 939
+   },
+   "hotspot": {
+    "id": "lamp",
+    "title": "Floor lamp",
+    "visible": true,
+    "position": {
+     "x": 1421,
+     "y": 635
+    }
+   }
+  }
+ }
+}

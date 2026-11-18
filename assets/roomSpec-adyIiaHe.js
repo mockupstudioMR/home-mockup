@@ -1,0 +1,1 @@
+const e=1,t=()=>({name:"Untitled Room",room_type:"living-room",shape:"rectangle",dimensions:{},walls:[],style:{preference:"",colorPalette:"neutral",budgetFeel:"mid-range",mustHaveElements:[]},furniture:{selectedItems:[]},schema_version:1});export{e as ROOM_SPEC_VERSION,t as emptyRoomSpec};

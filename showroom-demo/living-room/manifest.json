@@ -1,0 +1,78 @@
+{
+  "background": "background.jpg",
+  "imageSize": {
+    "width": 1400,
+    "height": 968
+  },
+  "layers": {
+    "arch-wall": {
+      "title": "Arch wall",
+      "group": "walls",
+      "order": 10,
+      "visible": true,
+      "variations": [
+        "/showroom-demo/living-room/arch-wall-1.webp",
+        "/showroom-demo/living-room/arch-wall-2.webp",
+        "/showroom-demo/living-room/arch-wall-3.webp",
+        "/showroom-demo/living-room/arch-wall-4.webp"
+      ],
+      "thumbnails": [
+        "/showroom-demo/living-room/arch-wall-1-thumb.jpg",
+        "/showroom-demo/living-room/arch-wall-2-thumb.jpg",
+        "/showroom-demo/living-room/arch-wall-3-thumb.jpg",
+        "/showroom-demo/living-room/arch-wall-4-thumb.jpg"
+      ],
+      "variationNames": [
+        "Teal",
+        "Plum",
+        "Terracotta",
+        "Warm greige"
+      ],
+      "hotspot": {
+        "id": "arch-wall",
+        "title": "Arch wall",
+        "visible": true,
+        "position": {
+          "x": 250,
+          "y": 300
+        }
+      }
+    },
+    "sofa": {
+      "title": "Sofa",
+      "group": "furniture",
+      "order": 20,
+      "visible": true,
+      "variations": [
+        "/showroom-demo/living-room/sofa-1.webp",
+        "/showroom-demo/living-room/sofa-2.webp",
+        "/showroom-demo/living-room/sofa-3.webp",
+        "/showroom-demo/living-room/sofa-4.webp",
+        "/showroom-demo/living-room/sofa-5.webp"
+      ],
+      "thumbnails": [
+        "/showroom-demo/living-room/sofa-1-thumb.jpg",
+        "/showroom-demo/living-room/sofa-2-thumb.jpg",
+        "/showroom-demo/living-room/sofa-3-thumb.jpg",
+        "/showroom-demo/living-room/sofa-4-thumb.jpg",
+        "/showroom-demo/living-room/sofa-5-thumb.jpg"
+      ],
+      "variationNames": [
+        "Plum velvet",
+        "Emerald velvet",
+        "Ochre velvet",
+        "Dove grey",
+        "Blush"
+      ],
+      "hotspot": {
+        "id": "sofa",
+        "title": "Sofa",
+        "visible": true,
+        "position": {
+          "x": 1060,
+          "y": 760
+        }
+      }
+    }
+  }
+}

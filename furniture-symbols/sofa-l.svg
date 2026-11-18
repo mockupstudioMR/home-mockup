@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 180" preserveAspectRatio="none" role="img" aria-label="L-shape sofa">
+<!-- Home Mockup furniture symbol: L-shape sofa. Top view, back of the piece at the top, front at the bottom. 280 × 180 cm. -->
+<g stroke-linejoin="round" stroke-linecap="round">
+<path d="M1 10 Q1 1 10 1 L270 1 Q279 1 279 10 L279 170 Q279 179 270 179 L185 179 Q176 179 176 170 L176 95 L10 95 Q1 95 1 85 Z" fill="#6B2F55" stroke="#3B3350" stroke-width="1.2" vector-effect="non-scaling-stroke"/><rect x="20" y="1" width="258" height="26" rx="6" fill="#4E2140" stroke="#4E2140" stroke-width="0.8" vector-effect="non-scaling-stroke"/><rect x="1" y="1" width="20" height="93" rx="8" fill="#4E2140" stroke="#3B3350" stroke-width="1.2" vector-effect="non-scaling-stroke"/><rect x="259" y="1" width="20" height="178" rx="8" fill="#4E2140" stroke="#3B3350" stroke-width="1.2" vector-effect="non-scaling-stroke"/><rect x="22" y="28" width="74" height="63" rx="7" fill="#86456E" stroke="#4E2140" stroke-width="0.8" vector-effect="non-scaling-stroke"/><rect x="100" y="28" width="74" height="63" rx="7" fill="#86456E" stroke="#4E2140" stroke-width="0.8" vector-effect="non-scaling-stroke"/><rect x="179" y="28" width="78" height="148" rx="8" fill="#86456E" stroke="#4E2140" stroke-width="0.8" vector-effect="non-scaling-stroke"/>
+</g>
+</svg>
