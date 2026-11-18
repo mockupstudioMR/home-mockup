@@ -31,6 +31,9 @@ export default defineConfig(({ mode }) => ({
       workbox: {
         navigateFallbackDenylist: [/^\/~oauth/, /^\/auth/],
         cleanupOutdatedCaches: true,
+        // a new version takes over open pages at once (main.tsx reloads them once when it does)
+        skipWaiting: true,
+        clientsClaim: true,
         globPatterns: ["**/*.{js,css,html,svg,ico,woff2}"],
         // Don't make every visitor download export libraries (PDF, screenshot)
         // and staff-only dashboards up front; they load on demand when used.

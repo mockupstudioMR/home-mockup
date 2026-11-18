@@ -46,8 +46,23 @@ if (isPreviewHost || isInIframe) {
     });
   }
 } else if ("serviceWorker" in navigator) {
+  // A new version takes over as soon as it is published: the new service worker activates straight away
+  // (skipWaiting, clientsClaim), and the page reloads once when it takes control, so nobody keeps seeing the
+  // old layout from the cache. The first install doesn't reload (there was no old version to replace).
+  const hadController = !!navigator.serviceWorker.controller;
+  let reloaded = false;
+  navigator.serviceWorker.addEventListener("controllerchange", () => {
+    if (!hadController || reloaded) return;
+    reloaded = true;
+    window.location.reload();
+  });
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register(asset("/sw.js")).catch(() => {
+    navigator.serviceWorker.register(asset("/sw.js")).then((reg) => {
+      // look for a new version whenever the app comes back to the front, and every 30 minutes
+      const check = () => { reg.update().catch(() => undefined); };
+      document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") check(); });
+      window.setInterval(check, 30 * 60 * 1000);
+    }).catch(() => {
       /* silent */
     });
   });
