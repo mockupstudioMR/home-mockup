@@ -72,3 +72,7 @@ A dining table or desk and the chairs within about 8% of the room from it form o
 - **Whole-room picture** (`renderRoomGuide`, scene key `"room"`): seen from the room's corner at eye height on a 16:9 canvas. Every piece is in it, free-standing ones included, and every piece is swappable. It is shown under "Whole room" in the showroom.
 - **Floor in seating views.** A wall with seating or a rug is seen from 16° above (`floorDepthFor`, `wallViewExtent`). That takes in 1.2 m up to 60% of the room's depth of floor, so the rug and the floor show and can be swapped. Only that wall is drawn in this view.
 - Every item now has two alternatives. When there are too few moodboard colours or shapes, light oak and matt black fill in.
+
+## AI providers (direct)
+
+`supabase/functions/_shared/aiModels.ts` sends each AI call straight to Google (`GEMINI_API_KEY`, Google AI Studio) or OpenAI (`OPENAI_API_KEY`) when that key is set as a function secret. If a direct call fails, the call goes through the Lovable gateway (while `LOVABLE_API_KEY` exists), and last of all to the model the function itself names. Seedream (shop posts) has no direct route yet and stays on the gateway.

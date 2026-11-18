@@ -9,6 +9,9 @@ globalThis.fetch = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) =>
   calls.push({ url, body });
   return answer(url, body);
 }) as typeof fetch;
+// the edge runtime's secrets, as the tests set them
+const secrets: Record<string, string> = { LOVABLE_API_KEY: "lov" };
+(globalThis as unknown as { Deno: unknown }).Deno = { env: { get: (k: string) => secrets[k], set: (k: string, v: string) => { secrets[k] = v; } } };
 const { MODELS, useModels } = await import("../../supabase/functions/_shared/aiModels.ts");
 
 const GW = "https://ai.gateway.lovable.dev";
@@ -50,5 +53,22 @@ describe("switching AI models", () => {
     const res = await fetch(`${GW}/v1/chat/completions`, { method: "POST", body: JSON.stringify({ model: "google/gemini-2.5-flash", messages: [] }) });
     expect((await res.json()).choices[0].message.content).toBe("ok");
     expect(calls.map((c) => c.body.model)).toEqual([MODELS.read, "google/gemini-2.5-flash"]);
+  });
+  it("goes straight to OpenAI and Google when their keys are set, and to Lovable only if that fails", async () => {
+    secrets.OPENAI_API_KEY = "sk-test"; secrets.GEMINI_API_KEY = "g-test";
+    calls.length = 0;
+    answer = (url) => (url.startsWith("https://api.openai.com/v1/images/edits") ? new Response(JSON.stringify({ data: [{ b64_json: "RElS" }] })) : new Response("no", { status: 500 }));
+    const res = await chatPicture("google/gemini-3.1-flash-image", { hm: { mask: "data:image/png;base64,TQ==" } });
+    expect((await res.json()).choices[0].message.images[0].image_url.url).toContain("RElS");
+    expect(calls.map((c) => c.url)).toEqual(["https://api.openai.com/v1/images/edits"]);
+    expect(calls[0].body.model).toBe("gpt-image-2.5-flare");
+
+    calls.length = 0;
+    answer = (url) => (url.includes("generativelanguage.googleapis.com") ? new Response("quota", { status: 429 }) : new Response(JSON.stringify({ choices: [{ message: { content: "via lovable" } }] })));
+    const chat = await fetch(`${GW}/v1/chat/completions`, { method: "POST", body: JSON.stringify({ model: "google/gemini-2.5-flash", messages: [{ role: "user", content: "hi" }] }) });
+    expect((await chat.json()).choices[0].message.content).toBe("via lovable");
+    expect(calls[0].url).toBe("https://generativelanguage.googleapis.com/v1beta/openai/chat/completions");
+    expect(calls[0].body.model).toBe("gemini-3.8-flash");
+    delete secrets.OPENAI_API_KEY; delete secrets.GEMINI_API_KEY;
   });
 });
