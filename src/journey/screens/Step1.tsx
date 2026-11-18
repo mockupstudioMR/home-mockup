@@ -337,16 +337,19 @@ const STATE_ICON: Record<string, () => JSX.Element> = {
 export function StateOfPlace() {
   const { s, set } = useJourney();
   const cur = stateInfo(s.houseState);
-  const sc = (k: (typeof ROOM_SCOPE)[number]) => {
+  // what the design changes, as two rows of small chips: no paragraph per item
+  const scope = [...ROOM_SCOPE, ...WALL_SCOPE].map((k) => {
     const line = cur.scope[k];
-    const on = line.on || (s.allowInWalls && WALL_SCOPE.includes(k));
-    const Icon = SCOPE_ICON[k];
+    return { k, label: line.label, on: line.on || (s.allowInWalls && WALL_SCOPE.includes(k)), flagged: !line.on && s.allowInWalls && WALL_SCOPE.includes(k) };
+  });
+  const chip = (c: (typeof scope)[number]) => {
+    const Icon = SCOPE_ICON[c.k];
     return (
-      <div className={`sc${on ? "" : " off"}`} key={k}>
+      <span key={c.k} className={`sp-chip${c.on ? "" : " off"}`} title={c.flagged ? "A trade checks it first" : undefined}>
         <Icon />
-        {line.label}
-        <small>{on && !line.on ? "Flagged for a trade to check" : line.note}</small>
-      </div>
+        {c.label}
+        {c.flagged && <i aria-label="checked by a trade first">*</i>}
+      </span>
     );
   };
   const toggle = (
@@ -390,76 +393,40 @@ export function StateOfPlace() {
         })}
       </div>
       {s.houseState && (
-        <section className="panel lav" style={{ marginTop: "36px" }}>
-          <div className="row between">
-            <div className="stack" style={{ gap: "6px" }}>
-              <span className="lbl">What we'll design with “{cur.lbl}”</span>
-              <h2 className="h3">{cur.headline}</h2>
-            </div>
+        <section className="panel lav sp" style={{ marginTop: "36px" }}>
+          <div className="row between" style={{ alignItems: "center" }}>
+            <h2 className="h3 sp-fun">{cur.fun}</h2>
             <span className="tag">{cur.tag}</span>
           </div>
-          <span className="grp-l">The room</span>
-          <div className="scope">{ROOM_SCOPE.map(sc)}</div>
-          <span className="grp-l">Inside the walls</span>
-          <div className="scope">{WALL_SCOPE.map(sc)}</div>
-          {cur.id === "core-shell" && (
-            <div className="row" style={{ gap: "14px", flexWrap: "nowrap", marginTop: "22px" }}>
-              <I.info />
-              <p className="p" style={{ fontSize: "15px" }}>
-                We propose positions for every point. Your electrician, plumber and AC installer confirm what's possible before anything goes into a wall.
-              </p>
+          <div className="sp-row">
+            <span className="sp-l">✓ We design</span>
+            <div className="sp-chips">{scope.filter((c) => c.on).map(chip)}</div>
+          </div>
+          {scope.some((c) => !c.on) && (
+            <div className="sp-row">
+              <span className="sp-l">Stays as is</span>
+              <div className="sp-chips">{scope.filter((c) => !c.on).map(chip)}</div>
             </div>
           )}
-          {cur.id === "empty" && (
-            <div className="allow">
-              <span className="stack" style={{ gap: "2px", flex: "1 1 auto" }}>
-                <b style={{ fontSize: "16px" }}>Allow small changes inside the walls</b>
-                <span className="small">e.g. one extra socket or an AC point — we'll flag each one for a trade to check.</span>
-              </span>
-              {toggle}
-            </div>
-          )}
-          {cur.id === "partial" && (
-            <>
-              <div className="next">
-                <Ic style={{ color: "#7A4A1E" }}>
-                  <path d="M9 11l3 3 8-8M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h9" />
-                </Ic>
-                <span style={{ fontSize: "16px", color: "#34203B", flex: "1 1 360px" }}>
-                  Coming up: we'll ask <b>what stays</b>, its size, and whether its spot is fixed.
-                </span>
-              </div>
-              <div className="allow">
-                <span className="stack" style={{ gap: "2px", flex: "1 1 auto" }}>
-                  <b style={{ fontSize: "16px" }}>Allow changes inside the walls</b>
-                  <span className="small">Extra sockets, an AC point or moving a water point — each flagged for a trade to check.</span>
+          <div className="sp-notes">
+            {cur.id === "core-shell" && <p className="sp-note"><I.info /><span>Your trades confirm every point before anything goes into a wall.</span></p>}
+            {cur.id === "partial" && <p className="sp-note"><I.info /><span>Next we'll ask <b>what stays</b>.</span></p>}
+            {cur.id === "redoing" && (
+              <>
+                <p className="sp-note"><I.info /><span>Love something you own? You can still <b>keep it</b>.</span></p>
+                <p className="sp-note warn"><I.info /><span>Moving water or AC can mean bigger work — we flag it for your trades.</span></p>
+              </>
+            )}
+            {(cur.id === "empty" || cur.id === "partial") && (
+              <div className="sp-allow">
+                <span>
+                  <b>Small changes inside the walls?</b>
+                  <small>An extra socket, an AC point…{s.allowInWalls ? " * a trade checks each one." : ""}</small>
                 </span>
                 {toggle}
               </div>
-            </>
-          )}
-          {cur.id === "redoing" && (
-            <>
-              <div className="next">
-                <Ic style={{ color: "#5E4268" }}>
-                  <path d="M5 11V8a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v3" />
-                  <path d="M3 13a2 2 0 0 1 4 0v1h10v-1a2 2 0 0 1 4 0v4a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z" />
-                </Ic>
-                <span style={{ fontSize: "16px", flex: "1 1 360px" }}>
-                  Love something you already own? You can still <b>keep it</b> — we'll ask in a moment.
-                </span>
-              </div>
-              <div className="warn">
-                <Ic style={{ color: "#7A4A1E", marginTop: "2px" }}>
-                  <circle cx="12" cy="12" r="9" />
-                  <path d="M12 8v5M12 16h.01" />
-                </Ic>
-                <p className="p" style={{ fontSize: "15px", color: "#5E3A18" }}>
-                  Moving water, drains or AC can mean bigger work and, in some buildings, approvals. We flag each move — your plumber, electrician and AC installer confirm what's possible.
-                </p>
-              </div>
-            </>
-          )}
+            )}
+          </div>
         </section>
       )}
     </Screen>
