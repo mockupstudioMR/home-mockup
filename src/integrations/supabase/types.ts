@@ -3889,11 +3889,9 @@ export type Database = {
           started_at: string | null
           status: Database["public"]["Enums"]["step_status"]
           step_no: number
-          step_payload: Json
           sub_step: string | null
           summary: Json
           updated_at: string
-          version: number
         }
         Insert: {
           completed_at?: string | null
@@ -3903,11 +3901,9 @@ export type Database = {
           started_at?: string | null
           status?: Database["public"]["Enums"]["step_status"]
           step_no: number
-          step_payload?: Json
           sub_step?: string | null
           summary?: Json
           updated_at?: string
-          version?: number
         }
         Update: {
           completed_at?: string | null
@@ -3917,11 +3913,9 @@ export type Database = {
           started_at?: string | null
           status?: Database["public"]["Enums"]["step_status"]
           step_no?: number
-          step_payload?: Json
           sub_step?: string | null
           summary?: Json
           updated_at?: string
-          version?: number
         }
         Relationships: [
           {
