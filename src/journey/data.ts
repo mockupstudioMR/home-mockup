@@ -49,11 +49,13 @@ const TAG_ORDER: ScopeKey[] = ["furniture", "walls", "floors", "lighting", "elec
 type ScopeLine = { label: string; note: string; on: boolean };
 export const STATES: {
   id: HouseState; title: [string, string]; board: string; tint: "a" | "b" | "c" | "d"; lbl: string; headline: string; tag: string;
+  /** One short, friendly line for the state screen. */
+  fun: string;
   scope: Record<ScopeKey, ScopeLine>;
 }[] = [
   {
     id: "core-shell", title: ["Core &", "shell"], board: "S1-State", tint: "c", lbl: "Core & shell",
-    headline: "Everything from the walls in — including what runs inside them.", tag: "Full scope",
+    fun: "A blank canvas — we plan it all, wires and pipes included.", headline: "Everything from the walls in — including what runs inside them.", tag: "Full scope",
     scope: {
       furniture: { label: "Furniture", note: "All pieces, new", on: true },
       walls: { label: "Walls & finishes", note: "Plaster, paint, panels, arches", on: true },
@@ -69,7 +71,7 @@ export const STATES: {
   },
   {
     id: "empty", title: ["Empty", ""], board: "S1-State-Empty", tint: "d", lbl: "Empty",
-    headline: "We furnish and finish the surfaces — the room itself stays as built.", tag: "Light touch",
+    fun: "Bare room, fresh look: we style it, the build stays.", headline: "We furnish and finish the surfaces — the room itself stays as built.", tag: "Light touch",
     scope: {
       furniture: { label: "Furniture", note: "All pieces, new", on: true },
       walls: { label: "Wall surfaces", note: "Paint, wallpaper, panels", on: true },
@@ -85,7 +87,7 @@ export const STATES: {
   },
   {
     id: "partial", title: ["Partially", "furnished"], board: "S1-State-Partial", tint: "a", lbl: "Partially furnished",
-    headline: "We design around the pieces you keep, and refresh the rest.", tag: "Work around what stays",
+    fun: "Your favourites stay — we design around them.", headline: "We design around the pieces you keep, and refresh the rest.", tag: "Work around what stays",
     scope: {
       furniture: { label: "Furniture", note: "New pieces around what stays", on: true },
       walls: { label: "Wall surfaces", note: "Paint, wallpaper, panels", on: true },
@@ -101,7 +103,7 @@ export const STATES: {
   },
   {
     id: "redoing", title: ["Redoing", "it all"], board: "S1-State-Redo", tint: "b", lbl: "Redoing it all",
-    headline: "Start over — furniture, finishes and what's inside the walls.", tag: "Full scope",
+    fun: "Out with the old: everything's up for a rethink.", headline: "Start over — furniture, finishes and what's inside the walls.", tag: "Full scope",
     scope: {
       furniture: { label: "Furniture", note: "Existing pieces open to change", on: true },
       walls: { label: "Walls & finishes", note: "Strip back and refinish", on: true },

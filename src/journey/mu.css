@@ -420,3 +420,23 @@ body:has(.mu.fit) [data-floating]{bottom:calc(76px + env(safe-area-inset-bottom)
 /* the newer screens (moodboard, layouts, keeping, summaries) follow the same type */
 .mu .dr-h1,.mu .ly-h1,.mu .ex-h1,.mu .sm-h1,.mu .ly-h2,.mu .sm-h2{font-family:var(--head);font-weight:600}
 .mu .dr-ghost,.mu .dr-tabs button,.mu .ly-more,.mu .ex-chip,.mu .ex-snap,.mu .ex-seg button,.mu .ex-meta,.mu .ly-opt{font-family:var(--body)}
+/* State of the place: a short line, two rows of chips, one-line notes */
+.mu .sp .sp-fun{margin:0;font-size:clamp(18px,2.4vh,24px);line-height:1.25}
+.mu .sp .sp-row{display:flex;align-items:flex-start;gap:14px;margin-top:16px}
+.mu .sp .sp-l{flex:0 0 110px;padding-top:7px;font-size:13px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#665A80}
+.mu .sp .sp-chips{display:flex;flex-wrap:wrap;gap:8px}
+.mu .sp .sp-chip{display:inline-flex;align-items:center;gap:6px;min-height:34px;padding:0 12px;border-radius:999px;background:#fff;border:1px solid #E2D8DC;font-size:14px;font-weight:600;color:#34203B}
+.mu .sp .sp-chip .ic{width:16px;height:16px;color:#5E4268}
+.mu .sp .sp-chip i{font-style:normal;color:#B4572E;font-weight:700}
+.mu .sp .sp-chip.off{background:transparent;border-style:dashed;color:#8A7F98;font-weight:500}
+.mu .sp .sp-chip.off .ic{color:#B3A8C2}
+.mu .sp .sp-notes{display:flex;flex-direction:column;gap:8px;margin-top:16px}
+.mu .sp .sp-note{display:flex;align-items:center;gap:10px;margin:0;font-size:15px;color:#4E4566}
+.mu .sp .sp-note .ic{flex:0 0 auto;width:18px;height:18px;color:#5E4268}
+.mu .sp .sp-note.warn{color:#7A4A1E}
+.mu .sp .sp-note.warn .ic{color:#B4572E}
+.mu .sp .sp-allow{display:flex;align-items:center;gap:14px;padding:12px 16px;border-radius:14px;background:#fff;border:1px solid #E2D8DC}
+.mu .sp .sp-allow span{flex:1 1 auto;display:flex;flex-direction:column;gap:2px}
+.mu .sp .sp-allow b{font-size:15px}
+.mu .sp .sp-allow small{font-size:13px;color:#7C7090}
+@media (max-width:640px){.mu .sp .sp-row{flex-direction:column;gap:6px}.mu .sp .sp-l{flex:none;padding:0}}
