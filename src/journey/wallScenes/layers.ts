@@ -277,11 +277,11 @@ export function alphaBox(alpha: Float32Array, width: number, height: number, fal
 }
 
 /**
- * Cuts one alternative like `cutLayer`, but keeps the original photo's own wall and floor around the piece.
+ * Cuts one alternative like `cutLayer`, but leaves the wall and floor around the piece to the layers beneath.
  * The image AI redraws the wall just around a new piece a little softer and darker; copied as it is, that
  * shows as a smeared band (above a sofa's back, say). Outside the piece's own area, wherever the change is
- * only light (every colour channel scaled alike: a shadow), the original's sharp texture is kept and only
- * the alternative's smoothed shading is laid on it. Inside the piece's area the alternative is used as it is.
+ * only light (every colour channel scaled alike: a shadow), the layer becomes see-through, keeping only
+ * the alternative's smoothed shading is laid on as a see-through shadow. Inside the piece's area the alternative is used as it is.
  */
 export function cutAlt(base: Rgba, alt: Rgba, alpha: Float32Array, piece: PxBox, blend = 8): Rgba {
   const { width: w, height: h } = base;
@@ -318,9 +318,63 @@ export function cutAlt(base: Rgba, alt: Rgba, alpha: Float32Array, piece: PxBox,
       const shadowLike = km > 0.5 && km < 1.15 && spread < 0.1;
       wShade = shadowLike ? out01 : 0;
     }
-    const ks = Math.max(0.5, Math.min(1.15, k[p]));
-    for (let c = 0; c < 3; c++) out[i + c] = alt.data[i + c] * (1 - wShade) + base.data[i + c] * ks * wShade;
-    out[i + 3] = Math.round(Math.min(1, a) * 255);
+    // the shading is laid on as a see-through darkening, so it falls on whatever wall is chosen beneath it
+    // (the original's colour would otherwise show through a new wall colour)
+    const ks = Math.max(0.5, Math.min(1, k[p]));
+    const A = 1 - wShade * ks; // how much of what lies beneath is covered
+    for (let c = 0; c < 3; c++) out[i + c] = A > 0.001 ? (alt.data[i + c] * (1 - wShade)) / A : 0;
+    out[i + 3] = Math.round(Math.min(1, a) * A * 255);
   }
   return { data: out, width: w, height: h };
+}
+
+/* ---------- keeping a layer off the other pieces ---------- */
+
+/** Erode a binary mask inside `area` by r pixels (a pixel stays only if its whole (2r+1)² window is set), in O(n). */
+function erodeBin(m: Uint8Array, w: number, area: PxBox, r: number): Uint8Array {
+  const tmp = new Uint8Array(m.length), out = new Uint8Array(m.length);
+  for (let y = area.y0; y < area.y1; y++) {
+    let run = 0;
+    const row = new Int32Array(area.x1 - area.x0 + 1);
+    for (let x = area.x0; x < area.x1; x++) { run += m[y * w + x]; row[x - area.x0 + 1] = run; }
+    for (let x = area.x0; x < area.x1; x++) {
+      const a = Math.max(area.x0, x - r), b = Math.min(area.x1 - 1, x + r);
+      tmp[y * w + x] = row[b - area.x0 + 1] - row[a - area.x0] === b - a + 1 ? 1 : 0;
+    }
+  }
+  for (let x = area.x0; x < area.x1; x++) {
+    let run = 0;
+    const col = new Int32Array(area.y1 - area.y0 + 1);
+    for (let y = area.y0; y < area.y1; y++) { run += tmp[y * w + x]; col[y - area.y0 + 1] = run; }
+    for (let y = area.y0; y < area.y1; y++) {
+      const a = Math.max(area.y0, y - r), b = Math.min(area.y1 - 1, y + r);
+      out[y * w + x] = col[b - area.y0 + 1] - col[a - area.y0] === b - a + 1 ? 1 : 0;
+    }
+  }
+  return out;
+}
+
+/**
+ * Where a layer may paint: everywhere except pixels that clearly belong to another piece (its pixels in the
+ * wall's item map, shrunk by `shrink` so small misalignments between the drawing and the photo don't matter).
+ * So a new coffee table never repaints the sofa behind it, and a new wall colour never repaints the furniture.
+ * `others` are the item-map numbers to keep off. Returns 0–1 per pixel inside `area`, 1 outside it.
+ */
+export function keepOff(ids: Uint16Array, width: number, height: number, others: Set<number>, area: PxBox, shrink: number): Float32Array {
+  const m = new Uint8Array(width * height);
+  for (let y = area.y0; y < area.y1; y++) for (let x = area.x0; x < area.x1; x++) if (others.has(ids[y * width + x])) m[y * width + x] = 1;
+  const sure = erodeBin(m, width, area, shrink);
+  const f = new Float32Array(width * height);
+  for (let y = area.y0; y < area.y1; y++) for (let x = area.x0; x < area.x1; x++) f[y * width + x] = sure[y * width + x];
+  const soft = feather(f, width, area, 2);
+  const out = new Float32Array(width * height).fill(1);
+  for (let y = area.y0; y < area.y1; y++) for (let x = area.x0; x < area.x1; x++) out[y * width + x] = 1 - soft[y * width + x];
+  return out;
+}
+
+/** A cut-out limited to where it may paint. */
+export function limitAlpha(alpha: Float32Array, allow: Float32Array): Float32Array {
+  const out = new Float32Array(alpha.length);
+  for (let i = 0; i < alpha.length; i++) out[i] = alpha[i] * allow[i];
+  return out;
 }

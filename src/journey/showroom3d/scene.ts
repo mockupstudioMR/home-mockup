@@ -577,6 +577,7 @@ function buildShell(scene: THREE.Scene, m: ShowroomModel, eve: boolean) {
       if (o.kind === "window") {
         const hgt = o.head - o.sill, ring = rectShape(-o.width / 2, 0, o.width, hgt), hole = new THREE.Path();
         hole.moveTo(-o.width / 2 + 0.055, 0.055); hole.lineTo(o.width / 2 - 0.055, 0.055); hole.lineTo(o.width / 2 - 0.055, hgt - 0.055); hole.lineTo(-o.width / 2 + 0.055, hgt - 0.055); hole.closePath(); ring.holes.push(hole);
+        og.userData.pick = `window-${o.id}`; // its frame, glass and view all count as the window
         add(og, new THREE.ExtrudeGeometry(ring, { depth: 0.22, bevelEnabled: false }), white, 0, o.sill, -0.22).userData.id = `window-${o.id}`;
         add(og, box(0.05, hgt - 0.1, 0.05), white, 0, o.sill + hgt / 2, -0.12);
         add(og, new THREE.PlaneGeometry(o.width - 0.1, hgt - 0.1), glass("#DCEBF2", 0.12), 0, o.sill + hgt / 2, -0.13, true);
@@ -831,6 +832,8 @@ export type Guide = {
   width: number; height: number;
   /** Where each item is in the picture, in percent: [x, y, w, h], clipped to the frame. Keyed by item id. */
   boxes: Record<string, [number, number, number, number]>;
+  /** Which item each pixel shows (front-most): 0 is nothing, n is keys[n - 1]. Same size as the image. */
+  ids?: { data: Uint16Array; keys: string[] };
 };
 
 /** A camera looking straight at a wall from inside the room, framing exactly the wall: its length and its height. */
@@ -867,6 +870,55 @@ export function screenBox(obj: THREE.Object3D, camera: THREE.Camera): [number, n
   const py = (n: number) => Math.max(0, Math.min(100, ((1 - n) / 2) * 100));
   const L = px(x0), R = px(x1), T = py(y1), B = py(y0);
   return R - L > 0.5 && B - T > 0.5 ? [L, T, R - L, B - T] : null;
+}
+
+/**
+ * Renders which item every pixel belongs to (its id as a flat colour, no light), so each layer of a wall
+ * picture can be kept off the pixels of the other pieces. Windows count with their glass.
+ */
+function idPass(renderer: THREE.WebGLRenderer, scene: THREE.Scene, camera: THREE.Camera, width: number, height: number) {
+  try {
+    const keys: string[] = [], index = new Map<string, number>(), mats = new Map<number, THREE.MeshBasicMaterial>();
+    const idOf = (o: THREE.Object3D) => {
+      for (let p: THREE.Object3D | null = o; p; p = p.parent) {
+        const k = (p.userData.pick as string | undefined) ?? (p.userData.id !== "sky" ? (p.userData.id as string | undefined) : undefined);
+        if (k) return k;
+      }
+      return undefined;
+    };
+    scene.traverse((o) => {
+      const mesh = o as THREE.Mesh;
+      if (!mesh.isMesh) return;
+      const k = idOf(mesh);
+      let i = 0;
+      if (k) { i = index.get(k) ?? 0; if (!i) { keys.push(k); i = keys.length; index.set(k, i); } }
+      let mt = mats.get(i);
+      if (!mt) { mt = new THREE.MeshBasicMaterial({ side: THREE.DoubleSide }); mt.color.setRGB((i & 255) / 255, ((i >> 8) & 255) / 255, 0, THREE.LinearSRGBColorSpace); mats.set(i, mt); }
+      mesh.userData.orig = mesh.material;
+      mesh.material = mt;
+    });
+    const bg = scene.background, env = scene.environment;
+    scene.background = null; scene.environment = null;
+    const rt = new THREE.WebGLRenderTarget(width, height);
+    renderer.toneMapping = THREE.NoToneMapping;
+    renderer.setClearColor(0x000000, 1);
+    renderer.setRenderTarget(rt);
+    renderer.render(scene, camera);
+    const buf = new Uint8Array(width * height * 4);
+    renderer.readRenderTargetPixels(rt, 0, 0, width, height, buf);
+    renderer.setRenderTarget(null);
+    rt.dispose();
+    scene.background = bg; scene.environment = env;
+    const data = new Uint16Array(width * height);
+    for (let y = 0; y < height; y++) for (let x = 0; x < width; x++) {
+      const i = ((height - 1 - y) * width + x) * 4; // the target's rows run bottom-up
+      const n = buf[i] + (buf[i + 1] << 8);
+      data[y * width + x] = n <= keys.length ? n : 0;
+    }
+    return { data, keys };
+  } catch {
+    return undefined;
+  }
 }
 
 /**
@@ -965,13 +1017,14 @@ export function renderGuide(m: ShowroomModel, wall: Wall, width = 1536, canvasHe
       }
     }
     pm.dispose();
+    const ids = idPass(renderer, built.scene, camera, width, height);
     built.scene.traverse((o) => {
       const mesh = o as THREE.Mesh;
       mesh.geometry?.dispose?.();
-      const mt = mesh.material as Mat | Mat[] | undefined;
-      (Array.isArray(mt) ? mt : mt ? [mt] : []).forEach((x) => x.dispose());
+      const mt = [mesh.material, mesh.userData.orig] as (Mat | Mat[] | undefined)[];
+      mt.flatMap((x) => (Array.isArray(x) ? x : x ? [x] : [])).forEach((x) => x.dispose());
     });
-    return { image, width, height, boxes };
+    return { image, width, height, boxes, ids };
   } finally {
     renderer.dispose();
     renderer.forceContextLoss?.();
