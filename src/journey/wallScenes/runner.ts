@@ -12,7 +12,7 @@ import { invokeAi } from "@/lib/invokeAi";
 import { getAiErrorMessage } from "@/lib/aiErrorMessage";
 import { storeDesignImage } from "../services";
 import type { JourneyState, Wall } from "../state";
-import { buildModel, type ShowroomModel } from "../showroom3d/model";
+import { buildModel, seenOn, type ShowroomModel } from "../showroom3d/model";
 import { alphaBox, altMask, centreOf, composite, cutAlt, cutLayer, driftOutside, matchTone, pxBox, unionAlpha, type AltCut, type PctBox, type Rgba } from "./layers";
 import { wallItems, type WallItem } from "./items";
 import { canvasFor, composeWall, loadRules, saveComposition, wallLength, type ItemAssets } from "./composition";
@@ -38,13 +38,13 @@ export const WALLS: Wall[] = ["A", "B", "C", "D"];
 const ALIGN_LIMIT = 14; // mean change outside the item (0–255), after matching tones, above which an alternative moved the photo
 const PARALLEL = 4;
 /** Raised when the way pictures are made changes, so walls made the old way are made again. */
-const PICTURE_VERSION = 4;
+const PICTURE_VERSION = 5;
 
 const previewImage = (s: JourneyState) => s.preview?.versions[s.preview.current]?.image;
 
 /** A short fingerprint of everything a wall's picture is made from. */
 export function wallKey(s: JourneyState, m: ShowroomModel, wall: Wall) {
-  const pieces = m.pieces.filter((p) => p.wall === wall).map((p) => [p.id, p.shape, p.color, Math.round(p.fromCm), Math.round(p.toCm)]);
+  const pieces = m.pieces.filter((p) => seenOn(p, wall)).map((p) => [p.id, p.shape, p.color, Math.round(p.fromCm), Math.round(p.toCm)]);
   const raw = JSON.stringify([PICTURE_VERSION, wall, previewImage(s) ?? "", m.palette.map((p) => p.hex), m.room, m.openings.filter((o) => o.wall === wall), pieces, m.extras.filter((e) => e.wall === wall).map((e) => [e.id, e.color]), m.surfaces]);
   let h = 2166136261;
   for (let i = 0; i < raw.length; i++) h = Math.imul(h ^ raw.charCodeAt(i), 16777619);
@@ -121,7 +121,7 @@ const STOP = /credits|blocked|sign in/i;
 const pct = (b: PctBox) => `${Math.round(b[0])}% from the left, ${Math.round(b[1])}% from the top, ${Math.round(b[2])}% wide, ${Math.round(b[3])}% high`;
 
 /** What makes the pictures read as photographs, not renders: shared by both functions' prompts. */
-const REAL = "It must look like a real photograph taken by an interior photographer with a full-frame camera: soft daylight from one consistent direction, gentle falloff across the wall, real fabric weave, wood grain and plaster texture, slight natural imperfections. Shadows only where light really makes them: soft contact shadows under and behind each piece, no dark halos, no floating shadows, no shadow rectangles or patches. Every piece complete and whole, never cut off by the frame or by another piece; nothing partly entering at the edges. No CGI look, no plastic surfaces, no text, no watermark.";
+const REAL = "It must look like a real photograph taken by an interior photographer with a full-frame camera: soft daylight from one consistent direction, gentle falloff across the wall, real fabric weave, wood grain and plaster texture, slight natural imperfections. Shadows only where light really makes them: soft contact shadows under and behind each piece, no dark halos, no floating shadows, no shadow rectangles or patches. Every piece complete and whole, never cut off by the frame or by another piece; nothing partly entering at the edges. A table with its chairs is one composed set: the whole table top and legs visible, each chair complete and turned to the table, evenly spaced, styled like a magazine interior shot. No CGI look, no plastic surfaces, no text, no watermark.";
 
 /** The same request through generate-design (the preview's function, always deployed), as a surgical edit. */
 async function viaPreviewFunction(b: AiBody): Promise<string> {
@@ -190,7 +190,7 @@ async function makeWall(s: JourneyState, m: ShowroomModel, wall: Wall, report: (
   const tick = (step: string) => report({ wall, step, done: Math.min(total, ++done), total });
 
   const guideUrl = await storeDesignImage(guide.image);
-  const pieces = m.pieces.filter((p) => guide.boxes[p.id] && p.category !== "rug").map((p) => ({ name: p.kept ? `${p.name} (the client's own, keep as it is)` : p.name, detail: `${p.shapeName}, ${p.fabric ?? ""} ${m.palette.find((x) => x.hex === p.color)?.name ?? p.color}`.replace(/\s+/g, " "), box: guide.boxes[p.id] }));
+  const pieces = m.pieces.filter((p) => guide.boxes[p.id] && p.category !== "rug").map((p) => ({ name: p.kept ? `${p.name} (the client's own, keep as it is)` : p.shownOn ? `${p.name} (part of one dining set with its table and chairs: draw the whole table and every chair complete, chairs tucked in at the table)` : p.name, detail: `${p.shapeName}, ${p.fabric ?? ""} ${m.palette.find((x) => x.hex === p.color)?.name ?? p.color}`.replace(/\s+/g, " "), box: guide.boxes[p.id] }));
   report({ wall, step: "Making the photograph of your wall", done, total });
   if (!/^https:/.test(guideUrl)) throw new Error("Your wall's drawing could not be saved. Check that you're signed in and try again.");
   const styleText = (s.preview?.read ?? []).filter((r) => r.key !== "lighting").map((r) => r.text).join(" ").slice(0, 600);

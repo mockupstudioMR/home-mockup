@@ -8,6 +8,8 @@ const PLUM = "#5E4268";
 const OK = "#3E5A33";
 const BLUE = "#6F98B0";
 const ORANGE = "#B4572E";
+const WOOD = "rgba(176,132,92,.22)";
+const SOFT = "rgba(94,66,104,.06)";
 const PAD = { x: 34, top: 26, bottom: 48 };
 
 function PieceShape({ p, selected, image }: { p: OutlinePiece; selected: boolean; image?: string }) {
@@ -16,7 +18,7 @@ function PieceShape({ p, selected, image }: { p: OutlinePiece; selected: boolean
     stroke: col,
     strokeWidth: selected ? 3 : 1.8,
     strokeDasharray: p.kept || selected || image ? undefined : "7 5",
-    fill: selected ? "rgba(94,66,104,.08)" : "none",
+    fill: selected ? "rgba(94,66,104,.1)" : SOFT,
     vectorEffect: "non-scaling-stroke" as const,
   };
   const { x, y, w, h } = p;
@@ -33,6 +35,30 @@ function PieceShape({ p, selected, image }: { p: OutlinePiece; selected: boolean
     );
   }
   const t = `${p.kind} ${p.label}`.toLowerCase();
+  const floor = y + h;
+  // a chair of a table set seen from the side: back post on the outside, seat towards the table
+  if (p.view === "side-left" || p.view === "side-right") {
+    const cw = Math.min(w, 55), cx = p.view === "side-left" ? x + w - cw : x, seat = floor - 46;
+    const flip = p.view === "side-right" ? `translate(${2 * cx + cw} 0) scale(-1 1)` : undefined;
+    return (
+      <g transform={flip}>
+        <path d={`M${cx + 4} ${floor} L${cx + 7} ${seat} L${cx + 5} ${y + 8} Q${cx + 6} ${y} ${cx + 14} ${y + 2} L${cx + 15} ${seat - 4}`} {...common} fill="none" />
+        <path d={`M${cx + 3} ${seat} h${cw - 6} q3 0 3 3 v3 h-${cw - 3} z`} {...common} fill={WOOD} />
+        <path d={`M${cx + cw - 7} ${seat + 6} L${cx + cw - 5} ${floor}`} {...common} fill="none" />
+      </g>
+    );
+  }
+  // tables and desks: a solid top, an apron and tapered legs
+  if (/table|desk/.test(t) && !/bench/.test(t)) {
+    const top = Math.min(6, h * 0.12), inset = Math.min(12, w * 0.12), apron = Math.min(10, h * 0.14);
+    return (
+      <g>
+        <rect x={x} y={y} width={w} height={top} rx={2} {...common} fill={selected ? common.fill : WOOD} />
+        {w > 70 && <path d={`M${x + inset} ${y + top} h${w - 2 * inset} v${apron} h-${w - 2 * inset} z`} {...common} />}
+        <path d={`M${x + inset} ${y + top} h7 l-2 ${h - top} h-3 z M${x + w - inset - 7} ${y + top} h7 l-2 ${h - top} h-3 z`} {...common} fill={WOOD} />
+      </g>
+    );
+  }
   if (/sofa|couch/.test(t))
     return (
       <g>
@@ -56,7 +82,7 @@ function PieceShape({ p, selected, image }: { p: OutlinePiece; selected: boolean
         {[1, 2, 3, 4].map((k) => <path key={k} d={`M${x} ${y + (k * h) / 5} h${w}`} {...common} fill="none" />)}
       </g>
     );
-  if (/table|bench/.test(t)) return <path d={`M${x} ${y} h${w} M${x + 10} ${y} v${h} M${x + w - 10} ${y} v${h}`} {...common} fill="none" />;
+  if (/bench/.test(t)) return <path d={`M${x} ${y} h${w} M${x + 10} ${y} v${h} M${x + w - 10} ${y} v${h}`} {...common} fill="none" />;
   if (/bed/.test(t))
     return (
       <g>

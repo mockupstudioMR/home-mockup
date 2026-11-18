@@ -8,7 +8,7 @@
  */
 import { facingOf } from "../plan/facing";
 import type { JourneyState, Swatch, Wall } from "../state";
-import { alongWall, nearestWall } from "../wallOutline";
+import { alongWall, nearestWall, wallsShowing } from "../wallOutline";
 import { categoryOf, fabricIn, LIBRARY, matchShape, shapeById, wordsNear, type Category, type Fabric } from "./library";
 
 export type Edit = { color?: string; shape?: string };
@@ -27,6 +27,8 @@ export type PieceModel = {
   rot: number;
   /** The nearest wall, and whether the piece actually stands against it (within 40 cm). */
   wall: Wall; onWall: boolean;
+  /** Every wall picture it appears in: its own wall, and for a table and its chairs every wall the set faces. */
+  shownOn?: Wall[];
   /** Where it sits along that wall as seen from inside the room, centimetres. */
   fromCm: number; toCm: number;
   color: string;
@@ -39,6 +41,8 @@ export type PieceModel = {
   matched: boolean;
   edited: boolean;
 };
+/** Whether a piece appears in a wall's picture (a table set shows whole on every wall it faces). */
+export const seenOn = (p: Pick<PieceModel, "wall" | "shownOn">, wall: Wall) => p.wall === wall || !!p.shownOn?.includes(wall);
 export type Extra = { id: string; kind: "curtains" | "art" | "mirror" | "pendant"; name: string; wall: Wall; at: number; y: number; color: string; colorFrom: string; edited: boolean };
 export type PaletteEntry = { name: string; hex: string; use: string; role: string };
 export type Surface = { id: "walls" | "floor" | "doors"; name: string; color: string; colorFrom: string; edited: boolean };
@@ -206,10 +210,12 @@ export function buildModel(s: JourneyState, edits: Edits = {}): ShowroomModel {
       shape: shape.id, shapeName: shape.name, described, matched: m.matched,
     });
   };
+  const showing = wallsShowing(lay?.items ?? []);
   for (const [i, it] of (lay?.items ?? []).entries()) {
     const kept = it.kind === "keep";
     if (kept) keptInLayout.add(it.label.toLowerCase());
     addPiece(`lay-${i}`, it.label || it.kind, it.kind, it, facingOf(it, W, L), kept);
+    if (showing[i].length > 1) pieces[pieces.length - 1].shownOn = showing[i];
   }
   for (const k of s.keeping) {
     if (k.status === "buy" || keptInLayout.has(k.name.toLowerCase()) || [...keptInLayout].some((n) => n.includes(k.name.toLowerCase()) || k.name.toLowerCase().includes(n))) continue;

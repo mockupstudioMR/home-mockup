@@ -9,7 +9,13 @@
 import type { JourneyState, LayoutItem, Wall, WallItem, WallPlan } from "./state";
 
 export type Box = { x: number; y: number; w: number; h: number };
-export type OutlinePiece = Box & { ref: string; label: string; kind: string; kept: boolean };
+export type OutlinePiece = Box & {
+  ref: string; label: string; kind: string; kept: boolean;
+  /** How a seat of a set is seen: from the side with its back to the left or right, or from the front. */
+  view?: "side-left" | "side-right" | "front";
+  /** The table (or desk) a seat belongs to, when they form a set. */
+  set?: string;
+};
 export type OutlineOpening = Box & { kind: "window" | "door" };
 export type OutlineFixed = Box & { kind: "radiator" | "column" | "builtin" | "panel" | "stack"; label: string };
 export type OutlinePoint = { x: number; y: number; kind: "socket"; placed: boolean };
@@ -52,6 +58,42 @@ const facing = (w: Wall, pos: number) => (w === "C" || w === "D" ? 100 - pos : p
 export function nearestWall(i: { x: number; y: number; w: number; h: number }): Wall {
   const d = { A: i.y, C: 100 - (i.y + i.h), D: i.x, B: 100 - (i.x + i.w) };
   return (Object.entries(d) as [Wall, number][]).sort((a, b) => a[1] - b[1])[0][0];
+}
+
+/* ---------- sets: a table and the chairs around it ---------- */
+
+const SEAT = /chair|stool|bench/;
+const HUB = /dining|table|desk/;
+const NOT_HUB = /coffee|side|bedside|night|console|tv|media/;
+const words = (it: { kind: string; label?: string }) => `${it.kind} ${it.label ?? ""}`.toLowerCase();
+export const isSeat = (it: { kind: string; label?: string }) => SEAT.test(words(it)) && !/sofa|bench seat/.test(words(it));
+export const isHub = (it: { kind: string; label?: string }) => HUB.test(words(it)) && !NOT_HUB.test(words(it)) && !SEAT.test(words(it));
+const gap = (a: Box, b: Box) => Math.max(0, a.x - (b.x + b.w), b.x - (a.x + a.w), a.y - (b.y + b.h), b.y - (a.y + a.h));
+
+/**
+ * Tables (and desks) with the chairs standing at them, as sets: each item's index → the indices of its set
+ * (hub first), for items that belong to one. A chair belongs to the nearest table within about 8% of the room.
+ */
+export function seatSets(items: (Box & { kind: string; label?: string })[]): Map<number, number[]> {
+  const hubs = items.map((it, i) => (isHub(it) ? i : -1)).filter((i) => i >= 0);
+  const members = new Map<number, number[]>();
+  items.forEach((it, i) => {
+    if (!isSeat(it) || !hubs.length) return;
+    const best = hubs.map((h) => ({ h, g: gap(it, items[h]) })).sort((a, b) => a.g - b.g)[0];
+    if (best.g <= 8) members.set(best.h, [...(members.get(best.h) ?? []), i]);
+  });
+  const out = new Map<number, number[]>();
+  for (const [h, ms] of members) { const all = [h, ...ms]; for (const i of all) out.set(i, all); }
+  return out;
+}
+
+/**
+ * The walls an item is seen on: the wall it is nearest to, and for a table and its chairs, every wall any of
+ * them is nearest to, so a set always shows whole (never two chairs without their table).
+ */
+export function wallsShowing(items: (Box & { kind: string; label?: string })[]): Wall[][] {
+  const sets = seatSets(items);
+  return items.map((it, i) => [...new Set((sets.get(i) ?? [i]).map((j) => nearestWall(items[j])))]);
 }
 
 /** Typical height of a piece, in cm, from its kind and name. */
@@ -99,13 +141,30 @@ export function outlineFor(s: JourneyState, w: Wall, wp: WallPlan): Outline {
   // Pieces from the layout that stand against this wall, and pieces being kept.
   const lay = s.layouts[s.chosenLayout ?? 0];
   const pieces: OutlinePiece[] = [];
-  for (const [li, it] of (lay?.items ?? []).entries()) {
-    if (it.kind === "rug" || nearestWall(it) !== w) continue;
+  const items = lay?.items ?? [];
+  const showing = wallsShowing(items), sets = seatSets(items);
+  const setPieces: OutlinePiece[] = [];
+  for (const [li, it] of items.entries()) {
+    if (it.kind === "rug" || !showing[li].includes(w)) continue;
     const [a, b] = alongWall(w, it);
     const width = Math.max(30, cm(b - a));
     const h = pieceHeight(it.kind, it.label);
-    pieces.push({ ref: `lay-${li}`, label: it.label || it.kind, kind: it.kind, kept: it.kind === "keep", x: clamp(cm(a), 0, length - width), w: width, h, y: H - h });
+    const piece: OutlinePiece = { ref: `lay-${li}`, label: it.label || it.kind, kind: it.kind, kept: it.kind === "keep", x: clamp(cm(a), 0, length - width), w: width, h, y: H - h };
+    const set = sets.get(li);
+    if (set && set[0] !== li) {
+      // a chair at a table: seen from the side when it stands beyond the table's end, else from the front
+      const [ha, hb] = alongWall(w, items[set[0]]).map(cm);
+      const c = piece.x + piece.w / 2, edge = (hb - ha) * 0.15;
+      piece.view = c < ha + edge ? "side-left" : c > hb - edge ? "side-right" : "front";
+      piece.set = `lay-${set[0]}`;
+      // two chairs one behind the other on the same side are seen as one
+      if (setPieces.some((q) => q.set === piece.set && q.view === piece.view && Math.min(q.x + q.w, piece.x + piece.w) - Math.max(q.x, piece.x) > 0.6 * Math.min(q.w, piece.w))) continue;
+      setPieces.push(piece);
+    }
+    pieces.push(piece);
   }
+  // each table before its chairs, so the chairs are drawn tucked in front of it
+  pieces.sort((a, b) => (a.set ? 1 : 0) - (b.set ? 1 : 0));
   for (const k of s.keeping.filter((k) => (k.wall ?? "B") === w)) {
     // A kept piece already drawn by the layout (its "keep" item) isn't drawn twice.
     const inLayout = (lay?.items ?? []).some((it: LayoutItem) => it.kind === "keep" && nearestWall(it) === w);
