@@ -1,6 +1,10 @@
 import "../_shared/language.ts";
 import { requireUser } from "../_shared/auth.ts";
 import { fetchWithTimeout } from "../_shared/http.ts";
+import { MODELS, useModels } from "../_shared/aiModels.ts";
+
+// which model does this function's work (see _shared/aiModels.ts)
+useModels({ "google/gemini-2.5-flash": MODELS.text });
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":

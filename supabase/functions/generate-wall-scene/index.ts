@@ -9,6 +9,10 @@ import "../_shared/language.ts";
 import { requireUser } from "../_shared/auth.ts";
 import { buildMoodboardDirective } from "../_shared/moodboardContext.ts";
 import { fetchWithTimeout, UpstreamTimeoutError } from "../_shared/http.ts";
+import { MODELS, useModels } from "../_shared/aiModels.ts";
+
+// which model does this function's work (see _shared/aiModels.ts)
+useModels({ "google/gemini-3-pro-image": MODELS.photo, "google/gemini-3.1-flash-image": MODELS.edit });
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -36,6 +40,10 @@ type Body = {
   item?: { name: string; current: string; target: string; box: [number, number, number, number] };
   /** variation: a real product photo to copy into the room. */
   productImageUrl?: string;
+  /** the picture's size, e.g. "1792x1008" (GPT Image draws at it when it can) */
+  size?: string;
+  /** variation: a PNG the size of the picture, see-through only where the item may change */
+  maskUrl?: string;
   /** base: the moodboard's own description, for the shared moodboard brief. */
   moodboardDescription?: string;
 };
@@ -95,7 +103,11 @@ Deno.serve(async (req) => {
       const res = await fetchWithTimeout("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
         headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ model: b.mode === "base" ? "google/gemini-3-pro-image" : "google/gemini-3.1-flash-image", messages: [{ role: "user", content }], modalities: ["image", "text"] }),
+        body: JSON.stringify({
+          model: b.mode === "base" ? "google/gemini-3-pro-image" : "google/gemini-3.1-flash-image", messages: [{ role: "user", content }], modalities: ["image", "text"],
+          // for GPT Image (see _shared/aiModels.ts): the picture's size, and for a swap a mask so only the item's area changes
+          hm: { size: /^\d{3,4}x\d{3,4}$/.test(b.size ?? "") ? b.size : undefined, mask: b.mode === "variation" && b.maskUrl?.startsWith("data:image/png") ? b.maskUrl : undefined, quality: "medium" },
+        }),
       }, Math.max(20_000, 135_000 - (Date.now() - started)));
       lastStatus = res.status;
       if (res.status === 429) return json({ error: "Rate limits exceeded, please try again later.", retryable: true }, 429);

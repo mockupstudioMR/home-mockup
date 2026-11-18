@@ -3,6 +3,10 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { buildMoodboardDirective, collectMoodboardReferences } from "../_shared/moodboardContext.ts";
 import { requireUser } from "../_shared/auth.ts";
 import { fetchWithTimeout, UpstreamTimeoutError } from "../_shared/http.ts";
+import { MODELS, useModels } from "../_shared/aiModels.ts";
+
+// which model does this function's work (see _shared/aiModels.ts)
+useModels({ "google/gemini-3-pro-image": MODELS.photo, "google/gemini-3.1-flash-image": MODELS.edit });
 
 const VERSION = "v2.3.0";
 const DEPLOYED_AT = "2026-02-06T12:30:00Z";
