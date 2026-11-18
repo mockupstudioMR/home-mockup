@@ -13,6 +13,12 @@
  * A function can add `hm: { mask, size, background, quality }` to its request body for GPT Image: the mask
  * limits an edit to one area. The field is removed before anything is sent.
  *
+ * Direct to the providers: with GEMINI_API_KEY (Google AI Studio) and/or OPENAI_API_KEY set as function secrets,
+ * calls for Google and OpenAI models go straight to Google and OpenAI, billed there, not through Lovable. Without
+ * them, or when a direct call fails, the Lovable gateway is used as before (while LOVABLE_API_KEY exists).
+ * Order for each call: the new model directly, the new model through Lovable, the old model directly, the old
+ * model through Lovable.
+ *
  * Imported by `language.ts`, so every function that imports that first gets it.
  */
 
@@ -38,8 +44,6 @@ export const MODELS = {
 } as const;
 
 const GATEWAY = "https://ai.gateway.lovable.dev";
-/** Answers that mean "this model or field isn't taken here": try the old model instead. */
-const NOT_TAKEN = new Set([400, 404, 405, 415, 422]);
 
 type Hm = { mask?: string; size?: string; background?: "transparent" | "opaque" | "auto"; quality?: "low" | "medium" | "high" | "auto" };
 type Part = { type: string; text?: string; image_url?: { url?: string } };
@@ -89,6 +93,118 @@ async function fromImagesAnswer(res: Response, background?: string): Promise<Res
   }
 }
 
+// the edge runtime's Deno, read through globalThis so this file also loads in the app's tests
+const denoEnv = () => (globalThis as unknown as { Deno?: { env: { get(k: string): string | undefined; set(k: string, v: string): void } } }).Deno?.env;
+const env = (k: string) => { try { return denoEnv()?.get(k) ?? ""; } catch { return ""; } };
+const keys = () => ({ google: env("GEMINI_API_KEY"), openai: env("OPENAI_API_KEY"), lovable: env("LOVABLE_API_KEY") });
+// Functions check LOVABLE_API_KEY before calling the AI. Off Lovable, with only direct keys, let them through.
+if (!env("LOVABLE_API_KEY") && (env("GEMINI_API_KEY") || env("OPENAI_API_KEY"))) {
+  try { denoEnv()?.set("LOVABLE_API_KEY", "direct"); } catch { /* set LOVABLE_API_KEY to any value as a secret instead */ }
+}
+
+const GOOGLE = "https://generativelanguage.googleapis.com/v1beta";
+const provider = (model: string) => model.split("/")[0];
+const bare = (model: string) => model.split("/").slice(1).join("/");
+const json = (data: unknown) => new Response(JSON.stringify(data), { status: 200, headers: { "Content-Type": "application/json" } });
+
+/** An image link as base64 for the providers that only take images inline. */
+async function inline(url: string, inner: typeof fetch): Promise<{ mime: string; data: string } | null> {
+  const m = /^data:([^;]+);base64,(.*)$/.exec(url);
+  if (m) return { mime: m[1], data: m[2] };
+  try {
+    const r = await inner(url);
+    if (!r.ok) return null;
+    const buf = new Uint8Array(await r.arrayBuffer());
+    let bin = "";
+    for (let i = 0; i < buf.length; i += 0x8000) bin += String.fromCharCode(...buf.subarray(i, i + 0x8000));
+    return { mime: r.headers.get("content-type")?.split(";")[0] || "image/jpeg", data: btoa(bin) };
+  } catch {
+    return null;
+  }
+}
+
+const partsOf = (body: Record<string, unknown>) => {
+  const parts: Part[] = [];
+  for (const m of (body.messages as { role?: string; content?: unknown }[] | undefined) ?? []) {
+    if (typeof m.content === "string") parts.push({ type: "text", text: m.content });
+    else if (Array.isArray(m.content)) parts.push(...(m.content as Part[]));
+  }
+  return parts;
+};
+
+/** A Google picture call (Gemini image models), straight to Google, answered in the chat shape. */
+async function googleImage(model: string, body: Record<string, unknown>, key: string, inner: typeof fetch, signal?: AbortSignal | null) {
+  const parts: unknown[] = [];
+  for (const p of partsOf(body)) {
+    if (p.type === "text" && p.text) parts.push({ text: p.text });
+    else if (p.type === "image_url" && p.image_url?.url) { const i = await inline(p.image_url.url, inner); if (i) parts.push({ inline_data: { mime_type: i.mime, data: i.data } }); }
+  }
+  const res = await inner(`${GOOGLE}/models/${bare(model)}:generateContent`, {
+    method: "POST", signal: signal ?? undefined,
+    headers: { "Content-Type": "application/json", "x-goog-api-key": key },
+    body: JSON.stringify({ contents: [{ role: "user", parts }], generationConfig: { responseModalities: ["IMAGE", "TEXT"] } }),
+  });
+  if (!res.ok) return res;
+  const data = await res.json();
+  const out = data?.candidates?.[0]?.content?.parts ?? [];
+  const img = out.find((p: { inlineData?: { data?: string } }) => p.inlineData?.data);
+  if (!img) return new Response("no image", { status: 422 });
+  const url = `data:${img.inlineData.mimeType || "image/png"};base64,${img.inlineData.data}`;
+  return json({ choices: [{ message: { role: "assistant", content: out.filter((p: { text?: string }) => p.text).map((p: { text: string }) => p.text).join(""), images: [{ type: "image_url", image_url: { url } }] } }], data: [{ b64_json: img.inlineData.data }] });
+}
+
+/** A Google text call, straight to Google's OpenAI-compatible endpoint (images inline). */
+async function googleChat(model: string, body: Record<string, unknown>, key: string, inner: typeof fetch, signal?: AbortSignal | null) {
+  const messages: unknown[] = [];
+  for (const m of (body.messages as { role: string; content: unknown }[] | undefined) ?? []) {
+    if (!Array.isArray(m.content)) { messages.push(m); continue; }
+    const content: unknown[] = [];
+    for (const p of m.content as Part[]) {
+      if (p.type === "image_url" && p.image_url?.url && !p.image_url.url.startsWith("data:")) {
+        const i = await inline(p.image_url.url, inner);
+        content.push(i ? { type: "image_url", image_url: { url: `data:${i.mime};base64,${i.data}` } } : p);
+      } else content.push(p);
+    }
+    messages.push({ ...m, content });
+  }
+  return inner(`${GOOGLE}/openai/chat/completions`, {
+    method: "POST", signal: signal ?? undefined,
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
+    body: JSON.stringify({ ...body, model: bare(model), messages }),
+  });
+}
+
+/** An OpenAI call straight to OpenAI: pictures through the images API, text through chat. */
+async function openaiCall(model: string, body: Record<string, unknown>, hm: Hm, key: string, inner: typeof fetch, signal?: AbortSignal | null) {
+  const wantsImage = Array.isArray(body.modalities) && (body.modalities as string[]).includes("image");
+  if (!wantsImage) {
+    return inner("https://api.openai.com/v1/chat/completions", {
+      method: "POST", signal: signal ?? undefined,
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
+      body: JSON.stringify({ ...body, model: bare(model) }),
+    });
+  }
+  const r = toImagesRequest(body, bare(model), hm);
+  const send = (b: Record<string, unknown>) => inner(`https://api.openai.com${r.path}`, { method: "POST", signal: signal ?? undefined, headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` }, body: JSON.stringify(b) });
+  let res = await send(r.body);
+  if (!res.ok && res.status === 400 && r.body.size !== "auto") res = await send({ ...r.body, size: "auto" });
+  if (!res.ok) return res;
+  return (await fromImagesAnswer(res, hm.background)) ?? new Response("no image", { status: 422 });
+}
+
+/** One model through the Lovable gateway (GPT Image translated to the images API there too). */
+async function viaLovable(model: string, from: string, input: RequestInfo | URL, init: RequestInit, body: Record<string, unknown>, hm: Hm, inner: typeof fetch) {
+  if (model === from) return inner(input, { ...init, body: JSON.stringify(body) });
+  if (provider(model) === "openai" && Array.isArray(body.messages) && Array.isArray(body.modalities) && (body.modalities as string[]).includes("image")) {
+    const r = toImagesRequest(body, model, hm);
+    let res = await inner(`${GATEWAY}${r.path}`, { ...init, body: JSON.stringify(r.body) });
+    if (!res.ok && res.status === 400 && r.body.size !== "auto") res = await inner(`${GATEWAY}${r.path}`, { ...init, body: JSON.stringify({ ...r.body, size: "auto" }) });
+    if (!res.ok) return res;
+    return (await fromImagesAnswer(res, hm.background)) ?? new Response("no image", { status: 422 });
+  }
+  return inner(input, { ...init, body: JSON.stringify({ ...body, model }) });
+}
+
 if (!g.__hmModelsInstalled) {
   g.__hmModelsInstalled = true;
   const inner = globalThis.fetch.bind(globalThis);
@@ -99,35 +215,39 @@ if (!g.__hmModelsInstalled) {
     try { body = JSON.parse(init.body); } catch { return inner(input, init); }
     const hm = (body.hm ?? {}) as Hm;
     delete body.hm;
-    const original = { ...init, body: JSON.stringify(body) };
     const from = typeof body.model === "string" ? body.model : "";
-    const to = g.__hmModels![from];
-    if (!to || to === from) return inner(input, original);
-
-    try {
-      if (to.startsWith("openai/") && Array.isArray(body.messages)) {
-        const r = toImagesRequest(body, to, hm);
-        const res = await inner(`${GATEWAY}${r.path}`, { ...init, body: JSON.stringify(r.body) });
-        if (res.status === 402 || res.status === 403 || res.status === 429) return res;
-        if (res.ok) {
-          const both = await fromImagesAnswer(res, hm.background);
-          if (both) return both;
-        } else if (r.body.size !== "auto" && res.status === 400) {
-          // an unusual size can be refused: try once more at the model's own size
-          const again = await inner(`${GATEWAY}${r.path}`, { ...init, body: JSON.stringify({ ...r.body, size: "auto" }) });
-          if (again.status === 402 || again.status === 403 || again.status === 429) return again;
-          if (again.ok) { const both = await fromImagesAnswer(again, hm.background); if (both) return both; }
-        }
-        console.warn(`[aiModels] ${to} wasn't taken (${res.status}); using ${from}`);
-      } else {
-        const res = await inner(input, { ...init, body: JSON.stringify({ ...body, model: to }) });
-        if (!NOT_TAKEN.has(res.status)) return res;
-        console.warn(`[aiModels] ${to} wasn't taken (${res.status}); using ${from}`);
+    const to = g.__hmModels![from] || from;
+    const k = keys();
+    const wantsImage = Array.isArray(body.modalities) && (body.modalities as string[]).includes("image");
+    const direct = (model: string) => {
+      const p = provider(model);
+      if (p === "google" && k.google) return () => (wantsImage ? googleImage(model, body, k.google, inner, init.signal) : googleChat(model, body, k.google, inner, init.signal));
+      if (p === "openai" && k.openai) return () => openaiCall(model, body, hm, k.openai, inner, init.signal);
+      return null;
+    };
+    const lovable = (model: string) => (k.lovable && k.lovable !== "direct" ? () => viaLovable(model, from, input, init, body, hm, inner) : null);
+    const tries: { label: string; run: (() => Promise<Response>) | null }[] = [
+      { label: `${to} direct`, run: direct(to) },
+      { label: `${to} via Lovable`, run: to !== from ? lovable(to) : null },
+      { label: `${from} direct`, run: to !== from ? direct(from) : null },
+      { label: `${from} via Lovable`, run: lovable(from) },
+    ].filter((t) => t.run);
+    let last: Response | null = null;
+    let lovableBlocked = false;
+    for (const [i, t] of tries.entries()) {
+      // Lovable out of credits, blocked or rate-limited: its other route would answer the same, so only direct ones are left
+      if (lovableBlocked && t.label.endsWith("via Lovable")) continue;
+      try {
+        const res = await t.run!();
+        if (res.ok) return res;
+        last = res;
+        if (t.label.endsWith("via Lovable") && (res.status === 402 || res.status === 403 || res.status === 429)) lovableBlocked = true;
+        console.warn(`[aiModels] ${t.label} answered ${res.status}${i < tries.length - 1 ? "; trying the next route" : ""}`);
+      } catch (e) {
+        if ((e as Error)?.name === "AbortError" || (e as Error)?.name === "TimeoutError") throw e;
+        console.warn(`[aiModels] ${t.label} failed`, e);
       }
-    } catch (e) {
-      if ((e as Error)?.name === "AbortError" || (e as Error)?.name === "TimeoutError") throw e;
-      console.warn(`[aiModels] ${to} failed; using ${from}`, e);
     }
-    return inner(input, original);
+    return last ?? inner(input, { ...init, body: JSON.stringify(body) });
   };
 }
