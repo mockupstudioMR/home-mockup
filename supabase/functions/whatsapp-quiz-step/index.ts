@@ -1,5 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
+import { corsHeaders } from "../_shared/http.ts";
 import { STEPS, advanceAndSend } from "../_shared/whatsappQuiz.ts";
 
 // Public — called by the picker page with a single-use step_token.

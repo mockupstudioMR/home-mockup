@@ -1,8 +1,9 @@
-import { useNavigate, useLocation } from "react-router-dom";
+import { Navigate, useNavigate, useLocation } from "react-router-dom";
 import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Home, Palette, Upload, Package, ArrowRight, Ruler, Sparkles, Briefcase, Building2, PenTool, Sofa, MoreHorizontal } from "lucide-react";
 import RetailerStyleFlow from "@/components/b2b/RetailerStyleFlow";
+import { useProfileName } from "@/components/AccountNameDialog";
 import Logo from "@/components/Logo";
 
 import { useQuiz } from "@/contexts/QuizContext";
@@ -12,8 +13,11 @@ import GroundYourSpace, { type GroundData } from "@/components/start/GroundYourS
 import CaptureVision, { type VisionData } from "@/components/start/CaptureVision";
 import { saveStylePrompt } from "@/lib/journeyPersistence";
 import IntentStep from "@/components/quiz/steps/IntentStep";
+import { createProjectFromGround } from "@/lib/projectStore";
 
 interface StartLocationState {
+  /** Set by the project home when the user continues with another room (steps 2–9 repeat per room). */
+  resumeRoom?: string;
   fromChoosePath?: boolean;
 }
 
@@ -71,6 +75,10 @@ const Start = () => {
   const { user, loading } = useAuth();
   const { quizData, updateQuizData } = useQuiz();
   const isPro = new URLSearchParams(location.search).get("as") === "pro";
+  // "I'm designing my home" now runs as the journey built from the design boards (/journey).
+  // Professionals keep this page (?as=pro); the old fresh flow stays reachable with ?legacy=1.
+  const legacy = new URLSearchParams(location.search).get("legacy") === "1";
+  const toJourney = !isPro && !legacy;
   const [freshStage, setFreshStageState] = useState<FreshStage>(readFreshStage);
   const [groundStep, setGroundStep] = useState<string>("property");
   const [proStage, setProStage] = useState<ProStage>("role");
@@ -104,7 +112,9 @@ const Start = () => {
       return raw ? JSON.parse(raw) as { name?: string; roomType?: string; vision?: string } : null;
     } catch { return null; }
   }, [location.state]);
-  const firstName = intro?.name?.split(/\s+/)[0];
+  // Saved profile name wins over any intro name so "Change name" applies everywhere.
+  const profileName = useProfileName();
+  const firstName = (profileName ?? intro?.name ?? "").split(/\s+/)[0] || undefined;
 
   useEffect(() => {
     if (!loading && !user) {
@@ -113,12 +123,21 @@ const Start = () => {
   }, [user, loading, navigate]);
 
   useEffect(() => {
+    // Signed-in home owners are sent on to /journey below. Rewriting the URL back to /start here
+    // would cancel that redirect and leave a blank page, so only the wizard handles this state.
+    if (toJourney) return;
     const state = location.state as StartLocationState | null;
+    if (state?.resumeRoom) {
+      updateQuizData({ roomType: state.resumeRoom });
+      setFreshStage("vision");
+      navigate(location.pathname, { replace: true, state: {} });
+      return;
+    }
     if (state?.fromChoosePath && freshStage === "path") {
       setFreshStage("intent");
       navigate(location.pathname, { replace: true, state: {} });
     }
-  }, [location.state, freshStage, location.pathname, navigate]);
+  }, [toJourney, location.state, freshStage, location.pathname, navigate]);
 
   useEffect(() => {
     if (quizData.intent && freshStage === "intent") {
@@ -188,6 +207,10 @@ const Start = () => {
     },
   ];
 
+  if (toJourney && !loading && user) {
+    return <Navigate to="/journey" replace />;
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -213,12 +236,20 @@ const Start = () => {
           <Logo size={32} />
           <span className="font-semibold text-lg tracking-tight text-foreground">HomeMockUp</span>
         </button>
-        <button
-          onClick={() => navigate("/my-stats")}
-          className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
-        >
-          My Stats
-        </button>
+        <div className="flex items-center gap-5">
+          <button
+            onClick={() => navigate("/project")}
+            className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
+          >
+            My project
+          </button>
+          <button
+            onClick={() => navigate("/my-stats")}
+            className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
+          >
+            My Stats
+          </button>
+        </div>
       </header>
 
       {/* Main Content */}
@@ -320,6 +351,8 @@ const Start = () => {
                   onBack={() => setFreshStage("intent")}
                   onComplete={(data: GroundData) => {
                     updateQuizData({ roomType: data.startRoom });
+                    // Save step 1 as a project with its rooms (no-op until the project tables exist).
+                    void createProjectFromGround(data);
                     try {
                       sessionStorage.setItem("ground_your_space", JSON.stringify(data));
                       sessionStorage.removeItem("ground_your_space_draft");

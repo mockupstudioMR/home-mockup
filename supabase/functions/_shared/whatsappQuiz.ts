@@ -1,4 +1,5 @@
 import { fetchWithTimeout } from "./http.ts";
+import type { SupabaseClient } from "npm:@supabase/supabase-js@2";
 // Shared WhatsApp quiz logic: question flow + Twilio sender.
 
 export const APP_URL = Deno.env.get("APP_URL") ?? "https://home-mockup.lovable.app";
@@ -142,7 +143,7 @@ export async function sendWhatsApp(toE164: string, body: string): Promise<string
 }
 
 export async function advanceAndSend(
-  admin: ReturnType<typeof import("npm:@supabase/supabase-js@2").createClient>,
+  admin: SupabaseClient,
   sessionId: string,
   phone: string,
   nextStepIndex: number,

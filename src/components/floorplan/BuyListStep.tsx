@@ -4,9 +4,11 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Download, FileText, Loader2, Printer, RotateCcw, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import type { Json } from "@/integrations/supabase/types";
 import { toast } from "@/hooks/use-toast";
 import { getAiErrorMessage } from "@/lib/aiErrorMessage";
 import { invokeQueued } from "@/lib/aiQueue";
+import { paletteFromPayload } from "@/lib/paletteFromPayload";
 import BuyListJourney from "./BuyListJourney";
 import LayerFilm from "@/components/journey/LayerFilm";
 
@@ -113,9 +115,9 @@ const BuyListStep = ({ measurements, payload, roomLabel, design, roomId, designI
             room_id: roomId ?? null,
             design_id: designId ?? null,
             room_label: roomLabel ?? null,
-            measurements: measurements as any,
-            list: built as any,
-            metadata: { payload } as any,
+            measurements: measurements as unknown as Json,
+            list: built as unknown as Json,
+            metadata: { payload } as unknown as Json,
           },
           { onConflict: "user_id,scope_key" },
         );
@@ -205,17 +207,35 @@ const BuyListStep = ({ measurements, payload, roomLabel, design, roomId, designI
 
         // 1) The items detected in this design.
         const designPhotos: Cand[] = [];
-        const pushRow = (row: any) => {
-          const bb = row?.bounding_box ?? row?.boundingBox;
+        // Rows come from design_items, generated_designs.extracted_items or the
+        // extract-design-items function, which use snake_case or camelCase.
+        type RawItemRow = {
+          id?: string;
+          name?: string | null;
+          item_name?: string | null;
+          itemName?: string | null;
+          item_type?: string | null;
+          itemType?: string | null;
+          type?: string | null;
+          item_description?: string | null;
+          itemDescription?: string | null;
+          product_photo_url?: string | null;
+          productPhotoUrl?: string | null;
+          bounding_box?: unknown;
+          boundingBox?: unknown;
+        };
+        type RawBox = { x?: unknown; y: number; width?: unknown; height: number };
+        const pushRow = (row: RawItemRow) => {
+          const bb = (row?.bounding_box ?? row?.boundingBox) as RawBox | null | undefined;
           const bbox =
             bb && typeof bb.x === "number" && typeof bb.width === "number"
               ? { x: bb.x, y: bb.y, width: bb.width, height: bb.height }
               : undefined;
           const url = row?.product_photo_url || row?.productPhotoUrl || undefined;
           if (!url && !bbox) return;
-          const itemName = row.item_name || row.itemName || row.name;
-          const itemType = row.item_type || row.itemType || row.type;
-          const itemDescription = row.item_description || row.itemDescription;
+          const itemName = row.item_name || row.itemName || row.name || undefined;
+          const itemType = row.item_type || row.itemType || row.type || undefined;
+          const itemDescription = row.item_description || row.itemDescription || undefined;
           designPhotos.push({
             label: [itemName, itemType, itemDescription].filter(Boolean).join(" "),
             url,
@@ -246,7 +266,8 @@ const BuyListStep = ({ measurements, payload, roomLabel, design, roomId, designI
               .select("extracted_items")
               .eq("id", designId)
               .maybeSingle();
-            const raw = Array.isArray((gd as any)?.extracted_items) ? (gd as any).extracted_items : [];
+            const extracted = (gd as { extracted_items?: unknown } | null)?.extracted_items;
+            const raw: RawItemRow[] = Array.isArray(extracted) ? (extracted as RawItemRow[]) : [];
             raw.forEach(pushRow);
           }
 
@@ -258,7 +279,7 @@ const BuyListStep = ({ measurements, payload, roomLabel, design, roomId, designI
             }>("extract-room-items", { imageUrl: design.imageUrl, designId });
             if (extractionError) throw extractionError;
             if (extracted?.success === false) throw new Error(extracted.error || "Item extraction failed");
-            const extractedRows = Array.isArray(extracted?.items) ? extracted.items : [];
+            const extractedRows = Array.isArray(extracted?.items) ? (extracted.items as RawItemRow[]) : [];
             extractedRows.forEach(pushRow);
           }
         }
@@ -639,8 +660,11 @@ const BuyListStep = ({ measurements, payload, roomLabel, design, roomId, designI
     try {
       // jsPDF ships both a named and a default export depending on the bundle
       // interop; pick whichever is the actual constructor.
-      const mod: any = await import("jspdf");
-      const jsPDF: any = typeof mod?.jsPDF === "function" ? mod.jsPDF : typeof mod?.default === "function" ? mod.default : mod?.default?.jsPDF;
+      const mod = (await import("jspdf")) as unknown as { jsPDF?: unknown; default?: unknown };
+      const fallback = (mod?.default as { jsPDF?: unknown } | undefined)?.jsPDF;
+      const jsPDF = (typeof mod?.jsPDF === "function" ? mod.jsPDF : typeof mod?.default === "function" ? mod.default : fallback) as
+        | typeof import("jspdf").jsPDF
+        | undefined;
       if (typeof jsPDF !== "function") throw new Error("jsPDF failed to load");
       const doc = new jsPDF({ unit: "mm", format: "a4" });
       const pageW = 210;
@@ -788,19 +812,7 @@ const BuyListStep = ({ measurements, payload, roomLabel, design, roomId, designI
     }
   };
 
-  const palette = useMemo(() => {
-    const raw =
-      (payload as any)?.color_palette ??
-      (payload as any)?.colors ??
-      (payload as any)?.moodboard?.colors ??
-      [];
-    const list = Array.isArray(raw) ? raw : typeof raw === "string" ? raw.split(/[,;]/) : [];
-    return list
-      .map((c: any) => (typeof c === "string" ? c : c?.hex))
-      .filter((c: any): c is string => typeof c === "string" && /^#?[0-9a-f]{6}$/i.test(c.trim()))
-      .map((c: string) => (c.trim().startsWith("#") ? c.trim() : `#${c.trim()}`))
-      .slice(0, 6);
-  }, [payload]);
+  const palette = useMemo(() => paletteFromPayload(payload), [payload]);
 
   return (
     <div className="space-y-6">

@@ -1,0 +1,100 @@
+import { describe, it, expect } from "vitest";
+import { mergeSize, parseArea, parseLength, parsePair, pickPrinted, readWritten } from "../../supabase/functions/_shared/dimensions";
+
+describe("reading printed lengths", () => {
+  it("reads metres, centimetres and millimetres, with or without units", () => {
+    expect(parseLength("3,75")).toBe(3.75);
+    expect(parseLength("3.75 m")).toBe(3.75);
+    expect(parseLength("375")).toBe(3.75);
+    expect(parseLength("375 cm")).toBe(3.75);
+    expect(parseLength("4900")).toBe(4.9);
+    expect(parseLength("4 900 mm")).toBe(4.9);
+    expect(parseLength("3⁷⁵")).toBe(3.75);
+    expect(parseLength("12'3\"")).toBe(3.73);
+    expect(parseLength("12 ft")).toBe(3.66);
+    expect(parseLength(4.2)).toBe(4.2);
+    expect(parseLength("3.75m")).toBe(3.75);
+    expect(parseLength("420cm")).toBe(4.2);
+  });
+  it("uses the plan's stated unit when the label has none", () => {
+    expect(parseLength("20", "cm")).toBeUndefined(); // 20 cm can't be a room side
+    expect(parseLength("420", "cm")).toBe(4.2);
+    expect(parseLength("4,20", "m")).toBe(4.2);
+  });
+  it("rejects what can't be a room side", () => {
+    expect(parseLength("")).toBeUndefined();
+    expect(parseLength("0,2")).toBeUndefined();
+    expect(parseLength("D1")).toBeUndefined();
+    expect(parseLength("WC 2")).toBeUndefined();
+    expect(parseLength(null)).toBeUndefined();
+  });
+  it("reads pairs and areas", () => {
+    expect(parsePair("3,75 x 4,90")).toEqual([3.75, 4.9]);
+    expect(parsePair("375/490")).toEqual([3.75, 4.9]);
+    expect(parsePair("3.75 × 4.90 m")).toEqual([3.75, 4.9]);
+    expect(parseArea("18,4 m²")).toBe(18.4);
+    expect(parseArea("198 sq ft")).toBe(18.39);
+  });
+  it("collects what was copied from the plan", () => {
+    expect(readWritten({ width_text: "", length_text: "4,90", pair_text: null, area_text: "18,4 m²" })).toEqual({ length: 4.9, area: 18.4 });
+    expect(readWritten({ pair_text: "375 x 490" })).toEqual({ width: 3.75, length: 4.9 });
+  });
+});
+
+describe("printed numbers beat estimates", () => {
+  const est = { width: 3.2, length: 4.0 }; // door-scale guess, proportions 0.8
+
+  it("uses both printed sides over the estimate", () => {
+    expect(mergeSize({ width: 3.75, length: 4.9 }, est)).toMatchObject({ width: 3.75, length: 4.9, source: { width: "written", length: "written" } });
+  });
+  it("turns a pair printed the other way round", () => {
+    expect(mergeSize({ width: 4.9, length: 3.75 }, est)).toMatchObject({ width: 3.75, length: 4.9 });
+  });
+  it("estimates only the side that isn't printed, from the proportions", () => {
+    expect(mergeSize({ width: 3.75 }, est)).toEqual({ width: 3.75, length: 4.69, source: { width: "written", length: "estimated" } });
+    expect(mergeSize({ length: 5 }, est)).toEqual({ width: 4, length: 5, source: { width: "estimated", length: "written" } });
+  });
+  it("uses a printed area for the missing side", () => {
+    expect(mergeSize({ width: 4, area: 18 }, est)).toMatchObject({ width: 4, length: 4.5, source: { length: "from area" } });
+  });
+  it("scales the estimate to a printed area when no side is printed", () => {
+    expect(mergeSize({ area: 20 }, est)).toMatchObject({ width: 4, length: 5, source: { width: "from area" } });
+  });
+  it("keeps the estimate when nothing is printed", () => {
+    expect(mergeSize({}, est)).toMatchObject({ width: 3.2, length: 4, source: { width: "estimated", length: "estimated" } });
+  });
+});
+
+describe("printed sizes in the forms real plans use", () => {
+  it.each([
+    ["ca. 3,75", 3.75], ["L = 3,75", 3.75], ["B: 4,90 m", 4.9], ["Länge 3,75", 3.75], ["Breite: 4,90", 4.9], ["approx. 12 ft", 3.66],
+    ["≈ 3.75", 3.75], ["1,20 + 2,55", 3.75], ["120 + 255 cm", 3.75], ["12'-6\"", 3.81], ["12' - 6\"", 3.81],
+  ])("%s → %s m", (t, m) => expect(parseLength(t)).toBe(m));
+
+  it.each(["H 2,50", "RH 2,60", "BRH 0,90", "1,20 2,55", "D1", "3,75 x 4,90"])("%s is not one room side", (t) => expect(parseLength(t)).toBeUndefined());
+
+  it("reads a pair wherever it was copied", () => {
+    expect(readWritten({ width_text: "3.75x4.90" })).toEqual({ width: 3.75, length: 4.9 });
+    expect(readWritten({ pair_text: "3,75m x 4,90m" })).toEqual({ width: 3.75, length: 4.9 });
+    expect(readWritten({ pair_text: "approx. 3,75 x 4,90" })).toEqual({ width: 3.75, length: 4.9 });
+    expect(readWritten({ pair_text: "3,75 x 4,90 = 18,38 m²" })).toEqual({ width: 3.75, length: 4.9 });
+  });
+});
+
+describe("the printed sizes of the room being drawn", () => {
+  const rooms = [
+    { name: "Wohnen", x_pct: 30, y_pct: 40, pair_text: "4,60 x 5,20" },
+    { name: "Schlafen", x_pct: 75, y_pct: 30, width_text: "3,10", length_text: "3,85" },
+    { name: "Bad", x_pct: 75, y_pct: 80, area_text: "4,8 m²" },
+  ];
+  it("uses the room whose centre is inside the outline", () => {
+    expect(readWritten(pickPrinted(rooms, [0.6, 0.1, 0.9, 0.5]))).toEqual({ width: 3.1, length: 3.85 });
+    expect(readWritten(pickPrinted(rooms, [0.1, 0.2, 0.5, 0.6]))).toEqual({ width: 4.6, length: 5.2 });
+  });
+  it("never uses a neighbour's sizes", () => {
+    expect(pickPrinted(rooms, [0.05, 0.75, 0.3, 0.95])).toBeUndefined();
+  });
+  it("without an outline, uses the largest printed room", () => {
+    expect(readWritten(pickPrinted(rooms))).toEqual({ width: 4.6, length: 5.2 });
+  });
+});

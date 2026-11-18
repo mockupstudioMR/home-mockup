@@ -3,6 +3,12 @@ import { Upload, PenLine, Palette, ArrowRight, ArrowLeft, Check, Mic, MicOff } f
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
+import {
+  appendTranscript,
+  collectFinalTranscript,
+  getSpeechRecognition,
+  type SpeechRecognitionLike,
+} from "@/lib/speechRecognition";
 
 export type VisionData =
   | { mode: "upload" }
@@ -68,7 +74,7 @@ const CaptureVision = ({ onBack, onComplete, initialMode, initialPrompt }: Props
   const [mode, setMode] = useState<"choose" | "describe">(initialMode ?? "choose");
   const [prompt, setPrompt] = useState(initialPrompt ?? "");
   const [isListening, setIsListening] = useState(false);
-  const recognitionRef = useRef<any>(null);
+  const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
 
   // Persist draft mode + prompt so pressing Continue elsewhere / navigating
   // back never wipes what the user has typed.
@@ -82,7 +88,7 @@ const CaptureVision = ({ onBack, onComplete, initialMode, initialPrompt }: Props
   }, [mode, prompt]);
 
   const startListening = useCallback(() => {
-    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    const SR = getSpeechRecognition();
     if (!SR) return;
 
     const recognition = new SR();
@@ -91,16 +97,10 @@ const CaptureVision = ({ onBack, onComplete, initialMode, initialPrompt }: Props
     recognition.continuous = true;
     recognition.maxAlternatives = 1;
 
-    recognition.onresult = (event: any) => {
-      let finalTranscript = "";
-      for (let i = event.resultIndex; i < event.results.length; i++) {
-        const transcript = event.results[i][0].transcript;
-        if (event.results[i].isFinal) {
-          finalTranscript += transcript + " ";
-        }
-      }
+    recognition.onresult = (event) => {
+      const finalTranscript = collectFinalTranscript(event);
       if (finalTranscript) {
-        setPrompt((prev) => (prev ? prev + " " + finalTranscript.trim() : finalTranscript.trim()));
+        setPrompt((prev) => appendTranscript(prev, finalTranscript));
       }
     };
 

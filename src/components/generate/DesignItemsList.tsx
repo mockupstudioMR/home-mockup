@@ -8,6 +8,7 @@ import { Store, Paintbrush, Layers, Sofa, Lamp, Palette, Frame, DoorOpen } from 
 import { supabase } from "@/integrations/supabase/client";
 import DesignItemCard from "./DesignItemCard";
 import OrderCustomMadeSheet from "./OrderCustomMadeSheet";
+import ShopChoicePanel from "@/components/shop/ShopChoicePanel";
 
 interface BoundingBox {
   x: number;
@@ -151,6 +152,7 @@ const DesignItemsList = React.forwardRef<HTMLDivElement, DesignItemsListProps>(
             )}
           </CardHeader>
           <CardContent className="space-y-6">
+            <ShopChoicePanel compact />
             {Object.entries(groupedProducts).map(([type, typeItems]) => {
               const IconComponent = itemTypeIcons[type] || Frame;
               

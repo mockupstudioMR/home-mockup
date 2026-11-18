@@ -1,6 +1,7 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import "../_shared/language.ts";
 import { requireUser } from "../_shared/auth.ts";
 import { fetchWithTimeout } from "../_shared/http.ts";
+import { PRINTED_ROOMS_SCHEMA, WRITTEN_RULES, mergeSize, pickPrinted, readWritten, type PrintedRoom } from "../_shared/dimensions.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -8,7 +9,7 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -17,7 +18,7 @@ serve(async (req) => {
   if (caller instanceof Response) return caller;
 
   try {
-    const { imageUrl } = await req.json();
+    const { imageUrl, focus } = await req.json();
     if (!imageUrl) {
       return new Response(JSON.stringify({ error: "imageUrl required" }), {
         status: 400,
@@ -31,7 +32,7 @@ serve(async (req) => {
     const systemPrompt = `You are a floor plan analyzer. Given an image of a floor plan or room layout sketch, extract the room shape as a series of wall segments forming a closed polygon.
 
 For each wall segment, provide:
-- length_m: estimated length in meters (use scale bars if visible, otherwise estimate from common room sizes)
+- length_m: its length in meters. If a size is printed on the plan for that wall, use it. Otherwise use a scale bar, or estimate from a standard interior door (about 0.85 m wide).
 - angle_deg: the TURNING angle at the END of this wall (exterior angle, positive = turn right/clockwise, negative = turn left/counter-clockwise). The angles must sum to 360 for a convex shape or handle concave shapes correctly.
 
 Also extract any visible openings (doors, windows, balconies) with their wall index (0-based) and approximate position along that wall (0-100%).
@@ -47,82 +48,144 @@ Return a JSON object with:
 For a simple rectangle 5m x 4m, walls would be:
 [{length_m: 5, angle_deg: 90}, {length_m: 4, angle_deg: 90}, {length_m: 5, angle_deg: 90}, {length_m: 4, angle_deg: 90}]`;
 
-    const response = await fetchWithTimeout("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [
-          { role: "system", content: systemPrompt },
-          {
-            role: "user",
-            content: [
-              { type: "text", text: "Analyze this floor plan image and extract the room shape as wall segments with angles. Be precise about proportions." },
-              { type: "image_url", image_url: { url: imageUrl } },
-            ],
-          },
-        ],
-        tools: [
-          {
-            type: "function",
-            function: {
-              name: "extract_floorplan",
-              description: "Extract room shape from floor plan as wall segments",
-              parameters: {
-                type: "object",
-                properties: {
-                  walls: {
-                    type: "array",
-                    items: {
-                      type: "object",
-                      properties: {
-                        length_m: { type: "number" },
-                        angle_deg: { type: "number" },
-                      },
-                      required: ["length_m", "angle_deg"],
-                    },
-                  },
-                  openings: {
-                    type: "array",
-                    items: {
-                      type: "object",
-                      properties: {
-                        type: { type: "string", enum: ["door", "window", "balcony"] },
-                        wall_index: { type: "number" },
-                        position_pct: { type: "number" },
-                      },
-                      required: ["type", "wall_index", "position_pct"],
-                    },
-                  },
-                  estimated_area_sqm: { type: "number" },
-                  shape_description: { type: "string" },
-                },
-                required: ["walls", "shape_description"],
+    // A separate, focused pass that only copies the numbers printed on the plan: models read small text far more
+    // reliably when that is the whole task. The text is turned into metres here (_shared/dimensions.ts), not by the model.
+    const readPrompt = `You read the text printed on a floor plan. Your only job is to copy the printed sizes of EVERY room exactly, and say where each room is.
+
+${WRITTEN_RULES}
+
+- Give one entry per room that has sizes printed for it (a plan with one room has one entry). For each, give the position of the ROOM's centre (not the label's) as x_pct / y_pct: 0–100 % of the image width from the left and of the image height from the top.
+- Each room's sizes are the ones printed inside it or on dimension lines along its own walls. Don't give one room the sizes of a neighbour or of the whole flat.`;
+
+    const ask = async (model: string, system: string, text: string, tool: { name: string; description: string; parameters: unknown }, timeoutMs = 100_000) => {
+      const response = await fetchWithTimeout("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model,
+          messages: [
+            { role: "system", content: system },
+            {
+              role: "user",
+              content: [
+                { type: "text", text },
+                { type: "image_url", image_url: { url: imageUrl } },
+              ],
+            },
+          ],
+          tools: [{ type: "function", function: tool }],
+          tool_choice: { type: "function", function: { name: tool.name } },
+        }),
+      }, timeoutMs);
+      if (!response.ok) {
+        const errText = await response.text();
+        console.error("AI gateway error:", model, response.status, errText);
+        throw new Error(`AI error: ${response.status}`);
+      }
+      const aiData = await response.json();
+      const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
+      if (!toolCall?.function?.arguments) throw new Error("No tool call in response");
+      return JSON.parse(toolCall.function.arguments);
+    };
+
+    const shapeTool = {
+      name: "extract_floorplan",
+      description: "Extract room shape from floor plan as wall segments",
+      parameters: {
+        type: "object",
+        properties: {
+          walls: {
+            type: "array",
+            items: {
+              type: "object",
+              properties: {
+                length_m: { type: "number" },
+                angle_deg: { type: "number" },
               },
+              required: ["length_m", "angle_deg"],
             },
           },
-        ],
-        tool_choice: { type: "function", function: { name: "extract_floorplan" } },
+          openings: {
+            type: "array",
+            items: {
+              type: "object",
+              properties: {
+                type: { type: "string", enum: ["door", "window", "balcony"] },
+                wall_index: { type: "number" },
+                position_pct: { type: "number" },
+              },
+              required: ["type", "wall_index", "position_pct"],
+            },
+          },
+          estimated_area_sqm: { type: "number" },
+          shape_description: { type: "string" },
+        },
+        required: ["walls", "shape_description"],
+      },
+    };
+    const readTool = { name: "copy_printed_sizes", description: "Copy every room's sizes exactly as printed on the plan, with where each room is", parameters: PRINTED_ROOMS_SCHEMA };
+
+    // Reading small printed numbers needs the strongest vision model, but it can be slow. Both models start at once
+    // and everything stays inside the ~150 s edge-function limit: the strong model's answer is used when it comes
+    // within its budget, otherwise the fast one's. (Trying them one after the other could pass the limit, the
+    // function was killed and the app silently kept the door-width guess.)
+    const tryRead = (model: string, ms: number) =>
+      ask(model, readPrompt, "Copy the sizes printed for every room, exactly as written, with each room's position.", readTool, ms).catch((e) => {
+        console.warn("analyze-floorplan: printed-size read failed on", model, (e as Error).message);
+        return null;
+      });
+    const readSizes = async () => {
+      const strong = tryRead("google/gemini-2.5-pro", 95_000);
+      const fast = tryRead("google/gemini-2.5-flash", 60_000);
+      const hasRooms = (r: { rooms?: unknown[] } | null) => !!r && Array.isArray(r.rooms) && r.rooms.length > 0;
+      const first = await strong;
+      if (hasRooms(first)) return first;
+      const second = await fast;
+      return hasRooms(second) ? second : first ?? second;
+    };
+
+    // The shape pass failing must not lose the printed sizes (and the other way round).
+    const [shapeRes, printed] = await Promise.all([
+      ask("google/gemini-2.5-flash", systemPrompt, "Analyze this floor plan image and extract the room shape as wall segments with angles. Be precise about proportions.", shapeTool, 90_000).catch((e) => {
+        console.warn("analyze-floorplan: shape pass failed", (e as Error).message);
+        return null;
       }),
-    });
+      readSizes(),
+    ]);
+    if (!shapeRes && !printed) throw new Error("We couldn't read the plan. Try again or use a clearer image.");
+    const parsed = shapeRes ?? { walls: [], openings: [], shape_description: "" };
 
-    if (!response.ok) {
-      const errText = await response.text();
-      console.error("AI gateway error:", response.status, errText);
-      throw new Error(`AI error: ${response.status}`);
+    // The room asked about (focus = its outline on the plan, 0–1) or else the largest printed room.
+    const printedRooms: PrintedRoom[] = Array.isArray(printed?.rooms) ? printed.rooms : [];
+    const writtenText = pickPrinted(printedRooms, Array.isArray(focus) ? focus : null, printed?.unit) ?? null;
+    // Printed numbers beat the shape pass's estimate; only what isn't printed stays estimated.
+    const written = readWritten(writtenText);
+    console.log("analyze-floorplan: printed rooms", JSON.stringify(printedRooms).slice(0, 2000), "focus", JSON.stringify(focus ?? null), "→", JSON.stringify(written));
+    const walls: { length_m: number; angle_deg: number }[] = Array.isArray(parsed.walls) ? parsed.walls : [];
+    if (walls.length >= 2 && Object.keys(written).length) {
+      const est = { width: Number(walls[0].length_m) || 0, length: Number(walls[1].length_m) || 0 };
+      const size = mergeSize(written, est);
+      if (walls.length === 4) {
+        walls[0].length_m = walls[2].length_m = size.width;
+        walls[1].length_m = walls[3].length_m = size.length;
+      } else {
+        // other shapes: horizontal and vertical walls scale with their printed side
+        const kw = est.width ? size.width / est.width : 1, kl = est.length ? size.length / est.length : 1;
+        walls.forEach((w, i) => (w.length_m = Math.round(w.length_m * (i % 2 === 0 ? kw : kl) * 100) / 100));
+      }
+      parsed.walls = walls;
+      parsed.written_dimensions = { width_m: written.width, length_m: written.length, area_sqm: written.area };
+      parsed.dimensions_source = size.source;
+      if (written.area) parsed.estimated_area_sqm = written.area;
+    } else {
+      parsed.dimensions_source = { width: "estimated", length: "estimated" };
     }
-
-    const aiData = await response.json();
-    const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
-
-    if (!toolCall?.function?.arguments) {
-      throw new Error("No tool call in response");
-    }
-
-    const parsed = JSON.parse(toolCall.function.arguments);
+    parsed.printed_text = writtenText ?? null;
+    // every room's printed sizes and position, so the app can use the right ones for the room the person picks
+    parsed.printed_rooms = printedRooms.map((r) => ({ ...r, unit: r.unit ?? printed?.unit ?? null }));
 
     return new Response(JSON.stringify({ floorplan: parsed }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

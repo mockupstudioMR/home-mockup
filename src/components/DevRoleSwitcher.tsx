@@ -27,6 +27,7 @@ const DevRoleSwitcher = () => {
   return (
     <button
       onClick={handleSwitch}
+      data-floating
       className="fixed bottom-4 right-4 z-50 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-primary text-primary-foreground shadow-lg hover:opacity-90 transition-opacity"
       title={`Switch to ${targetRole} (${targetEmail})`}
     >

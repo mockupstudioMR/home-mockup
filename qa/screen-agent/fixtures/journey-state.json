@@ -1,0 +1,673 @@
+{
+ "v": 1,
+ "intent": "new_space",
+ "propertyType": "apartment",
+ "rooms": [
+  "living-room",
+  "bedroom",
+  "kitchen",
+  "bathroom"
+ ],
+ "startRoom": "living-room",
+ "houseState": "core-shell",
+ "allowInWalls": false,
+ "brief": {},
+ "visionMode": "upload",
+ "photos": [
+  "/journey-sample/insp-1.jpg",
+  "/journey-sample/insp-2.jpg",
+  "/journey-sample/insp-3.jpg"
+ ],
+ "note": "Love the dark, moody feel and the plants. Not too cluttered.",
+ "quickNotes": [],
+ "styles": [
+  {
+   "name": "Eclectic Luxe",
+   "score": 85,
+   "keywords": [
+    {
+     "word": "velvet",
+     "on": 1
+    },
+    {
+     "word": "jewel tones",
+     "on": 1
+    },
+    {
+     "word": "curated",
+     "on": 1
+    },
+    {
+     "word": "maximalist",
+     "on": 0
+    },
+    {
+     "word": "sophisticated",
+     "on": 0
+    }
+   ],
+   "pieces": [
+    {
+     "id": "l1",
+     "label": "Blue velvet tub chair",
+     "image": "/journey-sample/luxe-1.jpg",
+     "added": true
+    },
+    {
+     "id": "l2",
+     "label": "Patchwork velvet armchair",
+     "image": "/journey-sample/luxe-2.jpg",
+     "added": false
+    },
+    {
+     "id": "l3",
+     "label": "Inlaid cabinet with malachite top",
+     "image": "/journey-sample/luxe-3.jpg",
+     "added": true
+    },
+    {
+     "id": "l4",
+     "label": "Embroidered green wingback chair",
+     "image": "/journey-sample/luxe-4.jpg",
+     "added": false
+    }
+   ]
+  },
+  {
+   "name": "Biophilic Contemporary",
+   "score": 80,
+   "keywords": [
+    {
+     "word": "greenery",
+     "on": 1
+    },
+    {
+     "word": "organic shapes",
+     "on": 1
+    },
+    {
+     "word": "nature-inspired",
+     "on": 0
+    },
+    {
+     "word": "natural light",
+     "on": 0
+    },
+    {
+     "word": "sustainable",
+     "on": 0
+    }
+   ],
+   "pieces": [
+    {
+     "id": "b1",
+     "label": "Live-edge walnut console with moss",
+     "image": "/journey-sample/bio-1.jpg",
+     "added": false
+    },
+    {
+     "id": "b2",
+     "label": "Sideboard with moss panels",
+     "image": "/journey-sample/bio-2.jpg",
+     "added": false
+    },
+    {
+     "id": "b3",
+     "label": "Curved wood floor lamp with rattan shade",
+     "image": "/journey-sample/bio-3.jpg",
+     "added": true
+    },
+    {
+     "id": "b4",
+     "label": "Sculptural boucle lounge chair",
+     "image": "/journey-sample/bio-4.jpg",
+     "added": false
+    }
+   ]
+  }
+ ],
+ "activities": [
+  "Relax",
+  "Host friends",
+  "Play piano"
+ ],
+ "priorities": [
+  "Comfortable seating",
+  "Space to play the piano"
+ ],
+ "keeping": [
+  {
+   "id": "k1",
+   "name": "Upright piano",
+   "variant": "Upright piano · standard",
+   "photos": [
+    "/journey-sample/piano-wall.jpg",
+    "/journey-sample/piano-wall.jpg"
+   ],
+   "measured": false,
+   "w": 150,
+   "d": 60,
+   "h": 125,
+   "extraLabel": "Bench · standard",
+   "extra": "56 × 36 × 49",
+   "wall": "B",
+   "pos": 50,
+   "fixedSpot": false
+  }
+ ],
+ "fixed": [],
+ "fixedPhotos": [
+  "/journey-sample/electrical.jpg"
+ ],
+ "done": [
+  1,
+  2,
+  3,
+  4,
+  5,
+  6,
+  7,
+  8,
+  9
+ ],
+ "analysis": {
+  "colors": [
+   "#5B2E45",
+   "#2F5B4A",
+   "#4A3022",
+   "#B4975A",
+   "#6B6862"
+  ],
+  "cues": [
+   "Deep greens, plum and warm wood",
+   "Velvet, patterned and textured walls",
+   "Curated shelves with books and objects",
+   "Greenery and natural shapes",
+   "Lighting mood"
+  ],
+  "materials": [
+   "velvet",
+   "walnut",
+   "brass"
+  ],
+  "description": "Rich jewel tones with abundant greenery, varied textures and curated displays — a lounge-like, inviting room with a touch of modern glamour."
+ },
+ "moodboard": {
+  "name": "Eclectic Modern",
+  "description": "Rich jewel tones with abundant greenery, varied textures and curated displays — a lounge-like, inviting room with a touch of modern glamour.",
+  "image": "/journey-sample/moodboard.jpg",
+  "palette": [
+   {
+    "name": "Plum",
+    "hex": "#5B2E45",
+    "use": "Sofa, curtains",
+    "material": "Plum velvet",
+    "image": "/journey-sample/sw-plum.jpg"
+   },
+   {
+    "name": "Emerald green",
+    "hex": "#2F5B4A",
+    "use": "Chair, arch, bench",
+    "material": "Green accent",
+    "image": "/journey-sample/sw-green.jpg"
+   },
+   {
+    "name": "Dark walnut",
+    "hex": "#4A3022",
+    "use": "Shelving, tables, floor",
+    "material": "Dark walnut",
+    "image": "/journey-sample/sw-walnut.jpg"
+   },
+   {
+    "name": "Brushed brass",
+    "hex": "#B4975A",
+    "use": "Lamps, panel, plates",
+    "material": "Brushed brass",
+    "image": "/journey-sample/sw-brass.jpg"
+   },
+   {
+    "name": "Grey plaster",
+    "hex": "#6B6862",
+    "use": "Walls A and D",
+    "material": "Grey plaster",
+    "image": "/journey-sample/sw-plaster.jpg"
+   }
+  ],
+  "feels": [
+   "velvet",
+   "jewel tones",
+   "curated",
+   "greenery",
+   "organic shapes",
+   "warm light"
+  ]
+ },
+ "preview": {
+  "versions": [
+   {
+    "id": "v1",
+    "image": "/journey-sample/room-hero.jpg",
+    "createdAt": "2026-10-11T10:00:00Z"
+   },
+   {
+    "id": "v2",
+    "image": "/journey-sample/room-hero.jpg",
+    "request": "Lighter walls — warm greige. Keep the green arch.",
+    "createdAt": "2026-10-11T10:05:00Z"
+   }
+  ],
+  "current": 1,
+  "readOf": "/journey-sample/room-hero.jpg",
+  "kept": true,
+  "read": [
+   {
+    "key": "finishes",
+    "text": "Deep emerald walls with a grey plaster feature wall and white period cornicing. An arched doorway frames patterned wallpaper in the hall. Style reads as eclectic modern on a classic backdrop.",
+    "keywords": [
+     "Emerald walls",
+     "Grey plaster",
+     "Cornicing",
+     "Arched doorway",
+     "Eclectic modern"
+    ],
+    "x": 19,
+    "y": 36
+   },
+   {
+    "key": "furniture",
+    "text": "A curved plum velvet sofa anchors the room, joined by a green leather-and-cane lounge chair and a low walnut coffee table with a green stone top. Walnut shelving is built in floor to ceiling.",
+    "keywords": [
+     "Plum curved sofa",
+     "Green accent chair",
+     "Low coffee table",
+     "Built-in shelving"
+    ],
+    "x": 74,
+    "y": 62
+   },
+   {
+    "key": "colours",
+    "text": "Jewel tones — plum and emerald — set against dark walnut and brushed brass. High contrast, low overall brightness. Velvet, leather, cane, stone and plaster give lots of texture.",
+    "keywords": [
+     "Dark walnut",
+     "Brass",
+     "Plum",
+     "Emerald",
+     "High contrast",
+     "Rich textures"
+    ],
+    "x": 47,
+    "y": 80
+   },
+   {
+    "key": "decor",
+    "text": "Curated shelves of ceramics, glass vases and books. Plenty of plants at different heights. A layered rug and cushions in rust and plum soften the seating.",
+    "keywords": [
+     "Plants",
+     "Ceramics",
+     "Glass vases",
+     "Layered rug",
+     "Cushions"
+    ],
+    "x": 65,
+    "y": 40
+   },
+   {
+    "key": "lighting",
+    "text": "A cluster of smoked-glass and brass globe pendants is the centrepiece, with a brass floor lamp for reading and warm light on the shelves. Mood: warm, dim, evening.",
+    "keywords": [
+     "Textured walls",
+     "Pendant cluster",
+     "Floor lamp",
+     "Shelf lighting"
+    ],
+    "x": 52,
+    "y": 11
+   }
+  ],
+  "changes": {
+   "finishes": "Lighter walls — warm greige. Keep the green arch."
+  },
+  "request": "Lighter walls — warm greige. Keep the green arch, the sofa and the green accents."
+ },
+ "fixedCounts": {
+  "windows": 1,
+  "doors": 2,
+  "radiators": 1,
+  "columns": 0,
+  "builtins": 0,
+  "stacks": 0,
+  "ac": 0,
+  "panels": 1
+ },
+ "fixedTbc": [
+  "sockets",
+  "water"
+ ],
+ "placements": [
+  {
+   "id": "w1",
+   "kind": "windows",
+   "n": 1,
+   "wall": "C",
+   "pos": 50,
+   "photo": "/journey-sample/window-wall.jpg"
+  },
+  {
+   "id": "d1",
+   "kind": "doors",
+   "n": 1,
+   "wall": "D",
+   "pos": 15,
+   "photo": "/journey-sample/entry-wall.jpg"
+  },
+  {
+   "id": "d2",
+   "kind": "doors",
+   "n": 2
+  },
+  {
+   "id": "r1",
+   "kind": "radiators",
+   "n": 1,
+   "wall": "C",
+   "pos": 50
+  },
+  {
+   "id": "p1",
+   "kind": "panels",
+   "n": 1,
+   "wall": "D",
+   "pos": 45
+  }
+ ],
+ "room": {
+  "input": "plan",
+  "planImage": "/journey-sample/wall-by-wall.jpg",
+  "wallPhotos": [],
+  "widthM": 3.75,
+  "lengthM": 4.9,
+  "scaleRef": "Wall A length",
+  "confirmed": false
+ },
+ "layouts": [
+  {
+   "id": "L1",
+   "name": "Relax + piano",
+   "items": [
+    {
+     "label": "Curved sofa",
+     "kind": "sofa",
+     "x": 14.1,
+     "y": 4.8,
+     "w": 70.4,
+     "h": 17
+    },
+    {
+     "label": "",
+     "kind": "rug",
+     "x": 17.6,
+     "y": 23.9,
+     "w": 63.4,
+     "h": 26.6
+    },
+    {
+     "label": "Table",
+     "kind": "table",
+     "x": 35.2,
+     "y": 29.3,
+     "w": 28.2,
+     "h": 13.8
+    },
+    {
+     "label": "Chair",
+     "kind": "chair",
+     "x": 7.7,
+     "y": 74.5,
+     "w": 22.5,
+     "h": 17
+    },
+    {
+     "label": "Piano",
+     "kind": "keep",
+     "x": 83.8,
+     "y": 63.8,
+     "w": 16.2,
+     "h": 31.4
+    },
+    {
+     "label": "",
+     "kind": "bench",
+     "x": 71.1,
+     "y": 72.9,
+     "w": 9.2,
+     "h": 13.3
+    }
+   ],
+   "zones": [
+    {
+     "label": "Relax",
+     "x": 4.2,
+     "y": 3.2,
+     "w": 91.5,
+     "h": 53.2,
+     "tone": "plum"
+    },
+    {
+     "label": "Music",
+     "x": 57.7,
+     "y": 59,
+     "w": 39.4,
+     "h": 39.9,
+     "tone": "green"
+    }
+   ],
+   "route": {
+    "x1": 0,
+    "y1": 56.9,
+    "x2": 70.4,
+    "y2": 56.9
+   },
+   "notes": [
+    {
+     "ok": true,
+     "text": "Sofa faces the room; reading chair gets window light"
+    },
+    {
+     "ok": true,
+     "text": "Piano has its own quiet corner and bench space"
+    },
+    {
+     "ok": false,
+     "text": "Seats 4 comfortably"
+    }
+   ]
+  },
+  {
+   "id": "L2",
+   "name": "More social seating",
+   "items": [
+    {
+     "label": "L-sofa",
+     "kind": "sofa",
+     "x": 6.3,
+     "y": 18.6,
+     "w": 21.1,
+     "h": 50.5
+    },
+    {
+     "label": "",
+     "kind": "sofa",
+     "x": 6.3,
+     "y": 53.2,
+     "w": 52.8,
+     "h": 16
+    },
+    {
+     "label": "",
+     "kind": "rug",
+     "x": 33.8,
+     "y": 23.9,
+     "w": 52.8,
+     "h": 26.6
+    },
+    {
+     "label": "Table",
+     "kind": "table",
+     "x": 45.1,
+     "y": 29.3,
+     "w": 28.2,
+     "h": 14.9
+    },
+    {
+     "label": "Chair",
+     "kind": "chair",
+     "x": 72.5,
+     "y": 52.1,
+     "w": 21.1,
+     "h": 16
+    },
+    {
+     "label": "Piano",
+     "kind": "keep",
+     "x": 24.6,
+     "y": 0,
+     "w": 42.3,
+     "h": 11.7
+    }
+   ],
+   "zones": [
+    {
+     "label": "Gather",
+     "x": 4.2,
+     "y": 16,
+     "w": 95,
+     "h": 61.2,
+     "tone": "plum"
+    }
+   ],
+   "route": {
+    "x1": 0,
+    "y1": 79.8,
+    "x2": 98.6,
+    "y2": 79.8
+   },
+   "notes": [
+    {
+     "ok": true,
+     "text": "L-shape seats 6, everyone faces each other"
+    },
+    {
+     "ok": true,
+     "text": "Piano becomes the focal wall for evenings"
+    },
+    {
+     "ok": false,
+     "text": "Less room behind the piano bench"
+    }
+   ]
+  }
+ ],
+ "chosenLayout": 0,
+ "catalogPhotos": [],
+ "anchor": {
+  "kind": "sofa",
+  "shape": "Curved",
+  "variant": "Sofa · curved",
+  "w": 240,
+  "d": 105,
+  "h": 80,
+  "material": "plum velvet",
+  "images": {
+   "Curved": "/journey-sample/sofa-wall.jpg"
+  }
+ },
+ "projectId": "pr-demo",
+ "accent": {
+  "name": "Green statement chair",
+  "wall": "C",
+  "decision": "keep",
+  "image": "/journey-sample/window-wall.jpg"
+ },
+ "supporting": [
+  {
+   "name": "Coffee table",
+   "material": "Walnut + green stone"
+  },
+  {
+   "name": "Side table",
+   "material": "Brass"
+  },
+  {
+   "name": "Console",
+   "material": "Fluted walnut"
+  }
+ ],
+ "supportImage": "/journey-sample/entry-wall.jpg",
+ "lighting": {
+  "layers": [
+   {
+    "key": "overall",
+    "name": "Glass pendant cluster",
+    "text": "Soft general light over the seating. On a dimmer.",
+    "image": "/journey-sample/room-hero.jpg",
+    "pos": "55% 0%",
+    "decision": "keep"
+   },
+   {
+    "key": "task",
+    "name": "Reading floor lamp",
+    "text": "Beside the green chair at the window.",
+    "image": "/journey-sample/window-wall.jpg",
+    "pos": "75% 40%",
+    "decision": "keep"
+   },
+   {
+    "key": "accent",
+    "name": "Piano picture light",
+    "text": "Lights the music and the artwork above.",
+    "image": "/journey-sample/piano-wall.jpg",
+    "pos": "50% 15%",
+    "decision": "keep"
+   }
+  ],
+  "dimmer": true,
+  "blind": false,
+  "stripImage": "/journey-sample/electrical.jpg"
+ },
+ "walls": {
+  "A": {
+   "status": "kept",
+   "items": []
+  },
+  "B": {
+   "status": "kept",
+   "items": []
+  },
+  "C": {
+   "status": "review",
+   "items": []
+  },
+  "D": {
+   "status": "review",
+   "items": [],
+   "change": "Keep the entry arch, use my mirror, and add a dimmable wall light. Keep the existing sockets."
+  }
+ },
+ "checks": {
+  "survey": [
+   true,
+   true,
+   false,
+   false,
+   false
+  ],
+  "soft": [
+   true,
+   false,
+   false,
+   false
+  ]
+ },
+ "roomsDone": []
+}

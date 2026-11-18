@@ -22,3 +22,9 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+__pycache__/
+qa/floorplan/.real-plans/
+
+# Test data made by qa/test-data-agent (keep out of git)
+HomeMockUp-TestData/
+batch-*-seed*/

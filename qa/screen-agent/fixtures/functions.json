@@ -1,0 +1,24 @@
+{
+ "analyze-style": {
+  "__delayMs": 60000,
+  "styles": []
+ },
+ "generate-design": {
+  "__delayMs": 60000
+ },
+ "read-design": {
+  "__delayMs": 60000
+ },
+ "generate-layout": {
+  "__delayMs": 60000
+ },
+ "analyze-floorplan": {
+  "__delayMs": 60000
+ },
+ "generate-highlight-visuals": {
+  "__delayMs": 60000
+ },
+ "scrape-shop": {
+  "__delayMs": 60000
+ }
+}

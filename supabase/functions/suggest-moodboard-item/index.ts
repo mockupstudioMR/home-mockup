@@ -1,4 +1,4 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import "../_shared/language.ts";
 import { requireUser } from "../_shared/auth.ts";
 import { fetchWithTimeout } from "../_shared/http.ts";
 
@@ -27,7 +27,7 @@ const LAYER_GUIDE: Record<Layer, string> = {
     "a decor item (lamp, rug, art, plant, mirror, pillow, curtain, sconce, accessory) — NOT large furniture",
 };
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   const caller = await requireUser(req, corsHeaders);

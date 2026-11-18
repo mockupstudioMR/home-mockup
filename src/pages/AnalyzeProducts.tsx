@@ -193,8 +193,8 @@ const AnalyzeProducts = () => {
           type: "uncategorized",
           source_url: trimmedLink,
           is_active: true,
-        } as any);
-      } catch (error: any) {
+        });
+      } catch (error: unknown) {
         console.error("Save link error:", error);
       }
     }
@@ -213,9 +213,9 @@ const AnalyzeProducts = () => {
         return updated;
       });
       toast({ title: "Product captured!", description: `"${data.title}" — running style analysis…` });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Scrape error:", error);
-      toast({ title: "Couldn't scrape product", description: error.message || "Try uploading an image manually instead", variant: "destructive" });
+      toast({ title: "Couldn't scrape product", description: (error instanceof Error && error.message) || "Try uploading an image manually instead", variant: "destructive" });
     } finally {
       setIsSavingLink(false);
     }

@@ -1,4 +1,4 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import "../_shared/language.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { buildMoodboardDirective, collectMoodboardReferences } from "../_shared/moodboardContext.ts";
 import { requireUser } from "../_shared/auth.ts";
@@ -94,7 +94,7 @@ interface DebugStep {
   data?: unknown;
 }
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -471,11 +471,28 @@ serve(async (req) => {
     // remain source-only so unrelated parts of a saved design are preserved.
     if (!enrichedRequestData.modificationPrompt) {
       const references = collectMoodboardReferences(enrichedRequestData);
+      // Memory guard: too many images (especially inline base64) exceeded the
+      // worker memory limit. Attach images in priority order up to a cap; the
+      // rest are still named in the prompt text, so nothing is dropped silently.
+      const MAX_REFERENCE_IMAGES = 10;
+      const MAX_INLINE_REFERENCES = 2;
+      let attached = 0, inline = 0;
+      const textOnly: string[] = [];
       for (const ref of references) {
+        const isInline = ref.url.startsWith("data:");
+        if (attached >= MAX_REFERENCE_IMAGES || (isInline && inline >= MAX_INLINE_REFERENCES)) {
+          textOnly.push(ref.label);
+          continue;
+        }
+        if (isInline) inline++;
+        attached++;
         contentParts.push({ type: "text", text: ref.label });
         contentParts.push({ type: "image_url", image_url: { url: ref.url } });
       }
-      addDebug("Moodboard references", `Attached ${references.length} labeled visual references`, references.map(ref => ref.label));
+      if (textOnly.length) {
+        contentParts.push({ type: "text", text: `Additional moodboard references (apply these too): ${textOnly.join("; ")}` });
+      }
+      addDebug("Moodboard references", `Attached ${attached} images, ${textOnly.length} as text`, references.map(ref => ref.label));
     }
 
     const messages: any[] = [
@@ -557,9 +574,20 @@ serve(async (req) => {
         console.error(`AI gateway error body: ${errorText.slice(0, 1000)}`);
         
         if (response.status >= 500 && attempt < maxRetries) {
-          addDebug("Retrying", `Server error ${response.status}, waiting ${attempt}s`);
-          await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+          const waitMs = 3000 * attempt + Math.random() * 1500;
+          addDebug("Retrying", `Server error ${response.status}, waiting ${Math.round(waitMs / 1000)}s`);
+          await new Promise(resolve => setTimeout(resolve, waitMs));
           continue;
+        }
+        if (response.status >= 500) {
+          return new Response(
+            JSON.stringify({
+              error: "The image service is busy right now. Please wait a minute and try again.",
+              retryable: true,
+              debugSteps,
+            }),
+            { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
         }
         throw new Error(`AI gateway error: ${response.status}`);
       }

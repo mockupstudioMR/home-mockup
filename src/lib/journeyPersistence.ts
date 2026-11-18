@@ -25,8 +25,8 @@ async function getSessionId(userId: string): Promise<string | undefined> {
   return (data?.id as string | undefined) ?? undefined;
 }
 
-/** Download a remote image and re-upload to our private bucket. */
-async function mirrorToStorage(
+/** Download a remote image and re-upload to our private bucket (also used by the cross-device journey sync). */
+export async function mirrorToStorage(
   sourceUrl: string,
   userId: string,
   section: string,

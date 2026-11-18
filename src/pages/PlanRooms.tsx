@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import Logo from "@/components/Logo";
 import { ArrowLeft, ArrowRight, DoorOpen, Loader2, Ruler, Upload } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import type { Json } from "@/integrations/supabase/types";
 import { toast } from "@/hooks/use-toast";
 import { trackEvent } from "@/lib/analytics";
 import { getAiErrorMessage } from "@/lib/aiErrorMessage";
@@ -30,9 +31,17 @@ interface PlanRoom {
   length_m: number;
   area_sqm: number;
   confidence?: number;
+  /** Where each size came from: printed on the plan, estimated from the scale, or worked out from a printed area. */
+  size_source?: { width: "written" | "estimated" | "from area"; length: "written" | "estimated" | "from area" };
   polygon: { x: number; y: number }[];
   openings: PlanOpening[];
 }
+
+/** "from the plan" / "1 side from the plan" / "estimated", for the room's sizes. */
+const sizeNote = (r: PlanRoom) => {
+  const n = [r.size_source?.width, r.size_source?.length].filter((x) => x === "written").length;
+  return n === 2 ? "sizes from the plan" : n === 1 ? "1 side from the plan, 1 estimated" : r.size_source ? "estimated" : "";
+};
 
 interface PlanResult {
   rooms: PlanRoom[];
@@ -168,7 +177,10 @@ const PlanRooms = () => {
           .eq("image_hash", hash)
           .maybeSingle();
         const cachedPlan = cached?.plan as unknown as PlanResult | undefined;
-        if (cachedPlan?.rooms?.length && cached?.image_url) {
+        // Plans measured before printed sizes were read have no size_source: they were scaled from the 1 m
+        // door only, so measure them again instead of reusing door-based sizes.
+        const readsPrinted = !!cachedPlan?.rooms?.length && cachedPlan.rooms.every((r) => !!r.size_source);
+        if (cachedPlan?.rooms?.length && cached?.image_url && readsPrinted) {
           setImageUrl(cached.image_url);
           setPlan(normalize(cachedPlan));
           setUploading(false);
@@ -205,8 +217,8 @@ const PlanRooms = () => {
             image_hash: hash,
             image_url: urlData.publicUrl,
             storage_path: path,
-            plan: normalized as any,
-            metadata: { file_name: file.name, size: file.size } as any,
+            plan: normalized as unknown as Json,
+            metadata: { file_name: file.name, size: file.size },
           },
           { onConflict: "user_id,image_hash" },
         );
@@ -214,9 +226,9 @@ const PlanRooms = () => {
 
         toast({
           title: `${normalized.rooms.length} rooms detected`,
-          description: "Sizes were scaled using a 1 m door reference — saved for next time.",
+          description: "Sizes from the printed plan are used; the 1 m door only fills in rooms without printed sizes. Saved for next time.",
         });
-      } catch (err: any) {
+      } catch (err: unknown) {
         toast({ title: "Analysis failed", description: getAiErrorMessage(err), variant: "destructive" });
       } finally {
         setUploading(false);
@@ -483,6 +495,7 @@ const PlanRooms = () => {
                     </div>
                     <p className="text-sm text-muted-foreground mt-1">
                       {room.width_m.toFixed(2)} × {room.length_m.toFixed(2)} m · {room.area_sqm.toFixed(2)} m²
+                      {sizeNote(room) && ` · ${sizeNote(room)}`}
                     </p>
                     <p className="text-xs text-muted-foreground mt-1 capitalize">
                       {room.room_type.replace(/[-_]/g, " ")}

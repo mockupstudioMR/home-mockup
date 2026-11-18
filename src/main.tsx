@@ -2,8 +2,10 @@ import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./index.css";
 import { installGlobalErrorReporting } from "./lib/errorReporting";
+import { installI18n } from "./i18n";
 
 installGlobalErrorReporting();
+installI18n();
 
 window.addEventListener("vite:preloadError", () => {
   const reloadKey = "hm_preload_reload_attempted";

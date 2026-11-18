@@ -1,0 +1,361 @@
+/**
+ * The journey's working state: one project, the room being designed, and every answer so far.
+ * Kept in this browser (so nothing is lost on reload) and mirrored to the database where tables exist
+ * (projects, rooms, shop choices — see lib/projectStore), and step by step to step_progress so the
+ * project continues on any device (see useCloudSync).
+ */
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import type { HouseState, Intent, Property } from "./data";
+import { useCloudSync } from "./useCloudSync";
+
+export const STORAGE_KEY = "hm_journey_v1";
+
+export type Keyword = { word: string; on: boolean };
+export type Piece = { id: string; label: string; image: string; added: boolean; source?: string };
+export type StyleMatch = { name: string; score: number; description?: string; keywords: Keyword[]; pieces: Piece[] };
+export type Swatch = { name: string; hex: string; use?: string; image?: string; material?: string };
+export type PreviewVersion = { id: string; image: string; request?: string; createdAt: string };
+export type ReadKey = "finishes" | "furniture" | "colours" | "decor" | "lighting";
+
+export type Wall = "A" | "B" | "C" | "D";
+export type KeepItem = {
+  id: string;
+  /** What it is, e.g. "Upright piano". */
+  name: string;
+  /** The size variant picked, e.g. "Upright piano · standard". */
+  variant?: string;
+  photos: string[];
+  measured: boolean;
+  w?: number; d?: number; h?: number; // cm
+  /** A companion piece and its size, e.g. bench "56 × 36 × 49". */
+  extraLabel?: string;
+  extra?: string;
+  wall?: Wall;
+  /** Position along the wall, 0–100. */
+  pos?: number;
+  fixedSpot: boolean;
+  /** Already theirs, bought or ordered, or something they'll buy themselves (no status = have it). */
+  status?: "have" | "bought" | "buy";
+};
+export type LayoutItem = {
+  label: string;
+  kind: string;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  rotate?: number;
+  /** Which way the piece's front points on the plan (its back is the other side). None for tables, rugs, lamps. */
+  facing?: "up" | "down" | "left" | "right";
+  /** The furniture grouping it was placed with (furniture_groupings.key). */
+  group?: string;
+  /** Its top-view symbol: public/furniture-symbols/<symbol>.svg. */
+  symbol?: string;
+  /** Which edge of that drawing is the piece's front, when it isn't the bottom. */
+  symbolFront?: "top" | "left" | "right";
+};
+export type Layout = {
+  id: string;
+  name: string;
+  items: LayoutItem[];
+  zones: { label: string; x: number; y: number; w: number; h: number; tone?: string }[];
+  route?: { x1: number; y1: number; x2: number; y2: number };
+  notes: { ok: boolean; text: string }[];
+  /** The pieces as suggested, kept once the person edits the layout so it can be reset. */
+  original?: LayoutItem[];
+};
+export type WallItem = {
+  n: number;
+  group: "furniture" | "finishes" | "lighting" | "inside";
+  name: string;
+  note: string;
+  action: "Buy" | "Keep" | "Use mine" | "Changed" | "TBC" | "—" | "Custom";
+  code?: string;
+  x: number;
+  y: number;
+  /** The layout piece ("lay-3") or kept piece ("keep-<id>") it stands for, so the wall outline can place it. */
+  ref?: string;
+  /** The real piece picked for it on the wall screen (step 5). */
+  choice?: { name: string; image?: string; url?: string; productId?: string; price?: number; currency?: string };
+  /** Added on the wall screen by the person (e.g. an extra socket). */
+  added?: boolean;
+};
+export type WallPlan = {
+  role: string; // "Sofa"
+  image?: string;
+  /** Kept as designed, changed, or still to review. */
+  status: "review" | "kept" | "changed";
+  change?: string;
+  items: WallItem[];
+};
+export type FixedKind = "windows" | "doors" | "radiators" | "columns" | "sockets" | "builtins" | "water" | "stacks" | "ac" | "panels";
+/** One counted thing that can't move, placed on a wall of the plan. */
+export type Placement = { id: string; kind: FixedKind; n: number; wall?: Wall; pos?: number; photo?: string; /** "new": added by the plan reader; "placed": counted by the person, put on its wall by the reader */ fromPlan?: "new" | "placed" };
+/** What the plan reader measured on the uploaded plan (see src/journey/plan). */
+export type PlanReading = {
+  ratio: number;
+  shape: string;
+  confidence: number;
+  /** The room on the straightened plan, 0–1, and the other rooms found (to pick a different one). */
+  box: [number, number, number, number];
+  rooms: [number, number, number, number][];
+  picked: "largest" | "tap" | "tap_missed" | "box";
+  doors: number;
+  windows: number;
+  /** Size guessed from the door width, before the person types a real measurement. */
+  guessM?: [number, number];
+};
+
+export type JourneyState = {
+  v: 1;
+  // Step 1 — project
+  /** The name the person gave the project (step 1 summary). Empty = "My home". */
+  projectName?: string;
+  intent?: Intent;
+  propertyType?: Property;
+  rooms: string[];
+  startRoom?: string;
+  houseState?: HouseState;
+  allowInWalls: boolean;
+  brief: { budget?: string; when?: string; city?: string; restrictions?: string };
+  projectId?: string | null;
+  roomId?: string | null;
+  // Step 2 — inspiration
+  visionMode?: "upload" | "describe" | "discover";
+  photos: string[];
+  pinterest?: string;
+  note?: string;
+  quickNotes: string[];
+  analysis?: { colors: string[]; cues: string[]; materials?: string[]; description?: string };
+  styles: StyleMatch[];
+  moodboard?: { name: string; description?: string; image?: string; palette: Swatch[]; feels: string[] };
+  preview?: {
+    versions: PreviewVersion[];
+    current: number;
+    /** The AI read-out of the current version (step 2.7), five parts. */
+    read?: { key: "finishes" | "furniture" | "colours" | "decor" | "lighting"; text: string; keywords: string[]; x: number; y: number }[];
+    readOf?: string;
+    changes?: Partial<Record<"finishes" | "furniture" | "colours" | "decor" | "lighting", string>>;
+    request?: string;
+    kept?: boolean;
+  };
+  // Step 3 — daily life
+  activities: string[];
+  priorities: string[];
+  keeping: KeepItem[];
+  nothingKept?: boolean;
+  fixedCounts: Partial<Record<FixedKind, number>>;
+  /** Things inside the walls the person isn't sure about yet. */
+  fixedTbc: FixedKind[];
+  placements: Placement[];
+  /** Photos of the room taken in 3.4 that aren't tied to one feature. */
+  fixedPhotos: string[];
+  // Step 4 — layout
+  room: {
+    input?: "plan" | "photos" | "draw";
+    planImage?: string;
+    wallPhotos: string[];
+    /** Wall A / C length and wall B / D length, in metres. Example sizes until confirmed. */
+    widthM?: number;
+    lengthM?: number;
+    ceilingM?: number;
+    scaleRef?: string;
+    confirmed?: boolean;
+    /** Read from the plan by the plan reader (geometry, not AI). */
+    planRead?: PlanReading;
+    /** The door width the current scale assumes, in metres. */
+    doorM?: number;
+    /** Sizes printed on the uploaded plan, in metres (only what is printed). They always beat estimates. */
+    written?: { width?: number; length?: number; area?: number };
+    /** Where each side's size came from: printed on the plan, worked out from a printed area, or estimated. */
+    sizeSource?: { width: "written" | "estimated" | "from area"; length: "written" | "estimated" | "from area" };
+    /** Text printed on the plan, read in the browser, with where it is (0–1): sizes for whichever room is picked. */
+    planText?: { text: string; x0: number; y0: number; x1: number; y1: number; conf: number; turned?: boolean }[];
+    /** Printed sizes from an AI function that doesn't give room positions: used for the room first read only. */
+    aiWritten?: { width?: number; length?: number; area?: number };
+    /** Every room's printed sizes and where it is on the plan (0–100 %), to use the right ones for the room picked. */
+    printedRooms?: { name?: string | null; x_pct?: number | null; y_pct?: number | null; width_text?: string | null; length_text?: string | null; pair_text?: string | null; area_text?: string | null; unit?: string | null }[];
+  };
+  layouts: Layout[];
+  chosenLayout?: number;
+  // Step 5 — main furniture
+  /** Catalogue or shop photos added on 5.0, used as references when matching pieces. */
+  catalogPhotos: string[];
+  anchor?: {
+    kind: string; // "sofa", "bed" …
+    shape: string; // "Curved"
+    variant?: string;
+    w?: number; d?: number; h?: number;
+    material?: string; // "plum velvet"
+    images: Record<string, string>;
+    clearance?: number;
+    /** A real product picked from the shops (step 5.1). */
+    product?: { id: string; name: string; url?: string; image?: string; price?: number; currency?: string };
+  };
+  // Step 6 — colours & materials
+  accent?: { name: string; wall?: Wall; decision: "keep" | "adjust" | "skip"; change?: string; image?: string };
+  supporting: { name: string; material: string }[];
+  /** Step 6.4 — the finish on each wall and the floor ("Keep the current floor" keeps it). */
+  surfaces?: { walls: Record<Wall, string>; floor: string };
+  /** Step 6.5 — decor pieces, switched on or off; custom ones can be added. */
+  decor?: { name: string; on: boolean }[];
+  /** Step 6 refinement parts finished ("accents", "tables", "surfaces", "decor"). */
+  refined?: string[];
+  supportImage?: string;
+  samplesAdded?: boolean;
+  // Step 7 — lighting & power
+  lighting?: {
+    layers: { key: "overall" | "task" | "accent"; name: string; text: string; image?: string; pos?: string; decision: "keep" | "change"; change?: string }[];
+    sockets?: number;
+    switches?: number;
+    dimmer: boolean;
+    blind: boolean;
+    stripImage?: string;
+  };
+  // Step 8 — wall by wall
+  walls: Partial<Record<Wall, WallPlan>>;
+  /** This room is designed wall by wall (step 5 "Your walls"): every choice lives on the walls, not in steps 5–8. */
+  wallFlow?: boolean;
+  // Step 9 — make it happen
+  buyEdits?: Record<string, { size?: string; action?: string }>;
+  /** Space available, per buying-list row (the second of the three sizes). */
+  spaceAvail?: Record<string, string>;
+  checks?: Record<string, boolean[]>;
+  todo?: Record<string, boolean>;
+  /** The 3D showroom (4 · showroom): what the person changed there, and the saved style of the room. */
+  /**
+   * The showroom: edits made in the (now hidden) 3D room, the saved style of the room, and each wall's
+   * hyper-realistic layered picture (wallScenes/runner).
+   */
+  showroom?: { edits: import("./showroom3d/model").Edits; record?: import("./showroom3d/record").StyleRecord; scenes?: Partial<Record<Wall | "room", import("./wallScenes/runner").WallScene>>; /** The option picked for each item on each wall picture, and the whole-room picture (0 = main option). */ picks?: Partial<Record<Wall | "room", Record<string, number>>> };
+  /** People asked to join. saved = added to the project in the database (not only in this browser). */
+  team?: { role: string; email: string; saved?: boolean }[];
+  // Step 10 / more rooms
+  /** The room being designed now (steps 2–9 repeat per room). Defaults to the start room. */
+  current?: string;
+  roomsDone: string[];
+  /** Each finished room's answers, kept for the project page. */
+  archive?: Record<string, Partial<JourneyState>>;
+  [key: string]: unknown;
+  /** Steps finished for this room (1–10). */
+  done: number[];
+};
+
+export const EMPTY: JourneyState = {
+  v: 1,
+  rooms: [],
+  allowInWalls: false,
+  brief: {},
+  photos: [],
+  quickNotes: [],
+  styles: [],
+  activities: [],
+  priorities: [],
+  keeping: [],
+  fixedCounts: {},
+  fixedTbc: [],
+  placements: [],
+  fixedPhotos: [],
+  room: { wallPhotos: [] },
+  catalogPhotos: [],
+  supporting: [],
+  walls: {},
+  roomsDone: [],
+  layouts: [],
+  done: [],
+};
+
+function load(): JourneyState {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) return { ...EMPTY, ...JSON.parse(raw) };
+  } catch {
+    /* private mode or bad data */
+  }
+  return EMPTY;
+}
+
+type Ctx = {
+  s: JourneyState;
+  set: (patch: Partial<JourneyState> | ((s: JourneyState) => Partial<JourneyState>)) => void;
+  reset: () => void;
+};
+const JourneyCtx = createContext<Ctx | null>(null);
+
+/** Account copies are skipped in tests (no backend there). */
+const ACCOUNT = import.meta.env.MODE !== "test";
+
+export function JourneyProvider({ children }: { children: ReactNode }) {
+  const [s, setS] = useState<JourneyState>(load);
+  const first = useRef(true);
+  const restored = useRef(!ACCOUNT);
+  // A browser with no answers (or older ones) gets the person's journey back from their account.
+  useEffect(() => {
+    if (!ACCOUNT) return;
+    let live = true;
+    void import("./accountState").then(({ newerFromAccount }) => newerFromAccount(load())).then((remote) => {
+      if (live && remote) setS({ ...EMPTY, ...remote });
+    }).catch(() => undefined).finally(() => { restored.current = true; });
+    return () => { live = false; };
+  }, []);
+  useEffect(() => {
+    if (first.current) {
+      first.current = false;
+      return;
+    }
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(s));
+    } catch {
+      /* quota */
+    }
+    // and with the account, a moment after the last change (not before the account copy has been checked)
+    if (!ACCOUNT || !restored.current) return;
+    const t = window.setTimeout(() => { void import("./accountState").then(({ saveToAccount }) => saveToAccount(s)).catch(() => undefined); }, 1500);
+    return () => window.clearTimeout(t);
+  }, [s]);
+  const set = useCallback<Ctx["set"]>((patch) => setS((prev) => ({ ...prev, ...(typeof patch === "function" ? patch(prev) : patch) })), []);
+  const reset = useCallback(() => setS(EMPTY), []);
+  useCloudSync(s, set);
+  const value = useMemo(() => ({ s, set, reset }), [s, set, reset]);
+  return <JourneyCtx.Provider value={value}>{children}</JourneyCtx.Provider>;
+}
+
+export function useJourney() {
+  const ctx = useContext(JourneyCtx);
+  if (!ctx) throw new Error("useJourney must be used inside JourneyProvider");
+  return ctx;
+}
+
+/** Rooms in the order they will be designed: the start room first. */
+export const orderedRooms = (s: JourneyState) => (s.startRoom ? [s.startRoom, ...s.rooms.filter((r) => r !== s.startRoom)] : s.rooms);
+/** The room being designed now. */
+export const curRoom = (s: JourneyState) => s.current ?? s.startRoom;
+/** Answers that belong to one room (steps 2–9); the rest are the project's. */
+export const ROOM_KEYS: (keyof JourneyState)[] = [
+  "visionMode", "photos", "pinterest", "note", "quickNotes", "analysis", "styles", "moodboard", "preview",
+  "activities", "priorities", "keeping", "nothingKept", "fixedCounts", "fixedTbc", "placements", "fixedPhotos",
+  "room", "layouts", "chosenLayout", "anchor", "accent", "supporting", "supportImage", "samplesAdded", "surfaces", "decor", "refined", "lighting", "walls", "wallFlow",
+  "buyEdits", "spaceAvail", "checks", "todo", "showroom",
+];
+export const uid = () => Math.random().toString(36).slice(2, 10);
+
+/** Open the journey on another room of the project (used by the project page). Steps 2–9 start fresh for it. */
+export function resumeRoomInJourney(roomType: string, roomId?: string) {
+  try {
+    const cur: JourneyState = { ...EMPTY, ...JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "{}") };
+    if ((cur.current ?? cur.startRoom) === roomType) return;
+    const reset: Partial<JourneyState> = {};
+    for (const k of ROOM_KEYS) (reset as Record<string, unknown>)[k] = (EMPTY as Record<string, unknown>)[k];
+    const archived = cur.archive?.[roomType] ?? {};
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...cur, ...reset, ...archived, current: roomType, roomId: roomId ?? cur.roomId, rooms: cur.rooms.includes(roomType) ? cur.rooms : [...cur.rooms, roomType] }));
+  } catch {
+    /* private mode */
+  }
+}
+
+/** The first screen of the step after the last finished one. */
+export function resumePath(s: JourneyState) {
+  const last = Math.max(0, ...s.done);
+  const firsts = ["1/why", "2/vision", "3/activities", "4/input", "5/walls", "5/walls", "5/walls", "5/walls", "9/buy", "10/final", "10/final"];
+  return `/journey/${firsts[Math.min(10, last)]}`;
+}

@@ -1,3 +1,4 @@
+import "../_shared/language.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { forbidUnlessDesignOwner, requireUser } from "../_shared/auth.ts";
 import { fetchWithTimeout } from "../_shared/http.ts";

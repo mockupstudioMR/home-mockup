@@ -32,7 +32,9 @@ export default function FloorPlanPreview() {
     try {
       const raw = sessionStorage.getItem("floor_plan_context");
       if (raw) setCtx(JSON.parse(raw));
-    } catch {}
+    } catch {
+      // Missing or corrupt saved context: render nothing.
+    }
   }, []);
 
   if (!ctx?.layout) return null;

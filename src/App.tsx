@@ -13,6 +13,7 @@ import { ErrorBoundary, RouteErrorBoundary } from "@/components/ErrorBoundary";
 const DevRoleSwitcher = import.meta.env.DEV
   ? lazy(() => import("@/components/DevRoleSwitcher"))
   : () => null;
+import { LanguageSwitcher } from "@/i18n";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 
@@ -42,7 +43,7 @@ const lazyWithReload = <T extends ComponentType<Record<string, never>>>(
 
 // Lazy load heavy pages
 const Start = lazyWithReload(() => import("./pages/Start"), "start");
-const ChoosePath = lazyWithReload(() => import("./pages/ChoosePath"), "choose-path");
+const JourneyPage = lazyWithReload(() => import("./journey/JourneyPage"), "journey");
 const FloorPlan = lazyWithReload(() => import("./pages/FloorPlan"), "floor-plan");
 const PlanRooms = lazyWithReload(() => import("./pages/PlanRooms"), "plan-rooms");
 const StyleTree = lazyWithReload(() => import("./pages/StyleTree"), "style-tree");
@@ -60,6 +61,7 @@ const DesignerDashboard = lazyWithReload(() => import("./pages/DesignerDashboard
 const ShopDashboard = lazyWithReload(() => import("./pages/ShopDashboard"), "shop");
 const WhatsAppPicker = lazyWithReload(() => import("./pages/WhatsAppPicker"), "whatsapp-picker");
 const DesignJourney = lazyWithReload(() => import("./pages/DesignJourney"), "design-journey");
+const ProjectHome = lazyWithReload(() => import("./pages/ProjectHome"), "project-home");
 
 const PageLoader = () => (
   <div className="min-h-screen flex items-center justify-center">
@@ -76,6 +78,7 @@ const App = () => (
         <TooltipProvider>
           <Toaster />
           <Sonner />
+          <LanguageSwitcher />
           <ErrorBoundary variant="app">
             <BrowserRouter>
               <Suspense fallback={null}>
@@ -87,8 +90,7 @@ const App = () => (
               <Route path="/" element={<Index />} />
               <Route path="/b2b-solutions" element={<B2BSolutions />} />
               <Route path="/auth" element={<Auth />} />
-              <Route path="/choose-path" element={<ChoosePath />} />
-              
+
               {/* User routes */}
               <Route path="/start" element={
                 <ProtectedRoute allowedRoles={["user"]}>
@@ -136,6 +138,12 @@ const App = () => (
               <Route path="/gallery" element={
                 <ProtectedRoute allowedRoles={["user"]}>
                   <Gallery />
+                </ProtectedRoute>
+              } />
+              <Route path="/journey/*" element={<JourneyPage />} />
+              <Route path="/project" element={
+                <ProtectedRoute allowedRoles={["user"]}>
+                  <ProjectHome />
                 </ProtectedRoute>
               } />
               <Route path="/my-stats" element={
