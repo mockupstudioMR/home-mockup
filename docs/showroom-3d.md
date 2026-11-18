@@ -63,3 +63,12 @@ A dining table or desk and the chairs within about 8% of the room from it form o
 - The guide also renders an item map: which piece each pixel shows, front-most first (`Guide.ids`). Each alternative's cut-out is kept off the other pieces' pixels (`keepOff`), shrunk a little so small misalignments between the drawing and the photo leave no seam. A new coffee table never repaints the sofa, and a new wall colour never repaints the furniture.
 - Around a new piece, its shadow is a see-through darkening, so it falls on whichever wall colour is chosen.
 - Pictures and layers are saved at quality 0.93.
+
+## Free-standing pieces, the whole room, floor views (v9)
+
+- **Plan.** A piece that belongs against a wall (a TV unit, sideboard, shelving, wardrobe or piano) but stands more than 40 cm out is flagged in the fit checks, with "Move it against a wall" (`strayPieces` and `moveOntoWalls` in `layoutCheck.ts`). A TV or media unit goes on the wall facing the sofa where it can; anything else goes on its nearest wall. It goes as close to where it was as possible while keeping the door swing (plus 30 cm), a window (for tall pieces), the other pieces and the walking route clear. New layouts get this automatically; existing ones only when the person taps the fix.
+- **Wall drawings.** A piece more than 60 cm from its wall is free-standing (`freeStanding`). The exception is a table, chair, stool, ottoman, bench, lamp or plant standing in front of a piece at the wall, such as a coffee table before the sofa. Free-standing pieces are left off the wall's outline and picture, listed under the outline with their distance, and shown in the whole-room picture.
+- **Doors** only push away pieces standing within their swing (95 cm). Windows and columns only push away pieces within 45 cm.
+- **Whole-room picture** (`renderRoomGuide`, scene key `"room"`): seen from the room's corner at eye height on a 16:9 canvas. Every piece is in it, free-standing ones included, and every piece is swappable. It is shown under "Whole room" in the showroom.
+- **Floor in seating views.** A wall with seating or a rug is seen from 16° above (`floorDepthFor`, `wallViewExtent`). That takes in 1.2 m up to 60% of the room's depth of floor, so the rug and the floor show and can be swapped. Only that wall is drawn in this view.
+- Every item now has two alternatives. When there are too few moodboard colours or shapes, light oak and matt black fill in.

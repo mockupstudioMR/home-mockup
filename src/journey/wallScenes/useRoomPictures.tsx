@@ -4,10 +4,10 @@
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { saveStyleRecord } from "../sync";
-import { useJourney, type JourneyState, type Wall } from "../state";
+import { useJourney, type JourneyState } from "../state";
 import { buildModel } from "../showroom3d/model";
 import { buildRecord, sameRecord } from "../showroom3d/record";
-import { currentProgress, isRunning, makeRoomPictures, onProgress, stopMaking, wallKey, WALLS, wallsToMake, type Progress, type WallScene } from "./runner";
+import { currentProgress, isRunning, makeRoomPictures, onProgress, stopMaking, wallKey, PICTURES, wallsToMake, type Pic, type Progress, type WallScene } from "./runner";
 
 /** What a wall's picture is doing, for display. */
 export type WallStatus = "ready" | "making" | "waiting" | "failed" | "outdated" | "stopped" | "none";
@@ -20,16 +20,16 @@ export function useRoomPictures(autoStart = false) {
   const [, rerender] = useState(0);
   useEffect(() => onProgress((p) => { setProg(p); rerender((n) => n + 1); }), []);
 
-  const save = useCallback((wall: Wall, scene: WallScene) => set((p) => ({
+  const save = useCallback((wall: Pic, scene: WallScene) => set((p) => ({
     showroom: { ...(p.showroom ?? { edits: {} }), edits: p.showroom?.edits ?? {}, scenes: { ...(p.showroom?.scenes ?? {}), [wall]: scene } },
   })), [set]);
-  const start = useCallback((walls?: Wall[]) => void makeRoomPictures(() => latest.current, save, walls ?? wallsToMake(latest.current)), [save]);
+  const start = useCallback((walls?: Pic[]) => void makeRoomPictures(() => latest.current, save, walls ?? wallsToMake(latest.current)), [save]);
 
   const model = useMemo(() => buildModel(s), [s]);
-  const keys = useMemo(() => Object.fromEntries(WALLS.map((w) => [w, wallKey(s, model, w)])) as Record<Wall, string>, [s, model]);
+  const keys = useMemo(() => Object.fromEntries(PICTURES.map((w) => [w, wallKey(s, model, w)])) as Record<Pic, string>, [s, model]);
   const scenes = s.showroom?.scenes ?? {};
   const running = isRunning();
-  const status = (w: Wall): WallStatus => {
+  const status = (w: Pic): WallStatus => {
     const sc = scenes[w];
     if (prog?.wall === w) return "making";
     if (!sc) return running ? "waiting" : "none";
@@ -43,7 +43,7 @@ export function useRoomPictures(autoStart = false) {
   const tried = useRef(false);
   useEffect(() => {
     if (!autoStart || tried.current || running || ready !== true) return;
-    const todo = WALLS.filter((w) => { const st = status(w); return st === "none" || st === "outdated" || st === "stopped"; });
+    const todo = PICTURES.filter((w) => { const st = status(w); return st === "none" || st === "outdated" || st === "stopped"; });
     tried.current = true;
     if (todo.length) start(todo);
     // eslint-disable-next-line react-hooks/exhaustive-deps

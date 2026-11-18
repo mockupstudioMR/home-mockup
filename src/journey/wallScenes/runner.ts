@@ -32,20 +32,23 @@ export type WallScene = {
   canvas?: { preset: string; width: number; height: number; pxPerCm: number };
   at: string;
 };
-export type Progress = { wall: Wall; step: string; done: number; total: number };
+/** A picture of the room: one per wall, and one of the whole room (free-standing pieces included). */
+export type Pic = Wall | "room";
+export type Progress = { wall: Pic; step: string; done: number; total: number };
 
 export const WALLS: Wall[] = ["A", "B", "C", "D"];
+export const PICTURES: Pic[] = [...WALLS, "room"];
 const ALIGN_LIMIT = 14; // mean change outside the item (0–255), after matching tones, above which an alternative moved the photo
 const PARALLEL = 4;
 /** Raised when the way pictures are made changes, so walls made the old way are made again. */
-const PICTURE_VERSION = 8;
+const PICTURE_VERSION = 9;
 
 const previewImage = (s: JourneyState) => s.preview?.versions[s.preview.current]?.image;
 
 /** A short fingerprint of everything a wall's picture is made from. */
-export function wallKey(s: JourneyState, m: ShowroomModel, wall: Wall) {
+export function wallKey(s: JourneyState, m: ShowroomModel, wall: Pic) {
   const pieces = m.pieces.filter((p) => seenOn(p, wall)).map((p) => [p.id, p.shape, p.color, Math.round(p.fromCm), Math.round(p.toCm)]);
-  const raw = JSON.stringify([PICTURE_VERSION, wall, previewImage(s) ?? "", m.palette.map((p) => p.hex), m.room, m.openings.filter((o) => o.wall === wall), pieces, m.extras.filter((e) => e.wall === wall).map((e) => [e.id, e.color]), m.surfaces]);
+  const raw = JSON.stringify([PICTURE_VERSION, wall, previewImage(s) ?? "", m.palette.map((p) => p.hex), m.room, m.openings.filter((o) => wall === "room" || o.wall === wall), pieces, m.extras.filter((e) => wall === "room" || e.wall === wall).map((e) => [e.id, e.color]), m.surfaces]);
   let h = 2166136261;
   for (let i = 0; i < raw.length; i++) h = Math.imul(h ^ raw.charCodeAt(i), 16777619);
   return (h >>> 0).toString(36);
@@ -113,6 +116,8 @@ type AiBody = {
   palette?: { name: string; hex: string; use?: string }[]; pieces?: { name: string; detail: string; box: PctBox }[];
   item?: { name: string; current: string; target: string; box: PctBox; group?: string }; productImageUrl?: string;
   moodboardDescription?: string; styleText?: string; roomType?: string;
+  /** The wall is seen from slightly above, with the floor in front of it. */
+  floorView?: boolean;
 };
 /** Set once the wall-picture function turns out not to be deployed: from then on the preview function is used. */
 let wallFnMissing = false;
@@ -127,7 +132,7 @@ const REAL = "It must look like a real photograph taken by an interior photograp
 async function viaPreviewFunction(b: AiBody): Promise<string> {
   const palette = (b.palette ?? []).map((p) => `${p.name} ${p.hex}${p.use ? ` for ${p.use.toLowerCase()}` : ""}`).join(", ");
   const change = b.mode === "base"
-    ? `Render this exact straight-on wall elevation as a real, photorealistic interior photograph of wall ${b.wall ?? ""}. Turn every simple 3D shape into the real piece it stands for, with real materials and textures, in the ${b.style ?? "chosen"} style${b.styleText ? ` (${b.styleText})` : ""}. Colours: ${palette}. Pieces, left to right: ${(b.pieces ?? []).map((p) => `${p.name} (${p.detail}) at ${pct(p.box)}`).join("; ")}. Keep every piece, door and window exactly where it is and exactly its size; keep the straight-on view with the wall filling the frame. ${(b.pieces ?? []).length ? "These are the ONLY pieces: add no other furniture, lamps, plants, shelves, cabinets, art, rugs or objects." : "This wall is kept clear: show only the bare wall with its windows and doors, the skirting and a strip of floor, with no furniture or decor at all."} Do not copy furniture or layout from any other picture of the room. ${REAL}`
+    ? `Render this exact ${b.wall === "room" ? "view of the whole room, from its corner at eye height," : b.floorView ? "view of the wall, straight on and from slightly above so the floor and rug in front of it show," : "straight-on wall elevation"} as a real, photorealistic interior photograph${b.wall === "room" ? "" : ` of wall ${b.wall ?? ""}`}. Turn every simple 3D shape into the real piece it stands for, with real materials and textures, in the ${b.style ?? "chosen"} style${b.styleText ? ` (${b.styleText})` : ""}. Colours: ${palette}. Pieces, left to right: ${(b.pieces ?? []).map((p) => `${p.name} (${p.detail}) at ${pct(p.box)}`).join("; ")}. Keep every piece, door and window exactly where it is and exactly its size; keep ${b.wall === "room" ? "the same camera and view of the room" : b.floorView ? "the same slightly-from-above view with the floor in front" : "the straight-on view with the wall filling the frame"}. ${(b.pieces ?? []).length ? "These are the ONLY pieces: add no other furniture, lamps, plants, shelves, cabinets, art, rugs or objects." : "This wall is kept clear: show only the bare wall with its windows and doors, the skirting and a strip of floor, with no furniture or decor at all."} Do not copy furniture or layout from any other picture of the room. ${REAL}`
     : `Replace only the ${b.item!.current} (${pct(b.item!.box)}) with ${b.item!.target}. Same position, size and perspective; the whole new piece fits inside that area, complete, never cut off. Keep the photo's exact light, colours, brightness and grain everywhere else, with a soft natural contact shadow only where the new piece touches the floor or wall.`;
   const layer = b.mode === "base" ? undefined : b.item?.group === "walls" || b.item?.group === "floor" ? "architecture" : b.item?.group === "furniture" ? "furniture" : "decor";
   const { data, error } = await invokeAi<{ imageUrl?: string; error?: string }>("generate-design", {
@@ -174,15 +179,19 @@ async function inBatches<T>(jobs: (() => Promise<T>)[], n: number, onDone: () =>
 
 /* ---------- one wall ---------- */
 
-async function makeWall(s: JourneyState, m: ShowroomModel, wall: Wall, report: (p: Progress) => void, stopped: () => boolean): Promise<WallScene> {
+async function makeWall(s: JourneyState, m: ShowroomModel, wall: Pic, report: (p: Progress) => void, stopped: () => boolean): Promise<WallScene> {
   const key = wallKey(s, m, wall);
-  const { renderGuide } = await import("../showroom3d/scene");
-  report({ wall, step: "Drawing your wall from its outline", done: 0, total: 1 });
+  const { renderGuide, renderRoomGuide, floorDepthFor, wallViewExtent } = await import("../showroom3d/scene");
+  report({ wall, step: wall === "room" ? "Drawing your whole room" : "Drawing your wall from its outline", done: 0, total: 1 });
   // the wall on its stored canvas preset, at one scale, so every picture and layer of it shares one size
   const rules = await loadRules();
-  const canvas = canvasFor(wallLength(m, wall) * 100, m.room.h * 100, rules.presets);
-  const guide = renderGuide(m, wall, canvas.width, canvas.height);
-  const comp = composeWall(m, wall, guide.boxes, canvas, rules.specs);
+  // a wall with seating is seen from slightly above, so the floor and the rug in front of it show (and swap);
+  // the whole room is seen from its corner at eye height, on a 16:9 canvas
+  const floorM = wall === "room" ? 0 : floorDepthFor(m, wall);
+  const ext = wall === "room" ? { w: 16, h: 9 } : wallViewExtent(m.room, wall, floorM);
+  const canvas = canvasFor(ext.w * 100, ext.h * 100, rules.presets);
+  const guide = wall === "room" ? renderRoomGuide(m, canvas.width, canvas.height) : renderGuide(m, wall, canvas.width, canvas.height, floorM);
+  const comp = composeWall(m, wall as Wall, guide.boxes, canvas, rules.specs);
   const placed = new Map(comp.items.map((it) => [it.key, it]));
   const items = wallItems(s, m, wall).filter((it) => guide.boxes[it.id]);
   const total = 2 + items.reduce((n, it) => n + it.alts.length, 0);
@@ -191,13 +200,13 @@ async function makeWall(s: JourneyState, m: ShowroomModel, wall: Wall, report: (
 
   const guideUrl = await storeDesignImage(guide.image);
   const hasTable = m.pieces.some((p) => guide.boxes[p.id] && (p.category === "dining" || p.category === "desk"));
-  const pieces = m.pieces.filter((p) => guide.boxes[p.id]).map((p) => ({ name: p.kept ? `${p.name} (the client's own, keep as it is)` : p.category === "rug" ? `${p.name} (lying flat on the floor in front of the wall, seen as the strip of floor at the bottom)` : hasTable && (p.category === "dchair" || p.category === "chair") ? `${p.name} (at the table: the table and every chair whole, chairs tucked in)` : p.name, detail: `${p.shapeName}, ${p.fabric ?? ""} ${m.palette.find((x) => x.hex === p.color)?.name ?? p.color}`.replace(/\s+/g, " "), box: guide.boxes[p.id] }));
+  const pieces = m.pieces.filter((p) => guide.boxes[p.id]).map((p) => ({ name: p.kept ? `${p.name} (the client's own, keep as it is)` : p.category === "rug" ? `${p.name} (lying flat on the floor${wall === "room" ? "" : " in front of the wall"})` : hasTable && (p.category === "dchair" || p.category === "chair") ? `${p.name} (at the table: the table and every chair whole, chairs tucked in)` : p.name, detail: `${p.shapeName}, ${p.fabric ?? ""} ${m.palette.find((x) => x.hex === p.color)?.name ?? p.color}`.replace(/\s+/g, " "), box: guide.boxes[p.id] }));
   // what hangs on the wall counts too (curtains, art, mirrors), so "only these" never removes them
   for (const e of m.extras) if (guide.boxes[e.id]) pieces.push({ name: e.name, detail: `${e.kind}, ${m.palette.find((x) => x.hex === e.color)?.name ?? e.color}`, box: guide.boxes[e.id] });
   report({ wall, step: "Making the photograph of your wall", done, total });
   if (!/^https:/.test(guideUrl)) throw new Error("Your wall's drawing could not be saved. Check that you're signed in and try again.");
   const styleText = (s.preview?.read ?? []).filter((r) => r.key !== "lighting").map((r) => r.text).join(" ").slice(0, 600);
-  const baseData = await ai({ mode: "base", imageUrl: guideUrl, styleImageUrl: previewImage(s), wall, style: s.moodboard?.name, palette: m.palette, pieces, moodboardDescription: s.moodboard?.description, styleText, roomType: s.current ?? s.startRoom });
+  const baseData = await ai({ mode: "base", floorView: floorM > 0, imageUrl: guideUrl, styleImageUrl: previewImage(s), wall, style: s.moodboard?.name, palette: m.palette, pieces, moodboardDescription: s.moodboard?.description, styleText, roomType: s.current ?? s.startRoom });
   if (stopped()) throw new Error("Stopped.");
   // the photo brought to the canvas size, so it lines up with the guide and every layer pixel for pixel
   const base = await pixels(baseData, canvas.width, canvas.height);
@@ -289,17 +298,17 @@ async function makeWall(s: JourneyState, m: ShowroomModel, wall: Wall, report: (
   const composition = { preset: canvas.preset, pxPerCm: canvas.pxPerCm, wall: { lengthCm: canvas.lengthCm, heightCm: canvas.heightCm, x: canvas.wallX, y: canvas.wallY }, items: comp.items };
   const manifest = { background, imageSize: { width: base.width, height: base.height }, layers, hotspots: spots, composition, enhancements: { brightness: 100, contrast: 100, saturation: 100 } };
   const manifestUrl = await up.put("manifest.json", new Blob([JSON.stringify(manifest)], { type: "application/json" }), "application/json");
-  void saveComposition(s, comp, { sceneKey: key, guideUrl, background, manifestUrl, assets });
+  if (wall !== "room") void saveComposition(s, comp, { sceneKey: key, guideUrl, background, manifestUrl, assets });
   tick("Done");
   return { status: "ready", key, manifestUrl, assetsUrl: up.assetsUrl, background, layers: saved, skipped, canvas: { preset: canvas.preset, width: canvas.width, height: canvas.height, pxPerCm: canvas.pxPerCm }, at: new Date().toISOString() };
 }
 
 /** Record a finished wall in the database too, so the scene is found from any device (best effort). */
-async function publish(s: JourneyState, wall: Wall, scene: WallScene) {
+async function publish(s: JourneyState, wall: Pic, scene: WallScene) {
   const layoutId = s.layouts[s.chosenLayout ?? 0]?.id;
   if (!s.projectId || !s.roomId || !layoutId || !scene.manifestUrl) return;
   try {
-    const view = `wall_${wall.toLowerCase()}`;
+    const view = wall === "room" ? "room" : `wall_${wall.toLowerCase()}`;
     const { data } = await supabase.from("showroom_scenes").select("version").eq("project_id", s.projectId).eq("room_id", s.roomId).eq("layout_id", layoutId).eq("view", view).order("version", { ascending: false }).limit(1);
     await supabase.from("showroom_scenes").insert({ project_id: s.projectId, room_id: s.roomId, layout_id: layoutId, view, manifest_url: scene.manifestUrl, assets_url: scene.assetsUrl, status: "ready", version: (data?.[0]?.version ?? 0) + 1 });
   } catch {
@@ -320,9 +329,9 @@ export function onProgress(l: Listener) { listeners.add(l); return () => { liste
 export function stopMaking() { if (running) running.stop = true; }
 
 /** Which walls still need a picture: never made, failed, or made from an older version of the room. */
-export function wallsToMake(s: JourneyState): Wall[] {
+export function wallsToMake(s: JourneyState): Pic[] {
   const m = buildModel(s);
-  return WALLS.filter((w) => {
+  return PICTURES.filter((w) => {
     const sc = s.showroom?.scenes?.[w];
     return !sc || sc.status !== "ready" || sc.key !== wallKey(s, m, w);
   });
@@ -332,7 +341,7 @@ export function wallsToMake(s: JourneyState): Wall[] {
  * Make every wall that needs it. `get` reads the latest journey state and `save` stores one wall's scene,
  * so the result lands even if the person moved on to another screen meanwhile.
  */
-export async function makeRoomPictures(get: () => JourneyState, save: (wall: Wall, scene: WallScene) => void, walls = wallsToMake(get())) {
+export async function makeRoomPictures(get: () => JourneyState, save: (wall: Pic, scene: WallScene) => void, walls = wallsToMake(get())) {
   if (running) return;
   const run = { stop: false };
   running = run;

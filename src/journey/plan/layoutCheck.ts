@@ -6,7 +6,7 @@
 import type { JourneyState, LayoutItem, Placement, Wall } from "../state";
 
 export type Rect = { x: number; y: number; w: number; h: number }; // cm
-export type Check = { ok: boolean; value: string; label: string };
+export type Check = { ok: boolean; value: string; label: string; /** A one-tap fix the screen can offer. */ fix?: "onto-walls" };
 export type PieceInfo = { item: LayoutItem; n: number; size: string; where: string; why: string; kept: boolean };
 
 const DOOR_CM = 85;
@@ -189,7 +189,92 @@ export function layoutChecks(s: JourneyState, items: LayoutItem[], wM: number, l
     const all = placed >= s.keeping.length;
     out.push({ ok: all, value: `${Math.min(placed, s.keeping.length)} of ${s.keeping.length}`, label: all ? "Your pieces placed" : "Your pieces — not all placed" });
   }
+  // pieces that belong against a wall but stand out in the room
+  const stray = strayPieces(items, wM, lM)[0];
+  if (stray) out.unshift({ ok: false, value: `${round5(stray.gap)} cm out`, label: `${name(stray.item)} belongs against a wall`, fix: "onto-walls" });
   const seats = items.filter((i) => i.kind === "sofa").length * 3 + items.filter((i) => i.kind === "chair").length;
   if (seats) out.push({ ok: true, value: `${seats} seats`, label: "Sofa counts as 3" });
   return out.slice(0, 7);
+}
+
+/* ---------- pieces that belong against a wall ---------- */
+
+const WALL_BOUND = /tv|media|sideboard|console|book(shelf|case)|shel(f|v)|wardrobe|dresser|cabinet|storage|piano/;
+const AGAINST_CM = 40;
+/** A piece that only works with its back to a wall (a TV unit, a sideboard, shelving…); kept pieces keep their place. */
+export const wallBound = (i: LayoutItem) => i.kind !== "keep" && i.kind !== "rug" && WALL_BOUND.test(`${i.kind} ${i.label}`.toLowerCase());
+const isTall = (i: LayoutItem) => TALL.has(i.kind) || /wardrobe|book|shel|piano|cabinet/.test(`${i.kind} ${i.label}`.toLowerCase());
+
+/** Pieces that belong against a wall but stand out in the room, with how far out (cm). */
+export function strayPieces(items: LayoutItem[], wM: number, lM: number) {
+  const W = wM * 100, L = lM * 100;
+  return items.flatMap((item, n) => {
+    if (!wallBound(item)) return [];
+    const r = cmRect(item, wM, lM), g = wallGaps(r, W, L);
+    const gap = Math.min(...Object.values(g));
+    return gap > AGAINST_CM ? [{ n, item, gap }] : [];
+  });
+}
+
+/**
+ * Moves every piece that belongs against a wall but stands out in the room (a TV unit 2 m out, say) onto a wall:
+ * a TV or media unit onto the wall facing the sofa when it can, anything else onto the nearest wall. Along that
+ * wall it goes as close to where it was as it can while keeping the door swing (plus a margin), a window (for
+ * tall pieces), the other pieces and the walking route clear. A piece that fits nowhere stays where it is.
+ */
+export function moveOntoWalls(s: JourneyState, items: LayoutItem[], wM: number, lM: number): { items: LayoutItem[]; moved: string[] } {
+  const W = wM * 100, L = lM * 100;
+  const out = items.map((i) => ({ ...i }));
+  const moved: string[] = [];
+  const doors = s.placements.filter((p) => p.kind === "doors" && p.wall && p.pos != null);
+  const windows = s.placements.filter((p) => p.kind === "windows" && p.wall && p.pos != null);
+  const doorZones = doors.map((d) => openingZone(d, W, L, DOOR_CM + 30, DOOR_CM + 10)!).filter(Boolean);
+  const winZones = windows.map((d) => openingZone(d, W, L, WINDOW_CM, 40)!).filter(Boolean);
+  const sofa = out.find((i) => i.kind === "sofa");
+  const sofaWall = sofa ? nearestWall(cmRect(sofa, wM, lM), W, L).wall : undefined;
+  const OPP: Record<Wall, Wall> = { A: "C", C: "A", B: "D", D: "B" };
+  const FACE: Record<Wall, NonNullable<LayoutItem["facing"]>> = { A: "down", C: "up", D: "right", B: "left" };
+  for (const { n, item } of strayPieces(out, wM, lM)) {
+    const r = cmRect(item, wM, lM), long = Math.max(r.w, r.h), deep = Math.min(r.w, r.h);
+    const cx = r.x + r.w / 2, cy = r.y + r.h / 2;
+    const g = wallGaps(r, W, L);
+    const media = /tv|media/.test(`${item.kind} ${item.label}`.toLowerCase());
+    const walls = (["A", "B", "C", "D"] as Wall[]).sort((a, b) => g[a] - g[b]);
+    if (media && sofaWall) walls.sort((a, b) => Number(b === OPP[sofaWall]) - Number(a === OPP[sofaWall]));
+    const others = out.filter((_, k) => k !== n && out[k].kind !== "rug").map((o) => cmRect(o, wM, lM));
+    const doorZ = doorZones[0];
+    const fits = (c: Rect) =>
+      c.x >= 0 && c.y >= 0 && c.x + c.w <= W && c.y + c.h <= L &&
+      !doorZones.some((z) => overlaps(c, z)) &&
+      !(isTall(item) && winZones.some((z) => overlaps(c, z))) &&
+      !others.some((o) => overlaps(shrink(c), shrink(o)));
+    let best: Rect | null = null;
+    for (const w of walls) {
+      const across = w === "A" || w === "C", len = across ? W : L;
+      const at = across ? cx : cy;
+      const rect = (c: number): Rect => {
+        const a = Math.max(0, Math.min(len - long, c - long / 2));
+        return w === "A" ? { x: a, y: 2, w: long, h: deep } : w === "C" ? { x: a, y: L - deep - 2, w: long, h: deep }
+          : w === "D" ? { x: 2, y: a, w: deep, h: long } : { x: W - deep - 2, y: a, w: deep, h: long };
+      };
+      const tries = Array.from({ length: Math.ceil(len / 10) * 2 + 1 }, (_, k) => at + (k % 2 ? 1 : -1) * Math.ceil(k / 2) * 10);
+      for (const c of tries) {
+        const cand = rect(c);
+        if (!fits(cand)) continue;
+        // and the walking route from the door still works with it there
+        if (doorZ) {
+          const target = windows[0] ? openingZone(windows[0], W, L, WINDOW_CM, 40)! : { x: W / 2 - 20, y: L / 2 - 20, w: 40, h: 40 };
+          if (!hasRoute([...others, cand], W, L, doorZ, target)) continue;
+        }
+        best = cand;
+        break;
+      }
+      if (best) {
+        out[n] = { ...item, x: (best.x / W) * 100, y: (best.y / L) * 100, w: (best.w / W) * 100, h: (best.h / L) * 100, facing: FACE[w] };
+        moved.push(item.label || item.kind);
+        break;
+      }
+    }
+  }
+  return { items: out, moved };
 }

@@ -11,7 +11,7 @@ import { analyzePlan, makeLayout, uploadPhoto } from "../services";
 import { onPlanReaderStatus, readPlan, warmPlanReader, type PlanRead } from "../plan/reader";
 import { applyPlanRead, fromReference, printedForRoom, withWritten, type ScaleRef } from "../plan/apply";
 import { readPlanText } from "../plan/printedText";
-import { layoutChecks, pieceInfo } from "../plan/layoutCheck";
+import { layoutChecks, moveOntoWalls, pieceInfo } from "../plan/layoutCheck";
 import { pdfToImages } from "@/lib/pdfToImages";
 import { list, soFar } from "../story";
 import { saveStepDone } from "../sync";
@@ -650,6 +650,8 @@ export function Layouts() {
     set((x) => ({
       layouts: x.layouts.map((L, i) => (i === chosen ? { ...L, original: L.original ?? L.items, items: fn(L.items) } : L)),
     }));
+  /** A new layout with its TV unit, sideboard or shelving put against a wall when it came out standing in the room. */
+  const onWalls = <T extends { items: LayoutItem[] }>(x: T): T => ({ ...x, items: moveOntoWalls(s, x.items, w, l).items });
   const changeItem = (n: number, item: LayoutItem) => editItems((items) => items.map((it, i) => (i === n ? item : it)));
   const addPiece = (k: (typeof ADDABLE)[number]) => {
     if (!lay) return;
@@ -671,10 +673,10 @@ export function Layouts() {
     (async () => {
       setBusy(true);
       try {
-        const a = await makeLayout(s, { emphasis: 0 });
+        const a = onWalls(await makeLayout(s, { emphasis: 0 }));
         if (cancelled) return;
         set((x) => x.layouts.length ? {} : { layouts: [a] });
-        const b = await makeLayout(s, { emphasis: 1, avoid: [a.name] });
+        const b = onWalls(await makeLayout(s, { emphasis: 1, avoid: [a.name] }));
         if (cancelled) return;
         set((x) => x.layouts.some((layout) => layout.id === a.id)
           ? { layouts: [...x.layouts, b], chosenLayout: x.chosenLayout ?? 0 }
@@ -693,7 +695,7 @@ export function Layouts() {
   const another = async () => {
     setBusy(true);
     try {
-      const next = await makeLayout(s, { emphasis: s.layouts.length % 2, avoid: s.layouts.map((x) => x.name) });
+      const next = onWalls(await makeLayout(s, { emphasis: s.layouts.length % 2, avoid: s.layouts.map((x) => x.name) }));
       set((x) => {
         if (x.layouts.length < 3) return { layouts: [...x.layouts, next] };
         const drop = x.layouts.findIndex((_, i) => i !== chosen);
@@ -924,6 +926,13 @@ export function Layouts() {
                   <div key={c.label} className={c.ok ? "ok" : "warn"}>
                     <b>{c.value}</b>
                     <span>{c.label}</span>
+                    {c.fix === "onto-walls" && (
+                      <button type="button" className="btn ghost sm" onClick={() => {
+                        const r = moveOntoWalls(s, lay!.items, w, l);
+                        if (r.moved.length) editItems(() => r.items);
+                        else toast({ title: "No free spot on a wall", description: "Every wall is taken near the door or by other pieces. Move it by hand, or remove a piece." });
+                      }}>Move it against a wall</button>
+                    )}
                   </div>
                 ))}
               </div>

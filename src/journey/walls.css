@@ -142,3 +142,4 @@
 .mu .lw-opt b{display:block;font-size:14px}
 .mu .lw-opt.on{border-color:var(--plum);background:#F8F1FA;box-shadow:0 0 0 3px var(--plum-l)}
 .mu .lw-msg{padding:24px}
+.mu .elev-free{margin:6px 2px 0;color:#6E5F73;font-size:13px;line-height:1.35}

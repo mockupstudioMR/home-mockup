@@ -47,7 +47,7 @@ export function ShowroomHandoff() {
     retry: false,
   });
   const hasLiveScene = Boolean(scene?.manifest_url && scene?.assets_url);
-  const own = view in WALL_OF ? s.showroom?.scenes?.[WALL_OF[view as keyof typeof WALL_OF]] : undefined;
+  const own = view in WALL_OF ? s.showroom?.scenes?.[WALL_OF[view as keyof typeof WALL_OF]] : view === "room" ? s.showroom?.scenes?.room : undefined;
   const ownReady = !hasLiveScene && own?.status === "ready" && own.manifestUrl && own.assetsUrl ? own : undefined;
 
   if (!layout) {
@@ -75,7 +75,7 @@ export function ShowroomHandoff() {
       {hasLiveScene ? (
         <GeneratorProShowroom scriptUrl={SCRIPT_URL} configUrl={scene!.manifest_url} assetsUrl={scene!.assets_url} />
       ) : ownReady ? (
-        <div style={{ padding: 16 }}><LayeredWall wall={WALL_OF[view as keyof typeof WALL_OF]} scene={ownReady} /></div>
+        <div style={{ padding: 16 }}><LayeredWall wall={view === "room" ? "room" : WALL_OF[view as keyof typeof WALL_OF]} scene={ownReady} /></div>
       ) : (
         <div style={{ padding: 36 }}>
           <p className="p">{view === "room" ? "Your room's pictures are made one wall at a time." : "This wall's picture isn't ready yet."}</p>

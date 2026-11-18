@@ -108,7 +108,13 @@ export function WallElevation({ o, wp, selected, onPick, compact = false, labels
   const items = new Map(wp.items.map((i) => [i.n, i]));
   const pieceItem = (p: OutlinePiece): WallItem | undefined => wp.items.find((i) => i.ref === p.ref);
   const r = Math.max(6, H * 0.026);
+  const freeNote = o.free?.length ? (
+    <p className="small elev-free">
+      Free-standing in the room: {o.free.map((f) => `${f.label}, ${(f.gapCm / 100).toFixed(1)} m from this wall`).join(" · ")}
+    </p>
+  ) : null;
   return (
+    <>
     <svg className="elev-svg" viewBox={vb} role="img" aria-label={`Wall ${o.wall}, ${wp.role.toLowerCase()} wall: outline, ${(L / 100).toFixed(2)} m wide, ${(H / 100).toFixed(2)} m high`}>
       <rect x={0} y={0} width={L} height={H} fill="#FFFDFB" stroke={INK} strokeWidth={2} vectorEffect="non-scaling-stroke" />
       <path d={`M${-PAD.x + 6} ${H} H${L + PAD.x - 6}`} stroke={INK} strokeWidth={3} vectorEffect="non-scaling-stroke" />
@@ -170,5 +176,7 @@ export function WallElevation({ o, wp, selected, onPick, compact = false, labels
         </g>
       )}
     </svg>
+    {freeNote}
+    </>
   );
 }
