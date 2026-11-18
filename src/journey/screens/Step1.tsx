@@ -16,13 +16,25 @@ export function WhoAreYou() {
   const { user } = useAuth();
   const { s } = useJourney();
   const target = s.done.length ? resumePath(s) : "/journey/1/why";
+  const start = () => navigate(user ? target : "/auth", { state: { from: target } });
+  // the same frame as the questions after it (Continue row at the bottom), so its heading sits at the same height
   return (
-    <Screen board="Main" step={0} signedIn={!!user}>
+    <Screen board="Main" step={0} signedIn={!!user}
+      dock={
+        <>
+          <p className="note" style={{ textAlign: "left" }}>You can switch later from your profile.</p>
+          <button type="button" className="btn" onClick={start}>
+            Continue
+            <I.next />
+          </button>
+        </>
+      }
+    >
       <p className="eyebrow">Before we begin</p>
       <h1 className="h1">Who are you?</h1>
       <p className="sub">We'll shape the experience around what you're here to do.</p>
       <div className="g3">
-        <Opt tint="a" sel onClick={() => navigate(user ? target : "/auth", { state: { from: target } })}>
+        <Opt tint="a" sel onClick={start}>
           <span className="tile">
             <I.home />
           </span>
@@ -73,9 +85,6 @@ export function WhoAreYou() {
           </span>
         </Opt>
       </div>
-      <p className="small" style={{ textAlign: "center", marginTop: "36px" }}>
-        You can switch later from your profile.
-      </p>
     </Screen>
   );
 }

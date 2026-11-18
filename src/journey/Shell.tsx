@@ -74,7 +74,7 @@ export function Back({ to, label = "Back", style }: { to: ScreenId; label?: stri
 }
 
 /** Steps whose screens must fit in one window on desktop/laptop (no scrolling). Phones still scroll up and down. */
-const FIT_STEPS = new Set([1, 2, 3, 4]);
+const FIT_STEPS = new Set([0, 1, 2, 3, 4]);
 const FIT_MIN = 0.5;
 
 /** Shrinks `inner` (CSS zoom) just enough that `outer` doesn't need to scroll. Re-fits when the window or the
