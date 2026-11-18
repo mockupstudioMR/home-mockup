@@ -7,6 +7,8 @@
  * Image-generation calls are left untouched so no text gets painted into pictures.
  */
 import { AsyncLocalStorage } from "node:async_hooks";
+// the model switch and its safety net sit under the language wrapper (see aiModels.ts)
+import "./aiModels.ts";
 
 const store = new AsyncLocalStorage<string>();
 

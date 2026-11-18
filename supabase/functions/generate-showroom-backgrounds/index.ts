@@ -1,6 +1,10 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { requireAdmin } from "../_shared/auth.ts";
 import { fetchWithTimeout } from "../_shared/http.ts";
+import { MODELS, useModels } from "../_shared/aiModels.ts";
+
+// which model does this function's work (see _shared/aiModels.ts)
+useModels({ "google/gemini-2.5-flash-image": MODELS.draft });
 
 /**
  * Admin-only. Generates ONE default showroom background per call (an image

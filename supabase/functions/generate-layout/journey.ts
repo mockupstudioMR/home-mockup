@@ -7,6 +7,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { fetchWithTimeout } from "../_shared/http.ts";
 import { arrange, fallbackGroups, type GroupRequest, type Wall } from "../_shared/arrange.ts";
 import { groupingsFor, mergeGroupings, mergeSpecs, mergeWallGaps, type Grouping, type Spec, type WallGaps } from "../_shared/layoutRules.ts";
+import { MODELS } from "../_shared/aiModels.ts";
 
 export type JourneyLayoutRequest = {
   journey: true;
@@ -86,11 +87,11 @@ Groupings you can choose from (key — name — against a wall or free-standing 
 ${options.map((o) => `- ${o.key} — ${o.name} — ${o.place === "floating" ? "free-standing" : "against a wall"}${o.width_cm ? ` — ${o.width_cm}×${o.depth_cm} cm` : ""} — ${o.activities.join(", ")}`).join("\n")}
 ${body.avoid?.length ? `Make it clearly different from: ${body.avoid.join("; ")}.` : ""}`;
 
-  const res = await fetchWithTimeout("https://ai.gateway.lovable.dev/v1/chat/completions", {
+  const ask = (model: string) => fetchWithTimeout("https://ai.gateway.lovable.dev/v1/chat/completions", {
     method: "POST",
     headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
     body: JSON.stringify({
-      model: "google/gemini-3-flash-preview",
+      model,
       messages: [{ role: "system", content: SYSTEM }, { role: "user", content: user }],
       tools: [{
         type: "function",
@@ -126,14 +127,21 @@ ${body.avoid?.length ? `Make it clearly different from: ${body.avoid.join("; ")}
     }),
   });
   let plan: { name?: string; groups?: GroupRequest[]; notes?: { ok: boolean; text: string }[] } | null = null;
-  if (res.ok) {
-    const data = await res.json();
-    const args = data.choices?.[0]?.message?.tool_calls?.[0]?.function?.arguments;
-    if (args) plan = JSON.parse(args);
-  } else if (res.status === 402 || res.status === 429) {
-    return { status: res.status, body: { error: res.status === 429 ? "Rate limited, please try again shortly." : "AI credits are used up for now." } };
-  } else {
-    console.warn("generate-layout journey: AI error", res.status);
+  // the everyday layout model first; when it gives no usable plan, the strongest reasoning model once more
+  for (const model of ["google/gemini-3-flash-preview", MODELS.layoutHard]) {
+    const res = await ask(model);
+    if (res.ok) {
+      try {
+        const data = await res.json();
+        const args = data.choices?.[0]?.message?.tool_calls?.[0]?.function?.arguments;
+        if (args) plan = JSON.parse(args);
+      } catch { plan = null; }
+    } else if (res.status === 402 || res.status === 429) {
+      return { status: res.status, body: { error: res.status === 429 ? "Rate limited, please try again shortly." : "AI credits are used up for now." } };
+    } else {
+      console.warn("generate-layout journey: AI error", model, res.status);
+    }
+    if (plan?.groups?.length) break;
   }
   const openings = (body.fixed ?? []).map((f) => ({ kind: f.kind, wall: f.wall ?? null, pos: f.pos ?? null }));
   const groups = plan?.groups?.length ? plan.groups : fallbackGroups(groupingsFor(groupings, body.roomType, body.activities), openings, W, L);

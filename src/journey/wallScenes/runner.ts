@@ -118,6 +118,10 @@ type AiBody = {
   moodboardDescription?: string; styleText?: string; roomType?: string;
   /** The wall is seen from slightly above, with the floor in front of it. */
   floorView?: boolean;
+  /** The picture's size ("1792x1008"), so the picture model draws at the canvas size. */
+  size?: string;
+  /** For a swap: a PNG the size of the picture, see-through only where the item may change. */
+  maskUrl?: string;
 };
 /** Set once the wall-picture function turns out not to be deployed: from then on the preview function is used. */
 let wallFnMissing = false;
@@ -206,7 +210,8 @@ async function makeWall(s: JourneyState, m: ShowroomModel, wall: Pic, report: (p
   report({ wall, step: "Making the photograph of your wall", done, total });
   if (!/^https:/.test(guideUrl)) throw new Error("Your wall's drawing could not be saved. Check that you're signed in and try again.");
   const styleText = (s.preview?.read ?? []).filter((r) => r.key !== "lighting").map((r) => r.text).join(" ").slice(0, 600);
-  const baseData = await ai({ mode: "base", floorView: floorM > 0, imageUrl: guideUrl, styleImageUrl: previewImage(s), wall, style: s.moodboard?.name, palette: m.palette, pieces, moodboardDescription: s.moodboard?.description, styleText, roomType: s.current ?? s.startRoom });
+  const size = `${canvas.width}x${canvas.height}`;
+  const baseData = await ai({ mode: "base", size, floorView: floorM > 0, imageUrl: guideUrl, styleImageUrl: previewImage(s), wall, style: s.moodboard?.name, palette: m.palette, pieces, moodboardDescription: s.moodboard?.description, styleText, roomType: s.current ?? s.startRoom });
   if (stopped()) throw new Error("Stopped.");
   // the photo brought to the canvas size, so it lines up with the guide and every layer pixel for pixel
   const base = await pixels(baseData, canvas.width, canvas.height);
@@ -220,7 +225,7 @@ async function makeWall(s: JourneyState, m: ShowroomModel, wall: Pic, report: (p
   const results = await inBatches(jobs.map((j) => async (): Promise<{ px: Rgba; cut: AltCut }> => {
     if (stopped()) throw new Error("Stopped.");
     const box = guide.boxes[j.item.id], a = j.item.alts[j.alt], grow = placed.get(j.item.id)?.cutPadding ?? 0.28;
-    const req: AiBody = { mode: "variation", imageUrl: /^https:/.test(background) ? background : baseData, item: { name: j.item.title, current: j.item.current, target: a.target, box, group: j.item.group }, productImageUrl: a.productImageUrl, style: s.moodboard?.name, palette: m.palette, roomType: s.current ?? s.startRoom };
+    const req: AiBody = { mode: "variation", size, maskUrl: editMask(canvas.width, canvas.height, pxBox(box as PctBox, canvas.width, canvas.height, grow)), imageUrl: /^https:/.test(background) ? background : baseData, item: { name: j.item.title, current: j.item.current, target: a.target, box, group: j.item.group }, productImageUrl: a.productImageUrl, style: s.moodboard?.name, palette: m.palette, roomType: s.current ?? s.startRoom };
     // an alternative is kept only when it sits in the photo like the original: same tones, the rest of the
     // photo untouched, the new piece whole (not cut off by its area) and not a re-lit rectangle
     for (let tries = 1; tries <= 2; tries++) {
@@ -313,6 +318,21 @@ async function publish(s: JourneyState, wall: Pic, scene: WallScene) {
     await supabase.from("showroom_scenes").insert({ project_id: s.projectId, room_id: s.roomId, layout_id: layoutId, view, manifest_url: scene.manifestUrl, assets_url: scene.assetsUrl, status: "ready", version: (data?.[0]?.version ?? 0) + 1 });
   } catch {
     /* the journey keeps its own copy */
+  }
+}
+
+/** A mask for a swap: opaque everywhere except the item's area, which the picture model may change. */
+function editMask(width: number, height: number, area: { x0: number; y0: number; x1: number; y1: number }): string | undefined {
+  try {
+    const c = document.createElement("canvas");
+    c.width = width; c.height = height;
+    const g = c.getContext("2d")!;
+    g.fillStyle = "#000";
+    g.fillRect(0, 0, width, height);
+    g.clearRect(area.x0, area.y0, area.x1 - area.x0, area.y1 - area.y0);
+    return c.toDataURL("image/png");
+  } catch {
+    return undefined;
   }
 }
 

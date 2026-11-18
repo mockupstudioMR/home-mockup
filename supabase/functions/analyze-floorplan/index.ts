@@ -2,6 +2,10 @@ import "../_shared/language.ts";
 import { requireUser } from "../_shared/auth.ts";
 import { fetchWithTimeout } from "../_shared/http.ts";
 import { PRINTED_ROOMS_SCHEMA, WRITTEN_RULES, mergeSize, pickPrinted, readWritten, type PrintedRoom } from "../_shared/dimensions.ts";
+import { MODELS, useModels } from "../_shared/aiModels.ts";
+
+// which model does this function's work (see _shared/aiModels.ts)
+useModels({ "google/gemini-2.5-flash": MODELS.read, "google/gemini-2.5-pro": MODELS.read });
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
