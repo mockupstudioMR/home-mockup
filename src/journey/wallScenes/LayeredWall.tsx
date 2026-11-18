@@ -60,7 +60,8 @@ export function LayeredWall({ wall, scene }: { wall: Wall; scene: WallScene }) {
     <div className="lw">
       <div className="lw-stage" style={{ aspectRatio: `${W} / ${H}` }}>
         <img className="lw-img" src={m.background} alt={`Wall ${wall}, as a photograph`} />
-        {layers.filter(([, l]) => l.variations.length > 0).map(([name, l]) => (
+        {/* the photo already shows every main option: only swapped pieces are laid over it, front ones last */}
+        {layers.filter(([n, l]) => (picks[n] ?? 0) > 0 && l.variations.length > 1).map(([name, l]) => (
           <img key={name} className="lw-img" src={l.variations[Math.min(picks[name] ?? 0, l.variations.length - 1)]} alt="" aria-hidden="true" />
         ))}
         {!hide && layers.map(([name, l]) => l.hotspot && (

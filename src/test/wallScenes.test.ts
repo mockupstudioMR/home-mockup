@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { EMPTY, type JourneyState } from "@/journey/state";
 import { buildModel } from "@/journey/showroom3d/model";
-import { altMask, centreOf, composite, cutAlt, cutLayer, driftOutside, itemMask, matchTone, pxBox, type Rgba } from "@/journey/wallScenes/layers";
+import { altMask, centreOf, composite, cutAlt, cutLayer, keepOff, limitAlpha, driftOutside, itemMask, matchTone, pxBox, type Rgba } from "@/journey/wallScenes/layers";
 import { wallItems } from "@/journey/wallScenes/items";
 import { wallKey } from "@/journey/wallScenes/runner";
 
@@ -43,15 +43,33 @@ describe("keeping alternatives true to the photo", () => {
     const layer = cutAlt(textured, alt, cut.alpha, pxBox(box, W, H, 0.03), 1);
     const i = (52 * W + 60) * 4;
     expect(layer.data[i]).toBe(31); // the new piece itself
-    const a = (33 * W + 60) * 4, b = (33 * W + 61) * 4; // the wall above it: still textured, and darker
+    const a = (33 * W + 60) * 4, b = (33 * W + 61) * 4; // the wall above it, laid over the photo: still textured, and darker
     expect(layer.data[a + 3]).toBeGreaterThan(0);
-    expect(Math.abs(layer.data[a] - layer.data[b])).toBeGreaterThan(8);
-    expect(Math.max(layer.data[a], layer.data[b])).toBeLessThan(190);
+    const seen = composite(textured, layer);
+    expect(Math.abs(seen.data[a] - seen.data[b])).toBeGreaterThan(8);
+    expect(Math.max(seen.data[a], seen.data[b])).toBeLessThan(190);
+    // over another wall colour, the shadow darkens that colour instead of bringing the old one back
+    const rust = picture(() => [160, 80, 50]);
+    expect(composite(rust, layer).data[a + 1]).toBeLessThan(85);
   });
   it("won't show a re-lit rectangle instead of a piece", () => {
     const a = area();
     const patched = picture((x, y) => (x >= a.x0 && x < a.x1 && y >= a.y0 && y < a.y1 ? [140, 140, 140] : [185, 179, 170]));
     expect(altMask(base, patched, box).usable).toBe(false);
+  });
+});
+
+describe("swapping one piece never repaints another", () => {
+  it("keeps a layer off the pixels of the other pieces, but not off their edges", () => {
+    // item map: the sofa (1) at x 40–80, y 40–65; everything else is wall (0)
+    const ids = new Uint16Array(W * H);
+    for (let y = 40; y < 65; y++) for (let x = 40; x < 80; x++) ids[y * W + x] = 1;
+    const all = new Float32Array(W * H).fill(1);
+    const allow = keepOff(ids, W, H, new Set([1]), { x0: 0, y0: 0, x1: W, y1: H }, 3);
+    const a = limitAlpha(all, allow);
+    expect(a[52 * W + 60]).toBe(0); // inside the sofa: untouched
+    expect(a[20 * W + 20]).toBe(1); // the wall: painted
+    expect(a[52 * W + 41]).toBeGreaterThan(0); // the sofa's very edge: allowed, so a small shift doesn't leave a seam
   });
 });
 

@@ -13,7 +13,7 @@ import { getAiErrorMessage } from "@/lib/aiErrorMessage";
 import { storeDesignImage } from "../services";
 import type { JourneyState, Wall } from "../state";
 import { buildModel, seenOn, type ShowroomModel } from "../showroom3d/model";
-import { alphaBox, altMask, centreOf, composite, cutAlt, cutLayer, driftOutside, matchTone, pxBox, unionAlpha, type AltCut, type PctBox, type Rgba } from "./layers";
+import { alphaBox, altMask, keepOff, limitAlpha, centreOf, composite, cutAlt, cutLayer, driftOutside, matchTone, pxBox, unionAlpha, type AltCut, type PctBox, type Rgba } from "./layers";
 import { wallItems, type WallItem } from "./items";
 import { canvasFor, composeWall, loadRules, saveComposition, wallLength, type ItemAssets } from "./composition";
 
@@ -38,7 +38,7 @@ export const WALLS: Wall[] = ["A", "B", "C", "D"];
 const ALIGN_LIMIT = 14; // mean change outside the item (0–255), after matching tones, above which an alternative moved the photo
 const PARALLEL = 4;
 /** Raised when the way pictures are made changes, so walls made the old way are made again. */
-const PICTURE_VERSION = 7;
+const PICTURE_VERSION = 8;
 
 const previewImage = (s: JourneyState) => s.preview?.versions[s.preview.current]?.image;
 
@@ -82,7 +82,7 @@ function toBlob(px: Rgba, type: "image/webp" | "image/jpeg", crop?: { x0: number
     out.width = Math.max(1, Math.round(cw * k)); out.height = Math.max(1, Math.round(ch * k));
     out.getContext("2d")!.drawImage(c, crop.x0, crop.y0, cw, ch, 0, 0, out.width, out.height);
   }
-  return new Promise((resolve, reject) => out.toBlob((b) => (b ? resolve(b) : reject(new Error("A layer could not be saved."))), type, type === "image/jpeg" ? 0.86 : 0.9));
+  return new Promise((resolve, reject) => out.toBlob((b) => (b ? resolve(b) : reject(new Error("A layer could not be saved."))), type, 0.93));
 }
 
 /* ---------- storage ---------- */
@@ -220,7 +220,17 @@ async function makeWall(s: JourneyState, m: ShowroomModel, wall: Wall, report: (
       const px = matchTone(base, raw, area);
       if (driftOutside(base, px, area) > ALIGN_LIMIT) continue;
       const cut = altMask(base, px, box as PctBox, grow);
-      if (cut.usable) return { px, cut };
+      if (!cut.usable) continue;
+      // keep the layer off the other pieces' pixels, so swapping one piece never repaints another
+      if (guide.ids) {
+        const surface = j.item.id === "walls" || j.item.id === "floor";
+        const others = new Set<number>();
+        guide.ids.keys.forEach((k, i) => { if (k !== j.item.id && (surface || (k !== "walls" && k !== "floor"))) others.add(i + 1); });
+        const shrink = Math.max(4, Math.round(base.width * 0.008));
+        const area = { x0: Math.max(0, cut.box.x0 - shrink), y0: Math.max(0, cut.box.y0 - shrink), x1: Math.min(base.width, cut.box.x1 + shrink), y1: Math.min(base.height, cut.box.y1 + shrink) };
+        cut.alpha = limitAlpha(cut.alpha, keepOff(guide.ids.data, base.width, base.height, others, area, shrink));
+      }
+      return { px, cut };
     }
     throw new Error("The alternative did not fit the photo.");
   }), PARALLEL, () => tick("Making the alternatives"));

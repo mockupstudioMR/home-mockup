@@ -56,3 +56,10 @@ A dining table or desk and the chairs within about 8% of the room from it form o
   - a "Wall decor" spot above the main low piece of a wall with nothing hung on it. Its main option is the bare wall; the alternatives are a large painting or floating shelves.
 - Kept pieces, and items whose alternatives didn't fit, are still clickable. They are stored as `hotspots` in the manifest, apart from `layers`, so the Generator PRO viewer is unaffected, and they show a note.
 - The base prompt lists everything on the wall, hanging items included, and forbids anything else. A clear wall is drawn bare. The preview is used only for colours, materials and mood, never for its furniture or camera.
+
+## Clean swaps (v8)
+
+- The viewer lays only swapped pieces over the photo. The photo already shows every main option, and drawing the main layers on top used to paint the old sofa or wall back over a new one.
+- The guide also renders an item map: which piece each pixel shows, front-most first (`Guide.ids`). Each alternative's cut-out is kept off the other pieces' pixels (`keepOff`), shrunk a little so small misalignments between the drawing and the photo leave no seam. A new coffee table never repaints the sofa, and a new wall colour never repaints the furniture.
+- Around a new piece, its shadow is a see-through darkening, so it falls on whichever wall colour is chosen.
+- Pictures and layers are saved at quality 0.93.
