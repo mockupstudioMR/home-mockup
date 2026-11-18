@@ -162,7 +162,9 @@ export function composeWall(m: ShowroomModel, wall: Wall, boxes: Record<string, 
       lowRes: spec.minPx > 0 && Math.min(w, h) < spec.minPx,
     } satisfies CompositionItem;
   });
-  items.sort((a, b) => a.depthBand - b.depthBand || (a.y + a.h) - (b.y + b.h));
+  // back to front; within a band lower pieces in front, and chairs in front of the table they stand at
+  const seat = (it: CompositionItem) => (/chair|stool/i.test(it.label) ? 1 : 0);
+  items.sort((a, b) => a.depthBand - b.depthBand || (Math.abs((a.y + a.h) - (b.y + b.h)) > 4 ? (a.y + a.h) - (b.y + b.h) : seat(a) - seat(b)));
   items.forEach((it, i) => { it.zOrder = 10 + i; });
   return { wall, canvas, items };
 }

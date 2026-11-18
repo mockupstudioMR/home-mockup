@@ -7,7 +7,7 @@
  */
 import * as THREE from "three";
 import type { Wall } from "../state";
-import type { Extra, Opening, PieceModel, ShowroomModel } from "./model";
+import { seenOn, type Extra, type Opening, type PieceModel, type ShowroomModel } from "./model";
 
 export type View = "room" | "A" | "B" | "C" | "D" | "doll" | "plan";
 type G = THREE.Group;
@@ -907,7 +907,7 @@ export function renderGuide(m: ShowroomModel, wall: Wall, width = 1536, canvasHe
   const height = canvasHeight ?? Math.max(256, Math.min(2048, Math.round((width * H) / len)));
   // only what the outline shows on this wall (rugs lie flat and can't be seen straight on)
   // (openings on the other walls are left out too: seen edge-on, their frames and handles poke in at the sides)
-  const onWall: ShowroomModel = { ...m, openings: m.openings.filter((o) => o.wall === wall), pieces: m.pieces.filter((p) => p.wall === wall && p.category !== "rug"), extras: m.extras.filter((e) => e.wall === wall && e.kind !== "pendant") };
+  const onWall: ShowroomModel = { ...m, openings: m.openings.filter((o) => o.wall === wall), pieces: m.pieces.filter((p) => seenOn(p, wall) && p.category !== "rug"), extras: m.extras.filter((e) => e.wall === wall && e.kind !== "pendant") };
   const canvas = document.createElement("canvas");
   canvas.width = width; canvas.height = height;
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, preserveDrawingBuffer: true });

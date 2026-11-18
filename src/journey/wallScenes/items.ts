@@ -6,7 +6,7 @@
  */
 import type { JourneyState, Wall } from "../state";
 import { LIBRARY, type Category } from "../showroom3d/library";
-import { hsl, type ShowroomModel } from "../showroom3d/model";
+import { hsl, seenOn, type ShowroomModel } from "../showroom3d/model";
 
 export type Alt = { name: string; target: string; productImageUrl?: string; productId?: string };
 export type WallItem = {
@@ -88,8 +88,8 @@ export function wallItems(s: JourneyState, m: ShowroomModel, wall: Wall): WallIt
   }
 
   for (const p of m.pieces) {
-    if (p.wall !== wall || p.kept || p.category === "piano") continue;
-    if (p.category !== "rug" && !p.onWall && p.category !== "table") continue;
+    if (!seenOn(p, wall) || p.kept || p.category === "piano") continue;
+    if (p.category !== "rug" && !p.onWall && p.category !== "table" && !p.shownOn) continue;
     const noun = NOUN[p.category], cn = colourName(m, p.color), mat = p.fabric ? ` ${p.fabric}` : "";
     const shapes = LIBRARY[p.category].filter((x) => x.id !== p.shape);
     const [c1] = otherColours(m, p.color, true);

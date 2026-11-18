@@ -41,3 +41,7 @@ Runs in the browser: the page must stay open. Cost: one base picture plus two ed
 | `wall_composition_items` | Every piece on that wall: place in cm and px, drawing order, hotspot, a low-resolution flag, and its layer files, thumbnails and names. |
 
 Each wall picks the preset closest to its own length-to-height ratio and is fitted whole at one scale. The guide, the photo, every layer and every thumbnail share that canvas size. Pieces are drawn back to front by depth band. Hotspots come from each box's rule. The manifest also carries the composition.
+
+## Table sets (v5)
+
+A dining table or desk and the chairs within about 8% of the room from it form one set (`seatSets` in `wallOutline.ts`). The set shows whole on every wall any of its pieces is nearest to (`wallsShowing`; `PieceModel.shownOn`, `seenOn`). Two chairs never appear without their table. In the outline, chairs beyond the table's end are drawn in profile with their backs outward. A chair hidden behind another on the same side is drawn once, and tables have a solid top, an apron and tapered legs. In the pictures, chairs are layered in front of their table, and the prompts ask for the whole set, complete and styled.

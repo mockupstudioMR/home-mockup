@@ -53,7 +53,8 @@ Pieces on this wall, left to right:
 ${pieces || "none"}
 It must look like a real photograph taken by an interior photographer with a full-frame camera, not a render: soft daylight from one consistent direction with gentle falloff across the wall, real fabric weave, wood grain and plaster texture, slight natural imperfections, true-to-life colour.
 Shadows only where light really makes them: soft contact shadows under and behind each piece, consistent with the one light direction. No dark halos, no floating shadows, no shadow rectangles or patches.
-Every piece complete and whole: nothing cut off by the frame, nothing partly entering at the left or right edge, no half pieces. No people, no text, no watermark, no added objects. Same aspect ratio as the guide.`;
+Every piece complete and whole: nothing cut off by the frame, nothing partly entering at the left or right edge, no half pieces.
+A table with its chairs is one composed set: show the whole table top and its legs, each chair complete and turned to the table, evenly spaced and tucked in, styled like a magazine interior shot (a simple vase or bowl on the table is the only addition allowed). No people, no text, no watermark, no added objects. Same aspect ratio as the guide.`;
 }
 
 function variationPrompt(b: Body) {
