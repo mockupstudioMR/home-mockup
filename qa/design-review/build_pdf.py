@@ -72,6 +72,10 @@ def small(rel, width):
 
 # ---------- chapters ----------
 def group_of(s):
+    if s["area"] == "journey" and s.get("step") is not None:
+        for g in m["groups"]:
+            if g["area"] == "journey" and g.get("step") == s["step"]:
+                return g
     for g in m["groups"]:
         if g["area"] == s["area"] and (not g["prefix"] or s["board"] == g["prefix"] or s["board"].startswith(g["prefix"])):
             return g
@@ -83,7 +87,11 @@ def step_num(s):
     mm = re.match(r"S(\d+)-", s["board"])
     return int(mm.group(1)) if mm else 0
 pos = {s["id"]: i for i, s in enumerate(m["screens"])}
-screens = sorted(m["screens"], key=lambda s: (order[group_of(s)["key"]], step_num(s), s["board"].endswith("Summary"), pos[s["id"]] if s["area"] == "public" else 0, s["board"]))
+def sort_key(s):
+    if s.get("step") is not None:  # journey from the route table: keep the app's own order
+        return (order[group_of(s)["key"]], 0, False, pos[s["id"]], "")
+    return (order[group_of(s)["key"]], step_num(s), s["board"].endswith("Summary"), pos[s["id"]] if s["area"] == "public" else 0, s["board"])
+screens = sorted(m["screens"], key=sort_key)
 for i, s in enumerate(screens, 1):
     s["no"] = i
     s["group"] = group_of(s)["key"]
@@ -127,8 +135,15 @@ for s in screens:
     badge = f'<span class="bd {s["change"]}">{"New" if s["change"]=="new" else "Changed"}</span>' if s.get("change") else ""
     warn = ' <span class="bd err">!</span>' if s.get("error") or s.get("redirectedTo") else ""
     rows.append(f'<div class="tr"><span class="n">{s["no"]}</span><span class="t">{e(s["title"])}{badge}{warn}</span><span class="r">{e(s["route"])}</span></div>')
-per_col = 38
-cols = [rows[i:i + per_col] for i in range(0, len(rows), per_col)]
+# fill columns by height: a chapter heading takes about 1.7 rows
+cols, cur, h = [], [], 0.0
+for r in rows:
+    rh = 1.7 if r.startswith('<div class="tg"') else 1.0
+    if h + rh > 31 and cur:
+        cols.append(cur); cur, h = [], 0.0
+    cur.append(r); h += rh
+if cur:
+    cols.append(cur)
 for ci in range(0, len(cols), 2):
     pair = cols[ci:ci + 2]
     page(f"toc{ci}", 1000, f'<div class="toc"><p class="eyebrow">Contents</p><div class="cols">' + "".join(f'<div class="col">{"".join(c)}</div>' for c in pair) + f"</div></div>{footer('')}")

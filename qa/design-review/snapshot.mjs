@@ -40,13 +40,49 @@ for (const area of ["journey", "admin"]) {
   for (const s of JSON.parse(fs.readFileSync(path.join(SA, "specs", `${area}.json`), "utf8"))) titles[`${area}/${s.board}`] = s.title;
 }
 
+// The journey's screens as the app defines them today (src/journey/routes.ts), so removed screens drop out
+// and new ones show up without editing a list. screens.config.json still supplies the sample data per screen.
+function journeyScreens() {
+  const src = fs.readFileSync(path.join(ROOT, "src/journey/routes.ts"), "utf8");
+  const out = [];
+  for (const m of src.matchAll(/\{\s*id:\s*"([^"]+)",\s*path:\s*"([^"]*)",\s*step:\s*(\d+)\s*\}/g)) out.push({ id: m[1], path: m[2], step: Number(m[3]) });
+  return out;
+}
+const stripNo = (t) => String(t).replace(/^\s*\d+(\.\d+)?[a-z]?\s*·\s*/i, "");
+
 function screens() {
   const list = [];
   for (const [board, e] of Object.entries(extra.screens)) list.push({ area: "public", board, title: e.title, ...e });
-  for (const area of ["journey", "admin"]) {
-    for (const [board, e] of Object.entries(config[area])) list.push({ area, board, title: titles[`${area}/${board}`] || board, ...e });
+  // journey: route table order; variants from the config (e.g. S1-State-Empty) follow their screen
+  const live = journeyScreens();
+  const conf = config.journey;
+  let prev = null;
+  for (const r of live) {
+    const route = `/journey${r.path ? "/" + r.path : ""}`;
+    const own = Object.entries(conf).filter(([b]) => b === r.id || b.startsWith(r.id + "-"));
+    if (!own.length) {
+      // a screen the config doesn't know yet: borrow the sample data of the screen before it
+      const base = prev ? { role: prev.role, seed: prev.seed, patch: prev.patch } : { role: "user" };
+      list.push({ area: "journey", board: r.id, step: r.step, title: extra.titles?.[r.id] || r.id, ...base, route });
+      continue;
+    }
+    for (const [board, e] of own) {
+      // keep the config's address when it points into this screen (variants, wall letters), else use today's
+      const rt = e.route && e.route.split("?")[0].startsWith(route) ? e.route : route;
+      const t = stripNo(extra.titles?.[board] || titles[`journey/${board}`] || board).replace(/^Step \d+ summary$/i, `Step ${r.step} summary`);
+      const item = { area: "journey", board, step: r.step, title: t, ...e, route: rt };
+      list.push(item);
+      prev = item;
+    }
   }
+  for (const [board, e] of Object.entries(config.admin)) list.push({ area: "admin", board, title: titles[`admin/${board}`] || board, ...e });
   return list.filter((s) => !only || only.includes(s.board)).map((s) => ({ ...s, id: `${s.area}-${s.board}` }));
+}
+
+function stepTitles() {
+  const src = fs.readFileSync(path.join(ROOT, "src/journey/data.ts"), "utf8");
+  const m = src.match(/STEP_TITLES\s*=\s*\[([^\]]*)\]/);
+  return m ? [...m[1].matchAll(/"([^"]*)"/g)].map((x) => x[1]) : [];
 }
 
 async function startServer() {
@@ -110,6 +146,10 @@ async function shoot(browser, base, s, kind) {
 }
 
 async function main() {
+  if (args.includes("--list")) {
+    for (const s of screens()) console.log(`${s.id.padEnd(30)} step ${s.step ?? "-"}  ${s.route.padEnd(40)} ${s.title}`);
+    return;
+  }
   for (const k of ["desktop", "mobile"]) fs.mkdirSync(path.join(OUT, k), { recursive: true });
   let server = null;
   if (!baseUrl) { server = await startServer(); baseUrl = server.url; }
@@ -121,7 +161,12 @@ async function main() {
     commitDate: git("log -1 --format=%cI"),
     commitSubject: git("log -1 --format=%s"),
     takenAt: new Date().toISOString(),
-    groups: extra.groups,
+    groups: [
+      ...extra.groups.filter((g) => g.area === "public"),
+      { key: "journey-0", area: "journey", step: 0, title: "Journey home", sub: "Before the steps" },
+      ...stepTitles().slice(1).map((t, i) => ({ key: `journey-${i + 1}`, area: "journey", step: i + 1, title: `Step ${i + 1}`, sub: t })),
+      ...extra.groups.filter((g) => g.area === "admin"),
+    ],
     screens: [],
   };
   try {
@@ -129,7 +174,7 @@ async function main() {
       const desktop = await shoot(browser, baseUrl, s, "desktop");
       const mobile = await shoot(browser, baseUrl, s, "mobile");
       const redirected = desktop.finalUrl && !desktop.finalUrl.startsWith(s.route.split("?")[0]) && !s.allowRedirect;
-      manifest.screens.push({ id: s.id, area: s.area, board: s.board, title: s.title, route: s.route, role: s.role ?? null, desktop: desktop.file, mobile: mobile.file, error: desktop.error || mobile.error, redirectedTo: redirected ? desktop.finalUrl : null, pageErrors: [...new Set([...desktop.errors, ...mobile.errors])].slice(0, 3) });
+      manifest.screens.push({ id: s.id, area: s.area, board: s.board, step: s.step ?? null, title: s.title, route: s.route, role: s.role ?? null, desktop: desktop.file, mobile: mobile.file, error: desktop.error || mobile.error, redirectedTo: redirected ? desktop.finalUrl : null, pageErrors: [...new Set([...desktop.errors, ...mobile.errors])].slice(0, 3) });
       console.log(`${desktop.error ? "ERR " : redirected ? "→   " : "ok  "} ${s.id.padEnd(28)} ${s.title}${redirected ? "  (ended on " + desktop.finalUrl + ")" : ""}`);
     }
   } finally {
@@ -140,4 +185,5 @@ async function main() {
   console.log(`\n${manifest.screens.length} screens → ${path.relative(ROOT, OUT)}/shots.json`);
 }
 
-main().catch((e) => { console.error(e); process.exit(2); });
+// exit explicitly: the dev server's child processes can otherwise keep Node alive after the work is done
+main().then(() => process.exit(0), (e) => { console.error(e); process.exit(2); });
