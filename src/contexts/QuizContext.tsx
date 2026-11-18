@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
+import { clearDesignView } from "@/lib/generateSession";
 
 export interface QuizData {
   stylePreference: string;
@@ -98,18 +99,9 @@ export const QuizProvider = ({ children }: { children: React.ReactNode }) => {
     sessionStorage.removeItem(STEP_STORAGE_KEY);
     
     // Clear all generate page caches so a new quiz starts fresh
+    clearDesignView();
     const generateKeys = [
-      'generate_design_cache',
-      'generate_products_cache',
-      'generate_highlights_cache',
-      'generate_styleprofile_cache',
-      'generate_items_cache',
-      'generate_description_cache',
-      'generate_history_cache',
-      'generate_extracting_cache',
       'generate_quiz_response_id',
-      'generate_debug_steps_cache',
-      'generate_debug_prompt_cache',
       'generate_quiz_hash',
       'generate_quiz_nonce',
       'generate_consumed_quiz_nonce',
