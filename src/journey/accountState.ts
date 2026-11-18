@@ -1,7 +1,8 @@
 /**
  * The journey kept with the person's account, not only in this browser: every change is saved to
- * journey_states (one row per person), and a browser with no answers, or older ones, gets them back on
- * the next visit. Best effort: without the table or a signed-in person, the journey works from this browser.
+ * journey_states (one row per person), and a browser with no answers gets them back on the next visit.
+ * Newer answers from another device come in step by step through useCloudSync (step_progress); this is
+ * the safety net for an empty browser. Best effort: without the table or a signed-in person, the journey works from this browser.
  */
 import { supabase } from "@/lib/looseDb";
 import type { JourneyState } from "./state";
@@ -19,9 +20,6 @@ const userId = async () => {
 const isQa = () => {
   try { return localStorage.getItem("hm_qa") === "1"; } catch { return false; }
 };
-const localSavedAt = () => {
-  try { return localStorage.getItem(SAVED_AT_KEY) ?? ""; } catch { return ""; }
-};
 export const markSaved = (at = new Date().toISOString()) => {
   try { localStorage.setItem(SAVED_AT_KEY, at); } catch { /* private mode */ }
 };
@@ -38,8 +36,9 @@ export async function newerFromAccount(local: JourneyState): Promise<JourneyStat
   const { data, error } = await supabase.from("journey_states").select("state, updated_at").eq("user_id", id).maybeSingle();
   if (error) { off = true; return null; }
   if (!data?.state) return null;
-  const mine = localSavedAt();
-  if (!isBlank(local) && mine && mine >= data.updated_at) return null;
+  // a browser with answers is kept in step with other devices step by step (useCloudSync); this copy
+  // only fills a browser that has nothing yet
+  if (!isBlank(local)) return null;
   markSaved(data.updated_at);
   return data.state as JourneyState;
 }
