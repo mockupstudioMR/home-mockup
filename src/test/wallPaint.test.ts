@@ -81,3 +81,22 @@ describe("wall repaint stops at the floor", () => {
     for (let y = 41; y < H3; y++) expect(m[y * W3 + 30]).toBe(0);
   });
 });
+
+describe("wall repaint and a cushion in the wall's colour behind a soft edge", () => {
+  // a terracotta wall; a terracotta cushion in front of it whose edge is blurred over 4 px through a darker seam
+  const W4 = 80, H4 = 50;
+  const im: Rgba = { data: new Uint8ClampedArray(W4 * H4 * 4), width: W4, height: H4 };
+  const wallC = [150, 70, 50];
+  for (let y = 0; y < H4; y++) for (let x = 0; x < W4; x++) {
+    const dx = x - 40, dy = y - 30, r = Math.sqrt(dx * dx + dy * dy);
+    // inside r<10 the cushion (a touch lighter), a dark seam at r≈10, blurred: each pixel steps only a little
+    const seam = Math.max(0, 1 - Math.abs(r - 10) / 6); // 0..1 over ±6 px: each pixel steps only ~11
+    const k = (r < 10 ? 1.05 : 1) * (1 - 0.45 * seam);
+    im.data.set([wallC[0] * k, wallC[1] * k, wallC[2] * k, 255], (y * W4 + x) * 4);
+  }
+  it("stops at the blurred seam", () => {
+    const m = wallMask(im, { x0: 2, y0: 2, x1: 78, y1: 10 });
+    expect(m[5 * W4 + 5]).toBe(1);
+    expect(m[30 * W4 + 40]).toBe(0); // the cushion's middle
+  });
+});

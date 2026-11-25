@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { drawPro, flatIntrusion, proPiece } from "@/journey/wallScenes/proLayers";
+import { drawPro, flatIntrusion, growByColours, proPiece } from "@/journey/wallScenes/proLayers";
+import { dyeSurface } from "@/journey/wallScenes/wallPaint";
 import type { Rgba } from "@/journey/wallScenes/layers";
 
 // a patterned terracotta rug on the floor, a dark wood table on it: top y 20–26, two legs x 22–26 and 54–58 down to y 46
@@ -37,5 +38,23 @@ describe("floor or rug inside a piece's outline", () => {
     const at = (x: number, y: number) => Array.from(seen.data.slice((y * W + x) * 4, (y * W + x) * 4 + 3));
     expect(at(40, 40)[0]).toBeLessThan(80); // green, not terracotta
     expect(at(24, 40)).toEqual([70, 45, 30]); // the leg
+  });
+});
+
+describe("a rug in a new colour", () => {
+  // the rug's outline from segmentation misses the rug round the table's base (x 18–62, y 30–48)
+  const rugBlob = mask((x, y) => y >= 14 && !(x >= 18 && x < 62 && y >= 30 && y < 48));
+  const standing = mask(table);
+  it("is extended into the rug it missed, but not into the table", () => {
+    const more = growByColours(photo, (p) => rugBlob[p] >= 0.5 && !standing[p], (p) => rugBlob[p] < 0.5, { x0: 0, y0: 10, x1: W, y1: H }, 10);
+    expect(more[40 * W + 40]).toBe(1); // between the legs
+    expect(more[35 * W + 20]).toBe(1); // beside a leg
+    expect(more[40 * W + 24]).toBe(0); // a leg
+    const ext = new Float32Array(rugBlob); for (let p = 0; p < ext.length; p++) if (more[p]) ext[p] = 1;
+    // dyed green: nothing terracotta left in the rug, the table as it was
+    const dyed = dyeSurface(photo, ext, "#3F6B4E");
+    const at = (x: number, y: number) => Array.from(dyed.data.slice((y * W + x) * 4, (y * W + x) * 4 + 3));
+    for (const [x, y] of [[40, 40], [20, 35], [5, 50], [70, 20]]) { const [r, g] = at(x, y); expect(g).toBeGreaterThan(r); }
+    expect(at(24, 40)).toEqual([70, 45, 30]);
   });
 });

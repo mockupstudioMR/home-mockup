@@ -121,7 +121,9 @@ export function wallItems(s: JourneyState, m: ShowroomModel, wall: Wall | "room"
     const shapes = LIBRARY[p.category].filter((x) => x.id !== p.shape);
     const [c1] = otherColours(m, p.color, true);
     const ai: Alt[] = [];
-    if (c1) ai.push({ name: `${colourName(m, c1)[0].toUpperCase()}${colourName(m, c1).slice(1)}${mat}`, target: `the same ${p.shapeName.toLowerCase()} ${noun} in ${colourName(m, c1)} (${c1})${mat}` });
+    // a rug in another colour is dyed on the photo itself (no image AI): its pattern and pile stay, nothing of
+    // the old rug is left anywhere
+    if (c1) ai.push({ name: `${colourName(m, c1)[0].toUpperCase()}${colourName(m, c1).slice(1)}${mat}`, target: `the same ${p.shapeName.toLowerCase()} ${noun} in ${colourName(m, c1)} (${c1})${mat}`, ...(p.category === "rug" ? { paint: c1 } : {}) });
     if (shapes[0]) ai.push({ name: shapes[0].name, target: `a ${shapes[0].name.toLowerCase()} ${noun} (${shapes[0].note.toLowerCase()}) in ${cn}${mat}, the same size` });
     if (ai.length < 2 && shapes[1]) ai.push({ name: shapes[1].name, target: `a ${shapes[1].name.toLowerCase()} ${noun} in ${cn}${mat}, the same size` });
     // always two to choose from: with few moodboard colours or shapes, two classic finishes

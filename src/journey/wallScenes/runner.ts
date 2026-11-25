@@ -13,9 +13,9 @@ import { getAiErrorMessage } from "@/lib/aiErrorMessage";
 import { storeDesignImage } from "../services";
 import type { JourneyState, Wall } from "../state";
 import { buildModel, seenOn, type ShowroomModel } from "../showroom3d/model";
-import { flatIntrusion, proPiece, surfaceLayer, type ProPiece } from "./proLayers";
+import { flatIntrusion, growByColours, proPiece, surfaceLayer, type ProPiece } from "./proLayers";
 import { editMaskFrom, segmentPhoto } from "./segment";
-import { paintWall, wallMask, wallSeeds } from "./wallPaint";
+import { dyeSurface, paintWall, wallMask, wallSeeds } from "./wallPaint";
 import { alphaBox, altMask, keepOff, limitAlpha, centreOf, composite, cutAlt, cutLayer, driftOutside, matchTone, pxBox, unionAlpha, type AltCut, type PctBox, type Rgba } from "./layers";
 import { wallItems, type WallItem } from "./items";
 import { canvasFor, composeWall, loadRules, saveComposition, wallLength, type ItemAssets } from "./composition";
@@ -44,7 +44,7 @@ export const PICTURES: Pic[] = [...WALLS, "room"];
 const ALIGN_LIMIT = 14; // mean change outside the item (0–255), after matching tones, above which an alternative moved the photo
 const PARALLEL = 4;
 /** Raised when the way pictures are made changes, so walls made the old way are made again. */
-const PICTURE_VERSION = 18;
+const PICTURE_VERSION = 19;
 
 const previewImage = (s: JourneyState) => s.preview?.versions[s.preview.current]?.image;
 
@@ -228,7 +228,7 @@ async function makeWall(s: JourneyState, m: ShowroomModel, wall: Pic, report: (p
   // or an outline: only the wall's own pixels change, keeping the photo's light.
   const isPaint = (it: WallItem, i: number) => it.id === "walls" && !!it.alts[i]?.paint;
   /** Lies flat on the floor (a rug): other pieces stand on it. */
-  const isFlat = (it: WallItem) => /rug|carpet|\bmat\b/i.test(`${it.id} ${it.title}`);
+  const isFlat = (it: WallItem) => m.pieces.find((p) => p.id === it.id)?.category === "rug" || /rug|carpet|\bmat\b/i.test(`${it.id} ${it.title}`);
   const seedsFor = (img: Rgba) => {
     const W = img.width, H = img.height;
     const wb = guide.boxes["walls"] ? pxBox(guide.boxes["walls"] as PctBox, W, H, 0) : { x0: 0, y0: 0, x1: W, y1: H };
@@ -291,6 +291,22 @@ async function makeWall(s: JourneyState, m: ShowroomModel, wall: Pic, report: (p
     // between a table's legs and under a chair instead of the old one
     const flatIds = new Set(pieceItems.filter((it) => isFlat(it)).map((it) => it.id));
     const floorTop = aboveFloor(base).y1 - Math.round(H * 0.01);
+    // a rug's outline from segmentation misses bits of it (round a table's base, its edges): extended by the
+    // rug's own colours into every connected pixel of it that no standing piece covers
+    {
+      const standingAll = new Uint8Array(W * H);
+      for (const [k, mk] of Object.entries(baseMasks)) if (!flatIds.has(k)) for (let p = 0; p < standingAll.length; p++) if (mk[p] >= 0.6) standingAll[p] = 1;
+      for (const fid of flatIds) {
+        const bm = baseMasks[fid];
+        if (!bm) continue;
+        if (!guide.boxes[fid]) continue;
+        const rb = pxBox(guide.boxes[fid] as PctBox, W, H, 0.5);
+        const more = growByColours(base, (p) => bm[p] >= 0.5 && !standingAll[p], (p) => bm[p] < 0.5 && Math.floor(p / W) >= floorTop - Math.round(H * 0.02), rb, rb.y0);
+        const ext = new Float32Array(bm);
+        for (let p = 0; p < ext.length; p++) if (more[p]) ext[p] = 1;
+        baseMasks[fid] = ext;
+      }
+    }
     const surfaceFor = (id: string) => {
       const sm = new Float32Array(W * H);
       for (let p = floorTop * W; p < sm.length; p++) sm[p] = 1;
@@ -302,11 +318,32 @@ async function makeWall(s: JourneyState, m: ShowroomModel, wall: Pic, report: (p
       for (const [k, mk] of Object.entries(baseMasks)) if (k !== id && !flatIds.has(k)) for (let p = 0; p < o.length; p++) if (mk[p] > o[p]) o[p] = mk[p];
       return o;
     };
-    /** What must not be drawn with a piece: the wall, and (for anything but the floor itself) floor or rugs. */
+    /** Every outlined piece, a little wider: wall away from all of them is used to match the empty room's light. */
+    const anyPiece = new Uint8Array(W * H);
+    for (const mk of Object.values(baseMasks)) for (let p = 0; p < anyPiece.length; p++) if (mk[p] >= 0.3) anyPiece[p] = 1;
+    /** What must not be drawn with a piece: the wall, and (for anything but the floor itself) floor or rugs.
+     *  A pixel only counts as wall where the empty room shows the same there: a cushion or a seat in the wall's
+     *  colour differs from the bare wall behind it, so it stays with its piece instead of getting the new paint. */
     const notPiece = (img: Rgba, mk: Float32Array, id: string, area: { x0: number; y0: number; x1: number; y1: number }, wall: Float32Array) => {
-      const flat = flatIntrusion(img, mk, surfaceFor(id), standingOthers(id), area);
-      const out = new Float32Array(wall);
-      for (let p = 0; p < out.length; p++) if (flat[p]) out[p] = 1;
+      const flat = flatIds.has(id) ? new Float32Array(mk.length) : flatIntrusion(img, mk, surfaceFor(id), standingOthers(id), area);
+      // the empty room is a separate AI picture: bring its brightness to this photo's first, per colour channel,
+      // from wall well away from any piece
+      const sum = [0, 0, 0, 0, 0, 0];
+      for (let p = 0; p < wall.length; p += 3) {
+        if (wall[p] < 0.5 || anyPiece[p]) continue;
+        const i = p * 4;
+        for (let c = 0; c < 3; c++) { sum[c] += img.data[i + c]; sum[c + 3] += plate.data[i + c]; }
+      }
+      const gain = [0, 1, 2].map((c) => (sum[c + 3] > 0 ? Math.min(1.4, Math.max(0.7, sum[c] / sum[c + 3])) : 1));
+      const out = new Float32Array(wall.length);
+      for (let p = 0; p < out.length; p++) {
+        if (flat[p]) { out[p] = 1; continue; }
+        if (wall[p] < 0.5) continue;
+        const i = p * 4;
+        let dd = 0;
+        for (let c = 0; c < 3; c++) dd = Math.max(dd, Math.abs(img.data[i + c] - plate.data[i + c] * gain[c]));
+        if (dd <= 30) out[p] = 1;
+      }
       return out;
     };
     const othersOf = (id: string) => {
@@ -342,7 +379,16 @@ async function makeWall(s: JourneyState, m: ShowroomModel, wall: Pic, report: (p
       const kind = kindOf(j.item), box = guide.boxes[j.item.id] as PctBox, a = j.item.alts[j.alt], grow = placed.get(j.item.id)?.cutPadding ?? 0.28;
       const onPlate = kind !== "piece";
       const area = pxBox(box, W, H, grow);
-      const maskUrl = kind === "surface" ? editMaskFrom([plateMasks[j.item.id]], W, H, Math.round(W * 0.004)) : kind === "piece" && baseMasks[j.item.id] ? editMaskFrom([baseMasks[j.item.id]], W, H, Math.round(W * 0.03)) : editMask(W, H, area);
+      // a rug in another colour: dyed on the photo, cut with the rug's own (extended) outline, so it covers exactly
+      // where the old rug was visible
+      if (kind === "piece" && isFlat(j.item) && a.paint && baseMasks[j.item.id]) {
+        const rm = baseMasks[j.item.id], px = dyeSurface(base, rm, a.paint), pArea = pxBox(box, W, H, grow + 0.4);
+        const piece = proPiece(px, plate, rm, pxBox(box, W, H, 0.03), pArea, othersOf(j.item.id), notPiece(px, rm, j.item.id, pArea, wallOf(px)));
+        if (piece.cover >= 0.05) return { px, piece };
+      }
+      // the AI may change a rug's whole area (its outline misses bits, which would stay the old rug); a standing
+      // piece only its own outline, a little wider
+      const maskUrl = kind === "surface" ? editMaskFrom([plateMasks[j.item.id]], W, H, Math.round(W * 0.004)) : kind === "piece" && baseMasks[j.item.id] && !isFlat(j.item) ? editMaskFrom([baseMasks[j.item.id]], W, H, Math.round(W * 0.03)) : editMask(W, H, area);
       const req: AiBody = { mode: "variation", size, maskUrl, imageUrl: onPlate ? plateUrl : photoUrl, item: { name: j.item.title, current: kind === "free" ? `the empty area at ${j.item.title.toLowerCase()}` : j.item.current, target: a.target, box, group: j.item.group }, productImageUrl: a.productImageUrl, style: s.moodboard?.name, palette: m.palette, roomType: s.current ?? s.startRoom };
       const from = onPlate ? plate : base;
       for (let tries = 1; tries <= 2; tries++) {
