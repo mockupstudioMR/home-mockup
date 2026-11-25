@@ -16,15 +16,17 @@ function img(src: string) {
 export async function segmentPhoto(imageUrl: string, items: { key: string; name: string }[], width: number, height: number): Promise<Masks> {
   const out: Masks = {};
   // a few things per call: the model outlines a short list more carefully
-  for (let i = 0; i < items.length; i += 8) {
-    const part = items.slice(i, i + 8);
-    let masks: { key: string; box: number[]; mask: string }[] = [];
-    for (let attempt = 1; attempt <= 2 && !masks.length; attempt++) {
-      const { data } = await invokeAi<{ masks?: { key: string; box: number[]; mask: string }[] }>("segment-photo", { body: { imageUrl, items: part }, timeoutMs: 100_000 });
-      masks = data?.masks ?? [];
-    }
+  for (let i = 0; i < items.length; i += 4) {
+    const part = items.slice(i, i + 4);
+    const { data, error } = await invokeAi<{ masks?: { key: string; box: number[]; mask: string }[] }>("segment-photo", { body: { imageUrl, items: part }, timeoutMs: 100_000 });
+    // A timeout may already be billed. Stop this outlining pass, rather than
+    // repeating it (or continuing its remaining batches); the runner falls back.
+    if (error) throw error;
+    const masks = data?.masks ?? [];
+    if (!masks.length) return out;
     const c = document.createElement("canvas"); c.width = width; c.height = height;
-    const g = c.getContext("2d", { willReadFrequently: true })!;
+    const g = c.getContext("2d", { willReadFrequently: true });
+    if (!g) throw new Error("Photo outlines could not be drawn.");
     for (const m of masks) {
       const [y0, x0, y1, x1] = m.box.map((v) => v / 1000);
       const bx = Math.round(x0 * width), by = Math.round(y0 * height), bw = Math.max(1, Math.round((x1 - x0) * width)), bh = Math.max(1, Math.round((y1 - y0) * height));
@@ -51,7 +53,9 @@ export function editMaskFrom(masks: Float32Array[], width: number, height: numbe
   for (let y = 0; y < height; y++) { let last = -1e9; for (let x = 0; x < width; x++) { if (on[y * width + x]) last = x; if (x - last <= grow) tmp[y * width + x] = 1; } last = 1e9; for (let x = width - 1; x >= 0; x--) { if (on[y * width + x]) last = x; if (last - x <= grow) tmp[y * width + x] = 1; } }
   for (let x = 0; x < width; x++) { let last = -1e9; for (let y = 0; y < height; y++) { if (tmp[y * width + x]) last = y; if (y - last <= grow) all[y * width + x] = 1; } last = 1e9; for (let y = height - 1; y >= 0; y--) { if (tmp[y * width + x]) last = y; if (last - y <= grow) all[y * width + x] = 1; } }
   const c = document.createElement("canvas"); c.width = width; c.height = height;
-  const g = c.getContext("2d")!, im = g.createImageData(width, height);
+  const g = c.getContext("2d");
+  if (!g) throw new Error("The photo edit mask could not be drawn.");
+  const im = g.createImageData(width, height);
   for (let p = 0; p < all.length; p++) im.data[p * 4 + 3] = all[p] ? 0 : 255;
   g.putImageData(im, 0, 0);
   return c.toDataURL("image/png");

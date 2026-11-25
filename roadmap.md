@@ -1,6 +1,7 @@
 # Roadmap
 
 ## Now
+- [x] Handle photo-segmentation timeouts without automatic replay: checked all three outlining paths and retained-photo fallback; 13 tests passed, corrected function deployed, signed-in controlled timeout made one request with no runtime crash. A real furnished-wall generation was not exercised.
 - [x] Remove Colours, Lighting and Details; signed-in preview verified six steps, Walls to Make it happen, sizes/to-do and legacy links.
 - [x] Fix new-project saving: corrected owner SELECT policy; 3 live privacy/saving tests passed; signed-in Step 1 saved project, bedroom and progress, and Project Home reloaded them after browser journey storage was cleared.
 - [x] Verify current database migrations and request deployment of the latest version (2026-11-06): applied missing furniture layout schema and reference data; checked signed-in activities screen and 12 layout/shopping-list tests.

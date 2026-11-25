@@ -1,5 +1,7 @@
 # Architecture rules
 
+- Photo segmentation uses small sequential batches and never automatically replays failed or empty requests; timeout outcomes may be billed, and the wall builder must fall back to cut-outs over the retained photo.
+
 - The six-step journey retains legacy stored progress IDs (final step 9, finished room 10) and maps them for display; removed-step URLs continue to the final step so existing accounts and bookmarks remain usable.
 
 - Layout generation appends options to current state and ignores results after leaving the screen; late plan readers must not clear displayed layouts, so selection and edits survive background work.

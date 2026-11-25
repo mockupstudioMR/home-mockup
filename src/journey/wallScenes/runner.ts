@@ -283,7 +283,7 @@ async function makeWall(s: JourneyState, m: ShowroomModel, wall: Pic, report: (p
     const plateUrl = await up.put("room.jpg", await toBlob(plate, "image/jpeg"), "image/jpeg");
     const surfaces = items.filter((it) => SURFACE(it.id));
     const plateMasks = surfaces.length
-      ? await segmentPhoto(plateUrl, surfaces.map((it) => ({ key: it.id, name: it.id === "walls" ? "the painted wall surface, all of it up to the ceiling (not the door, windows, skirting or floor)" : it.id === "floor" ? "the floor" : it.current })), W, H).catch(() => ({} as Record<string, Float32Array>))
+      ? await segmentPhoto(plateUrl, surfaces.map((it) => ({ key: it.id, name: it.id === "walls" ? "the painted wall surface, all of it up to the ceiling (not the door, windows, skirting or floor)" : it.id === "floor" ? "the floor" : it.current })), W, H)
       : {};
     const blank = await up.put("none.webp", await toBlob({ data: new Uint8ClampedArray(4), width: 1, height: 1 }, "image/webp"), "image/webp");
 
@@ -309,7 +309,7 @@ async function makeWall(s: JourneyState, m: ShowroomModel, wall: Pic, report: (p
         if (kind === "piece") {
           const url = await up.put(`tmp-${j.item.id.replace(/[^a-zA-Z0-9_-]/g, "-")}-${j.alt}.jpg`, await toBlob(px, "image/jpeg"), "image/jpeg");
           const mk = (await segmentPhoto(url, [{ key: j.item.id, name: a.target }], W, H))[j.item.id];
-          if (!mk) continue;
+          if (!mk) throw new Error("The alternative could not be outlined.");
           const piece = proPiece(px, plate, mk, pxBox(box, W, H, 0.03), pxBox(box, W, H, grow + 0.4), othersOf(j.item.id));
           if (piece.cover >= 0.05 && !piece.clipped) return { px, piece };
           continue;
@@ -498,7 +498,8 @@ async function makeWall(s: JourneyState, m: ShowroomModel, wall: Pic, report: (p
     };
     saved.push({ id: item.id, title: item.title, names: variants.map((v) => v.name) });
   }
-  if (!saved.length) throw new Error("None of the alternatives could be made for this wall. Try again.");
+  // Even if no alternatives succeeded, the original photo and its item hotspots
+  // remain a usable wall; never discard that photo after an outlining timeout.
   const composition = { preset: canvas.preset, pxPerCm: canvas.pxPerCm, wall: { lengthCm: canvas.lengthCm, heightCm: canvas.heightCm, x: canvas.wallX, y: canvas.wallY }, items: comp.items };
   const manifest = { background, imageSize: { width: base.width, height: base.height }, layers, hotspots: spots, composition, enhancements: { brightness: 100, contrast: 100, saturation: 100 } };
   const manifestUrl = await up.put("manifest.json", new Blob([JSON.stringify(manifest)], { type: "application/json" }), "application/json");

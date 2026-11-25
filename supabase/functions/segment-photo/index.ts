@@ -8,6 +8,7 @@ import "../_shared/language.ts";
 import { requireUser } from "../_shared/auth.ts";
 import { fetchWithTimeout } from "../_shared/http.ts";
 import { MODELS, useModels } from "../_shared/aiModels.ts";
+import { segmentationFailure } from "./recovery.ts";
 
 useModels({ "google/gemini-2.5-flash": MODELS.read });
 
@@ -41,11 +42,15 @@ Deno.serve(async (req) => {
     const start = raw.indexOf("["), end = raw.lastIndexOf("]");
     const parsed = JSON.parse(start >= 0 ? raw.slice(start, end + 1) : "[]") as { box_2d?: number[]; mask?: string; label?: string }[];
     const keys = new Set(items.map((i) => i.key));
-    const masks = parsed
-      .filter((m) => Array.isArray(m.box_2d) && m.box_2d.length === 4 && typeof m.mask === "string" && m.label && keys.has(m.label))
-      .map((m) => ({ key: m.label!, box: m.box_2d!.map((v) => Math.max(0, Math.min(1000, Number(v)))), mask: m.mask!.startsWith("data:") ? m.mask! : `data:image/png;base64,${m.mask}` }));
+    const masks = parsed.flatMap((m) => {
+      if (!Array.isArray(m.box_2d) || m.box_2d.length !== 4 || typeof m.mask !== "string" || !m.label || !keys.has(m.label)) return [];
+      const box = m.box_2d.map(Number);
+      if (!box.every(Number.isFinite)) return [];
+      return [{ key: m.label, box: box.map((v) => Math.max(0, Math.min(1000, v))), mask: m.mask.startsWith("data:") ? m.mask : `data:image/png;base64,${m.mask}` }];
+    });
     return json({ masks });
   } catch (e) {
-    return json({ error: (e as Error).message }, 500);
+    const failure = segmentationFailure(e);
+    return json(failure.body, failure.status);
   }
 });

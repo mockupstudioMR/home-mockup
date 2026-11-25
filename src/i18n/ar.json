@@ -1,4 +1,8 @@
 {
+  "Photo outlining took too long. Your wall photo is kept; simpler cut-outs will be used instead.": "تحديد حدود القطع في الصورة أخد وقت طويل. صورة حيطتك محفوظة، وهنستخدم قصّات أبسط بدلها.",
+  "Photo outlines could not be drawn.": "ماقدرناش نرسم حدود القطع في الصورة.",
+  "The photo edit mask could not be drawn.": "ماقدرناش نرسم منطقة تعديل الصورة.",
+  "The alternative could not be outlined.": "ماقدرناش نحدد حدود البديل.",
   "Finish step 6": "خلّص الخطوة 6",
   "What we set up in step 6": "اللي جهّزناه في الخطوة 6",
   "steps 2–6": "الخطوات من 2 لـ6",
