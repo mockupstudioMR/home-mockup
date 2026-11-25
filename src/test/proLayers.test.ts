@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { drawPro, proPiece, surfaceLayer } from "@/journey/wallScenes/proLayers";
+import { wallMask as findWall } from "@/journey/wallScenes/wallPaint";
 import type { Rgba } from "@/journey/wallScenes/layers";
 
 const W = 80, H = 60;
@@ -66,5 +67,18 @@ describe("PRO layers", () => {
     const l = surfaceLayer(fill(room(mustard)), wallMask, 0);
     expect(l.data[(10 * W + 5) * 4 + 3]).toBe(255);
     expect(l.data[(50 * W + 5) * 4 + 3]).toBe(0);
+  });
+
+  it("a coarse outline (a segmentation blob) brings none of the old wall with the sofa", () => {
+    // the blob reaches 6 px past the sofa on every side, as Gemini's masks do
+    const blob = maskOf((x, y) => x >= 4 && x < 46 && y >= 14 && y < 46);
+    const wall = findWall(photo, box(2, 2, 70, 10));
+    const sofa = proPiece(photo, plate, blob, box(14, 24, 36, 36), box(0, 8, 52, 52), undefined, wall);
+    const out = drawPro(fill(room(mustard)), sofa);
+    for (const [x, y] of [[6, 25], [42, 25], [25, 16], [7, 16]]) {
+      const [r, g, b] = px(out, x, y);
+      expect(Math.abs(r - mustard[0]) + Math.abs(g - mustard[1]) + Math.abs(b - mustard[2])).toBeLessThan(20);
+    }
+    expect(px(out, 25, 30)).toEqual([70, 110, 80]);
   });
 });

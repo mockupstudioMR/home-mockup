@@ -55,7 +55,13 @@ function distanceTo(m: Float32Array, w: number, area: PxBox): Float32Array {
  * Its cast shadow is only the darkening right around the piece, after the empty room's overall brightness is
  * brought to the photo's, and it fades out well before the edge of `area`.
  */
-export function proPiece(photo: Rgba, plate: Rgba, mask: Float32Array, core: PxBox, area: PxBox, others?: Float32Array): ProPiece {
+/**
+ * `wall` (optional, 0–1): where the photo shows the wall itself (wallPaint.wallMask). Segmentation outlines are
+ * soft blobs; any wall inside one would be drawn with the piece (multiply blacks it out, lighten brings the photo
+ * back) and show the old wall colour round the piece over a new one. Those pixels are taken out last, after the
+ * hole filling, so wall seen through an armrest or under a table stays out too.
+ */
+export function proPiece(photo: Rgba, plate: Rgba, mask: Float32Array, core: PxBox, area: PxBox, others?: Float32Array, wall?: Float32Array): ProPiece {
   const { width: w, height: h } = photo;
   let m: Float32Array = new Float32Array(w * h);
   for (let y = area.y0; y < area.y1; y++) for (let x = area.x0; x < area.x1; x++) { const p = y * w + x; if (mask[p] >= 0.5) m[p] = 1; }
@@ -70,6 +76,7 @@ export function proPiece(photo: Rgba, plate: Rgba, mask: Float32Array, core: PxB
     for (const q of [x > area.x0 ? p - 1 : -1, x < area.x1 - 1 ? p + 1 : -1, y > area.y0 ? p - w : -1, y < area.y1 - 1 ? p + w : -1]) if (q >= 0 && !keep[q] && m[q] >= 0.5) { keep[q] = 1; stack.push(q); }
   }
   m = fillHoles(keep, w, area);
+  if (wall) for (let y = area.y0; y < area.y1; y++) for (let x = area.x0; x < area.x1; x++) { const p = y * w + x; if (wall[p] >= 0.5) m[p] = 0; }
   // a hard edge one pixel inside the outline: the photo's mixed edge pixel (part piece, part old wall) is left out
   const alpha = morph(m, w, area, 1, false);
   let inCore = 0, x0 = Infinity, y0 = Infinity, x1 = -1, y1 = -1;

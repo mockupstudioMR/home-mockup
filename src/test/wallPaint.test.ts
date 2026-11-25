@@ -42,3 +42,26 @@ describe("wall repaint", () => {
     expect(px(110, 30)[3]).toBe(0);
   });
 });
+
+describe("wall repaint in the shade", () => {
+  // the wall darkens and turns redder in a soft shadow beside and behind a sofa (as photographed)
+  const W2 = 100, H2 = 60;
+  const wallAt = (x: number, y: number) => {
+    const inSofa = x >= 50 && x < 90 && y >= 30;
+    if (inSofa) return [50, 90, 60];
+    // shadow strength: strongest right next to the sofa, fading out over ~20 px
+    const d = x < 50 ? 50 - x : y < 30 ? 30 - y : 99;
+    const s = d < 20 ? 0.3 + 0.7 * (d / 20) : 1;
+    // shade shifts the hue a little towards red (less green and blue)
+    return [150 * s + 10 * (1 - s), 70 * s * (0.85 + 0.15 * s), 50 * s * (0.8 + 0.2 * s)];
+  };
+  const im: Rgba = { data: new Uint8ClampedArray(W2 * H2 * 4), width: W2, height: H2 };
+  for (let y = 0; y < H2; y++) for (let x = 0; x < W2; x++) { const c = wallAt(x, y); im.data.set([c[0], c[1], c[2], 255], (y * W2 + x) * 4); }
+  const sd = { x0: 2, y0: 2, x1: 30, y1: 12 };
+  it("takes in the shaded wall right up to the sofa", () => {
+    const m = wallMask(im, sd);
+    expect(m[45 * W2 + 48]).toBeGreaterThan(0.4); // deepest shade, next to the sofa's side
+    expect(m[28 * W2 + 70]).toBeGreaterThan(0.4); // shade just above the sofa
+    expect(m[45 * W2 + 60]).toBe(0); // the sofa itself
+  });
+});
