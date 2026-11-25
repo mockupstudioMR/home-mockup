@@ -1,0 +1,1 @@
+DROP POLICY IF EXISTS "Signed-in users read" ON public.scheme_combinations;

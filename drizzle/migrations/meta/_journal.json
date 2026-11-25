@@ -113,6 +113,13 @@
       "when": 1795605351352,
       "tag": "0015_migration",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1795629758209,
+      "tag": "0016_restrict_scheme_combinations_read",
+      "breakpoints": true
     }
   ]
 }
