@@ -243,7 +243,7 @@ export function exportRoomSpec(spec: RoomSpec, filename?: string) {
 /* ---------------- mappers ---------------- */
 
 // The DB types JSON columns as `Json`; narrow them to the spec shapes we write in specToRow.
-function rowToSpec(row: Tables<"rooms">): RoomSpec {
+export function rowToSpec(row: Tables<"rooms">): RoomSpec {
   const style = (row.style ?? {}) as Partial<RoomSpec["style"]>;
   const furniture = (row.furniture ?? {}) as Partial<RoomSpec["furniture"]>;
   return {

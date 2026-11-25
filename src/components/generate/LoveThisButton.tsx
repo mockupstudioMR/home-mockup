@@ -19,7 +19,7 @@ const LoveThisButton = ({ isLocked, isLoading, onLock, designId }: LoveThisButto
   const navigate = useNavigate();
 
   const handleFloorPlan = () => {
-    trackEvent("journey_start" as any, "floor-plan-from-generate", { design_id: designId });
+    trackEvent("journey_start", "floor-plan-from-generate", { design_id: designId });
     navigate("/floor-plan", { state: { fromDesign: designId, preserveChoices: true } });
   };
 
@@ -46,7 +46,7 @@ const LoveThisButton = ({ isLocked, isLoading, onLock, designId }: LoveThisButto
   const handleDislike = () => {
     if (disliked) return;
     setDisliked(true);
-    trackEvent("unsatisfied" as any, "generate", { design_id: designId });
+    trackEvent("unsatisfied", "generate", { design_id: designId });
     toast({
       title: "Thanks for the feedback",
       description: "We'll use this to improve future designs.",

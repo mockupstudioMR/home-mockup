@@ -1,5 +1,5 @@
 import { Navigate, useNavigate, useLocation } from "react-router-dom";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ComponentProps } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Home, Palette, Upload, Package, ArrowRight, Ruler, Sparkles, Briefcase, Building2, PenTool, Sofa, MoreHorizontal } from "lucide-react";
 import RetailerStyleFlow from "@/components/b2b/RetailerStyleFlow";
@@ -92,7 +92,7 @@ const Start = () => {
   const groundDraft = useMemo(() => {
     try {
       const raw = sessionStorage.getItem("ground_your_space_draft");
-      if (raw) return JSON.parse(raw) as { data?: Partial<GroundData>; step?: string };
+      if (raw) return JSON.parse(raw) as { data?: Partial<GroundData>; step?: ComponentProps<typeof GroundYourSpace>["initialStep"] };
     } catch { /* ignore */ }
     return null;
   }, []);
@@ -361,7 +361,7 @@ const Start = () => {
                   }}
                   onStepChange={setGroundStep}
                   initialData={groundDraft?.data}
-                  initialStep={groundDraft?.step as any}
+                  initialStep={groundDraft?.step}
                 />
               ) : freshStage === "vision" ? (
                 <CaptureVision

@@ -5,6 +5,7 @@ export type AnalyticsEventType =
   | "output_generated"
   | "ai_call"
   | "satisfied"
+  | "unsatisfied"
   | "client_error";
 
 /**

@@ -135,7 +135,7 @@ const AnalyzeRoom = () => {
   useEffect(() => {
     if (!journey.ready || journeyHydratedFromDb.done) return;
     journeyHydratedFromDb.done = true;
-    const p = (journey.snapshot?.payload as any)?.analyzeRoom;
+    const p = journey.snapshot?.payload?.analyzeRoom as Partial<PersistedState> | undefined;
     if (!p) return;
     if (Array.isArray(p.images)) setUploadedImages(p.images);
     if (p.result) setAnalysisResult(p.result);

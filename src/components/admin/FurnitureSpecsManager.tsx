@@ -81,7 +81,7 @@ export default function FurnitureSpecsManager() {
       setNewRow(null);
       toast({ title: "Added" });
     },
-    onError: (e: any) => toast({ title: e.message || "Insert failed", variant: "destructive" }),
+    onError: (e: Error) => toast({ title: e.message || "Insert failed", variant: "destructive" }),
   });
 
   const deleteMutation = useMutation({
@@ -99,7 +99,7 @@ export default function FurnitureSpecsManager() {
     return edits[spec.id]?.[field] ?? spec[field];
   };
 
-  const setVal = (id: string, field: keyof FurnitureSpec, value: any) => {
+  const setVal = <K extends keyof FurnitureSpec>(id: string, field: K, value: FurnitureSpec[K]) => {
     setEdits((prev) => ({ ...prev, [id]: { ...prev[id], [field]: value } }));
   };
 
