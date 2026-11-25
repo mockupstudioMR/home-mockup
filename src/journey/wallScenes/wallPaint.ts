@@ -30,7 +30,7 @@ function reference(img: Rgba, seeds: PxBox) {
  * Where the wall is (0–1 per pixel), grown from the seed area. `within` limits it (default: the whole picture).
  * A pixel joins when its colour, apart from brightness, is the wall's and the step from its neighbour is small.
  */
-export function wallMask(img: Rgba, seeds: PxBox, within?: PxBox, opts: { chroma?: number; step?: number } = {}): Float32Array {
+export function wallMask(img: Rgba, seeds: PxBox, within?: PxBox, opts: { chroma?: number; step?: number; edge?: number } = {}): Float32Array {
   const { width: w, height: h, data: d } = img;
   const area = within ?? { x0: 0, y0: 0, x1: w, y1: h };
   const ref = reference(img, seeds);
@@ -56,6 +56,16 @@ export function wallMask(img: Rgba, seeds: PxBox, within?: PxBox, opts: { chroma
     return dhue < HUE + shade * 22 && q.sat > rh.sat * 0.3 && q.sat < rh.sat * (1.6 + shade * 1.2);
   };
   const step = (i: number, j: number) => Math.max(Math.abs(d[i] - d[j]), Math.abs(d[i + 1] - d[j + 1]), Math.abs(d[i + 2] - d[j + 2]));
+  // a soft (blurred) edge changes little from one pixel to the next but a lot over a few: measured across 4 px,
+  // a cushion's or a seat's edge stops the fill even where it is the wall's own colour family
+  const EDGE = opts.edge ?? 34;
+  const across = (p: number) => {
+    const x = p % w, y = (p - x) / w;
+    let e = 0;
+    if (x >= 2 && x < w - 2) e = Math.max(e, step((p - 2) * 4, (p + 2) * 4));
+    if (y >= 2 && y < h - 2) e = Math.max(e, step((p - 2 * w) * 4, (p + 2 * w) * 4));
+    return e;
+  };
   const m = new Float32Array(w * h), stack: number[] = [];
   for (let y = seeds.y0; y < seeds.y1; y++) for (let x = seeds.x0; x < seeds.x1; x++) {
     const p = y * w + x;
@@ -64,7 +74,7 @@ export function wallMask(img: Rgba, seeds: PxBox, within?: PxBox, opts: { chroma
   while (stack.length) {
     const p = stack.pop()!, x = p % w, y = (p - x) / w;
     const next = [x > area.x0 ? p - 1 : -1, x < area.x1 - 1 ? p + 1 : -1, y > area.y0 ? p - w : -1, y < area.y1 - 1 ? p + w : -1];
-    for (const q of next) if (q >= 0 && !m[q] && likeWall(q * 4) && step(p * 4, q * 4) <= STEP) { m[q] = 1; stack.push(q); }
+    for (const q of next) if (q >= 0 && !m[q] && likeWall(q * 4) && step(p * 4, q * 4) <= STEP && across(q) <= EDGE) { m[q] = 1; stack.push(q); }
   }
   // fill pin-holes (grain, a speck) but never a whole object hung on the wall
   const seen = new Uint8Array(w * h), limit = Math.max(16, Math.round(w * h * 0.00015));
@@ -137,4 +147,26 @@ export function wallSeeds(width: number, height: number, wallBox: PxBox, avoid: 
   }
   const pad = Math.round((best.x1 - best.x0) * 0.1);
   return { x0: best.x0 + pad, x1: Math.max(best.x0 + pad + 4, best.x1 - pad), y0, y1 };
+}
+
+/**
+ * A rug (or any flat surface) dyed a new colour on the photo itself: each pixel inside `mask` becomes the new
+ * colour times its own brightness against the surface's, so the pattern, pile and light stay as photographed.
+ * Returns the whole picture with the surface recoloured.
+ */
+export function dyeSurface(img: Rgba, mask: Float32Array, colour: string): Rgba {
+  const { width: w, height: h, data: d } = img;
+  const ls: number[] = [];
+  for (let p = 0; p < w * h; p += 2) if (mask[p] >= 0.5) ls.push(lum(d, p * 4));
+  ls.sort((a, b) => a - b);
+  const ref = Math.max(1, ls.length ? ls[Math.floor(ls.length / 2)] : 128);
+  const [r, g, b] = hexRgb(colour);
+  const out = new Uint8ClampedArray(d);
+  for (let p = 0; p < w * h; p++) {
+    const a = mask[p];
+    if (!a) continue;
+    const i = p * 4, k = lum(d, i) / ref;
+    out[i] = d[i] * (1 - a) + r * k * a; out[i + 1] = d[i + 1] * (1 - a) + g * k * a; out[i + 2] = d[i + 2] * (1 - a) + b * k * a;
+  }
+  return { data: out, width: w, height: h };
 }

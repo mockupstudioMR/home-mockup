@@ -172,32 +172,21 @@ export function drawPro(under: Rgba, piece: { shadow: Rgba; colour: Rgba }): Rgb
 }
 
 /**
- * The floor or a rug seen inside a standing piece's outline (between a table's legs, under a chair): those
- * pixels would be drawn with the piece and show the old floor or rug over a new one. A floor or rug has a
- * pattern, so it is found by its own colours: sampled just outside the piece where the surface lies, grouped into
- * a few colours, then grown into the lower part of the piece's outline through pixels of those colours with
- * small steps between neighbours (the piece's own edges stop it). Returns the pixels to take out (0/1).
- *
- * `blob`: the piece's outline; `surface`: where the floor or rugs are (0–1); `others`: other standing pieces.
+ * Grows a surface by its own colours: sampled from `isSource` pixels (rows from `yMin` down), grouped into a few
+ * colours (patterns work), then grown from those pixels into `canTake` pixels of the same colours with small
+ * steps between neighbours, so an object's edge stops it. Returns the pixels taken (0/1).
  */
-export function flatIntrusion(img: Rgba, blob: Float32Array, surface: Float32Array, others: Float32Array | undefined, area: PxBox): Float32Array {
+export function growByColours(img: Rgba, isSource: (p: number) => boolean, canTake: (p: number) => boolean, area: PxBox, yMin: number): Float32Array {
   const { width: w, data: d } = img;
-  const out = new Float32Array(blob.length);
-  // the piece's extent, so only its lower part (legs, the gap under it) is searched
-  let by0 = Infinity, by1 = -1;
-  for (let y = area.y0; y < area.y1; y++) for (let x = area.x0; x < area.x1; x++) if (blob[y * w + x] >= 0.5) { by0 = Math.min(by0, y); by1 = Math.max(by1, y); }
-  if (by1 < 0) return out;
-  const low = Math.round(by0 + (by1 - by0) * 0.4);
-  const free = (p: number) => blob[p] < 0.5 && surface[p] >= 0.5 && !(others && others[p] >= 0.5);
-  // samples of the surface round the piece
+  const out = new Float32Array(w * img.height);
   const samples: number[][] = [];
-  const stride = Math.max(1, Math.round(Math.sqrt(((area.x1 - area.x0) * (area.y1 - area.y0)) / 6000)));
-  for (let y = Math.max(area.y0, low); y < area.y1; y += stride) for (let x = area.x0; x < area.x1; x += stride) {
+  const y0 = Math.max(area.y0, yMin);
+  const stride = Math.max(1, Math.round(Math.sqrt(((area.x1 - area.x0) * (area.y1 - y0)) / 6000)));
+  for (let y = y0; y < area.y1; y += stride) for (let x = area.x0; x < area.x1; x += stride) {
     const p = y * w + x;
-    if (free(p)) samples.push([d[p * 4], d[p * 4 + 1], d[p * 4 + 2]]);
+    if (isSource(p)) samples.push([d[p * 4], d[p * 4 + 1], d[p * 4 + 2]]);
   }
   if (samples.length < 40) return out;
-  // a few colours (k-means, k ≤ 6)
   const k = Math.min(6, Math.floor(samples.length / 10));
   let cs = Array.from({ length: k }, (_, i) => [...samples[Math.floor(((i + 0.5) * samples.length) / k)]]);
   for (let it = 0; it < 8; it++) {
@@ -209,25 +198,41 @@ export function flatIntrusion(img: Rgba, blob: Float32Array, surface: Float32Arr
     }
     cs = cs.map((c, i) => (sum[i][3] ? [sum[i][0] / sum[i][3], sum[i][1] / sum[i][3], sum[i][2] / sum[i][3]] : c));
   }
-  // how far the surface's own pixels lie from their colour: the tolerance follows the pattern's spread
   let spread = 0;
   for (const s of samples) spread += Math.sqrt(Math.min(...cs.map((c) => (c[0] - s[0]) ** 2 + (c[1] - s[1]) ** 2 + (c[2] - s[2]) ** 2)));
   const T = Math.max(18, Math.min(40, (spread / samples.length) * 2.2));
   const near = (p: number) => { const i = p * 4; return Math.min(...cs.map((c) => (c[0] - d[i]) ** 2 + (c[1] - d[i + 1]) ** 2 + (c[2] - d[i + 2]) ** 2)) < T * T; };
   const step = (p: number, q: number) => Math.max(Math.abs(d[p * 4] - d[q * 4]), Math.abs(d[p * 4 + 1] - d[q * 4 + 1]), Math.abs(d[p * 4 + 2] - d[q * 4 + 2]));
   const STEP = Math.max(16, Math.min(34, T));
-  // grow from the surface just outside the outline into its lower part
   const stack: number[] = [];
-  for (let y = Math.max(area.y0 + 1, low); y < area.y1 - 1; y++) for (let x = area.x0 + 1; x < area.x1 - 1; x++) {
+  for (let y = Math.max(area.y0 + 1, y0); y < area.y1 - 1; y++) for (let x = area.x0 + 1; x < area.x1 - 1; x++) {
     const p = y * w + x;
-    if (!free(p)) continue;
-    for (const q of [p - 1, p + 1, p - w, p + w]) if (blob[q] >= 0.5 && !out[q] && near(q) && step(p, q) <= STEP) { out[q] = 1; stack.push(q); }
+    if (!isSource(p)) continue;
+    for (const q of [p - 1, p + 1, p - w, p + w]) if (!out[q] && canTake(q) && near(q) && step(p, q) <= STEP) { out[q] = 1; stack.push(q); }
   }
   while (stack.length) {
     const p = stack.pop()!, x = p % w, y = (p - x) / w;
-    for (const q of [x > area.x0 ? p - 1 : -1, x < area.x1 - 1 ? p + 1 : -1, y > low ? p - w : -1, y < area.y1 - 1 ? p + w : -1]) {
-      if (q >= 0 && !out[q] && blob[q] >= 0.5 && near(q) && step(p, q) <= STEP) { out[q] = 1; stack.push(q); }
+    for (const q of [x > area.x0 ? p - 1 : -1, x < area.x1 - 1 ? p + 1 : -1, y > y0 ? p - w : -1, y < area.y1 - 1 ? p + w : -1]) {
+      if (q >= 0 && !out[q] && canTake(q) && near(q) && step(p, q) <= STEP) { out[q] = 1; stack.push(q); }
     }
   }
   return out;
+}
+
+/**
+ * The floor or a rug seen inside a standing piece's outline (between a table's legs, under a chair): those
+ * pixels would be drawn with the piece and show the old floor or rug over a new one. Found by the surface's own
+ * colours (growByColours), sampled just outside the piece and grown into the lower part of its outline.
+ * Returns the pixels to take out (0/1).
+ *
+ * `blob`: the piece's outline; `surface`: where the floor or rugs are (0–1); `others`: other standing pieces.
+ */
+export function flatIntrusion(img: Rgba, blob: Float32Array, surface: Float32Array, others: Float32Array | undefined, area: PxBox): Float32Array {
+  const w = img.width;
+  let by0 = Infinity, by1 = -1;
+  for (let y = area.y0; y < area.y1; y++) for (let x = area.x0; x < area.x1; x++) if (blob[y * w + x] >= 0.5) { by0 = Math.min(by0, y); by1 = Math.max(by1, y); }
+  if (by1 < 0) return new Float32Array(blob.length);
+  const low = Math.round(by0 + (by1 - by0) * 0.4);
+  const free = (p: number) => blob[p] < 0.5 && surface[p] >= 0.5 && !(others && others[p] >= 0.5);
+  return growByColours(img, free, (p) => blob[p] >= 0.5, area, low);
 }
