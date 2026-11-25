@@ -4,7 +4,7 @@
  * kept with the journey. Reads the wall's manifest (background, and per item its aligned variation layers).
  *
  * A "pro" manifest is built the Generator PRO way: the background is the empty room and every piece is drawn
- * over it as a shadow image (multiply) and a colour image (lighten), so a piece brings its own contact shadow
+ * over it as a shadow image (multiply) and the piece itself on top, so a piece brings its own contact shadow
  * and none of the wall behind it. "Confirm options" flattens the chosen options into one final picture,
  * which then shows instead of the outline.
  */
@@ -20,8 +20,9 @@ type Layer = {
   /** Shown for an item that can't be swapped (yet): it is still clickable. */
   note?: string;
   hotspot?: { position: { x: number; y: number } };
-  /** pro: one shadow image per variation, drawn with multiply under its colour image (lighten). */
-  blend?: "pro"; shadows?: string[];
+  /** One shadow image per variation, multiplied under the piece. "shadow": the piece is then laid on normally;
+   *  "pro" (older pictures): the piece is on black and drawn with lighten, as Generator PRO does. */
+  blend?: "pro" | "shadow"; shadows?: string[];
 };
 type Manifest = { mode?: "pro"; background: string; imageSize: { width: number; height: number }; layers: Record<string, Layer>; hotspots?: Record<string, Layer> };
 
@@ -79,7 +80,7 @@ export function LayeredWall({ wall, scene }: { wall: Pic; scene: WallScene }) {
         {shown.map(([name, l]) => l.shadows?.length ? (
           <span key={name}>
             <img className="lw-img" style={{ mixBlendMode: "multiply" }} src={l.shadows[Math.min(at(name, l), l.shadows.length - 1)]} alt="" aria-hidden="true" />
-            <img className="lw-img" style={{ mixBlendMode: "lighten" }} src={l.variations[at(name, l)]} alt="" aria-hidden="true" />
+            <img className="lw-img" style={l.blend === "pro" ? { mixBlendMode: "lighten" } : undefined} src={l.variations[at(name, l)]} alt="" aria-hidden="true" />
           </span>
         ) : (
           <img key={name} className="lw-img" src={l.variations[at(name, l)]} alt="" aria-hidden="true" />
@@ -172,7 +173,7 @@ async function flatten(m: Manifest, layers: [string, Layer][], at: (n: string, l
     if (l.shadows?.length) {
       g.globalCompositeOperation = "multiply";
       g.drawImage(await img(l.shadows[Math.min(i, l.shadows.length - 1)]), 0, 0, W, H);
-      g.globalCompositeOperation = "lighten";
+      g.globalCompositeOperation = l.blend === "pro" ? "lighten" : "source-over";
     } else g.globalCompositeOperation = "source-over";
     g.drawImage(await img(l.variations[i]), 0, 0, W, H);
   }
