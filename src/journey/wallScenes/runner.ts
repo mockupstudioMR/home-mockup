@@ -15,6 +15,7 @@ import type { JourneyState, Wall } from "../state";
 import { buildModel, seenOn, type ShowroomModel } from "../showroom3d/model";
 import { proPiece, surfaceLayer, type ProPiece } from "./proLayers";
 import { editMaskFrom, segmentPhoto } from "./segment";
+import { paintWall, wallMask, wallSeeds } from "./wallPaint";
 import { alphaBox, altMask, keepOff, limitAlpha, centreOf, composite, cutAlt, cutLayer, driftOutside, matchTone, pxBox, unionAlpha, type AltCut, type PctBox, type Rgba } from "./layers";
 import { wallItems, type WallItem } from "./items";
 import { canvasFor, composeWall, loadRules, saveComposition, wallLength, type ItemAssets } from "./composition";
@@ -43,7 +44,7 @@ export const PICTURES: Pic[] = [...WALLS, "room"];
 const ALIGN_LIMIT = 14; // mean change outside the item (0–255), after matching tones, above which an alternative moved the photo
 const PARALLEL = 4;
 /** Raised when the way pictures are made changes, so walls made the old way are made again. */
-const PICTURE_VERSION = 13;
+const PICTURE_VERSION = 14;
 
 const previewImage = (s: JourneyState) => s.preview?.versions[s.preview.current]?.image;
 
@@ -223,6 +224,20 @@ async function makeWall(s: JourneyState, m: ShowroomModel, wall: Pic, report: (p
   const background = await up.put("background.jpg", await toBlob(base, "image/jpeg"), "image/jpeg").catch(() => storeDesignImage(baseData));
   tick("Making the alternatives");
 
+  // A wall colour is repainted on the picture itself (no image AI), so it can never leave a band, a patch
+  // or an outline: only the wall's own pixels change, keeping the photo's light.
+  const isPaint = (it: WallItem, i: number) => it.id === "walls" && !!it.alts[i]?.paint;
+  async function paintLayers(img: Rgba, item: WallItem) {
+    const W = img.width, H = img.height;
+    const wb = guide.boxes["walls"] ? pxBox(guide.boxes["walls"] as PctBox, W, H, 0) : { x0: 0, y0: 0, x1: W, y1: H };
+    const avoid = Object.entries(guide.boxes).filter(([k]) => k !== "walls" && k !== "floor").map(([, b]) => pxBox(b as PctBox, W, H, 0.12));
+    const seeds = wallSeeds(W, H, wb, avoid);
+    const mask = wallMask(img, seeds);
+    const out: { name: string; layer: Rgba }[] = [];
+    item.alts.forEach((a) => { if (a.paint) out.push({ name: a.name, layer: paintWall(img, mask, seeds, a.paint) }); });
+    return out;
+  }
+
   // The Generator PRO way: an empty room underneath, and every piece as its own see-through image with its cast
   // shadow (multiply) over it, so nothing of the wall or floor travels with a piece. Every outline comes from
   // segmentation of the photo itself, never from the 3D guide (the AI photo doesn't match it pixel for pixel).
@@ -255,6 +270,10 @@ async function makeWall(s: JourneyState, m: ShowroomModel, wall: Pic, report: (p
     const plateData = await ai({ mode: "plate", size, maskUrl: editMaskFrom(Object.values(baseMasks), W, H, Math.round(W * 0.02)), imageUrl: photoUrl, wall, style: s.moodboard?.name, palette: m.palette, roomType: s.current ?? s.startRoom });
     if (stopped()) throw new Error("Stopped.");
     const plate = await pixels(plateData, W, H);
+    // the empty room must be the same photo with the pieces taken out: if the rest moved, don't build on it
+    const pieceArea = Object.entries(guide.boxes).filter(([k]) => pieceIds.has(k)).map(([, b]) => pxBox(b as PctBox, W, H, 0.35))
+      .reduce((a, b) => ({ x0: Math.min(a.x0, b.x0), y0: Math.min(a.y0, b.y0), x1: Math.max(a.x1, b.x1), y1: Math.max(a.y1, b.y1) }));
+    if (driftOutside(base, plate, pieceArea) > ALIGN_LIMIT * 1.5) return null;
     const plateUrl = await up.put("room.jpg", await toBlob(plate, "image/jpeg"), "image/jpeg");
     const surfaces = items.filter((it) => SURFACE(it.id));
     const plateMasks = surfaces.length
@@ -266,7 +285,7 @@ async function makeWall(s: JourneyState, m: ShowroomModel, wall: Pic, report: (p
     type Kind = "piece" | "surface" | "free";
     const kindOf = (it: WallItem): Kind => (pieceIds.has(it.id) ? "piece" : SURFACE(it.id) && plateMasks[it.id] ? "surface" : "free");
     type Made = { px: Rgba; piece?: ProPiece; alpha?: Float32Array };
-    const proJobs = items.flatMap((item) => item.alts.map((_, alt) => ({ item, alt })));
+    const proJobs = items.flatMap((item) => item.alts.map((_, alt) => ({ item, alt }))).filter((j) => !isPaint(j.item, j.alt));
     const made = await inBatches(proJobs.map((j) => async (): Promise<Made> => {
       if (stopped()) throw new Error("Stopped.");
       const kind = kindOf(j.item), box = guide.boxes[j.item.id] as PctBox, a = j.item.alts[j.alt], grow = placed.get(j.item.id)?.cutPadding ?? 0.28;
@@ -331,6 +350,20 @@ async function makeWall(s: JourneyState, m: ShowroomModel, wall: Pic, report: (p
         saved.push({ id: item.id, title: item.title, names: variants.map((v) => v.name) });
         continue;
       }
+      // the wall colour: repainted on the empty room
+      if (item.id === "walls" && item.alts.some((a) => a.paint)) {
+        const painted = await paintLayers(plate, item);
+        const urls = [blank], thumbs = [await up.put(`${name}-1-thumb.jpg`, await toBlob(plate, "image/jpeg", thumbArea, 260), "image/jpeg")];
+        for (const [i, p] of painted.entries()) {
+          urls.push(await up.put(`${name}-${i + 2}.webp`, await toBlob(p.layer, "image/webp"), "image/webp"));
+          thumbs.push(await up.put(`${name}-${i + 2}-thumb.jpg`, await toBlob(composite(plate, p.layer), "image/jpeg", thumbArea, 260), "image/jpeg"));
+        }
+        const names = [item.mainName, ...painted.map((p) => p.name)];
+        layers[name] = { title: item.title, group: item.group, order, visible: true, variations: urls, thumbnails: thumbs, variationNames: names, hotspot };
+        assets[item.id] = { variations: urls, thumbnails: thumbs, names };
+        saved.push({ id: item.id, title: item.title, names });
+        continue;
+      }
       // walls, floor, door, windows, wall decor: the main option is the empty room itself
       if (!ok.length) {
         if (!item.note) skipped.push(item.title);
@@ -360,7 +393,7 @@ async function makeWall(s: JourneyState, m: ShowroomModel, wall: Pic, report: (p
 
   // every alternative of every item, a few at a time
   type Job = { item: WallItem; alt: number };
-  const jobs: Job[] = items.flatMap((item) => item.alts.map((_, alt) => ({ item, alt })));
+  const jobs: Job[] = items.flatMap((item) => item.alts.map((_, alt) => ({ item, alt }))).filter((j) => !isPaint(j.item, j.alt));
   const results = await inBatches(jobs.map((j) => async (): Promise<{ px: Rgba; cut: AltCut }> => {
     if (stopped()) throw new Error("Stopped.");
     const box = guide.boxes[j.item.id], a = j.item.alts[j.alt], grow = placed.get(j.item.id)?.cutPadding ?? 0.28;
@@ -397,6 +430,26 @@ async function makeWall(s: JourneyState, m: ShowroomModel, wall: Pic, report: (p
   const saved: NonNullable<WallScene["layers"]> = [];
   const skipped: string[] = [];
   for (const item of items) {
+    if (item.id === "walls" && item.alts.some((a) => a.paint)) {
+      // the wall colour, repainted on the photo: drawn over it only when picked, so the main option is empty
+      const painted = await paintLayers(base, item);
+      const name = item.id;
+      const at = placed.get(item.id);
+      const wb = guide.boxes["walls"] ? pxBox(guide.boxes["walls"] as PctBox, base.width, base.height, 0) : { x0: 0, y0: 0, x1: base.width, y1: base.height };
+      const blank = await up.put("none.webp", await toBlob({ data: new Uint8ClampedArray(4), width: 1, height: 1 }, "image/webp"), "image/webp");
+      const urls = [blank], thumbs = [await up.put(`${name}-1-thumb.jpg`, await toBlob(base, "image/jpeg", wb, 260), "image/jpeg")];
+      for (const [i, p] of painted.entries()) {
+        urls.push(await up.put(`${name}-${i + 2}.webp`, await toBlob(p.layer, "image/webp"), "image/webp"));
+        thumbs.push(await up.put(`${name}-${i + 2}-thumb.jpg`, await toBlob(composite(base, p.layer), "image/jpeg", wb, 260), "image/jpeg"));
+      }
+      const names = [item.mainName, ...painted.map((p) => p.name)];
+      assets[item.id] = { variations: urls, thumbnails: thumbs, names };
+      // drawn above the cut-outs: it touches only the wall's own pixels, so it also covers any rim of the old
+      // wall colour a swapped piece's cut-out brings with it
+      layers[name] = { title: item.title, group: item.group, order: 1000, visible: true, variations: urls, thumbnails: thumbs, variationNames: names, hotspot: { id: name, title: item.title, visible: true, position: at?.hotspot ?? { x: Math.round((wb.x0 + wb.x1) / 2), y: Math.round(wb.y0 + (wb.y1 - wb.y0) * 0.15) } } };
+      saved.push({ id: item.id, title: item.title, names });
+      continue;
+    }
     const ok: { px: Rgba; cut: AltCut; name: string }[] = [];
     item.alts.forEach((a, i) => {
       const r = results[jobs.findIndex((j) => j.item === item && j.alt === i)];
@@ -422,7 +475,7 @@ async function makeWall(s: JourneyState, m: ShowroomModel, wall: Pic, report: (p
     const name = item.id.replace(/[^a-zA-Z0-9_-]/g, "-");
     const urls: string[] = [], thumbs: string[] = [];
     for (const [i, v] of variants.entries()) {
-      const layer = i === 0 ? cutLayer(v.px, v.alpha) : cutAlt(base, v.px, v.alpha, piece);
+      const layer = i === 0 ? cutLayer(v.px, v.alpha) : cutAlt(base, v.px, v.alpha, piece, 8, /rug|carpet/i.test(`${item.id} ${item.title}`));
       const blob = await toBlob(layer, "image/webp");
       urls.push(await up.put(`${name}-${i + 1}.${blob.type === "image/webp" ? "webp" : "png"}`, blob, blob.type));
       const t = await toBlob(composite(base, layer), "image/jpeg", area, 260);

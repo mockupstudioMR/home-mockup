@@ -312,7 +312,7 @@ export function alphaBox(alpha: Float32Array, width: number, height: number, fal
  * only light (every colour channel scaled alike: a shadow), the layer becomes see-through, keeping only
  * the alternative's smoothed shading is laid on as a see-through shadow. Inside the piece's area the alternative is used as it is.
  */
-export function cutAlt(base: Rgba, alt: Rgba, alpha: Float32Array, piece: PxBox, blend = 8): Rgba {
+export function cutAlt(base: Rgba, alt: Rgba, alpha: Float32Array, piece: PxBox, blend = 8, flat = false): Rgba {
   const { width: w, height: h } = base;
   const out = new Uint8ClampedArray(w * h * 4);
   // the area the layer covers
@@ -346,7 +346,12 @@ export function cutAlt(base: Rgba, alt: Rgba, alpha: Float32Array, piece: PxBox,
       const km = (kr + kg + kb) / 3, spread = Math.max(Math.abs(kr - km), Math.abs(kg - km), Math.abs(kb - km));
       // darker in the alternative: its shadow, laid on as see-through darkening. Lighter: an old shadow that has
       // gone, so the alternative's own lit wall is used, or the old shadow would stay behind
+      // a piece casts its shadow down and behind its lower part only: darker pixels along its top or sides are
+      // the cut's edge, which would otherwise draw an outline; a flat rug casts none
+      const low = y >= piece.y0 + (piece.y1 - piece.y0) * 0.6;
       const shadowLike = km > 0.5 && km < 1.02 && spread < 0.1;
+      // above or beside it (or anywhere round a flat rug) that darker rim is left out: the real wall shows
+      if (shadowLike && (flat || !low)) { out[i + 3] = 0; continue; }
       wShade = shadowLike ? out01 : 0;
     }
     // the shading is laid on as a see-through darkening, so it falls on whatever wall is chosen beneath it
