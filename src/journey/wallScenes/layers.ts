@@ -223,30 +223,49 @@ export type AltCut = {
  * larger new piece is still cut whole; one that runs past it anyway is marked `clipped` and not shown.
  */
 export function altMask(base: Rgba, alt: Rgba, b: PctBox, grow = 0.28): AltCut {
-  const { width: w, height: h } = base, box = pxBox(b, w, h, grow), ring = pxBox(b, w, h, grow + 0.22);
-  const bw = box.x1 - box.x0, bh = box.y1 - box.y0, area = Math.max(1, bw * bh);
-  // how much the photo changes where nothing should have changed: the threshold sits above that noise
+  // `core`: where the piece is drawn in the guide. `box`: a wider area around it, because the photo's piece is
+  // often bigger than the drawing's (a taller sofa back, a rug running further): what changed there counts too,
+  // as long as it joins up with the change at the piece, so no part of the old piece is left behind.
+  const { width: w, height: h } = base, core = pxBox(b, w, h, grow), box = pxBox(b, w, h, grow + 0.4), ring = pxBox(b, w, h, grow + 0.7);
+  const cw = core.x1 - core.x0, ch = core.y1 - core.y0, area = Math.max(1, cw * ch);
+  const bw = box.x1 - box.x0, bh = box.y1 - box.y0;
+  // how much the photo changes where nothing should have changed (the median-ish level around the piece,
+  // which an old piece's leftovers don't push up): the threshold sits above that noise
   const hist = new Uint32Array(256);
   let hn = 0;
   for (let y = ring.y0; y < ring.y1; y += 2) for (let x = ring.x0; x < ring.x1; x += 2) {
-    if (inside(x, y, box)) continue;
+    if (inside(x, y, core)) continue;
     hist[diffAt(base, alt, (y * w + x) * 4)]++; hn++;
   }
   let noise = 0;
-  for (let k = 0, acc = 0; k < 256 && hn; k++) { acc += hist[k]; if (acc >= hn * 0.9) { noise = k; break; } }
-  const threshold = Math.max(26, Math.min(60, noise + 14));
+  for (let k = 0, acc = 0; k < 256 && hn; k++) { acc += hist[k]; if (acc >= hn * 0.75) { noise = k; break; } }
+  const threshold = Math.max(26, Math.min(60, noise + 16));
   let m: Float32Array = new Float32Array(w * h);
   for (let y = box.y0; y < box.y1; y++) for (let x = box.x0; x < box.x1; x++) if (diffAt(base, alt, (y * w + x) * 4) >= threshold) m[y * w + x] = 1;
-  const r = Math.max(2, Math.round(Math.min(bw, bh) / 60));
+  const r = Math.max(2, Math.round(Math.min(cw, ch) / 60));
   m = morph(morph(m, w, box, r, true), w, box, r, false);
   m = morph(morph(m, w, box, 1, false), w, box, 1, true);
   m = dropSpecks(m, w, box, Math.max(40, Math.round(area * 0.004)));
-  let on = 0, x0 = Infinity, y0 = Infinity, x1 = -1, y1 = -1;
-  for (let y = box.y0; y < box.y1; y++) for (let x = box.x0; x < box.x1; x++) if (m[y * w + x] >= 0.5) {
-    on++; x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y);
+  // keep only the change that joins up with the piece's own area
+  {
+    const keep = new Float32Array(w * h), stack: number[] = [];
+    for (let y = core.y0; y < core.y1; y++) for (let x = core.x0; x < core.x1; x++) { const p = y * w + x; if (m[p] >= 0.5 && !keep[p]) { keep[p] = 1; stack.push(p); } }
+    while (stack.length) {
+      const p = stack.pop()!, x = p % w, y = (p - x) / w;
+      for (const q of [x > box.x0 ? p - 1 : -1, x < box.x1 - 1 ? p + 1 : -1, y > box.y0 ? p - w : -1, y < box.y1 - 1 ? p + w : -1]) {
+        if (q >= 0 && !keep[q] && m[q] >= 0.5) { keep[q] = 1; stack.push(q); }
+      }
+    }
+    m = keep;
   }
-  const cover = on / area;
-  // runs past the left, right or top of its area (the picture's own edges and the floor below don't count)
+  let on = 0, inCore = 0, x0 = Infinity, y0 = Infinity, x1 = -1, y1 = -1;
+  for (let y = box.y0; y < box.y1; y++) for (let x = box.x0; x < box.x1; x++) if (m[y * w + x] >= 0.5) {
+    on++; if (inside(x, y, core)) inCore++;
+    x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y);
+  }
+  const cover = inCore / area;
+  // still runs past the left, right or top of the wider area (the picture's own edges and the floor don't count):
+  // the new piece is too big for its place
   const side = (len: number, at: (k: number) => number) => { let c = 0; for (let k = 0; k < len; k++) c += at(k) >= 0.5 ? 1 : 0; return c / Math.max(1, len); };
   const left = box.x0 > 0 ? side(bh, (k) => m[(box.y0 + k) * w + box.x0]) : 0;
   const right = box.x1 < w ? side(bh, (k) => m[(box.y0 + k) * w + box.x1 - 1]) : 0;

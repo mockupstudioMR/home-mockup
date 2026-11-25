@@ -37,6 +37,9 @@ export function collectMoodboardReferences(data: MoodboardContext) {
 }
 
 /** Always present, even when a saved prompt template omits moodboard placeholders. */
+/** How painted walls must look in every room picture: plain matt paint, never a textured effect. */
+export const PLAIN_WALLS = "WALL PAINT: every painted wall is smooth, plain, flat MATT paint in one even colour — no texture, no plaster, limewash, Venetian, concrete or sponge effect, no brush strokes, no mottling, no gradient, no pattern, and no painted panel or stripe; the whole wall is one colour.";
+
 export function buildMoodboardDirective(data: MoodboardContext) {
   const details = [
     data.moodboardDescription,
