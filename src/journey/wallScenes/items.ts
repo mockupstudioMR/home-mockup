@@ -66,8 +66,9 @@ export function wallItems(s: JourneyState, m: ShowroomModel, wall: Wall | "room"
   items.push({
     id: "walls", title: "Wall colour", group: "walls", current: `${wallName} painted wall surface (only the paint, not the furniture, doors or windows)`, mainName: `${wallName[0].toUpperCase()}${wallName.slice(1)}`,
     alts: [
-      { name: "A shade lighter", target: `the same wall painted a lighter, softer tone of ${wallName}, matt limewash finish` },
-      { name: w2 ? `${colourName(m, w2)} feature wall` : "Deeper tone", target: w2 ? `the wall painted ${colourName(m, w2)} (${w2}), matt finish` : `the same wall painted a deeper tone of ${wallName}` },
+      // always a plain white wall to compare with
+      { name: "Plain white", target: "the whole wall, edge to edge and floor to ceiling, around the door and windows, painted plain warm white in smooth flat matt paint, one even colour, no texture or effect" },
+      { name: w2 ? `${colourName(m, w2)[0].toUpperCase()}${colourName(m, w2).slice(1)} wall` : "Deeper tone", target: w2 ? `the whole wall, edge to edge and floor to ceiling, around the door and windows, painted ${colourName(m, w2)} (${w2}) in smooth flat matt paint, one even colour, no texture or effect — not a panel or a stripe` : `the whole wall, edge to edge and floor to ceiling, painted a deeper tone of ${wallName} in smooth flat matt paint, one even colour, no texture or effect` },
     ].filter(Boolean),
   });
   const wood = colourName(m, m.surfaces.floor);

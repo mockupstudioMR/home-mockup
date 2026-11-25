@@ -875,8 +875,12 @@ function floorCamera(room: ShowroomModel["room"], wall: Wall, floorM: number, as
   let hw = (x1 - x0) / 2, hh = (y1 - y0) / 2;
   const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2;
   const extent = { w: hw * 2, h: hh * 2 };
-  if (aspect && aspect > 0) { if (aspect >= hw / hh) hw = hh * aspect; else hh = hw / aspect; }
-  cam.left = cx - hw; cam.right = cx + hw; cam.top = cy + hh; cam.bottom = cy - hh;
+  // fit the wall's width exactly (no empty strips at the sides for the picture model to fill with invented
+  // furniture), keeping the ceiling line at the top: a wider canvas shows a little less floor, a taller one more
+  let top = cy + hh;
+  if (aspect && aspect > 0) { hh = hw / aspect; top = y1; }
+  const mid = top - hh;
+  cam.left = cx - hw; cam.right = cx + hw; cam.top = mid + hh; cam.bottom = mid - hh;
   cam.updateProjectionMatrix();
   return { cam, extent };
 }
@@ -1042,13 +1046,19 @@ export function renderGuide(m: ShowroomModel, wall: Wall, width = 1536, canvasHe
     // walls, floor and doors are parts of the shell: find them inside it
     built.scene.traverse((o) => {
       const id = o.userData.id as string | undefined;
-      if (!id || boxes[id] || (id !== "walls" && id !== "floor" && id !== "doors" && !id.startsWith("window-"))) return;
+      if (!id || (id !== "walls" && id !== "floor" && id !== "doors" && !id.startsWith("window-"))) return;
       // only this wall's own surface and door
       let w: unknown;
       for (let p: THREE.Object3D | null = o; p && !w; p = p.parent) w = p.userData.wall;
       if (id !== "floor" && w !== wall) return;
       const b = screenBox(o, camera);
-      if (b) boxes[id] = b;
+      if (!b) return;
+      // a wall with openings is built in several pieces: its box is all of them together, not the first piece
+      // (or a new wall colour would only reach a strip between the openings)
+      const a = boxes[id];
+      if (!a) { boxes[id] = b; return; }
+      const x0 = Math.min(a[0], b[0]), y0 = Math.min(a[1], b[1]), x1 = Math.max(a[0] + a[2], b[0] + b[2]), y1 = Math.max(a[1] + a[3], b[1] + b[3]);
+      boxes[id] = [x0, y0, x1 - x0, y1 - y0];
     });
     // a rug lies flat, so the camera can't see it: it gets the strip of floor in front of the wall, under its span
     const { w: RW, l: RL, h: RH } = m.room;

@@ -1,6 +1,6 @@
 import "../_shared/language.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { buildMoodboardDirective, collectMoodboardReferences } from "../_shared/moodboardContext.ts";
+import { buildMoodboardDirective, PLAIN_WALLS, collectMoodboardReferences } from "../_shared/moodboardContext.ts";
 import { requireUser } from "../_shared/auth.ts";
 import { fetchWithTimeout, UpstreamTimeoutError } from "../_shared/http.ts";
 import { MODELS, useModels } from "../_shared/aiModels.ts";
@@ -365,7 +365,7 @@ Deno.serve(async (req) => {
     // Build the image generation prompt using DB templates
     let prompt = buildImagePrompt(enrichedRequestData, promptTemplates, roomFurnitureItems);
     if (!enrichedRequestData.modificationPrompt) {
-      prompt = buildMoodboardDirective(enrichedRequestData) + prompt;
+      prompt = buildMoodboardDirective(enrichedRequestData) + prompt + "\n\n" + PLAIN_WALLS;
     }
     addDebug("Prompt built", `${prompt.length} chars`, { prompt });
 

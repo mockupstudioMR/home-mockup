@@ -82,3 +82,10 @@ A dining table or desk and the chairs within about 8% of the room from it form o
 - A layout box is the pieces placed as one furniture grouping (`LayoutItem.group`), or, for pieces without a grouping, a table with the chairs at it (`layoutBoxes`). A box always goes whole on one wall: the wall its main piece (the largest that isn't a rug) stands against, or, for a box standing out in the room, the wall nearest the whole box. Its pieces are never listed as free-standing.
 - The outline draws each box as one soft bracket with its name, and its seats in profile where they stand beyond the main piece. The wall names (step 4), the "On this wall" lists (step 5), the 3D guide and the pictures all use the same walls. The layout's pieces on a saved wall follow the layout again, while the person's choices and extra items are kept.
 - No shadows left behind: gentle light changes next to a swapped piece are cut in too. Where the alternative is lighter (an old shadow that has gone), its own lit wall is used rather than a see-through layer.
+
+## Cleaner wall pictures (v11)
+
+- **A swap covers the whole old piece.** The change is looked for in a wider area around the guide's box, keeping only what joins up with the piece. A taller old sofa back or a longer rug no longer stays behind. "Too big" is judged against that wider area.
+- **Floor views fit the wall's width exactly**, with the ceiling line at the top. There are no empty side strips for the picture model to fill with invented furniture.
+- **The prompts give the exact number of pieces** and forbid anything else, even cut off at an edge.
+- **Walls are always plain flat matt paint in one even colour.** `PLAIN_WALLS` in `_shared/moodboardContext.ts` is added to the preview, the wall photos and wall-colour swaps. The wall colour options are always "Plain white" plus one palette colour, each covering the whole wall.

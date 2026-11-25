@@ -52,6 +52,15 @@ describe("keeping alternatives true to the photo", () => {
     const rust = picture(() => [160, 80, 50]);
     expect(composite(rust, layer).data[a + 1]).toBeLessThan(85);
   });
+  it("takes in the whole old piece where the photo drew it bigger than the guide (a taller sofa back)", () => {
+    // the photo's sofa has a back reaching well above where the guide drew it (y 26–40, above the box)
+    const tall = picture((x, y) => (x >= 40 && x < 80 && y >= 26 && y < 65 ? [30, 80, 60] : [185, 179, 170]));
+    const low = picture((x, y) => (inSofa(x, y) ? [200, 120, 60] : [185, 179, 170]));
+    const cut = altMask(tall, low, box);
+    expect(cut.usable).toBe(true);
+    expect(cut.alpha[30 * W + 60]).toBeGreaterThan(0.9); // the old back, far above the guide's box, is covered
+    expect(cut.alpha[10 * W + 10]).toBe(0);
+  });
   it("leaves no old shadow behind a smaller new piece", () => {
     // the original sofa casts a soft shadow on the wall above it (y 34–40, 18 levels darker); the new, lower
     // sofa casts none there

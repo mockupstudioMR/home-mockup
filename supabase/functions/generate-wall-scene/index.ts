@@ -7,7 +7,7 @@ import "../_shared/language.ts";
 // palette, or by a real product the person picked from their own shop (its photo is passed as a reference).
 // Everything outside that item must stay as it is, so the app can cut the change out as a swappable layer.
 import { requireUser } from "../_shared/auth.ts";
-import { buildMoodboardDirective } from "../_shared/moodboardContext.ts";
+import { buildMoodboardDirective, PLAIN_WALLS } from "../_shared/moodboardContext.ts";
 import { fetchWithTimeout, UpstreamTimeoutError } from "../_shared/http.ts";
 import { MODELS, useModels } from "../_shared/aiModels.ts";
 
@@ -61,11 +61,12 @@ Design direction: ${b.style ?? "the client's style"}.
 Colours (use these exact colours for what they are used for): ${palette || "neutral, warm"}.
 Pieces on this wall, left to right:
 ${pieces || "none: this wall is kept clear"}
-These are the ONLY pieces in the picture. Add nothing that is not listed: no other furniture, lamps, plants, shelves, cabinets, curtains, art, rugs or objects, and no side walls or ceiling beyond what the guide shows.${pieces ? "" : " Show only the bare wall with its windows and doors, the skirting and a strip of floor."}
-It must look like a real photograph taken by an interior photographer with a full-frame camera, not a render: soft daylight from one consistent direction with gentle falloff across the wall, real fabric weave, wood grain and plaster texture, slight natural imperfections, true-to-life colour.
+These ${(b.pieces ?? []).length} are the ONLY pieces in the picture: count them before you finish. Anything not on this list must not appear, not even cut off at an edge of the picture (no extra sideboard, cabinet, shelf, chair, lamp or plant). Add nothing that is not listed: no other furniture, lamps, plants, shelves, cabinets, curtains, art, rugs or objects, and no side walls or ceiling beyond what the guide shows.${pieces ? "" : " Show only the bare wall with its windows and doors, the skirting and a strip of floor."}
+It must look like a real photograph taken by an interior photographer with a full-frame camera, not a render: soft daylight from one consistent direction with gentle falloff across the wall, real fabric weave and wood grain, slight natural imperfections, true-to-life colour.
 Shadows only where light really makes them: soft contact shadows under and behind each piece, consistent with the one light direction. No dark halos, no floating shadows, no shadow rectangles or patches.
 Every piece complete and whole: nothing cut off by the frame, nothing partly entering at the left or right edge, no half pieces.
-A table with its chairs is one composed set: show the whole table top and its legs, each chair complete and turned to the table, evenly spaced and tucked in, styled like a magazine interior shot (a simple vase or bowl on the table is the only addition allowed). No people, no text, no watermark, no added objects. Same aspect ratio as the guide.`;
+A table with its chairs is one composed set: show the whole table top and its legs, each chair complete and turned to the table, evenly spaced and tucked in, styled like a magazine interior shot (a simple vase or bowl on the table is the only addition allowed). No people, no text, no watermark, no added objects. Same aspect ratio as the guide.
+${PLAIN_WALLS}`;
 }
 
 function variationPrompt(b: Body) {
@@ -73,7 +74,7 @@ function variationPrompt(b: Body) {
   return `Edit this interior photograph. Change ONLY the ${it.current} (${pct(it.box)} of the image).
 Replace it with: ${b.productImageUrl ? `the product shown in the SECOND image — copy its shape, proportions, material and colour faithfully` : it.target}.
 Keep its position, footprint, size and perspective the same, so it stands exactly where the old one stood. The whole new piece must fit inside that area, complete, never cut off; it may be a little smaller than the old one, never larger.
-Every pixel outside that area must stay exactly as it is: same walls, floor, light, shadows elsewhere, other furniture and camera. Do not crop, zoom, reframe or recolour the rest of the photograph. Do not change the photo's brightness, colour balance, contrast or grain anywhere. Light the new piece from the same direction as the rest of the photo and give it only a soft natural contact shadow where it touches the floor or wall; no shadow patches or halos. No text, no watermark. Same size and aspect ratio as the input.`;
+Every pixel outside that area must stay exactly as it is: same walls, floor, light, shadows elsewhere, other furniture and camera. Do not crop, zoom, reframe or recolour the rest of the photograph. Do not change the photo's brightness, colour balance, contrast or grain anywhere. Light the new piece from the same direction as the rest of the photo and give it only a soft natural contact shadow where it touches the floor or wall; no shadow patches or halos. No text, no watermark. Same size and aspect ratio as the input.${it.name === "Wall colour" || /wall surface/.test(it.current) ? `\n${PLAIN_WALLS}` : ""}`;
 }
 
 Deno.serve(async (req) => {
