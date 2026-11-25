@@ -13,6 +13,8 @@ import { getAiErrorMessage } from "@/lib/aiErrorMessage";
 import { storeDesignImage } from "../services";
 import type { JourneyState, Wall } from "../state";
 import { buildModel, seenOn, type ShowroomModel } from "../showroom3d/model";
+import { morph } from "./layers";
+import { nearestPiece, plateNoise, proPiece, surfaceLayer, type ProPiece } from "./proLayers";
 import { alphaBox, altMask, keepOff, limitAlpha, centreOf, composite, cutAlt, cutLayer, driftOutside, matchTone, pxBox, unionAlpha, type AltCut, type PctBox, type Rgba } from "./layers";
 import { wallItems, type WallItem } from "./items";
 import { canvasFor, composeWall, loadRules, saveComposition, wallLength, type ItemAssets } from "./composition";
@@ -41,7 +43,7 @@ export const PICTURES: Pic[] = [...WALLS, "room"];
 const ALIGN_LIMIT = 14; // mean change outside the item (0–255), after matching tones, above which an alternative moved the photo
 const PARALLEL = 4;
 /** Raised when the way pictures are made changes, so walls made the old way are made again. */
-const PICTURE_VERSION = 11;
+const PICTURE_VERSION = 12;
 
 const previewImage = (s: JourneyState) => s.preview?.versions[s.preview.current]?.image;
 
@@ -112,7 +114,7 @@ async function uploader(folderKey: string) {
 /* ---------- AI calls ---------- */
 
 type AiBody = {
-  mode: "base" | "variation"; imageUrl: string; styleImageUrl?: string; wall?: string; style?: string;
+  mode: "base" | "plate" | "variation"; imageUrl: string; styleImageUrl?: string; wall?: string; style?: string;
   palette?: { name: string; hex: string; use?: string }[]; pieces?: { name: string; detail: string; box: PctBox }[];
   item?: { name: string; current: string; target: string; box: PctBox; group?: string }; productImageUrl?: string;
   moodboardDescription?: string; styleText?: string; roomType?: string;
@@ -135,7 +137,9 @@ const REAL = "It must look like a real photograph taken by an interior photograp
 /** The same request through generate-design (the preview's function, always deployed), as a surgical edit. */
 async function viaPreviewFunction(b: AiBody): Promise<string> {
   const palette = (b.palette ?? []).map((p) => `${p.name} ${p.hex}${p.use ? ` for ${p.use.toLowerCase()}` : ""}`).join(", ");
-  const change = b.mode === "base"
+  const change = b.mode === "plate"
+    ? "Remove every piece of furniture and everything standing or lying in the room (sofas, chairs, tables, cabinets, shelves, lamps, plants, cushions, rugs, decor, things on the wall). Continue the bare wall, skirting and floor where they stood, with no trace or shadow. Keep the walls, door, windows, floor, camera, light and size exactly. Painted walls are plain flat matt paint in one even colour."
+    : b.mode === "base"
     ? `Render this exact ${b.wall === "room" ? "view of the whole room, from its corner at eye height," : b.floorView ? "view of the wall, straight on and from slightly above so the floor and rug in front of it show," : "straight-on wall elevation"} as a real, photorealistic interior photograph${b.wall === "room" ? "" : ` of wall ${b.wall ?? ""}`}. Turn every simple 3D shape into the real piece it stands for, with real materials and textures, in the ${b.style ?? "chosen"} style${b.styleText ? ` (${b.styleText})` : ""}. Colours: ${palette}. Pieces, left to right: ${(b.pieces ?? []).map((p) => `${p.name} (${p.detail}) at ${pct(p.box)}`).join("; ")}. Keep every piece, door and window exactly where it is and exactly its size; keep ${b.wall === "room" ? "the same camera and view of the room" : b.floorView ? "the same slightly-from-above view with the floor in front" : "the straight-on view with the wall filling the frame"}. ${(b.pieces ?? []).length ? `These ${(b.pieces ?? []).length} are the ONLY pieces: count them before you finish. Add no other furniture, lamps, plants, shelves, cabinets, art, rugs or objects, not even cut off at an edge of the picture.` : "This wall is kept clear: show only the bare wall with its windows and doors, the skirting and a strip of floor, with no furniture or decor at all."} Do not copy furniture or layout from any other picture of the room. ${REAL}`
     : `Replace only the ${b.item!.current} (${pct(b.item!.box)}) with ${b.item!.target}. Same position, size and perspective; the whole new piece fits inside that area, complete, never cut off. Keep the photo's exact light, colours, brightness and grain everywhere else, with a soft natural contact shadow only where the new piece touches the floor or wall.`;
   const layer = b.mode === "base" ? undefined : b.item?.group === "walls" || b.item?.group === "floor" ? "architecture" : b.item?.group === "furniture" ? "furniture" : "decor";
@@ -218,6 +222,139 @@ async function makeWall(s: JourneyState, m: ShowroomModel, wall: Pic, report: (p
   const up = await uploader(`${key}-${wall.toLowerCase()}-${Date.now().toString(36)}`);
   const background = await up.put("background.jpg", await toBlob(base, "image/jpeg"), "image/jpeg").catch(() => storeDesignImage(baseData));
   tick("Making the alternatives");
+
+  // The Generator PRO way, when the guide has its item map: an empty room underneath, and every piece as a
+  // shadow image (multiply) + a colour image (lighten) over it, so pieces carry their own shadows and nothing
+  // of the wall or floor around them. Falls back to the earlier cut-outs if the empty room can't be made.
+  if (guide.ids) {
+    try {
+      const pro = await makeProLayers();
+      if (pro) return pro;
+    } catch (e) {
+      if (stopped() || STOP.test((e as Error).message)) throw e;
+      console.warn("[wall pictures] PRO layers failed, using cut-outs", e);
+    }
+  }
+
+  async function makeProLayers(): Promise<WallScene | null> {
+    const ids = guide.ids!;
+    const W = canvas.width, H = canvas.height, full = { x0: 0, y0: 0, x1: W, y1: H };
+    const num = (k: string) => ids.keys.indexOf(k) + 1; // 0 when the guide didn't draw it
+    const isStructure = (k: string) => k === "walls" || k === "floor" || k === "doors" || k.startsWith("window-");
+    const pieceNums = new Set(ids.keys.map((k, i) => (isStructure(k) ? 0 : i + 1)).filter(Boolean));
+    if (!pieceNums.size) return null;
+    // a mask (see-through where things may change) from item-map numbers, a little wider
+    const idMask = (nums: Set<number>, grow: number) => {
+      let m: Float32Array = new Float32Array(W * H);
+      for (let p = 0; p < ids.data.length; p++) if (nums.has(ids.data[p])) m[p] = 1;
+      if (grow > 0) m = morph(m, W, full, grow, true);
+      const c = document.createElement("canvas"); c.width = W; c.height = H;
+      const g = c.getContext("2d")!, img = g.createImageData(W, H);
+      for (let p = 0; p < m.length; p++) img.data[p * 4 + 3] = m[p] >= 0.5 ? 0 : 255;
+      g.putImageData(img, 0, 0);
+      return c.toDataURL("image/png");
+    };
+
+    // 1. the empty room
+    report({ wall, step: "Clearing the room for the layers", done, total });
+    const plateData = await ai({ mode: "plate", size, maskUrl: idMask(pieceNums, Math.round(W * 0.015)), imageUrl: /^https:/.test(background) ? background : baseData, wall, style: s.moodboard?.name, palette: m.palette, roomType: s.current ?? s.startRoom });
+    if (stopped()) throw new Error("Stopped.");
+    const plate = await pixels(plateData, W, H);
+    const plateUrl = await up.put("room.jpg", await toBlob(plate, "image/jpeg"), "image/jpeg");
+    const { owner, dist } = nearestPiece(ids.data, W, H, pieceNums);
+    const threshold = Math.max(22, Math.min(60, plateNoise(base, plate, dist, Math.round(W * 0.04)) + 16));
+    const blank = await up.put("none.webp", await toBlob({ data: new Uint8ClampedArray(4), width: 1, height: 1 }, "image/webp"), "image/webp");
+
+    // 2. the alternatives: a piece is changed in the photo; a wall, floor, door, window, wall decor or a rug the
+    //    guide didn't draw is changed in the empty room
+    type Kind = "piece" | "surface" | "free";
+    const kindOf = (it: WallItem): Kind => (pieceNums.has(num(it.id)) ? "piece" : num(it.id) ? "surface" : "free");
+    type Made = { px: Rgba; piece?: ProPiece; alpha?: Float32Array };
+    const proJobs = items.flatMap((item) => item.alts.map((_, alt) => ({ item, alt })));
+    const made = await inBatches(proJobs.map((j) => async (): Promise<Made> => {
+      if (stopped()) throw new Error("Stopped.");
+      const kind = kindOf(j.item), box = guide.boxes[j.item.id] as PctBox, a = j.item.alts[j.alt], grow = placed.get(j.item.id)?.cutPadding ?? 0.28;
+      const onPlate = kind !== "piece";
+      const maskUrl = kind === "surface" ? idMask(new Set([num(j.item.id)]), Math.round(W * 0.006)) : editMask(W, H, pxBox(box, W, H, grow));
+      const req: AiBody = { mode: "variation", size, maskUrl, imageUrl: onPlate ? plateUrl : /^https:/.test(background) ? background : baseData, item: { name: j.item.title, current: onPlate && kind === "free" ? `the empty area at ${j.item.title.toLowerCase()}` : j.item.current, target: a.target, box, group: j.item.group }, productImageUrl: a.productImageUrl, style: s.moodboard?.name, palette: m.palette, roomType: s.current ?? s.startRoom };
+      const from = onPlate ? plate : base;
+      for (let tries = 1; tries <= 2; tries++) {
+        const raw = await pixels(await ai(req), W, H);
+        const area = pxBox(box, W, H, grow);
+        // a wall or floor colour changes everywhere on purpose: only a piece's tones are brought back to the photo's
+        const px = kind === "surface" ? raw : matchTone(from, raw, area);
+        if (kind !== "surface" && driftOutside(from, px, area) > ALIGN_LIMIT) continue;
+        if (kind === "piece") {
+          const piece = proPiece(px, plate, owner, num(j.item.id), pxBox(box, W, H, 0.03), pxBox(box, W, H, grow + 0.4), threshold);
+          if (piece.cover >= 0.05 && !piece.clipped) return { px, piece };
+          continue;
+        }
+        if (kind === "surface") return { px };
+        const cut = altMask(plate, px, box, grow);
+        if (cut.usable) return { px, alpha: cut.alpha };
+      }
+      throw new Error("The alternative did not fit the photo.");
+    }), PARALLEL, () => tick("Making the alternatives"));
+    if (stopped()) throw new Error("Stopped.");
+
+    // 3. the layers
+    report({ wall, step: "Building the layers", done, total });
+    const layers: Record<string, unknown> = {}, spots: Record<string, unknown> = {}, assets: Record<string, ItemAssets> = {};
+    const saved: NonNullable<WallScene["layers"]> = [], skipped: string[] = [];
+    const ORDER: Record<string, number> = { walls: 1, floor: 2, doors: 3 };
+    for (const item of items) {
+      const kind = kindOf(item), at = placed.get(item.id), name = item.id.replace(/[^a-zA-Z0-9_-]/g, "-");
+      const ok: (Made & { name: string })[] = [];
+      item.alts.forEach((a, i) => {
+        const r = made[proJobs.findIndex((j) => j.item === item && j.alt === i)];
+        if (r?.status === "fulfilled") ok.push({ ...(r.value as Made), name: a.name });
+      });
+      const box = guide.boxes[item.id] as PctBox;
+      const order = ORDER[item.id] ?? (item.id.startsWith("window-") ? 4 : at?.zOrder ?? 10);
+      const hotspot = { id: name, title: item.title, visible: true, position: at?.hotspot ?? (({ x0, y0, x1, y1 }) => ({ x: Math.round((x0 + x1) / 2), y: Math.round((y0 + y1) / 2) }))(pxBox(box, W, H, 0)) };
+      const thumbArea = pxBox(box, W, H, 0.25);
+      if (kind === "piece") {
+        // a piece is always drawn (the room underneath is empty), its main option from the photo itself
+        const main = proPiece(base, plate, owner, num(item.id), pxBox(box, W, H, 0.03), pxBox(box, W, H, (at?.cutPadding ?? 0.28) + 0.4), threshold);
+        const variants = [{ px: base, piece: main, name: item.mainName }, ...ok.filter((o) => o.piece).map((o) => ({ px: o.px, piece: o.piece!, name: o.name }))];
+        const colours: string[] = [], shadows: string[] = [], thumbs: string[] = [];
+        for (const [i, v] of variants.entries()) {
+          shadows.push(await up.put(`${name}-${i + 1}-shadow.webp`, await toBlob(v.piece.shadow, "image/webp"), "image/webp"));
+          colours.push(await up.put(`${name}-${i + 1}.webp`, await toBlob(v.piece.colour, "image/webp"), "image/webp"));
+          thumbs.push(await up.put(`${name}-${i + 1}-thumb.jpg`, await toBlob(v.px, "image/jpeg", thumbArea, 260), "image/jpeg"));
+        }
+        if (variants.length < 2 && !item.note) skipped.push(item.title);
+        layers[name] = { title: item.title, group: item.group, order, visible: true, blend: "pro", variations: colours, shadows, shadow: shadows[0], thumbnails: thumbs, variationNames: variants.map((v) => v.name), ...(variants.length < 2 ? { note: item.note ?? "Only the main option for now: its alternatives didn't fit the photo. Make the wall again to try once more." } : {}), hotspot };
+        assets[item.id] = { variations: colours, thumbnails: thumbs, names: variants.map((v) => v.name) };
+        saved.push({ id: item.id, title: item.title, names: variants.map((v) => v.name) });
+        continue;
+      }
+      // walls, floor, door, windows, wall decor, a flat rug: the main option is the empty room itself
+      if (!ok.length) {
+        if (!item.note) skipped.push(item.title);
+        if (at) spots[name] = { title: item.title, group: item.group, order, visible: true, variations: [], thumbnails: [], variationNames: [item.mainName], note: item.note ?? "Only the main option for now: its alternatives didn't fit the photo. Make the wall again to try once more.", hotspot };
+        continue;
+      }
+      const urls = [blank], thumbs = [await up.put(`${name}-1-thumb.jpg`, await toBlob(kind === "free" ? base : plate, "image/jpeg", thumbArea, 260), "image/jpeg")];
+      for (const [i, o] of ok.entries()) {
+        const layer = kind === "surface" ? surfaceLayer(o.px, ids.data, num(item.id)) : cutLayer(o.px, o.alpha!);
+        const blob = await toBlob(layer, "image/webp");
+        urls.push(await up.put(`${name}-${i + 2}.${blob.type === "image/webp" ? "webp" : "png"}`, blob, blob.type));
+        thumbs.push(await up.put(`${name}-${i + 2}-thumb.jpg`, await toBlob(o.px, "image/jpeg", thumbArea, 260), "image/jpeg"));
+      }
+      const names = [item.mainName, ...ok.map((o) => o.name)];
+      layers[name] = { title: item.title, group: item.group, order, visible: true, variations: urls, thumbnails: thumbs, variationNames: names, hotspot };
+      assets[item.id] = { variations: urls, thumbnails: thumbs, names };
+      saved.push({ id: item.id, title: item.title, names });
+    }
+    if (!saved.length) return null;
+    const composition = { preset: canvas.preset, pxPerCm: canvas.pxPerCm, wall: { lengthCm: canvas.lengthCm, heightCm: canvas.heightCm, x: canvas.wallX, y: canvas.wallY }, items: comp.items };
+    const manifest = { mode: "pro", background: plateUrl, photo: background, imageSize: { width: W, height: H }, layers, hotspots: spots, composition, enhancements: { brightness: 100, contrast: 100, saturation: 100 } };
+    const manifestUrl = await up.put("manifest.json", new Blob([JSON.stringify(manifest)], { type: "application/json" }), "application/json");
+    if (wall !== "room") void saveComposition(s, comp, { sceneKey: key, guideUrl, background: plateUrl, manifestUrl, assets });
+    tick("Done");
+    return { status: "ready", key, manifestUrl, assetsUrl: up.assetsUrl, background: plateUrl, layers: saved, skipped, canvas: { preset: canvas.preset, width: W, height: H, pxPerCm: canvas.pxPerCm }, at: new Date().toISOString() };
+  }
 
   // every alternative of every item, a few at a time
   type Job = { item: WallItem; alt: number };

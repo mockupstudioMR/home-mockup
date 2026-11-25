@@ -143,3 +143,10 @@
 .mu .lw-opt.on{border-color:var(--plum);background:#F8F1FA;box-shadow:0 0 0 3px var(--plum-l)}
 .mu .lw-msg{padding:24px}
 .mu .elev-free{margin:6px 2px 0;color:#6E5F73;font-size:13px;line-height:1.35}
+/* the confirmed picture, in the outline's place */
+.mu.b-S5-Walls .wo-card .wo-final{width:100%;height:auto;max-height:300px;object-fit:contain;display:block;border-radius:12px;background:#F3ECE7}
+.mu.b-S5-Wall .ws-final{margin:0}
+.mu.b-S5-Wall .ws-final img{width:100%;height:auto;max-height:560px;object-fit:contain;display:block;border-radius:16px;background:#F3ECE7}
+.mu.b-S5-Wall .ws-final figcaption{margin-top:8px;color:var(--muted,#7a6f69)}
+.mu .lw-confirm{background:var(--ink,#2B2422);color:#fff;border-color:transparent}
+.mu .lw-confirm.on{background:#E7F1EA;color:#2f6b45}

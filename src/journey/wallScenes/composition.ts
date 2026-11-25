@@ -209,3 +209,22 @@ export async function saveComposition(s: JourneyState, comp: WallComposition, ma
     /* the journey keeps its own copy */
   }
 }
+
+/** Keep the confirmed options (and the flattened picture) with the wall's stored composition (best effort). */
+export async function saveConfirmed(s: JourneyState, wall: string, picks: Record<string, number>, finalUrl: string) {
+  try {
+    const { data: u } = await supabase.auth.getUser();
+    const uid = u.user?.id, layoutId = s.layouts[s.chosenLayout ?? 0]?.id;
+    if (!uid || !layoutId) return;
+    const { data } = await supabase.from("wall_compositions").update({ final_url: finalUrl, confirmed_at: new Date().toISOString(), updated_at: new Date().toISOString() } as never)
+      .eq("user_id", uid).eq("layout_id", layoutId).eq("wall", wall).select("id").maybeSingle();
+    const id = (data as { id?: string } | null)?.id;
+    if (!id) return;
+    const { data: items } = await supabase.from("wall_composition_items").select("id,item_key").eq("composition_id", id);
+    for (const it of (items ?? []) as { id: string; item_key: string }[]) {
+      await supabase.from("wall_composition_items").update({ picked: picks[it.item_key.replace(/[^a-zA-Z0-9_-]/g, "-")] ?? 0 }).eq("id", it.id);
+    }
+  } catch {
+    /* the journey keeps its own copy */
+  }
+}
