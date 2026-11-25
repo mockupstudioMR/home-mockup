@@ -35,7 +35,7 @@ describe("keeping alternatives true to the photo", () => {
     expect(cut.clipped).toBe(true);
     expect(cut.usable).toBe(false);
   });
-  it("keeps the original wall's texture above a new piece, with only its shadow", () => {
+  it("draws no dark rim above a new piece: the real wall shows there", () => {
     // the alternative darkens and blurs the wall just above the sofa (y 30–40)
     const textured = picture((x, y) => (inSofa(x, y) ? [94, 43, 79] : (x + y) % 2 ? [190, 184, 175] : [170, 164, 155]));
     const alt = picture((x, y) => (inSofa(x, y) ? [31, 92, 74] : y >= 30 && y < 40 && x >= 36 && x < 84 ? [144, 139, 132] : (x + y) % 2 ? [190, 184, 175] : [170, 164, 155]));
@@ -43,14 +43,10 @@ describe("keeping alternatives true to the photo", () => {
     const layer = cutAlt(textured, alt, cut.alpha, pxBox(box, W, H, 0.03), 1);
     const i = (52 * W + 60) * 4;
     expect(layer.data[i]).toBe(31); // the new piece itself
-    const a = (33 * W + 60) * 4, b = (33 * W + 61) * 4; // the wall above it, laid over the photo: still textured, and darker
-    expect(layer.data[a + 3]).toBeGreaterThan(0);
-    const seen = composite(textured, layer);
-    expect(Math.abs(seen.data[a] - seen.data[b])).toBeGreaterThan(8);
-    expect(Math.max(seen.data[a], seen.data[b])).toBeLessThan(190);
-    // over another wall colour, the shadow darkens that colour instead of bringing the old one back
+    const a = (33 * W + 60) * 4; // the wall above it: left out of the layer, so no outline is drawn there
+    expect(layer.data[a + 3]).toBe(0);
     const rust = picture(() => [160, 80, 50]);
-    expect(composite(rust, layer).data[a + 1]).toBeLessThan(85);
+    expect(composite(rust, layer).data[a + 1]).toBe(80); // over another wall colour: that colour, untouched
   });
   it("takes in the whole old piece where the photo drew it bigger than the guide (a taller sofa back)", () => {
     // the photo's sofa has a back reaching well above where the guide drew it (y 26–40, above the box)

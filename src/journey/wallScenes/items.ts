@@ -8,7 +8,7 @@ import type { JourneyState, Wall } from "../state";
 import { LIBRARY, type Category } from "../showroom3d/library";
 import { hsl, seenOn, type ShowroomModel } from "../showroom3d/model";
 
-export type Alt = { name: string; target: string; productImageUrl?: string; productId?: string };
+export type Alt = { name: string; target: string; productImageUrl?: string; productId?: string; /** A wall paint: repainted on the photo itself, no image AI. */ paint?: string };
 export type WallItem = {
   id: string;
   title: string;
@@ -34,6 +34,13 @@ const sameHex = (a: string, b: string) => a.toUpperCase() === b.toUpperCase();
 export const colourName = (m: ShowroomModel, hex: string) => m.palette.find((p) => sameHex(p.hex, hex))?.name.toLowerCase() ?? hex.toUpperCase();
 
 /** Two other moodboard colours for an item, the most different from its own first; never the wall colour on furniture. */
+/** The same colour, a quarter darker (a "deeper tone" of the wall). */
+function deeper(hex: string): string {
+  const n = parseInt(hex.replace("#", "").slice(0, 6).padEnd(6, "0"), 16);
+  const c = [(n >> 16) & 255, (n >> 8) & 255, n & 255].map((v) => Math.round(v * 0.75));
+  return `#${c.map((v) => v.toString(16).padStart(2, "0")).join("")}`;
+}
+
 function otherColours(m: ShowroomModel, hex: string, avoidWall: boolean): string[] {
   const me = hsl(hex);
   return m.palette
@@ -67,8 +74,8 @@ export function wallItems(s: JourneyState, m: ShowroomModel, wall: Wall | "room"
     id: "walls", title: "Wall colour", group: "walls", current: `${wallName} painted wall surface (only the paint, not the furniture, doors or windows)`, mainName: `${wallName[0].toUpperCase()}${wallName.slice(1)}`,
     alts: [
       // always a plain white wall to compare with
-      { name: "Plain white", target: "the whole wall, edge to edge and floor to ceiling, around the door and windows, painted plain warm white in smooth flat matt paint, one even colour, no texture or effect" },
-      { name: w2 ? `${colourName(m, w2)[0].toUpperCase()}${colourName(m, w2).slice(1)} wall` : "Deeper tone", target: w2 ? `the whole wall, edge to edge and floor to ceiling, around the door and windows, painted ${colourName(m, w2)} (${w2}) in smooth flat matt paint, one even colour, no texture or effect — not a panel or a stripe` : `the whole wall, edge to edge and floor to ceiling, painted a deeper tone of ${wallName} in smooth flat matt paint, one even colour, no texture or effect` },
+      { name: "Plain white", paint: "#F4F1EC", target: "the whole wall, edge to edge and floor to ceiling, around the door and windows, painted plain warm white in smooth flat matt paint, one even colour, no texture or effect" },
+      { name: w2 ? `${colourName(m, w2)[0].toUpperCase()}${colourName(m, w2).slice(1)} wall` : "Deeper tone", paint: w2 ?? deeper(m.surfaces.wall), target: w2 ? `the whole wall, edge to edge and floor to ceiling, around the door and windows, painted ${colourName(m, w2)} (${w2}) in smooth flat matt paint, one even colour, no texture or effect — not a panel or a stripe` : `the whole wall, edge to edge and floor to ceiling, painted a deeper tone of ${wallName} in smooth flat matt paint, one even colour, no texture or effect` },
     ].filter(Boolean),
   });
   const wood = colourName(m, m.surfaces.floor);
