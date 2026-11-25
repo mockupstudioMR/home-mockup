@@ -8,7 +8,7 @@
  */
 import { facingOf } from "../plan/facing";
 import type { JourneyState, Swatch, Wall } from "../state";
-import { alongWall, freeStanding, homeWalls, keepClear, nearestWall, seatSets } from "../wallOutline";
+import { alongWall, freeStanding, homeWalls, keepClear, layoutBoxes, nearestWall } from "../wallOutline";
 import { categoryOf, fabricIn, LIBRARY, matchShape, shapeById, wordsNear, type Category, type Fabric } from "./library";
 
 export type Edit = { color?: string; shape?: string };
@@ -243,7 +243,7 @@ export function buildModel(s: JourneyState, edits: Edits = {}): ShowroomModel {
 
   // Nothing stands in front of a door, or taller than the sill in front of a window, and pieces against a
   // wall don't overlap: each slides along its wall as little as it can (a table with its chairs as one).
-  const sets = seatSets(lay?.items ?? []);
+  const sets = layoutBoxes(lay?.items ?? []);
   const groupOf = (id: string) => { const i = Number(id.replace("lay-", "")); const set = id.startsWith("lay-") ? sets.get(i) : undefined; return set ? `lay-${set[0]}` : id; };
   for (const w of ["A", "B", "C", "D"] as Wall[]) {
     const len = lenOf(w) * 100;

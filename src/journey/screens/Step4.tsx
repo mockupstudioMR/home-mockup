@@ -24,6 +24,7 @@ const p = (d: string) => <path d={d} />;
 /** The last plan image, kept so the person can tap a different room on it without uploading again. */
 let lastPlan: Blob | null = null;
 import { EX_L, EX_W, roomSize } from "../plan/room";
+import { freeStanding, homeWalls } from "../wallOutline";
 export { roomSize };
 const m = (n: number) => n.toFixed(2);
 /** "3.75 × 4.90 m, both written on your plan" / "…, 3.75 written, 4.90 estimated". */
@@ -973,13 +974,15 @@ export function Layouts() {
 /** Which piece or opening each wall is known for: "A Sofa · B Piano · C Window · D Entry". */
 export function wallRoles(s: JourneyState, lay?: Layout) {
   const out: Partial<Record<Wall, string>> = {};
-  const near = (i: { x: number; y: number; w: number; h: number }): Wall => {
-    const d = { A: i.y, C: 100 - (i.y + i.h), D: i.x, B: 100 - (i.x + i.w) };
-    return (Object.entries(d) as [Wall, number][]).sort((a, b) => a[1] - b[1])[0][0];
-  };
-  for (const i of lay?.items ?? []) {
-    if (i.kind === "rug" || i.kind === "table") continue;
-    const w = near(i);
+  // the same walls the outlines and pictures use: each layout box on one wall, named by its biggest piece
+  const items = lay?.items ?? [];
+  const room = s.room.widthM && s.room.lengthM ? { w: s.room.widthM, l: s.room.lengthM } : undefined;
+  const home = homeWalls(items, room), { free } = freeStanding(items, room);
+  const order = items.map((_, n) => n).sort((a, b) => items[b].w * items[b].h - items[a].w * items[a].h);
+  for (const n of order) {
+    const i = items[n];
+    if (i.kind === "rug" || i.kind === "table" || free[n]) continue;
+    const w = home[n];
     if (!out[w]) out[w] = i.kind === "keep" ? i.label.replace(/^upright /i, "") : i.label.split(" ").slice(-1)[0].replace(/^\w/, (c) => c.toUpperCase());
   }
   for (const x of s.placements) {

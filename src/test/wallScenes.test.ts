@@ -52,6 +52,16 @@ describe("keeping alternatives true to the photo", () => {
     const rust = picture(() => [160, 80, 50]);
     expect(composite(rust, layer).data[a + 1]).toBeLessThan(85);
   });
+  it("leaves no old shadow behind a smaller new piece", () => {
+    // the original sofa casts a soft shadow on the wall above it (y 34–40, 18 levels darker); the new, lower
+    // sofa casts none there
+    const shadowed = picture((x, y) => (inSofa(x, y) ? [94, 43, 79] : y >= 34 && y < 40 && x >= 40 && x < 80 ? [167, 161, 152] : [185, 179, 170]));
+    const lower = picture((x, y) => (x >= 40 && x < 80 && y >= 46 && y < 65 ? [31, 92, 74] : [185, 179, 170]));
+    const cut = altMask(shadowed, lower, box);
+    const seen = composite(shadowed, cutAlt(shadowed, lower, cut.alpha, pxBox(box, W, H, 0.03)));
+    const i = (37 * W + 60) * 4;
+    expect(seen.data[i]).toBeGreaterThan(180); // the wall where the old shadow was is lit again
+  });
   it("won't show a re-lit rectangle instead of a piece", () => {
     const a = area();
     const patched = picture((x, y) => (x >= a.x0 && x < a.x1 && y >= a.y0 && y < a.y1 ? [140, 140, 140] : [185, 179, 170]));

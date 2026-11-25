@@ -10,6 +10,7 @@ import { generatePreview } from "../services";
 import { soFar } from "../story";
 import { saveStepDone } from "../sync";
 import { wallRoles } from "./Step4";
+import { freeStanding, homeWalls } from "../wallOutline";
 
 export const WALLS: Wall[] = ["A", "B", "C", "D"];
 const lc = (t: string) => t.charAt(0).toLowerCase() + t.slice(1);
@@ -23,10 +24,9 @@ const SPOTS = [
 export function composeWalls(s: JourneyState): Record<Wall, WallPlan> {
   const roles = Object.fromEntries(wallRoles(s, s.layouts[s.chosenLayout ?? 0]).split(" · ").map((r) => [r[0], r.slice(2)])) as Record<Wall, string>;
   const lay = s.layouts[s.chosenLayout ?? 0];
-  const near = (i: { x: number; y: number; w: number; h: number }): Wall => {
-    const d = { A: i.y, C: 100 - (i.y + i.h), D: i.x, B: 100 - (i.x + i.w) };
-    return (Object.entries(d) as [Wall, number][]).sort((a, b) => a[1] - b[1])[0][0];
-  };
+  // the same walls the outlines and pictures use: each layout box together on one wall, free-standing pieces on none
+  const room = s.room.widthM && s.room.lengthM ? { w: s.room.widthM, l: s.room.lengthM } : undefined;
+  const home = homeWalls(lay?.items ?? [], room), { free } = freeStanding(lay?.items ?? [], room);
   const pal = s.moodboard?.palette ?? [];
   const wallFinish = pal.find((p) => /plaster|paint|limewash|wallpaper|greige/i.test(p.material ?? p.name))?.material ?? "Painted wall";
   const L = s.lighting;
@@ -36,8 +36,8 @@ export function composeWalls(s: JourneyState): Record<Wall, WallPlan> {
     const items: Omit<WallItem, "n" | "x" | "y">[] = [];
     // furniture & decor
     for (const [li, it] of (lay?.items ?? []).entries()) {
-      const at = it.kind === "chair" && s.accent?.wall ? s.accent.wall : near(it);
-      if (it.kind === "rug" || at !== w || !it.label) continue;
+      const at = it.kind === "chair" && s.accent?.wall && !it.group ? s.accent.wall : home[li];
+      if (it.kind === "rug" || at !== w || !it.label || free[li]) continue;
       if (it.kind === "keep") continue;
       const anchor = s.anchor && it.kind === (s.anchor.kind === "sofa" ? "sofa" : it.kind) && it.kind === "sofa";
       items.push({
@@ -99,7 +99,17 @@ export function composeWalls(s: JourneyState): Record<Wall, WallPlan> {
 export function useWalls() {
   const { s, set } = useJourney();
   const composed = useMemo(() => composeWalls(s), [s]);
-  const walls = WALLS.reduce((acc, w) => ({ ...acc, [w]: s.walls[w] ? { ...composed[w], ...s.walls[w], items: s.walls[w]!.items?.length ? s.walls[w]!.items : composed[w].items } : composed[w] }), {} as Record<Wall, WallPlan>);
+  // the layout's pieces always follow the layout (a box moves wall as one); everything else the person
+  // set on a wall (choices, extra items, notes) is kept
+  const merged = (w: Wall): WallItem[] => {
+    const saved = s.walls[w]?.items;
+    if (!saved?.length) return composed[w].items;
+    const isLay = (it: WallItem) => !!it.ref?.startsWith("lay-");
+    const byRef = new Map(WALLS.flatMap((x) => (s.walls[x]?.items ?? []).filter(isLay).map((it) => [it.ref!, it] as const)));
+    const pieces = composed[w].items.filter(isLay).map((it) => ({ ...it, ...(byRef.get(it.ref!) ?? {}), ref: it.ref }));
+    return [...pieces, ...saved.filter((it) => !isLay(it))].map((it, i) => ({ ...it, n: i + 1 }));
+  };
+  const walls = WALLS.reduce((acc, w) => ({ ...acc, [w]: s.walls[w] ? { ...composed[w], ...s.walls[w], items: merged(w) } : composed[w] }), {} as Record<Wall, WallPlan>);
   const setWall = (w: Wall, patch: Partial<WallPlan>) => set((x) => ({ walls: { ...x.walls, [w]: { ...walls[w], ...(x.walls[w] ?? {}), ...patch } } }));
   return { walls, setWall };
 }
