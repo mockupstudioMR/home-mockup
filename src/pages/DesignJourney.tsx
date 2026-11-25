@@ -19,6 +19,16 @@ import { saveDesignJourneyMetadata } from "@/lib/journeyPersistence";
 
 const TOTAL = 10;
 
+/** Optional fields the generator may store on each extracted item; missing ones fall back to defaults. */
+interface ExtractedHotspot {
+  x?: number;
+  y?: number;
+  label?: string;
+  name?: string;
+  reason?: string;
+  description?: string;
+}
+
 const DesignJourney = () => {
   const { designId } = useParams();
   const navigate = useNavigate();
@@ -63,7 +73,9 @@ const DesignJourney = () => {
   const after = design?.imageUrl || "";
 
   const hotspots = useMemo(() => {
-    const items = Array.isArray(design?.extractedItems) ? (design!.extractedItems as any[]) : [];
+    const items: ExtractedHotspot[] = Array.isArray(design?.extractedItems)
+      ? (design.extractedItems as unknown as ExtractedHotspot[])
+      : [];
     const defaults = [
       { x: 30, y: 55, title: "Grounded proportion", description: "A larger rug anchors the seating and unifies the space." },
       { x: 55, y: 40, title: "Better flow", description: "The sofa was repositioned to open sightlines through the room." },
@@ -71,7 +83,7 @@ const DesignJourney = () => {
       { x: 45, y: 20, title: "Focal moment", description: "Artwork creates a natural centerpiece for the wall." },
     ];
     return items.length > 0
-      ? items.slice(0, 4).map((it: any, i: number) => ({
+      ? items.slice(0, 4).map((it, i) => ({
           x: typeof it.x === "number" ? it.x : defaults[i].x,
           y: typeof it.y === "number" ? it.y : defaults[i].y,
           title: it.label || it.name || defaults[i].title,

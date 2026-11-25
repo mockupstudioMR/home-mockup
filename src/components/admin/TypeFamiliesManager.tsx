@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { errorMessage } from "@/lib/floorPlanParsing";
 import { GitBranch, RotateCcw, Save, Plus, X, Trash2 } from "lucide-react";
 
 const CMS_KEY = "strict_type_families";
@@ -78,8 +79,8 @@ const TypeFamiliesManager = () => {
         });
       }
       toast.success("Type families saved!");
-    } catch (err: any) {
-      toast.error(err.message || "Failed to save");
+    } catch (err) {
+      toast.error(errorMessage(err, "Failed to save"));
     } finally {
       setSaving(false);
     }

@@ -54,7 +54,7 @@ export default function OpeningRulesManager() {
       if (error) throw error;
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["opening-rules"] }); setNewRow(null); toast({ title: "Added" }); },
-    onError: (e: any) => toast({ title: e.message || "Insert failed", variant: "destructive" }),
+    onError: (e: Error) => toast({ title: e.message || "Insert failed", variant: "destructive" }),
   });
 
   const deleteMutation = useMutation({
@@ -66,7 +66,7 @@ export default function OpeningRulesManager() {
   });
 
   const getVal = (rule: OpeningRule, field: keyof OpeningRule) => edits[rule.id]?.[field] ?? rule[field];
-  const setVal = (id: string, field: keyof OpeningRule, value: any) => setEdits((p) => ({ ...p, [id]: { ...p[id], [field]: value } }));
+  const setVal = <K extends keyof OpeningRule>(id: string, field: K, value: OpeningRule[K]) => setEdits((p) => ({ ...p, [id]: { ...p[id], [field]: value } }));
 
   const arrToStr = (arr: string[]) => arr.join(", ");
   const strToArr = (s: string) => s.split(",").map((x) => x.trim()).filter(Boolean);

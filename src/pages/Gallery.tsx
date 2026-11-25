@@ -26,7 +26,7 @@ import {
   Box,
   Ruler,
 } from "lucide-react";
-import { exportRoomSpec, fromLegacySession } from "@/services/roomSpec";
+import { exportRoomSpec, fromLegacySession, rowToSpec } from "@/services/roomSpec";
 import { exportRoomObj, exportRoomDxf } from "@/services/roomCadExport";
 import type { RoomSpec } from "@/types/roomSpec";
 import { trackEvent } from "@/lib/analytics";
@@ -263,25 +263,7 @@ const Gallery = () => {
           .select("*")
           .eq("id", design.room_id)
           .maybeSingle();
-        if (data) {
-          const d: any = data;
-          spec = {
-            id: d.id,
-            user_id: d.user_id,
-            name: d.name,
-            room_type: d.room_type,
-            shape: d.shape,
-            dimensions: d.dimensions ?? {},
-            custom_walls: d.custom_walls ?? undefined,
-            walls: d.walls ?? [],
-            style: d.style ?? { preference: "", colorPalette: "neutral", budgetFeel: "mid-range", mustHaveElements: [] },
-            furniture: d.furniture ?? { selectedItems: [] },
-            layout: d.layout ?? undefined,
-            schema_version: d.schema_version ?? 1,
-            created_at: d.created_at,
-            updated_at: d.updated_at,
-          };
-        }
+        if (data) spec = rowToSpec(data);
       }
       if (!spec) spec = fromLegacySession();
     return spec;
@@ -352,7 +334,7 @@ const Gallery = () => {
           .select("moodboard")
           .eq("id", design.id)
           .maybeSingle();
-        const mb = (designRow as any)?.moodboard;
+        const mb = designRow?.moodboard;
         if (mb && typeof mb === "object") {
           writeJson(GENERATE_KEYS.moodboard, mb);
           hydrateAnalyzeRoomCacheFromMoodboard(mb as GenerateMoodboard);

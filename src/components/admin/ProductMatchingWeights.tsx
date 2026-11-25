@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { errorMessage } from "@/lib/floorPlanParsing";
 import { SlidersHorizontal, RotateCcw, Save } from "lucide-react";
 
 export interface MatchingWeights {
@@ -108,8 +109,8 @@ const ProductMatchingWeights = () => {
           });
       }
       toast.success("Matching weights saved!");
-    } catch (err: any) {
-      toast.error(err.message || "Failed to save");
+    } catch (err) {
+      toast.error(errorMessage(err, "Failed to save"));
     } finally {
       setSaving(false);
     }

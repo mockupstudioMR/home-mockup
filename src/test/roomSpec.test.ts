@@ -10,9 +10,11 @@ vi.mock("@/integrations/supabase/client", () => ({
 import {
   fromLegacySession,
   loadActiveRoomSpec,
+  rowToSpec,
   setActiveRoomId,
   toLegacyFloorPlanContext,
 } from "@/services/roomSpec";
+import type { Tables } from "@/integrations/supabase/types";
 import { emptyRoomSpec, ROOM_SPEC_VERSION, type RoomSpec } from "@/types/roomSpec";
 
 describe("fromLegacySession", () => {
@@ -140,5 +142,42 @@ describe("loadActiveRoomSpec", () => {
     maybeSingle.mockReset();
     expect((await loadActiveRoomSpec())?.id).toBe("room-1");
     expect(maybeSingle).not.toHaveBeenCalled();
+  });
+});
+
+describe("rowToSpec (used by Gallery's room export)", () => {
+  const baseRow = {
+    id: "room-1",
+    user_id: "user-1",
+    name: "Living room",
+    room_type: "living",
+    shape: "rectangle",
+    dimensions: { width: 400, length: 500 },
+    custom_walls: null,
+    walls: null,
+    style: null,
+    furniture: null,
+    layout: null,
+    schema_version: null,
+    created_at: "2026-11-25T00:00:00Z",
+    updated_at: "2026-11-25T00:00:00Z",
+  } as unknown as Tables<"rooms">;
+
+  it("fills safe defaults when the JSON columns are empty", () => {
+    const spec = rowToSpec(baseRow);
+    expect(spec.id).toBe("room-1");
+    expect(spec.dimensions).toEqual({ width: 400, length: 500 });
+    expect(spec.custom_walls).toBeUndefined();
+    expect(spec.walls).toEqual([]);
+    expect(spec.style).toMatchObject({ preference: "", colorPalette: "neutral", budgetFeel: "mid-range", mustHaveElements: [] });
+    expect(spec.furniture).toEqual({ selectedItems: [] });
+    expect(spec.layout).toBeUndefined();
+    expect(spec.schema_version).toBe(ROOM_SPEC_VERSION);
+  });
+
+  it("keeps stored style values and only defaults the missing ones", () => {
+    const spec = rowToSpec({ ...baseRow, style: { preference: "japandi" }, schema_version: 1 } as unknown as Tables<"rooms">);
+    expect(spec.style.preference).toBe("japandi");
+    expect(spec.style.colorPalette).toBe("neutral");
   });
 });

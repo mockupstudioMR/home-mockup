@@ -872,7 +872,8 @@ function floorCamera(room: ShowroomModel["room"], wall: Wall, floorM: number, as
   }
   let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
   for (const p of pts) { const v = p.applyMatrix4(cam.matrixWorldInverse); x0 = Math.min(x0, v.x); x1 = Math.max(x1, v.x); y0 = Math.min(y0, v.y); y1 = Math.max(y1, v.y); }
-  let hw = (x1 - x0) / 2, hh = (y1 - y0) / 2;
+  const hw = (x1 - x0) / 2;
+  let hh = (y1 - y0) / 2;
   const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2;
   const extent = { w: hw * 2, h: hh * 2 };
   // fit the wall's width exactly (no empty strips at the sides for the picture model to fill with invented
