@@ -2,9 +2,16 @@
  * One wall's layered photograph, like the showroom: a hotspot on every item; tapping it opens the item's
  * options (its main option and two alternatives) and swaps the layer on the spot. The person's choices are
  * kept with the journey. Reads the wall's manifest (background, and per item its aligned variation layers).
+ *
+ * A "pro" manifest is built the Generator PRO way: the background is the empty room and every piece is drawn
+ * over it as a shadow image (multiply) and a colour image (lighten), so a piece brings its own contact shadow
+ * and none of the wall behind it. "Confirm options" flattens the chosen options into one final picture,
+ * which then shows instead of the outline.
  */
 import { useEffect, useMemo, useState } from "react";
 import { useJourney } from "../state";
+import { storeDesignImage } from "../services";
+import { saveConfirmed } from "./composition";
 import type { Pic, WallScene } from "./runner";
 
 type Layer = {
@@ -13,8 +20,10 @@ type Layer = {
   /** Shown for an item that can't be swapped (yet): it is still clickable. */
   note?: string;
   hotspot?: { position: { x: number; y: number } };
+  /** pro: one shadow image per variation, drawn with multiply under its colour image (lighten). */
+  blend?: "pro"; shadows?: string[];
 };
-type Manifest = { background: string; imageSize: { width: number; height: number }; layers: Record<string, Layer>; hotspots?: Record<string, Layer> };
+type Manifest = { mode?: "pro"; background: string; imageSize: { width: number; height: number }; layers: Record<string, Layer>; hotspots?: Record<string, Layer> };
 
 const cache = new Map<string, Promise<Manifest>>();
 function loadManifest(url: string) {
@@ -55,14 +64,25 @@ export function LayeredWall({ wall, scene }: { wall: Pic; scene: WallScene }) {
   const { width: W, height: H } = m.imageSize;
   const cur = open ? m.layers[open] : null;
   const changed = layers.filter(([n]) => (picks[n] ?? 0) > 0).length;
+  const pro = m.mode === "pro";
+  // pro: the room is empty, so every layer is drawn with its chosen option; otherwise only the swapped ones
+  const shown = layers.filter(([n, l]) => l.variations.length > 0 && (pro || ((picks[n] ?? 0) > 0 && l.variations.length > 1)));
+  const at = (n: string, l: Layer) => Math.min(picks[n] ?? 0, l.variations.length - 1);
+  const final = s.showroom?.final?.[wall];
+  const same = !!final && final.scene === scene.manifestUrl && JSON.stringify(final.picks) === JSON.stringify(picks);
 
   return (
     <div className="lw">
-      <div className="lw-stage" style={{ aspectRatio: `${W} / ${H}` }}>
+      <div className="lw-stage" style={{ aspectRatio: `${W} / ${H}`, isolation: "isolate" }}>
         <img className="lw-img" src={m.background} alt={wall === "room" ? "Your whole room, as a photograph" : `Wall ${wall}, as a photograph`} />
         {/* the photo already shows every main option: only swapped pieces are laid over it, front ones last */}
-        {layers.filter(([n, l]) => (picks[n] ?? 0) > 0 && l.variations.length > 1).map(([name, l]) => (
-          <img key={name} className="lw-img" src={l.variations[Math.min(picks[name] ?? 0, l.variations.length - 1)]} alt="" aria-hidden="true" />
+        {shown.map(([name, l]) => l.shadows?.length ? (
+          <span key={name}>
+            <img className="lw-img" style={{ mixBlendMode: "multiply" }} src={l.shadows[Math.min(at(name, l), l.shadows.length - 1)]} alt="" aria-hidden="true" />
+            <img className="lw-img" style={{ mixBlendMode: "lighten" }} src={l.variations[at(name, l)]} alt="" aria-hidden="true" />
+          </span>
+        ) : (
+          <img key={name} className="lw-img" src={l.variations[at(name, l)]} alt="" aria-hidden="true" />
         ))}
         {!hide && layers.map(([name, l]) => l.hotspot && (
           <button key={name} type="button" className={`lw-hs${open === name ? " on" : ""}${(picks[name] ?? 0) > 0 ? " chg" : ""}`}
@@ -85,6 +105,7 @@ export function LayeredWall({ wall, scene }: { wall: Pic; scene: WallScene }) {
         </div>
         <div className="lw-tools">
           <button type="button" className="lw-tab" aria-pressed={hide} onClick={() => setHide(!hide)}>{hide ? "Show dots" : "Hide dots"}</button>
+          <ConfirmButton wall={wall} sceneUrl={scene.manifestUrl ?? ""} m={m} layers={shown} at={at} picks={picks} done={same} />
           {changed > 0 && <button type="button" className="lw-tab" onClick={() => set((p) => ({ showroom: { ...(p.showroom ?? { edits: {} }), edits: p.showroom?.edits ?? {}, picks: { ...(p.showroom?.picks ?? {}), [wall]: {} } } }))}>Back to my preview</button>}
         </div>
       </div>
@@ -105,4 +126,58 @@ export function LayeredWall({ wall, scene }: { wall: Pic; scene: WallScene }) {
       )}
     </div>
   );
+}
+
+/** Flattens the chosen options into one picture (as the showroom draws them) and keeps it with the journey. */
+function ConfirmButton({ wall, sceneUrl, m, layers, at, picks, done }: { wall: Pic; sceneUrl: string; m: Manifest; layers: [string, Layer][]; at: (n: string, l: Layer) => number; picks: Record<string, number>; done: boolean }) {
+  const { s, set } = useJourney();
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+  const confirm = async () => {
+    setBusy(true); setErr("");
+    try {
+      const url = await flatten(m, layers, at);
+      set((p) => ({
+        showroom: { ...(p.showroom ?? { edits: {} }), edits: p.showroom?.edits ?? {}, final: { ...(p.showroom?.final ?? {}), [wall]: { url, scene: sceneUrl, picks: { ...picks }, at: new Date().toISOString() } } },
+      }));
+      if (wall !== "room") void saveConfirmed(s, wall, picks, url);
+    } catch {
+      setErr("The final picture could not be made. Try again.");
+    } finally { setBusy(false); }
+  };
+  return (
+    <>
+      <button type="button" className={`lw-tab lw-confirm${done ? " on" : ""}`} disabled={busy || done} onClick={confirm} aria-live="polite">
+        {busy ? "Saving…" : done ? "✓ Options confirmed" : "Confirm options"}
+      </button>
+      {err && <span className="small" role="alert">{err}</span>}
+    </>
+  );
+}
+
+function img(src: string) {
+  return new Promise<HTMLImageElement>((ok, no) => {
+    const i = new Image(); i.crossOrigin = "anonymous";
+    i.onload = () => ok(i); i.onerror = () => no(new Error("image")); i.src = src;
+  });
+}
+
+async function flatten(m: Manifest, layers: [string, Layer][], at: (n: string, l: Layer) => number) {
+  const { width: W, height: H } = m.imageSize;
+  const c = document.createElement("canvas"); c.width = W; c.height = H;
+  const g = c.getContext("2d")!;
+  g.drawImage(await img(m.background), 0, 0, W, H);
+  for (const [n, l] of layers) {
+    const i = at(n, l);
+    if (l.shadows?.length) {
+      g.globalCompositeOperation = "multiply";
+      g.drawImage(await img(l.shadows[Math.min(i, l.shadows.length - 1)]), 0, 0, W, H);
+      g.globalCompositeOperation = "lighten";
+    } else g.globalCompositeOperation = "source-over";
+    g.drawImage(await img(l.variations[i]), 0, 0, W, H);
+  }
+  g.globalCompositeOperation = "source-over";
+  const url = await storeDesignImage(c.toDataURL("image/jpeg", 0.9));
+  if (!/^https:/.test(url)) throw new Error("upload");
+  return url;
 }

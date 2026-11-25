@@ -194,7 +194,9 @@ export function YourWalls() {
                 <small>{metres(o.length)}</small>
                 <span className={`tag${done ? " ok" : ""}`}>{done ? "Set up" : "To set up"}</span>
               </span>
-              <WallElevation o={o} wp={wp} compact labels />
+              {finalOf(s, w)
+                ? <img className="wo-final" src={finalOf(s, w)!.url} alt={`Wall ${w} with your confirmed options`} loading="lazy" />
+                : <WallElevation o={o} wp={wp} compact labels />}
               <span className="f">
                 <span>{wallLine(wp)}</span>
                 <span className="go">{done ? "Open again" : "Open"} <I.next /></span>
@@ -267,6 +269,12 @@ export function WallShowroom({ param }: { param?: string }) {
   return <OneWall key={param ?? "A"} param={param} />;
 }
 
+/** The confirmed picture of a wall, while it still belongs to the wall's current picture. */
+function finalOf(s: ReturnType<typeof useJourney>["s"], w: Wall) {
+  const f = s.showroom?.final?.[w], sc = s.showroom?.scenes?.[w];
+  return f?.url && (!f.scene || f.scene === sc?.manifestUrl) ? f : undefined;
+}
+
 function OneWall({ param }: { param?: string }) {
   const { s, set } = useJourney();
   const go = useGo();
@@ -279,6 +287,7 @@ function OneWall({ param }: { param?: string }) {
   const o = outlines[w];
   const [sel, setSel] = useState<number | undefined>(undefined);
   const [mode, setMode] = useState<"outline" | "picture">("outline");
+  const finalPic = finalOf(s, w);
   const [busy, setBusy] = useState(false);
   const [made, setMade] = useState(false);
   const [link, setLink] = useState("");
@@ -392,7 +401,13 @@ function OneWall({ param }: { param?: string }) {
           </div>
           {mode === "outline" ? (
             <div className="ws-draw">
-              <WallElevation o={o} wp={wp} selected={sel} onPick={(n) => setSel(n === sel ? undefined : n)} />
+              {/* once the options are confirmed in the showroom, the final picture takes the outline's place */}
+              {finalPic ? (
+                <figure className="ws-final">
+                  <img src={finalPic.url} alt={`Wall ${w} with your confirmed options`} />
+                  <figcaption className="small">Your confirmed options · change them in "Picture"</figcaption>
+                </figure>
+              ) : <WallElevation o={o} wp={wp} selected={sel} onPick={(n) => setSel(n === sel ? undefined : n)} />}
             </div>
           ) : own?.status === "ready" && own.manifestUrl && own.assetsUrl && !made ? (
             // The person's own wall: a photograph in their preview's style, every piece swappable.

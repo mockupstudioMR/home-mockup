@@ -11,7 +11,7 @@
 export type Rgba = { data: Uint8ClampedArray; width: number; height: number };
 /** [x, y, w, h] in percent of the picture. */
 export type PctBox = [number, number, number, number];
-type PxBox = { x0: number; y0: number; x1: number; y1: number };
+export type PxBox = { x0: number; y0: number; x1: number; y1: number };
 
 /** A percent box in pixels, grown by `grow` of its size on every side and clipped to the picture. */
 export function pxBox(b: PctBox, width: number, height: number, grow = 0.12): PxBox {
@@ -38,7 +38,7 @@ export function driftOutside(base: Rgba, alt: Rgba, box: PxBox, step = 4): numbe
 }
 
 /** Grow (max) or shrink (min) a mask by `r` pixels inside the box, as two separable passes. */
-function morph(m: Float32Array, w: number, box: PxBox, r: number, grow: boolean): Float32Array {
+export function morph(m: Float32Array, w: number, box: PxBox, r: number, grow: boolean): Float32Array {
   if (r <= 0) return m;
   const tmp = new Float32Array(m.length), out = new Float32Array(m.length);
   const pick = grow ? Math.max : Math.min;
@@ -56,7 +56,7 @@ function morph(m: Float32Array, w: number, box: PxBox, r: number, grow: boolean)
 }
 
 /** Soft edges: a box blur of radius r, inside the box. */
-function feather(m: Float32Array, w: number, box: PxBox, r: number): Float32Array {
+export function feather(m: Float32Array, w: number, box: PxBox, r: number): Float32Array {
   if (r <= 0) return m;
   const tmp = new Float32Array(m.length), out = new Float32Array(m.length);
   for (let y = box.y0; y < box.y1; y++) for (let x = box.x0; x < box.x1; x++) {
@@ -73,7 +73,7 @@ function feather(m: Float32Array, w: number, box: PxBox, r: number): Float32Arra
 }
 
 /** Keep only connected parts of the mask that are at least `minArea` pixels (drops specks of noise). */
-function dropSpecks(m: Float32Array, w: number, box: PxBox, minArea: number): Float32Array {
+export function dropSpecks(m: Float32Array, w: number, box: PxBox, minArea: number): Float32Array {
   const seen = new Uint8Array(m.length), out = new Float32Array(m.length), stack: number[] = [];
   for (let y = box.y0; y < box.y1; y++) for (let x = box.x0; x < box.x1; x++) {
     const s = y * w + x;

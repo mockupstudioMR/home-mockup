@@ -227,7 +227,7 @@ export type JourneyState = {
    * The showroom: edits made in the (now hidden) 3D room, the saved style of the room, and each wall's
    * hyper-realistic layered picture (wallScenes/runner).
    */
-  showroom?: { edits: import("./showroom3d/model").Edits; record?: import("./showroom3d/record").StyleRecord; scenes?: Partial<Record<Wall | "room", import("./wallScenes/runner").WallScene>>; /** The option picked for each item on each wall picture, and the whole-room picture (0 = main option). */ picks?: Partial<Record<Wall | "room", Record<string, number>>> };
+  showroom?: { edits: import("./showroom3d/model").Edits; record?: import("./showroom3d/record").StyleRecord; scenes?: Partial<Record<Wall | "room", import("./wallScenes/runner").WallScene>>; /** The option picked for each item on each wall picture, and the whole-room picture (0 = main option). */ picks?: Partial<Record<Wall | "room", Record<string, number>>>; /** The confirmed picture of each wall: its chosen options flattened, shown instead of the outline. */ final?: Partial<Record<Wall | "room", { url: string; /** the wall picture (manifest) it was made from: a new picture of the wall makes it outdated */ scene?: string; picks: Record<string, number>; at: string }>> };
   /** People asked to join. saved = added to the project in the database (not only in this browser). */
   team?: { role: string; email: string; saved?: boolean }[];
   // Step 10 / more rooms

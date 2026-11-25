@@ -24,7 +24,8 @@ const json = (body: unknown, status = 200) =>
 
 type Piece = { name: string; detail: string; box: [number, number, number, number] };
 type Body = {
-  mode: "base" | "variation";
+  /** base: the photo; plate: the same photo with every piece removed (the empty room); variation: one swap */
+  mode: "base" | "plate" | "variation";
   /** base: the guide render of the wall. variation: the wall photograph to change. */
   imageUrl: string;
   /** base: the step 2 preview, for style, materials and light. */
@@ -69,6 +70,13 @@ A table with its chairs is one composed set: show the whole table top and its le
 ${PLAIN_WALLS}`;
 }
 
+/** The empty room: the same photograph with every piece taken out, so each piece can be laid over it. */
+function platePrompt() {
+  return `Edit this interior photograph. Remove EVERY piece of furniture and everything standing or lying in the room: sofas, chairs, tables, cabinets, shelves, lamps, plants, cushions, rugs, decor and anything hanging on the wall. Where they stood, continue the bare wall, skirting and floor exactly as they look elsewhere in the photo, with no trace, outline or shadow of what was removed.
+Keep exactly as they are: the walls and their colour, the door and its frame, the windows and their view, the skirting, the floor, the camera, the light and the picture's size. Nothing else may change.
+${PLAIN_WALLS}`;
+}
+
 function variationPrompt(b: Body) {
   const it = b.item!;
   return `Edit this interior photograph. Change ONLY the ${it.current} (${pct(it.box)} of the image).
@@ -86,14 +94,14 @@ Deno.serve(async (req) => {
     const key = Deno.env.get("LOVABLE_API_KEY");
     if (!key) throw new Error("Missing LOVABLE_API_KEY");
     const b = (await req.json()) as Body;
-    if (b.mode !== "base" && b.mode !== "variation") return json({ error: "mode must be base or variation" }, 400);
+    if (b.mode !== "base" && b.mode !== "plate" && b.mode !== "variation") return json({ error: "mode must be base, plate or variation" }, 400);
     if (!b.imageUrl || !(HTTPS.test(b.imageUrl) || b.imageUrl.startsWith("data:image/"))) return json({ error: "imageUrl is required" }, 400);
     if (b.mode === "variation" && (!b.item?.current || !b.item?.target || !Array.isArray(b.item.box))) return json({ error: "item is required" }, 400);
     const refs = [b.mode === "base" ? b.styleImageUrl : b.productImageUrl].filter((u): u is string => !!u && HTTPS.test(u));
 
     const content = [
       // The base picture is a new generation, so it carries the shared moodboard brief; a variation is a surgical edit.
-      { type: "text", text: b.mode === "base" ? buildMoodboardDirective({ detectedColors: (b.palette ?? []).map((p) => p.hex), moodboardDescription: b.moodboardDescription }) + basePrompt(b) : variationPrompt(b) },
+      { type: "text", text: b.mode === "base" ? buildMoodboardDirective({ detectedColors: (b.palette ?? []).map((p) => p.hex), moodboardDescription: b.moodboardDescription }) + basePrompt(b) : b.mode === "plate" ? platePrompt() : variationPrompt(b) },
       { type: "image_url", image_url: { url: b.imageUrl } },
       ...refs.map((url) => ({ type: "image_url", image_url: { url } })),
     ];
@@ -107,7 +115,7 @@ Deno.serve(async (req) => {
         body: JSON.stringify({
           model: b.mode === "base" ? "google/gemini-3-pro-image" : "google/gemini-3.1-flash-image", messages: [{ role: "user", content }], modalities: ["image", "text"],
           // for GPT Image (see _shared/aiModels.ts): the picture's size, and for a swap a mask so only the item's area changes
-          hm: { size: /^\d{3,4}x\d{3,4}$/.test(b.size ?? "") ? b.size : undefined, mask: b.mode === "variation" && b.maskUrl?.startsWith("data:image/png") ? b.maskUrl : undefined, quality: "medium" },
+          hm: { size: /^\d{3,4}x\d{3,4}$/.test(b.size ?? "") ? b.size : undefined, mask: b.mode !== "base" && b.maskUrl?.startsWith("data:image/png") ? b.maskUrl : undefined, quality: "medium" },
         }),
       }, Math.max(20_000, 135_000 - (Date.now() - started)));
       lastStatus = res.status;
