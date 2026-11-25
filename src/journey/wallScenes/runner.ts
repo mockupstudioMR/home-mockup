@@ -13,7 +13,7 @@ import { getAiErrorMessage } from "@/lib/aiErrorMessage";
 import { storeDesignImage } from "../services";
 import type { JourneyState, Wall } from "../state";
 import { buildModel, seenOn, type ShowroomModel } from "../showroom3d/model";
-import { proPiece, surfaceLayer, type ProPiece } from "./proLayers";
+import { flatIntrusion, proPiece, surfaceLayer, type ProPiece } from "./proLayers";
 import { editMaskFrom, segmentPhoto } from "./segment";
 import { paintWall, wallMask, wallSeeds } from "./wallPaint";
 import { alphaBox, altMask, keepOff, limitAlpha, centreOf, composite, cutAlt, cutLayer, driftOutside, matchTone, pxBox, unionAlpha, type AltCut, type PctBox, type Rgba } from "./layers";
@@ -44,7 +44,7 @@ export const PICTURES: Pic[] = [...WALLS, "room"];
 const ALIGN_LIMIT = 14; // mean change outside the item (0–255), after matching tones, above which an alternative moved the photo
 const PARALLEL = 4;
 /** Raised when the way pictures are made changes, so walls made the old way are made again. */
-const PICTURE_VERSION = 17;
+const PICTURE_VERSION = 18;
 
 const previewImage = (s: JourneyState) => s.preview?.versions[s.preview.current]?.image;
 
@@ -227,6 +227,8 @@ async function makeWall(s: JourneyState, m: ShowroomModel, wall: Pic, report: (p
   // A wall colour is repainted on the picture itself (no image AI), so it can never leave a band, a patch
   // or an outline: only the wall's own pixels change, keeping the photo's light.
   const isPaint = (it: WallItem, i: number) => it.id === "walls" && !!it.alts[i]?.paint;
+  /** Lies flat on the floor (a rug): other pieces stand on it. */
+  const isFlat = (it: WallItem) => /rug|carpet|\bmat\b/i.test(`${it.id} ${it.title}`);
   const seedsFor = (img: Rgba) => {
     const W = img.width, H = img.height;
     const wb = guide.boxes["walls"] ? pxBox(guide.boxes["walls"] as PctBox, W, H, 0) : { x0: 0, y0: 0, x1: W, y1: H };
@@ -285,6 +287,28 @@ async function makeWall(s: JourneyState, m: ShowroomModel, wall: Pic, report: (p
     if (pieceItems.some((it) => !baseMasks[it.id])) return null;
     /** Where the other pieces are on the photo, so they are never taken for this piece's shadow. */
     let baseWall: Float32Array | undefined;
+    // the floor and rugs (lying flat): a standing piece's outline never takes them, so a new floor or rug shows
+    // between a table's legs and under a chair instead of the old one
+    const flatIds = new Set(pieceItems.filter((it) => isFlat(it)).map((it) => it.id));
+    const floorTop = aboveFloor(base).y1 - Math.round(H * 0.01);
+    const surfaceFor = (id: string) => {
+      const sm = new Float32Array(W * H);
+      for (let p = floorTop * W; p < sm.length; p++) sm[p] = 1;
+      for (const fid of flatIds) if (fid !== id && baseMasks[fid]) { const mk = baseMasks[fid]; for (let p = 0; p < sm.length; p++) if (mk[p] >= 0.5) sm[p] = 1; }
+      return sm;
+    };
+    const standingOthers = (id: string) => {
+      const o = new Float32Array(W * H);
+      for (const [k, mk] of Object.entries(baseMasks)) if (k !== id && !flatIds.has(k)) for (let p = 0; p < o.length; p++) if (mk[p] > o[p]) o[p] = mk[p];
+      return o;
+    };
+    /** What must not be drawn with a piece: the wall, and (for anything but the floor itself) floor or rugs. */
+    const notPiece = (img: Rgba, mk: Float32Array, id: string, area: { x0: number; y0: number; x1: number; y1: number }, wall: Float32Array) => {
+      const flat = flatIntrusion(img, mk, surfaceFor(id), standingOthers(id), area);
+      const out = new Float32Array(wall);
+      for (let p = 0; p < out.length; p++) if (flat[p]) out[p] = 1;
+      return out;
+    };
     const othersOf = (id: string) => {
       const o = new Float32Array(W * H);
       for (const [k, mk] of Object.entries(baseMasks)) if (k !== id) for (let p = 0; p < o.length; p++) if (mk[p] > o[p]) o[p] = mk[p];
@@ -331,7 +355,8 @@ async function makeWall(s: JourneyState, m: ShowroomModel, wall: Pic, report: (p
           const url = await up.put(`tmp-${j.item.id.replace(/[^a-zA-Z0-9_-]/g, "-")}-${j.alt}.jpg`, await toBlob(px, "image/jpeg"), "image/jpeg");
           const mk = (await segmentPhoto(url, [{ key: j.item.id, name: a.target }], W, H))[j.item.id];
           if (!mk) throw new Error("The alternative could not be outlined.");
-          const piece = proPiece(px, plate, mk, pxBox(box, W, H, 0.03), pxBox(box, W, H, grow + 0.4), othersOf(j.item.id), wallOf(px));
+          const pArea = pxBox(box, W, H, grow + 0.4);
+          const piece = proPiece(px, plate, mk, pxBox(box, W, H, 0.03), pArea, othersOf(j.item.id), notPiece(px, mk, j.item.id, pArea, wallOf(px)));
           if (piece.cover >= 0.05 && !piece.clipped) return { px, piece };
           continue;
         }
@@ -362,7 +387,8 @@ async function makeWall(s: JourneyState, m: ShowroomModel, wall: Pic, report: (p
       if (kind === "piece") {
         // a piece is always drawn (the room underneath is empty), its main option cut from the photo itself
         const bm = baseMasks[item.id];
-        const main = bm ? proPiece(base, plate, bm, pxBox(box, W, H, 0.03), pxBox(box, W, H, (at?.cutPadding ?? 0.28) + 0.4), othersOf(item.id), baseWall ??= wallOf(base)) : null;
+        const mArea = pxBox(box, W, H, (at?.cutPadding ?? 0.28) + 0.4);
+        const main = bm ? proPiece(base, plate, bm, pxBox(box, W, H, 0.03), mArea, othersOf(item.id), notPiece(base, bm, item.id, mArea, baseWall ??= wallOf(base))) : null;
         // never a gap where a piece stood: if one can't be cut, the whole wall uses the cut-outs over the photo
         if (!main || main.cover < 0.05) return null;
         const variants = [{ px: base, piece: main, name: item.mainName }, ...ok.filter((o) => o.piece).map((o) => ({ px: o.px, piece: o.piece!, name: o.name }))];
@@ -435,8 +461,10 @@ async function makeWall(s: JourneyState, m: ShowroomModel, wall: Pic, report: (p
       if (driftOutside(base, px, area) > ALIGN_LIMIT) continue;
       const cut = altMask(base, px, box as PctBox, grow);
       if (!cut.usable) continue;
-      // keep the layer off the other pieces' pixels, so swapping one piece never repaints another
-      if (guide.ids) {
+      // keep the layer off the other pieces' pixels, so swapping one piece never repaints another. Not for the
+      // floor or a rug: the 3D guide doesn't line up with the photo, and keeping a new rug off the guide's table
+      // legs punched leg-shaped holes in it where the old rug showed (the new rug's own cut follows the photo)
+      if (guide.ids && j.item.id !== "floor" && !isFlat(j.item)) {
         const surface = j.item.id === "walls" || j.item.id === "floor";
         const others = new Set<number>();
         guide.ids.keys.forEach((k, i) => { if (k !== j.item.id && (surface || (k !== "walls" && k !== "floor"))) others.add(i + 1); });
