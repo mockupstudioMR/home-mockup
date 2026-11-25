@@ -18,10 +18,11 @@ export async function segmentPhoto(imageUrl: string, items: { key: string; name:
   // a few things per call: the model outlines a short list more carefully
   for (let i = 0; i < items.length; i += 4) {
     const part = items.slice(i, i + 4);
-    const { data, error } = await invokeAi<{ masks?: { key: string; box: number[]; mask: string }[] }>("segment-photo", { body: { imageUrl, items: part }, timeoutMs: 100_000 });
+    const { data, error } = await invokeAi<{ masks?: { key: string; box: number[]; mask: string }[]; fallback?: boolean; error?: string }>("segment-photo", { body: { imageUrl, items: part }, timeoutMs: 100_000 });
     // A timeout may already be billed. Stop this outlining pass, rather than
     // repeating it (or continuing its remaining batches); the runner falls back.
     if (error) throw error;
+    if (data?.fallback) throw new Error(data.error || "Photo outlining took too long.");
     const masks = data?.masks ?? [];
     if (!masks.length) return out;
     const c = document.createElement("canvas"); c.width = width; c.height = height;
