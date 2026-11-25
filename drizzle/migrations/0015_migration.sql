@@ -1,0 +1,10 @@
+DROP POLICY IF EXISTS "Public can view room furniture config" ON public.room_furniture_config;
+CREATE POLICY "Signed-in users view room furniture config" ON public.room_furniture_config FOR SELECT TO authenticated USING (auth.uid() IS NOT NULL);
+DROP POLICY IF EXISTS "Public can view room activities" ON public.room_activities;
+CREATE POLICY "Signed-in users view room activities" ON public.room_activities FOR SELECT TO authenticated USING (auth.uid() IS NOT NULL);
+DROP POLICY IF EXISTS "Anyone reads" ON public.scheme_combinations;
+CREATE POLICY "Signed-in users read" ON public.scheme_combinations FOR SELECT TO authenticated USING (auth.uid() IS NOT NULL);
+DROP POLICY IF EXISTS "Anyone reads" ON public.scheme_combination_members;
+CREATE POLICY "Signed-in users read" ON public.scheme_combination_members FOR SELECT TO authenticated USING (auth.uid() IS NOT NULL);
+DROP POLICY IF EXISTS "Anyone reads" ON public.signal_weights;
+CREATE POLICY "Admins read" ON public.signal_weights FOR SELECT TO authenticated USING (public.has_role(auth.uid(), 'admin'));
