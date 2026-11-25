@@ -75,3 +75,26 @@ describe("seating walls show some floor", () => {
     expect(floorDepthFor(m, "B")).toBe(0);
   });
 });
+
+describe("layout boxes stay together", () => {
+  // a living grouping: sofa against the top wall, an armchair on each side (each nearer a side wall), table, rug
+  const living: LayoutItem[] = [
+    { label: "3-seat sofa", kind: "sofa", x: 30, y: 1, w: 40, h: 18, group: "living-lounge" },
+    { label: "Armchair", kind: "chair", x: 6, y: 22, w: 15, h: 16, group: "living-lounge" },
+    { label: "Armchair", kind: "chair", x: 79, y: 22, w: 15, h: 16, group: "living-lounge" },
+    { label: "Coffee table", kind: "table", x: 40, y: 26, w: 20, h: 10, group: "living-lounge" },
+    { label: "Rug", kind: "rug", x: 22, y: 15, w: 56, h: 30, group: "living-lounge" },
+    { label: "Desk", kind: "desk", x: 1, y: 70, w: 12, h: 25 },
+  ];
+  const t = { ...s, placements: [], layouts: [{ id: "L", name: "L", zones: [], notes: [], items: living }] } as unknown as JourneyState;
+  it("puts the whole box on the wall its main piece stands against", () => {
+    const o = outlineFor(t, "A", { items: [] } as never);
+    expect(o.pieces.map((p) => p.label).sort()).toEqual(["3-seat sofa", "Armchair", "Armchair", "Coffee table"]);
+    expect(o.boxes).toEqual([expect.objectContaining({ label: "Living lounge" })]);
+    for (const w of ["B", "D"] as const) expect(outlineFor(t, w, { items: [] } as never).pieces.some((p) => p.label === "Armchair")).toBe(false);
+  });
+  it("draws the box's chairs in profile, never its coffee table", () => {
+    const o = outlineFor(t, "A", { items: [] } as never);
+    expect(o.pieces.find((p) => p.label === "Coffee table")?.view).toBeUndefined();
+  });
+});

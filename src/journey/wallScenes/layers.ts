@@ -255,6 +255,16 @@ export function altMask(base: Rgba, alt: Rgba, b: PctBox, grow = 0.28): AltCut {
   const bboxArea = on ? (x1 - x0 + 1) * (y1 - y0 + 1) : 1;
   const patch = on > 0 && on / bboxArea > 0.96 && bboxArea > area * 0.75;
   m = morph(m, w, box, 2, true);
+  // The old piece's soft shadow (or the new one's) changes the wall only a little, below the threshold above.
+  // Left out, the old shadow would stay on the wall behind a smaller new piece. Take in the gentle light
+  // changes next to the piece too: cutAlt lays them on as light, so no old shadow remains.
+  if (on > 0) {
+    const d = new Float32Array(w * h);
+    const lum = (img: Rgba, i: number) => img.data[i] * 0.299 + img.data[i + 1] * 0.587 + img.data[i + 2] * 0.114;
+    for (let y = box.y0; y < box.y1; y++) for (let x = box.x0; x < box.x1; x++) { const i = (y * w + x) * 4; d[y * w + x] = Math.abs(lum(alt, i) - lum(base, i)); }
+    const soft = feather(d, w, box, 4), near = morph(m, w, box, Math.max(6, r * 5), true);
+    for (let p = 0; p < m.length; p++) if (near[p] >= 0.5 && soft[p] >= Math.max(6, noise * 0.6 + 4) && m[p] < 1) m[p] = 1;
+  }
   const alpha = feather(m, w, box, 2); // a crisp edge, like the photo's own: wide feathering smears
   return { alpha, box, cover, clipped, patch, usable: cover >= 0.02 && !clipped && !patch };
 }
@@ -315,7 +325,9 @@ export function cutAlt(base: Rgba, alt: Rgba, alpha: Float32Array, piece: PxBox,
       const r = (base.data[i] + 8), g = (base.data[i + 1] + 8), b = (base.data[i + 2] + 8);
       const kr = (alt.data[i] + 8) / r, kg = (alt.data[i + 1] + 8) / g, kb = (alt.data[i + 2] + 8) / b;
       const km = (kr + kg + kb) / 3, spread = Math.max(Math.abs(kr - km), Math.abs(kg - km), Math.abs(kb - km));
-      const shadowLike = km > 0.5 && km < 1.15 && spread < 0.1;
+      // darker in the alternative: its shadow, laid on as see-through darkening. Lighter: an old shadow that has
+      // gone, so the alternative's own lit wall is used, or the old shadow would stay behind
+      const shadowLike = km > 0.5 && km < 1.02 && spread < 0.1;
       wShade = shadowLike ? out01 : 0;
     }
     // the shading is laid on as a see-through darkening, so it falls on whatever wall is chosen beneath it

@@ -132,6 +132,13 @@ export function WallElevation({ o, wp, selected, onPick, compact = false, labels
       {o.fixed.map((f, k) => (
         <rect key={`f${k}`} x={f.x} y={f.y} width={f.w} height={f.h} rx={3} fill="rgba(154,140,158,.08)" stroke={MUTE} strokeWidth={1.4} vectorEffect="non-scaling-stroke" />
       ))}
+      {/* Each layout box as one soft bracket behind its pieces, with its name, so it reads as one group. */}
+      {(o.boxes ?? []).map((b) => (
+        <g key={b.key} className="elev-box" aria-label={`${b.label}: shown together`}>
+          <rect x={b.x - 8} y={H - b.h - 22} width={b.w + 16} height={b.h + 22} rx={14} fill="rgba(94,66,104,.045)" stroke="rgba(94,66,104,.35)" strokeWidth={1.4} strokeDasharray="2 6" strokeLinecap="round" />
+          {!compact && <text x={b.x - 2} y={H - b.h - 30} fontSize={15} fontWeight={600} fill="#6E5F73">{b.label}</text>}
+        </g>
+      ))}
       {/* Taller pieces first, so a low table in front of a sofa stays visible. */}
       {[...o.pieces].sort((a, b) => b.h - a.h).map((p) => {
         const it = pieceItem(p);

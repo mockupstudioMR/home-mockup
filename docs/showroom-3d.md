@@ -76,3 +76,9 @@ A dining table or desk and the chairs within about 8% of the room from it form o
 ## AI providers (direct)
 
 `supabase/functions/_shared/aiModels.ts` sends each AI call straight to Google (`GEMINI_API_KEY`, Google AI Studio) or OpenAI (`OPENAI_API_KEY`) when that key is set as a function secret. If a direct call fails, the call goes through the Lovable gateway (while `LOVABLE_API_KEY` exists), and last of all to the model the function itself names. Seedream (shop posts) has no direct route yet and stays on the gateway.
+
+## Layout boxes together (v10)
+
+- A layout box is the pieces placed as one furniture grouping (`LayoutItem.group`), or, for pieces without a grouping, a table with the chairs at it (`layoutBoxes`). A box always goes whole on one wall: the wall its main piece (the largest that isn't a rug) stands against, or, for a box standing out in the room, the wall nearest the whole box. Its pieces are never listed as free-standing.
+- The outline draws each box as one soft bracket with its name, and its seats in profile where they stand beyond the main piece. The wall names (step 4), the "On this wall" lists (step 5), the 3D guide and the pictures all use the same walls. The layout's pieces on a saved wall follow the layout again, while the person's choices and extra items are kept.
+- No shadows left behind: gentle light changes next to a swapped piece are cut in too. Where the alternative is lighter (an old shadow that has gone), its own lit wall is used rather than a see-through layer.

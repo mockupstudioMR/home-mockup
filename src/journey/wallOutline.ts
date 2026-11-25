@@ -35,6 +35,8 @@ export type Outline = {
   order: number[];
   /** Pieces that belong to this wall but stand out in the room: listed, not drawn. */
   free: { ref: string; label: string; gapCm: number }[];
+  /** The layout boxes on this wall (a furniture grouping, a table with its chairs), each around its pieces. */
+  boxes: { key: string; label: string; x: number; w: number; h: number }[];
 };
 
 const EXAMPLE = { width: 3.75, length: 4.9, ceiling: 2.7 };
@@ -108,15 +110,52 @@ export function seatSets(items: (Box & { kind: string; label?: string })[]): Map
  * The one wall each item is drawn on. A table and the chairs at it go together on the wall nearest the
  * whole set, so the set always shows whole and no piece is drawn on two walls.
  */
-export function homeWalls(items: (Box & { kind: string; label?: string })[], room?: RoomSize): Wall[] {
-  const sets = seatSets(items);
+type Placed = Box & { kind: string; label?: string; group?: string };
+
+/**
+ * The layout's boxes: the pieces placed together as one furniture grouping (a sofa with its coffee table,
+ * armchairs and rug; a desk with its chair), or, where a piece has no grouping, a table with the chairs at it.
+ * Each item's index → its box's indices, its main piece first (the largest piece that isn't a rug).
+ */
+export function layoutBoxes(items: Placed[]): Map<number, number[]> {
+  const out = new Map<number, number[]>();
+  const byGroup = new Map<string, number[]>();
+  items.forEach((it, i) => { if (it.group) byGroup.set(it.group, [...(byGroup.get(it.group) ?? []), i]); });
+  const area = (i: number) => (items[i].kind === "rug" ? -1 : items[i].w * items[i].h);
+  for (const ids of byGroup.values()) {
+    if (ids.length < 2) continue;
+    const box = [...ids].sort((a, b) => area(b) - area(a));
+    for (const i of ids) out.set(i, box);
+  }
+  // tables with their chairs, where none of them already belongs to a grouping
+  const grouped = new Set(out.keys());
+  for (const [i, set] of seatSets(items)) if (set.every((j) => !grouped.has(j))) out.set(i, set);
+  return out;
+}
+
+const unionOf = (xs: Box[]): Box => {
+  const x0 = Math.min(...xs.map((b) => b.x)), y0 = Math.min(...xs.map((b) => b.y));
+  return { x: x0, y: y0, w: Math.max(...xs.map((b) => b.x + b.w)) - x0, h: Math.max(...xs.map((b) => b.y + b.h)) - y0 };
+};
+
+/**
+ * The one wall each item is drawn on. A layout box always goes whole on one wall: the wall its main piece stands
+ * against (the sofa's, so its coffee table, armchairs and rug come along), or, for a box standing out in the room
+ * (a dining set in the middle), the wall nearest the whole box. No piece is drawn on two walls.
+ */
+export function homeWalls(items: Placed[], room?: RoomSize): Wall[] {
+  const boxes = layoutBoxes(items);
+  const W = (room?.w ?? EXAMPLE.width) * 100, L = (room?.l ?? EXAMPLE.length) * 100;
+  const gapTo = (b: Box, w: Wall) => ({ A: (b.y / 100) * L, C: ((100 - b.y - b.h) / 100) * L, D: (b.x / 100) * W, B: ((100 - b.x - b.w) / 100) * W })[w];
+  const memo = new Map<number[], Wall>();
   return items.map((it, i) => {
-    const set = sets.get(i);
-    if (!set) return nearestWall(it, room);
-    const xs = set.map((j) => items[j]);
-    const x0 = Math.min(...xs.map((b) => b.x)), y0 = Math.min(...xs.map((b) => b.y));
-    const x1 = Math.max(...xs.map((b) => b.x + b.w)), y1 = Math.max(...xs.map((b) => b.y + b.h));
-    return nearestWall({ x: x0, y: y0, w: x1 - x0, h: y1 - y0, kind: "set" }, room);
+    const box = boxes.get(i);
+    if (!box) return nearestWall(it, room);
+    if (!memo.has(box)) {
+      const main = items[box[0]], w = nearestWall(main, room);
+      memo.set(box, gapTo(main, w) <= 60 ? w : nearestWall({ ...unionOf(box.map((j) => items[j])), kind: "set" }, room));
+    }
+    return memo.get(box)!;
   });
 }
 
@@ -131,9 +170,9 @@ const IN_FRONT_CM = 120;
  * A wall's outline and picture show only what is at the wall; free-standing pieces are listed under it and
  * shown in the whole-room picture. Rugs are never free-standing: they go with the piece above them.
  */
-export function freeStanding(items: (Box & { kind: string; label?: string })[], room?: RoomSize): { free: boolean[]; gap: number[] } {
+export function freeStanding(items: Placed[], room?: RoomSize): { free: boolean[]; gap: number[] } {
   const W = (room?.w ?? EXAMPLE.width) * 100, L = (room?.l ?? EXAMPLE.length) * 100;
-  const home = homeWalls(items, room), sets = seatSets(items);
+  const home = homeWalls(items, room), sets = layoutBoxes(items);
   const gapOf = (b: Box, w: Wall) => ({ A: (b.y / 100) * L, C: ((100 - b.y - b.h) / 100) * L, D: (b.x / 100) * W, B: ((100 - b.x - b.w) / 100) * W })[w];
   const box = (i: number): Box => {
     const set = sets.get(i);
@@ -143,7 +182,8 @@ export function freeStanding(items: (Box & { kind: string; label?: string })[], 
     return { x: x0, y: y0, w: Math.max(...xs.map((b) => b.x + b.w)) - x0, h: Math.max(...xs.map((b) => b.y + b.h)) - y0 };
   };
   const gaps = items.map((_, i) => gapOf(box(i), home[i]));
-  const near = items.map((it, i) => it.kind === "rug" || it.kind === "keep" || gaps[i] <= NEAR_CM);
+  // a piece of a layout box is always drawn with its box
+  const near = items.map((it, i) => it.kind === "rug" || it.kind === "keep" || (sets.get(i)?.length ?? 0) > 1 || gaps[i] <= NEAR_CM);
   // only small pieces you sit at or set things on stand "in front" of another (never a TV unit or shelving)
   const FRONT = /table|chair|stool|ottoman|pouf|bench|lamp|plant/;
   const BOUND = /tv|media|sideboard|console|book|shel|wardrobe|dresser|cabinet|storage|piano/;
@@ -255,9 +295,10 @@ export function outlineFor(s: JourneyState, w: Wall, wp: WallPlan): Outline {
   const pieces: OutlinePiece[] = [];
   const items = lay?.items ?? [];
   const room = s.room.widthM && s.room.lengthM ? { w: s.room.widthM, l: s.room.lengthM } : undefined;
-  const home = homeWalls(items, room), sets = seatSets(items), standing = freeStanding(items, room);
+  const home = homeWalls(items, room), sets = layoutBoxes(items), standing = freeStanding(items, room);
   const freeList: Outline["free"] = [];
   const setPieces: OutlinePiece[] = [];
+  const boxOf = new Map<string, number>(); // piece ref → its box's main item
   const gapCm = new Map<string, number>();
   for (const [li, it] of items.entries()) {
     if (it.kind === "rug" || home[li] !== w) continue;
@@ -269,15 +310,18 @@ export function outlineFor(s: JourneyState, w: Wall, wp: WallPlan): Outline {
     const gapPct = { A: it.y, C: 100 - (it.y + it.h), D: it.x, B: 100 - (it.x + it.w) }[w];
     gapCm.set(piece.ref, (gapPct / 100) * (w === "A" || w === "C" ? (s.room.lengthM ?? EXAMPLE.length) : (s.room.widthM ?? EXAMPLE.width)) * 100);
     const set = sets.get(li);
+    if (set) boxOf.set(piece.ref, set[0]);
     if (set && set[0] !== li) {
-      // a chair at a table: seen from the side when it stands beyond the table's end, else from the front
-      const [ha, hb] = alongWall(w, items[set[0]]).map(cm);
-      const c = piece.x + piece.w / 2, edge = (hb - ha) * 0.15;
-      piece.view = c < ha + edge ? "side-left" : c > hb - edge ? "side-right" : "front";
       piece.set = `lay-${set[0]}`;
-      // two chairs one behind the other on the same side are seen as one
-      if (setPieces.some((q) => q.set === piece.set && q.view === piece.view && Math.min(q.x + q.w, piece.x + piece.w) - Math.max(q.x, piece.x) > 0.6 * Math.min(q.w, piece.w))) continue;
-      setPieces.push(piece);
+      if (isSeat(it)) {
+        // a chair at a table (or beside the sofa): seen from the side when it stands beyond the main piece's end
+        const [ha, hb] = alongWall(w, items[set[0]]).map(cm);
+        const c = piece.x + piece.w / 2, edge = (hb - ha) * 0.15;
+        piece.view = c < ha + edge ? "side-left" : c > hb - edge ? "side-right" : "front";
+        // two chairs one behind the other on the same side are seen as one
+        if (setPieces.some((q) => q.set === piece.set && q.view === piece.view && Math.min(q.x + q.w, piece.x + piece.w) - Math.max(q.x, piece.x) > 0.6 * Math.min(q.w, piece.w))) continue;
+        setPieces.push(piece);
+      }
     }
     pieces.push(piece);
   }
@@ -304,6 +348,18 @@ export function outlineFor(s: JourneyState, w: Wall, wp: WallPlan): Outline {
   ];
   const shift = keepClear(length, pieces.map((p) => ({ id: p.ref, x: p.x, w: p.w, h: p.h, against: p.kept || (gapCm.get(p.ref) ?? 0) <= 40, gap: p.kept ? 0 : gapCm.get(p.ref) ?? 0, group: p.set ?? p.ref })), blocks);
   for (const p of pieces) p.x = clamp(p.x + (shift[p.ref] ?? 0), 0, length - p.w);
+
+  // each layout box drawn on this wall, as one bracket around its pieces
+  const boxes: Outline["boxes"] = [];
+  const byBox = new Map<number, OutlinePiece[]>();
+  for (const p of pieces) { const b = boxOf.get(p.ref); if (b != null) byBox.set(b, [...(byBox.get(b) ?? []), p]); }
+  for (const [main, ps] of byBox) {
+    if (ps.length < 2) continue;
+    const x0 = Math.min(...ps.map((p) => p.x)), x1 = Math.max(...ps.map((p) => p.x + p.w));
+    const g = items[main].group;
+    const label = g ? g.replace(/[-_]+/g, " ").replace(/^./, (c) => c.toUpperCase()) : `${items[main].label || items[main].kind} set`;
+    boxes.push({ key: `lay-${main}`, label, x: x0, w: x1 - x0, h: Math.max(...ps.map((p) => p.h)) });
+  }
 
   // A pin for every item on the wall.
   const door = openings.find((o) => o.kind === "door");
@@ -383,7 +439,7 @@ export function outlineFor(s: JourneyState, w: Wall, wp: WallPlan): Outline {
     .filter((i) => i.action !== "—")
     .map((i) => i.n)
     .sort((a, b) => pins[a].x - pins[b].x || pins[a].y - pins[b].y);
-  return { wall: w, length, height, example, openings, fixed, pieces, points, pins, order, free: freeList };
+  return { wall: w, length, height, example, openings, fixed, pieces, points, pins, order, free: freeList, boxes };
 }
 
 /** The item a pin number stands for (pins are numbered 1… in reading order). */
