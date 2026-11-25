@@ -44,7 +44,7 @@ export const PICTURES: Pic[] = [...WALLS, "room"];
 const ALIGN_LIMIT = 14; // mean change outside the item (0–255), after matching tones, above which an alternative moved the photo
 const PARALLEL = 4;
 /** Raised when the way pictures are made changes, so walls made the old way are made again. */
-const PICTURE_VERSION = 16;
+const PICTURE_VERSION = 17;
 
 const previewImage = (s: JourneyState) => s.preview?.versions[s.preview.current]?.image;
 
@@ -233,11 +233,26 @@ async function makeWall(s: JourneyState, m: ShowroomModel, wall: Pic, report: (p
     const avoid = Object.entries(guide.boxes).filter(([k]) => k !== "walls" && k !== "floor").map(([, b]) => pxBox(b as PctBox, W, H, 0.12));
     return wallSeeds(W, H, wb, avoid);
   };
-  /** Where a photo shows the wall itself, so no piece's outline takes any of it (see proPiece). */
-  const wallOf = (img: Rgba) => wallMask(img, seedsFor(img));
+  /** The wall ends where the floor begins: the repaint never runs past it (light wood, a jute rug or a beige
+   *  skirting can share a warm wall's colour family, and the wall would leak onto them). */
+  const aboveFloor = (img: Rgba) => {
+    const fb = guide.boxes["floor"] ? pxBox(guide.boxes["floor"] as PctBox, img.width, img.height, 0) : null;
+    const y1 = fb && fb.y0 > img.height * 0.3 ? Math.min(img.height, fb.y0 + Math.round(img.height * 0.01)) : img.height;
+    return { x0: 0, y0: 0, x1: img.width, y1 };
+  };
+  /** Where a photo shows the wall itself, so no piece's outline or cut-out takes any of it (see proPiece). */
+  const wallOf = (img: Rgba) => wallMask(img, seedsFor(img), aboveFloor(img));
+  /** A cut-out without the wall's own pixels: an alternative made on a photo still carries the old wall colour
+   *  round it (shelves made on the empty room bring a block of the old wall), drawn over a new one. */
+  const cutOffWall = (alpha: Float32Array, img: Rgba) => {
+    const wm = wallOf(img);
+    const out = new Float32Array(alpha.length);
+    for (let p = 0; p < alpha.length; p++) out[p] = wm[p] >= 0.5 ? 0 : alpha[p];
+    return out;
+  };
   async function paintLayers(img: Rgba, item: WallItem) {
     const seeds = seedsFor(img);
-    const mask = wallMask(img, seeds);
+    const mask = wallMask(img, seeds, aboveFloor(img));
     const out: { name: string; layer: Rgba }[] = [];
     item.alts.forEach((a) => { if (a.paint) out.push({ name: a.name, layer: paintWall(img, mask, seeds, a.paint) }); });
     return out;
@@ -385,7 +400,7 @@ async function makeWall(s: JourneyState, m: ShowroomModel, wall: Pic, report: (p
       }
       const urls = [blank], thumbs = [await up.put(`${name}-1-thumb.jpg`, await toBlob(kind === "free" ? base : plate, "image/jpeg", thumbArea, 260), "image/jpeg")];
       for (const [i, o] of ok.entries()) {
-        const layer = kind === "surface" ? surfaceLayer(o.px, plateMasks[item.id]) : cutLayer(o.px, o.alpha!);
+        const layer = kind === "surface" ? surfaceLayer(o.px, plateMasks[item.id]) : cutLayer(o.px, cutOffWall(o.alpha!, o.px));
         const blob = await toBlob(layer, "image/webp");
         urls.push(await up.put(`${name}-${i + 2}.${blob.type === "image/webp" ? "webp" : "png"}`, blob, blob.type));
         thumbs.push(await up.put(`${name}-${i + 2}-thumb.jpg`, await toBlob(o.px, "image/jpeg", thumbArea, 260), "image/jpeg"));
@@ -429,6 +444,8 @@ async function makeWall(s: JourneyState, m: ShowroomModel, wall: Pic, report: (p
         const area = { x0: Math.max(0, cut.box.x0 - shrink), y0: Math.max(0, cut.box.y0 - shrink), x1: Math.min(base.width, cut.box.x1 + shrink), y1: Math.min(base.height, cut.box.y1 + shrink) };
         cut.alpha = limitAlpha(cut.alpha, keepOff(guide.ids.data, base.width, base.height, others, area, shrink));
       }
+      // a piece's or a shelf's cut-out never carries the old wall round it (the wall colour sits under it)
+      if (j.item.id !== "walls" && j.item.id !== "floor") cut.alpha = cutOffWall(cut.alpha, px);
       return { px, cut };
     }
     throw new Error("The alternative did not fit the photo.");

@@ -65,3 +65,19 @@ describe("wall repaint in the shade", () => {
     expect(m[45 * W2 + 60]).toBe(0); // the sofa itself
   });
 });
+
+describe("wall repaint stops at the floor", () => {
+  // a mustard wall over a light warm-wood floor of the same colour family, joined smoothly (no skirting edge)
+  const W3 = 60, H3 = 60;
+  const im: Rgba = { data: new Uint8ClampedArray(W3 * H3 * 4), width: W3, height: H3 };
+  for (let y = 0; y < H3; y++) for (let x = 0; x < W3; x++) {
+    const t = Math.max(0, Math.min(1, (y - 36) / 8)); // the wall fades into the floor between y 36 and 44
+    const c = [214 * (1 - t) + 205 * t, 170 * (1 - t) + 170 * t, 60 * (1 - t) + 110 * t];
+    im.data.set([c[0], c[1], c[2], 255], (y * W3 + x) * 4);
+  }
+  it("never runs past the floor line it is given", () => {
+    const m = wallMask(im, { x0: 5, y0: 2, x1: 55, y1: 10 }, { x0: 0, y0: 0, x1: W3, y1: 40 });
+    expect(m[20 * W3 + 30]).toBe(1);
+    for (let y = 41; y < H3; y++) expect(m[y * W3 + 30]).toBe(0);
+  });
+});
