@@ -44,7 +44,7 @@ export const PICTURES: Pic[] = [...WALLS, "room"];
 const ALIGN_LIMIT = 14; // mean change outside the item (0–255), after matching tones, above which an alternative moved the photo
 const PARALLEL = 4;
 /** Raised when the way pictures are made changes, so walls made the old way are made again. */
-const PICTURE_VERSION = 15;
+const PICTURE_VERSION = 16;
 
 const previewImage = (s: JourneyState) => s.preview?.versions[s.preview.current]?.image;
 
@@ -227,11 +227,16 @@ async function makeWall(s: JourneyState, m: ShowroomModel, wall: Pic, report: (p
   // A wall colour is repainted on the picture itself (no image AI), so it can never leave a band, a patch
   // or an outline: only the wall's own pixels change, keeping the photo's light.
   const isPaint = (it: WallItem, i: number) => it.id === "walls" && !!it.alts[i]?.paint;
-  async function paintLayers(img: Rgba, item: WallItem) {
+  const seedsFor = (img: Rgba) => {
     const W = img.width, H = img.height;
     const wb = guide.boxes["walls"] ? pxBox(guide.boxes["walls"] as PctBox, W, H, 0) : { x0: 0, y0: 0, x1: W, y1: H };
     const avoid = Object.entries(guide.boxes).filter(([k]) => k !== "walls" && k !== "floor").map(([, b]) => pxBox(b as PctBox, W, H, 0.12));
-    const seeds = wallSeeds(W, H, wb, avoid);
+    return wallSeeds(W, H, wb, avoid);
+  };
+  /** Where a photo shows the wall itself, so no piece's outline takes any of it (see proPiece). */
+  const wallOf = (img: Rgba) => wallMask(img, seedsFor(img));
+  async function paintLayers(img: Rgba, item: WallItem) {
+    const seeds = seedsFor(img);
     const mask = wallMask(img, seeds);
     const out: { name: string; layer: Rgba }[] = [];
     item.alts.forEach((a) => { if (a.paint) out.push({ name: a.name, layer: paintWall(img, mask, seeds, a.paint) }); });
@@ -264,6 +269,7 @@ async function makeWall(s: JourneyState, m: ShowroomModel, wall: Pic, report: (p
     // the background is the empty room, so a piece without an outline would leave a gap: use the cut-outs then
     if (pieceItems.some((it) => !baseMasks[it.id])) return null;
     /** Where the other pieces are on the photo, so they are never taken for this piece's shadow. */
+    let baseWall: Float32Array | undefined;
     const othersOf = (id: string) => {
       const o = new Float32Array(W * H);
       for (const [k, mk] of Object.entries(baseMasks)) if (k !== id) for (let p = 0; p < o.length; p++) if (mk[p] > o[p]) o[p] = mk[p];
@@ -310,7 +316,7 @@ async function makeWall(s: JourneyState, m: ShowroomModel, wall: Pic, report: (p
           const url = await up.put(`tmp-${j.item.id.replace(/[^a-zA-Z0-9_-]/g, "-")}-${j.alt}.jpg`, await toBlob(px, "image/jpeg"), "image/jpeg");
           const mk = (await segmentPhoto(url, [{ key: j.item.id, name: a.target }], W, H))[j.item.id];
           if (!mk) throw new Error("The alternative could not be outlined.");
-          const piece = proPiece(px, plate, mk, pxBox(box, W, H, 0.03), pxBox(box, W, H, grow + 0.4), othersOf(j.item.id));
+          const piece = proPiece(px, plate, mk, pxBox(box, W, H, 0.03), pxBox(box, W, H, grow + 0.4), othersOf(j.item.id), wallOf(px));
           if (piece.cover >= 0.05 && !piece.clipped) return { px, piece };
           continue;
         }
@@ -341,7 +347,7 @@ async function makeWall(s: JourneyState, m: ShowroomModel, wall: Pic, report: (p
       if (kind === "piece") {
         // a piece is always drawn (the room underneath is empty), its main option cut from the photo itself
         const bm = baseMasks[item.id];
-        const main = bm ? proPiece(base, plate, bm, pxBox(box, W, H, 0.03), pxBox(box, W, H, (at?.cutPadding ?? 0.28) + 0.4), othersOf(item.id)) : null;
+        const main = bm ? proPiece(base, plate, bm, pxBox(box, W, H, 0.03), pxBox(box, W, H, (at?.cutPadding ?? 0.28) + 0.4), othersOf(item.id), baseWall ??= wallOf(base)) : null;
         // never a gap where a piece stood: if one can't be cut, the whole wall uses the cut-outs over the photo
         if (!main || main.cover < 0.05) return null;
         const variants = [{ px: base, piece: main, name: item.mainName }, ...ok.filter((o) => o.piece).map((o) => ({ px: o.px, piece: o.piece!, name: o.name }))];

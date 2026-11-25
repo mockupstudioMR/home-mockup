@@ -46,11 +46,14 @@ export function wallMask(img: Rgba, seeds: PxBox, within?: PxBox, opts: { chroma
   const HUE = opts.chroma ?? 16, STEP = opts.step ?? 12;
   const likeWall = (i: number) => {
     const l = lum(d, i) / ref.l;
-    if (l < 0.4 || l > 2.8) return false;
+    if (l < 0.15 || l > 2.8) return false;
     const q = hs(d[i], d[i + 1], d[i + 2]);
-    if (grey) return q.sat < 0.16;
+    // in a piece's shadow the wall gets darker and its colour deeper and warmer: the darker the pixel, the
+    // looser the colour match (the step check between neighbours still stops it at every piece's edge)
+    const shade = l < 0.85 ? Math.min(1, (0.85 - l) / 0.6) : 0;
+    if (grey) return q.sat < 0.16 + shade * 0.2;
     const dh = Math.abs(q.hue - rh.hue), dhue = Math.min(dh, 360 - dh);
-    return dhue < HUE && q.sat > rh.sat * 0.3 && q.sat < rh.sat * 1.6;
+    return dhue < HUE + shade * 22 && q.sat > rh.sat * 0.3 && q.sat < rh.sat * (1.6 + shade * 1.2);
   };
   const step = (i: number, j: number) => Math.max(Math.abs(d[i] - d[j]), Math.abs(d[i + 1] - d[j + 1]), Math.abs(d[i + 2] - d[j + 2]));
   const m = new Float32Array(w * h), stack: number[] = [];
