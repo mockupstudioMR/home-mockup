@@ -44,7 +44,7 @@ export const PICTURES: Pic[] = [...WALLS, "room"];
 const ALIGN_LIMIT = 14; // mean change outside the item (0–255), after matching tones, above which an alternative moved the photo
 const PARALLEL = 4;
 /** Raised when the way pictures are made changes, so walls made the old way are made again. */
-const PICTURE_VERSION = 14;
+const PICTURE_VERSION = 15;
 
 const previewImage = (s: JourneyState) => s.preview?.versions[s.preview.current]?.image;
 
@@ -261,8 +261,14 @@ async function makeWall(s: JourneyState, m: ShowroomModel, wall: Pic, report: (p
     // 1. the pieces' outlines on the photo
     report({ wall, step: "Outlining every piece", done, total });
     const baseMasks = await segmentPhoto(photoUrl, pieceItems.map((it) => ({ key: it.id, name: it.current })), W, H);
-    const found = pieceItems.filter((it) => baseMasks[it.id]);
-    if (found.length < Math.ceil(pieceItems.length / 2)) return null; // the outlines didn't work: use the cut-outs
+    // the background is the empty room, so a piece without an outline would leave a gap: use the cut-outs then
+    if (pieceItems.some((it) => !baseMasks[it.id])) return null;
+    /** Where the other pieces are on the photo, so they are never taken for this piece's shadow. */
+    const othersOf = (id: string) => {
+      const o = new Float32Array(W * H);
+      for (const [k, mk] of Object.entries(baseMasks)) if (k !== id) for (let p = 0; p < o.length; p++) if (mk[p] > o[p]) o[p] = mk[p];
+      return o;
+    };
     if (stopped()) throw new Error("Stopped.");
 
     // 2. the empty room: everything outlined (a little wider) is taken out
@@ -304,7 +310,7 @@ async function makeWall(s: JourneyState, m: ShowroomModel, wall: Pic, report: (p
           const url = await up.put(`tmp-${j.item.id.replace(/[^a-zA-Z0-9_-]/g, "-")}-${j.alt}.jpg`, await toBlob(px, "image/jpeg"), "image/jpeg");
           const mk = (await segmentPhoto(url, [{ key: j.item.id, name: a.target }], W, H))[j.item.id];
           if (!mk) continue;
-          const piece = proPiece(px, plate, mk, pxBox(box, W, H, 0.03), pxBox(box, W, H, grow + 0.4));
+          const piece = proPiece(px, plate, mk, pxBox(box, W, H, 0.03), pxBox(box, W, H, grow + 0.4), othersOf(j.item.id));
           if (piece.cover >= 0.05 && !piece.clipped) return { px, piece };
           continue;
         }
@@ -335,8 +341,9 @@ async function makeWall(s: JourneyState, m: ShowroomModel, wall: Pic, report: (p
       if (kind === "piece") {
         // a piece is always drawn (the room underneath is empty), its main option cut from the photo itself
         const bm = baseMasks[item.id];
-        const main = bm ? proPiece(base, plate, bm, pxBox(box, W, H, 0.03), pxBox(box, W, H, (at?.cutPadding ?? 0.28) + 0.4)) : null;
-        if (!main || main.cover < 0.05) { skipped.push(item.title); continue; }
+        const main = bm ? proPiece(base, plate, bm, pxBox(box, W, H, 0.03), pxBox(box, W, H, (at?.cutPadding ?? 0.28) + 0.4), othersOf(item.id)) : null;
+        // never a gap where a piece stood: if one can't be cut, the whole wall uses the cut-outs over the photo
+        if (!main || main.cover < 0.05) return null;
         const variants = [{ px: base, piece: main, name: item.mainName }, ...ok.filter((o) => o.piece).map((o) => ({ px: o.px, piece: o.piece!, name: o.name }))];
         const colours: string[] = [], shadows: string[] = [], thumbs: string[] = [];
         for (const [i, v] of variants.entries()) {
@@ -345,7 +352,7 @@ async function makeWall(s: JourneyState, m: ShowroomModel, wall: Pic, report: (p
           thumbs.push(await up.put(`${name}-${i + 1}-thumb.jpg`, await toBlob(v.px, "image/jpeg", thumbArea, 260), "image/jpeg"));
         }
         if (variants.length < 2 && !item.note) skipped.push(item.title);
-        layers[name] = { title: item.title, group: item.group, order, visible: true, blend: "shadow", variations: colours, shadows, shadow: shadows[0], thumbnails: thumbs, variationNames: variants.map((v) => v.name), ...(variants.length < 2 ? { note: item.note ?? NOTE } : {}), hotspot };
+        layers[name] = { title: item.title, group: item.group, order, visible: true, blend: "pro", variations: colours, shadows, shadow: shadows[0], thumbnails: thumbs, variationNames: variants.map((v) => v.name), ...(variants.length < 2 ? { note: item.note ?? NOTE } : {}), hotspot };
         assets[item.id] = { variations: colours, thumbnails: thumbs, names: variants.map((v) => v.name) };
         saved.push({ id: item.id, title: item.title, names: variants.map((v) => v.name) });
         continue;
@@ -382,7 +389,7 @@ async function makeWall(s: JourneyState, m: ShowroomModel, wall: Pic, report: (p
       assets[item.id] = { variations: urls, thumbnails: thumbs, names };
       saved.push({ id: item.id, title: item.title, names });
     }
-    if (!Object.values(layers).some((l) => (l as { blend?: string }).blend === "shadow")) return null;
+    if (!Object.values(layers).some((l) => (l as { blend?: string }).blend === "pro")) return null;
     const composition = { preset: canvas.preset, pxPerCm: canvas.pxPerCm, wall: { lengthCm: canvas.lengthCm, heightCm: canvas.heightCm, x: canvas.wallX, y: canvas.wallY }, items: comp.items };
     const manifest = { mode: "pro", background: plateUrl, photo: background, imageSize: { width: W, height: H }, layers, hotspots: spots, composition, enhancements: { brightness: 100, contrast: 100, saturation: 100 } };
     const manifestUrl = await up.put("manifest.json", new Blob([JSON.stringify(manifest)], { type: "application/json" }), "application/json");
@@ -444,9 +451,9 @@ async function makeWall(s: JourneyState, m: ShowroomModel, wall: Pic, report: (p
       }
       const names = [item.mainName, ...painted.map((p) => p.name)];
       assets[item.id] = { variations: urls, thumbnails: thumbs, names };
-      // drawn above the cut-outs: it touches only the wall's own pixels, so it also covers any rim of the old
-      // wall colour a swapped piece's cut-out brings with it
-      layers[name] = { title: item.title, group: item.group, order: 1000, visible: true, variations: urls, thumbnails: thumbs, variationNames: names, hotspot: { id: name, title: item.title, visible: true, position: at?.hotspot ?? { x: Math.round((wb.x0 + wb.x1) / 2), y: Math.round(wb.y0 + (wb.y1 - wb.y0) * 0.15) } } };
+      // drawn right over the photo, under every swapped piece: a new piece that reaches past the old one's
+      // outline is never painted over
+      layers[name] = { title: item.title, group: item.group, order: 0.5, visible: true, variations: urls, thumbnails: thumbs, variationNames: names, hotspot: { id: name, title: item.title, visible: true, position: at?.hotspot ?? { x: Math.round((wb.x0 + wb.x1) / 2), y: Math.round(wb.y0 + (wb.y1 - wb.y0) * 0.15) } } };
       saved.push({ id: item.id, title: item.title, names });
       continue;
     }

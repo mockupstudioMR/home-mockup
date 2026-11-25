@@ -4,11 +4,13 @@
  * kept with the journey. Reads the wall's manifest (background, and per item its aligned variation layers).
  *
  * A "pro" manifest is built the Generator PRO way: the background is the empty room and every piece is drawn
- * over it as a shadow image (multiply) and the piece itself on top, so a piece brings its own contact shadow
- * and none of the wall behind it. "Confirm options" flattens the chosen options into one final picture,
- * which then shows instead of the outline.
+ * over it as a shadow image (multiply) and the piece on black (lighten), so a piece brings its own contact
+ * shadow and none of the wall behind it. Like PRO's renderer, everything is drawn on one canvas once all its
+ * pictures are loaded (no half-drawn wall while they come in), and a picture that fails to load is left out
+ * instead of breaking the wall. "Confirm options" flattens the same drawing into one final picture, which
+ * then shows instead of the outline.
  */
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useJourney } from "../state";
 import { storeDesignImage } from "../services";
 import { saveConfirmed } from "./composition";
@@ -20,8 +22,8 @@ type Layer = {
   /** Shown for an item that can't be swapped (yet): it is still clickable. */
   note?: string;
   hotspot?: { position: { x: number; y: number } };
-  /** One shadow image per variation, multiplied under the piece. "shadow": the piece is then laid on normally;
-   *  "pro" (older pictures): the piece is on black and drawn with lighten, as Generator PRO does. */
+  /** One shadow image per variation, multiplied under the piece. "pro": the piece is on black and drawn with
+   *  lighten, as Generator PRO does; "shadow" (pictures of version 13–14): the piece is laid on normally. */
   blend?: "pro" | "shadow"; shadows?: string[];
 };
 type Manifest = { mode?: "pro"; background: string; imageSize: { width: number; height: number }; layers: Record<string, Layer>; hotspots?: Record<string, Layer> };
@@ -58,7 +60,7 @@ export function LayeredWall({ wall, scene }: { wall: Pic; scene: WallScene }) {
   const layers = useMemo(() => (m ? Object.entries(m.layers).sort((a, b) => a[1].order - b[1].order) : []), [m]);
 
   // Fetch every variation once, so a swap shows at once.
-  useEffect(() => { for (const [, l] of layers) for (const v of l.variations) { const img = new Image(); img.src = v; } }, [layers]);
+  useEffect(() => { for (const [, l] of layers) { for (const v of l.variations) void picture(v); for (const v of l.shadows ?? []) void picture(v); } }, [layers]);
 
   if (err) return <div className="lw-msg" role="alert"><p className="p">{err}</p></div>;
   if (!m) return <div className="lw-msg" role="status"><p className="p">Loading your wall…</p></div>;
@@ -75,16 +77,7 @@ export function LayeredWall({ wall, scene }: { wall: Pic; scene: WallScene }) {
   return (
     <div className="lw">
       <div className="lw-stage" style={{ aspectRatio: `${W} / ${H}`, isolation: "isolate" }}>
-        <img className="lw-img" src={m.background} alt={wall === "room" ? "Your whole room, as a photograph" : `Wall ${wall}, as a photograph`} />
-        {/* the photo already shows every main option: only swapped pieces are laid over it, front ones last */}
-        {shown.map(([name, l]) => l.shadows?.length ? (
-          <span key={name}>
-            <img className="lw-img" style={{ mixBlendMode: "multiply" }} src={l.shadows[Math.min(at(name, l), l.shadows.length - 1)]} alt="" aria-hidden="true" />
-            <img className="lw-img" style={l.blend === "pro" ? { mixBlendMode: "lighten" } : undefined} src={l.variations[at(name, l)]} alt="" aria-hidden="true" />
-          </span>
-        ) : (
-          <img key={name} className="lw-img" src={l.variations[at(name, l)]} alt="" aria-hidden="true" />
-        ))}
+        <WallCanvas m={m} layers={shown} at={at} label={wall === "room" ? "Your whole room, as a photograph" : `Wall ${wall}, as a photograph`} />
         {!hide && layers.map(([name, l]) => l.hotspot && (
           <button key={name} type="button" className={`lw-hs${open === name ? " on" : ""}${(picks[name] ?? 0) > 0 ? " chg" : ""}`}
             style={{ left: `${(l.hotspot.position.x / W) * 100}%`, top: `${(l.hotspot.position.y / H) * 100}%` }}
@@ -163,21 +156,85 @@ function img(src: string) {
   });
 }
 
+const pictures = new Map<string, Promise<HTMLImageElement | null>>();
+/** A picture, loaded once; null if it can't be loaded (that layer is then left out, never the whole wall). */
+function picture(src: string) {
+  let p = pictures.get(src);
+  if (!p) {
+    p = img(src).catch(() => { pictures.delete(src); return null; });
+    pictures.set(src, p);
+  }
+  return p;
+}
+
+/** In which order the layers are drawn. A wall colour made by the older pictures (order 1000, over everything)
+ *  goes right over the background, so it never paints over a swapped piece. */
+const drawOrder = (name: string, l: Layer) => (name === "walls" && !l.shadows?.length && l.order >= 1000 ? 0.5 : l.order);
+
+/**
+ * Draw the wall the way Generator PRO's renderer does: the background, then every layer in order — its shadow
+ * with multiply (optional: drawn only if it loads), then the piece (lighten when it is on black, else normally).
+ * Every picture is loaded first, so the canvas is drawn in one go.
+ */
+async function drawWall(g: CanvasRenderingContext2D, m: Manifest, layers: [string, Layer][], at: (n: string, l: Layer) => number) {
+  const { width: W, height: H } = m.imageSize;
+  const sorted = [...layers].sort((a, b) => drawOrder(...a) - drawOrder(...b));
+  const [bg, ...loaded] = await Promise.all([
+    picture(m.background),
+    ...sorted.map(async ([n, l]) => {
+      const i = at(n, l);
+      const [shadow, colour] = await Promise.all([l.shadows?.length ? picture(l.shadows[Math.min(i, l.shadows.length - 1)]) : null, picture(l.variations[i])]);
+      return { l, shadow, colour };
+    }),
+  ]);
+  if (!bg) throw new Error("This wall's picture could not be loaded.");
+  g.globalCompositeOperation = "source-over";
+  g.clearRect(0, 0, W, H);
+  g.drawImage(bg, 0, 0, W, H);
+  for (const { l, shadow, colour } of loaded) {
+    if (!colour) continue;
+    if (shadow) {
+      g.globalCompositeOperation = "multiply";
+      g.drawImage(shadow, 0, 0, W, H);
+    }
+    // a piece on black is always lightened (drawn normally its black surround would cover the room)
+    g.globalCompositeOperation = l.blend === "pro" ? "lighten" : "source-over";
+    g.drawImage(colour, 0, 0, W, H);
+    g.globalCompositeOperation = "source-over";
+  }
+}
+
+/** The wall on one canvas. The last finished drawing stays up until the next one is ready, so a swap never flickers. */
+function WallCanvas({ m, layers, at, label }: { m: Manifest; layers: [string, Layer][]; at: (n: string, l: Layer) => number; label: string }) {
+  const ref = useRef<HTMLCanvasElement>(null);
+  const [err, setErr] = useState("");
+  const { width: W, height: H } = m.imageSize;
+  const key = JSON.stringify(layers.map(([n, l]) => [n, at(n, l)]));
+  useEffect(() => {
+    let live = true;
+    const off = document.createElement("canvas"); off.width = W; off.height = H;
+    drawWall(off.getContext("2d")!, m, layers, at).then(() => {
+      const c = ref.current;
+      if (!live || !c) return;
+      c.width = W; c.height = H;
+      c.getContext("2d")!.drawImage(off, 0, 0);
+      setErr("");
+    }, (e: Error) => live && setErr(e.message));
+    return () => { live = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `key` stands for the layers and the picks
+  }, [m, key, W, H]);
+  return (
+    <>
+      <canvas ref={ref} className="lw-img" width={W} height={H} role="img" aria-label={label} />
+      {err && <p className="lw-err small" role="alert">{err}</p>}
+    </>
+  );
+}
+
 async function flatten(m: Manifest, layers: [string, Layer][], at: (n: string, l: Layer) => number) {
   const { width: W, height: H } = m.imageSize;
   const c = document.createElement("canvas"); c.width = W; c.height = H;
-  const g = c.getContext("2d")!;
-  g.drawImage(await img(m.background), 0, 0, W, H);
-  for (const [n, l] of layers) {
-    const i = at(n, l);
-    if (l.shadows?.length) {
-      g.globalCompositeOperation = "multiply";
-      g.drawImage(await img(l.shadows[Math.min(i, l.shadows.length - 1)]), 0, 0, W, H);
-      g.globalCompositeOperation = l.blend === "pro" ? "lighten" : "source-over";
-    } else g.globalCompositeOperation = "source-over";
-    g.drawImage(await img(l.variations[i]), 0, 0, W, H);
-  }
-  g.globalCompositeOperation = "source-over";
+  await drawWall(c.getContext("2d")!, m, layers, at);
   const url = await storeDesignImage(c.toDataURL("image/jpeg", 0.9));
   if (!/^https:/.test(url)) throw new Error("upload");
   return url;

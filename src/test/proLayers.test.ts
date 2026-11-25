@@ -52,6 +52,16 @@ describe("PRO layers", () => {
     expect(px(out, 58, 52)[0]).toBeGreaterThan(oak[0] - 6); // and it fades out further away
   });
 
+  it("a neighbouring piece and a slightly darker empty room never become the piece's shadow", () => {
+    // a dark cabinet right beside the sofa, and an empty room 8% brighter than the photo overall
+    const inCab = (x: number, y: number) => x >= 42 && x < 48 && y >= 22 && y < 40;
+    const shot = fill((x, y) => (inSofa(x, y) ? [70, 110, 80] : inCab(x, y) ? [40, 30, 25] : room(terracotta)(x, y)));
+    const bright = fill((x, y) => room(terracotta)(x, y).map((v) => Math.min(255, Math.round(v * 1.08))) as [number, number, number]);
+    const sofa = proPiece(shot, bright, sofaMask, box(14, 24, 36, 36), box(4, 14, 52, 46), maskOf(inCab));
+    for (const [x, y] of [[44, 30], [46, 25], [6, 16], [30, 16]]) expect([x, y, sofa.shadow.data[(y * W + x) * 4]]).toEqual([x, y, 255]);
+    expect(sofa.shadow.data[(30 * W + 25) * 4]).toBe(0); // black under the sofa itself (multiply, then lighten)
+  });
+
   it("cuts a wall layer to the wall alone", () => {
     const l = surfaceLayer(fill(room(mustard)), wallMask, 0);
     expect(l.data[(10 * W + 5) * 4 + 3]).toBe(255);
