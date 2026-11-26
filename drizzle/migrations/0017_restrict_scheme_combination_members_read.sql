@@ -1,0 +1,2 @@
+DROP POLICY IF EXISTS "Signed-in users read" ON public.scheme_combination_members;
+CREATE POLICY "Admins read combination members" ON public.scheme_combination_members FOR SELECT TO authenticated USING (public.has_role(auth.uid(), 'admin'));

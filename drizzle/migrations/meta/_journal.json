@@ -120,6 +120,13 @@
       "when": 1795629758209,
       "tag": "0016_restrict_scheme_combinations_read",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1795697157603,
+      "tag": "0017_restrict_scheme_combination_members_read",
+      "breakpoints": true
     }
   ]
 }
