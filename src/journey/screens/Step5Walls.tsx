@@ -23,6 +23,8 @@ import { PlanDrawing } from "./Step4";
 import { WallElevation } from "./WallElevation";
 import { useRoomPictures, type WallStatus } from "../wallScenes/useRoomPictures";
 import { LayeredWall } from "../wallScenes/LayeredWall";
+import { downloadWallLayers } from "../wallScenes/downloadLayers";
+import { useAuth } from "@/contexts/AuthContext";
 import "../walls.css";
 import { asset } from "@/lib/asset";
 
@@ -67,6 +69,23 @@ function RoomPictures() {
   const { status, progress, running, start, stop, ready, scenes } = useRoomPictures(true);
   const all = [...WALLS, "room"] as const;
   const again = all.filter((w) => status(w) !== "ready" && status(w) !== "making" && status(w) !== "waiting");
+  // debugging: admins (or ?debug in the address) can download every layer of every made picture
+  const { role } = useAuth();
+  const debug = role === "admin" || new URLSearchParams(window.location.search).has("debug");
+  const withLayers = all.filter((w) => scenes[w]?.manifestUrl);
+  const [packing, setPacking] = useState<{ done: number; total: number } | null>(null);
+  const [packNote, setPackNote] = useState("");
+  const downloadAll = async () => {
+    setPacking({ done: 0, total: 0 }); setPackNote("");
+    try {
+      const r = await downloadWallLayers(scenes, (done, total) => setPacking({ done, total }));
+      setPackNote(r.missing.length ? `${r.files} files downloaded, ${r.missing.length} could not be fetched (listed in MISSING.txt).` : `${r.files} files downloaded.`);
+    } catch (e) {
+      setPackNote((e as Error).message || "The layers could not be downloaded.");
+    } finally {
+      setPacking(null);
+    }
+  };
   return (
     <section className="wo-pics" aria-label="Your room's pictures">
       <div className="wo-pics-h">
@@ -81,6 +100,14 @@ function RoomPictures() {
         ) : null}
       </div>
       {ready !== true && <p className="small" role="note">{ready}</p>}
+      {debug && withLayers.length > 0 && (
+        <div className="wo-pics-debug">
+          <button type="button" className="link-btn" onClick={downloadAll} disabled={!!packing}>
+            {packing ? `Packing layers · ${packing.done} of ${packing.total || "…"}` : "Download all layers (debug)"}
+          </button>
+          {packNote && <span className="small" role="status">{packNote}</span>}
+        </div>
+      )}
       <ul className="wo-pics-l">
         {all.map((w) => {
           const st = status(w);

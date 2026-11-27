@@ -4447,5 +4447,11 @@
   "Your confirmed options · change them in \"Picture\"": "اختياراتك المتأكدة · غيّرها من \"الصورة\"",
   "Clearing the room for the layers": "بنفضّي الأوضة عشان الطبقات",
   "Building the layers": "بنبني الطبقات",
-  "Outlining every piece": "بنحدد شكل كل قطعة"
+  "Outlining every piece": "بنحدد شكل كل قطعة",
+  "Download all layers (debug)": "نزّل كل الطبقات (للفحص)",
+  "Packing layers": "بنجهّز الطبقات",
+  "files downloaded.": "ملف اتنزّل.",
+  "could not be fetched (listed in MISSING.txt).": "ماقدرناش نجيبهم (موجودين في MISSING.txt).",
+  "The layers could not be downloaded.": "ماقدرناش ننزّل الطبقات.",
+  "No wall pictures have been made yet.": "لسه ماتعملتش صور للحيطان."
 }

@@ -151,3 +151,4 @@
 .mu.b-S5-Wall .ws-final figcaption{margin-top:8px;color:var(--muted,#7a6f69)}
 .mu .lw-confirm{background:var(--ink,#2B2422);color:#fff;border-color:transparent}
 .mu .lw-confirm.on{background:#E7F1EA;color:#2f6b45}
+.mu.b-S5-Walls .wo-pics-debug{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;margin-top:4px}
