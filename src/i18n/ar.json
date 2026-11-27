@@ -4453,5 +4453,6 @@
   "files downloaded.": "ملف اتنزّل.",
   "could not be fetched (listed in MISSING.txt).": "ماقدرناش نجيبهم (موجودين في MISSING.txt).",
   "The layers could not be downloaded.": "ماقدرناش ننزّل الطبقات.",
-  "No wall pictures have been made yet.": "لسه ماتعملتش صور للحيطان."
+  "No wall pictures have been made yet.": "لسه ماتعملتش صور للحيطان.",
+  "Your wall's drawing could not be saved. Try again in a moment.": "ماقدرناش نحفظ رسمة حيطتك. جرّب تاني بعد شوية."
 }

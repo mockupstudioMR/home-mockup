@@ -207,20 +207,27 @@ async function makeWall(s: JourneyState, m: ShowroomModel, wall: Pic, report: (p
   let done = 0;
   const tick = (step: string) => report({ wall, step, done: Math.min(total, ++done), total });
 
-  const guideUrl = await storeDesignImage(guide.image);
+  // the wall's own folder: the guide goes there first, with retries, and a failure says why (not signed in, or
+  // the storage error itself) instead of a generic message
+  const up = await uploader(`${key}-${wall.toLowerCase()}-${Date.now().toString(36)}`);
+  let guideUrl: string;
+  try {
+    guideUrl = await up.put("guide.jpg", await (await fetch(guide.image)).blob(), "image/jpeg");
+  } catch (e) {
+    throw new Error(`Your wall's drawing could not be saved: ${(e as Error).message || "storage refused it"}. Try again in a moment.`);
+  }
   const hasTable = m.pieces.some((p) => guide.boxes[p.id] && (p.category === "dining" || p.category === "desk"));
   const pieces = m.pieces.filter((p) => guide.boxes[p.id]).map((p) => ({ name: p.kept ? `${p.name} (the client's own, keep as it is)` : p.category === "rug" ? `${p.name} (lying flat on the floor${wall === "room" ? "" : " in front of the wall"})` : hasTable && (p.category === "dchair" || p.category === "chair") ? `${p.name} (at the table: the table and every chair whole, chairs tucked in)` : p.name, detail: `${p.shapeName}, ${p.fabric ?? ""} ${m.palette.find((x) => x.hex === p.color)?.name ?? p.color}`.replace(/\s+/g, " "), box: guide.boxes[p.id] }));
   // what hangs on the wall counts too (curtains, art, mirrors), so "only these" never removes them
   for (const e of m.extras) if (guide.boxes[e.id]) pieces.push({ name: e.name, detail: `${e.kind}, ${m.palette.find((x) => x.hex === e.color)?.name ?? e.color}`, box: guide.boxes[e.id] });
   report({ wall, step: "Making the photograph of your wall", done, total });
-  if (!/^https:/.test(guideUrl)) throw new Error("Your wall's drawing could not be saved. Check that you're signed in and try again.");
+  if (!/^https?:/.test(guideUrl)) throw new Error("Your wall's drawing could not be saved. Try again in a moment.");
   const styleText = (s.preview?.read ?? []).filter((r) => r.key !== "lighting").map((r) => r.text).join(" ").slice(0, 600);
   const size = `${canvas.width}x${canvas.height}`;
   const baseData = await ai({ mode: "base", size, floorView: floorM > 0, imageUrl: guideUrl, styleImageUrl: previewImage(s), wall, style: s.moodboard?.name, palette: m.palette, pieces, moodboardDescription: s.moodboard?.description, styleText, roomType: s.current ?? s.startRoom });
   if (stopped()) throw new Error("Stopped.");
   // the photo brought to the canvas size, so it lines up with the guide and every layer pixel for pixel
   const base = await pixels(baseData, canvas.width, canvas.height);
-  const up = await uploader(`${key}-${wall.toLowerCase()}-${Date.now().toString(36)}`);
   const background = await up.put("background.jpg", await toBlob(base, "image/jpeg"), "image/jpeg").catch(() => storeDesignImage(baseData));
   tick("Making the alternatives");
 
