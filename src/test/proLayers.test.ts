@@ -81,4 +81,21 @@ describe("PRO layers", () => {
     }
     expect(px(out, 25, 30)).toEqual([70, 110, 80]);
   });
+
+  it("thin legs and rockers survive, while a mixed edge pixel is still dropped", () => {
+    // a seat (x 20–50, y 14–30) on two legs 2 px wide (x 24–25 and 44–45, y 30–48) in front of the terracotta wall;
+    // the seat's right edge pixel (x 50) is half seat, half wall, as a photo's edge pixel is
+    const seat: [number, number, number] = [60, 60, 66], leg: [number, number, number] = [30, 30, 32];
+    const inSeat = (x: number, y: number) => x >= 20 && x < 50 && y >= 14 && y < 30;
+    const inLeg = (x: number, y: number) => y >= 30 && y < 48 && (x === 24 || x === 25 || x === 44 || x === 45);
+    const shot = fill((x, y) => (inSeat(x, y) ? seat : inLeg(x, y) ? leg : x === 50 && y >= 14 && y < 30 ? [128, 85, 73] : room(terracotta)(x, y)));
+    const outline = maskOf((x, y) => (x >= 20 && x <= 50 && y >= 14 && y < 30) || inLeg(x, y));
+    const chair = proPiece(shot, plate, outline, box(22, 16, 48, 46), box(10, 6, 60, 54));
+    const on = drawPro(fill(room(mustard)), chair);
+    expect(px(on, 24, 40)).toEqual(leg); // both legs are drawn whole, not trimmed away
+    expect(px(on, 45, 40)).toEqual(leg);
+    expect(px(on, 35, 20)).toEqual(seat);
+    const [r, g] = px(on, 50, 20); // the mixed edge pixel: the new wall, not the old blend
+    expect(Math.abs(r - mustard[0]) + Math.abs(g - mustard[1])).toBeLessThan(20);
+  });
 });

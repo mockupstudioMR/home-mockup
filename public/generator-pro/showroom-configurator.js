@@ -4691,21 +4691,25 @@ function instance($$self, $$props, $$invalidate) {
       // Home Mockup patch: a layer with a box is a piece drawn at that box (x, y, w, h in scene pixels), not a full-canvas image
       const at = layer.box && [layer.box.x, layer.box.y, layer.box.w, layer.box.h] || [0, 0, canvasWidth, canvasHeight];
       if (layer.variations && Array.isArray(layer.variations)) {
-        shadowUrl = layer.shadow;
+        // Home Mockup patch: each variation uses its own shadow (`shadows[i]`, what wallScenes/runner.ts publishes;
+        // every alternative has its own silhouette), falling back to the shared `shadow`
+        shadowUrl = layer.shadows && layer.shadows[selectedVariation - 1] || layer.shadow;
         colorUrl = layer.variations[selectedVariation - 1];
       } else {
-        shadowUrl = getAssetUrl(`${layer.folder}/shadow.webp`);
+        shadowUrl = layer.shadows && layer.shadows[selectedVariation - 1] ? getAssetUrl(`${layer.folder}/${layer.shadows[selectedVariation - 1]}`) : layer.hasShadow === false ? null : getAssetUrl(`${layer.folder}/shadow.webp`);
         colorUrl = getAssetUrl(`${layer.folder}/${selectedVariation}.webp`);
       }
       try {
         const colorImg = await loadImage(colorUrl);
-        if (shadowUrl) {
-          const shadowImg = await loadImage(shadowUrl);
+        // Home Mockup patch: a shadow that fails to load no longer drops the whole layer
+        const shadowImg = shadowUrl ? await loadImage(shadowUrl).catch(() => null) : null;
+        if (shadowImg) {
           ctx.globalCompositeOperation = "multiply";
           ctx.drawImage(shadowImg, ...at);
         }
-        ctx.globalCompositeOperation = shadowUrl ? "lighten" : "source-over";
+        ctx.globalCompositeOperation = shadowImg ? "lighten" : "source-over";
         ctx.drawImage(colorImg, ...at);
+        ctx.globalCompositeOperation = "source-over";
       } catch (err) {
         console.error(`Failed to render layer ${layer.name}:`, err);
       }
@@ -4719,23 +4723,26 @@ function instance($$self, $$props, $$invalidate) {
       // Home Mockup patch: products can carry their own box (each product has its own size)
       const box = material.box || product.box || layer.box;
       const at = box && [box.x, box.y, box.w, box.h] || [0, 0, canvasWidth, canvasHeight];
+      const colorIndex = (parseInt(selectedSlug.replace("color-", ""), 10) || 1) - 1;
+      // Home Mockup patch: per-colour shadows (`shadows[i]`), falling back to the shared one
+      const ownShadow = material.shadows && material.shadows[colorIndex];
       if (material.variations && Array.isArray(material.variations)) {
-        shadowUrl = material.shadow;
-        const colorIndex = parseInt(selectedSlug.replace("color-", "")) - 1;
+        shadowUrl = ownShadow || material.shadow;
         colorUrl = material.variations[colorIndex] || material.variations[0];
       } else {
-        shadowUrl = getAssetUrl(`${material.source}/variations/shadow.webp`);
+        shadowUrl = ownShadow ? getAssetUrl(`${material.source}/variations/${ownShadow}`) : material.hasShadow === false ? null : getAssetUrl(`${material.source}/variations/shadow.webp`);
         colorUrl = getAssetUrl(`${material.source}/variations/${selectedSlug}.webp`);
       }
       try {
         const colorImg = await loadImage(colorUrl);
-        if (shadowUrl) {
-          const shadowImg = await loadImage(shadowUrl);
+        const shadowImg = shadowUrl ? await loadImage(shadowUrl).catch(() => null) : null;
+        if (shadowImg) {
           ctx.globalCompositeOperation = "multiply";
           ctx.drawImage(shadowImg, ...at);
         }
-        ctx.globalCompositeOperation = shadowUrl ? "lighten" : "source-over";
+        ctx.globalCompositeOperation = shadowImg ? "lighten" : "source-over";
         ctx.drawImage(colorImg, ...at);
+        ctx.globalCompositeOperation = "source-over";
       } catch (err) {
         console.error(`Failed to render product ${product.id} with material ${material.id}:`, err);
       }

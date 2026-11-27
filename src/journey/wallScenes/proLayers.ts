@@ -5,7 +5,8 @@
  *     drawn with MULTIPLY (so the room under the piece goes black and its contact shadow darkens the floor);
  *   - a COLOUR image: the piece itself on black, drawn with LIGHTEN (so only the piece shows).
  * This is PRO's own composite model, kept as it is. The piece's edge is hard (the photo's own mixed edge pixel is
- * dropped), so lighten draws no dark rim and no rim of the old wall colour travels with the piece.
+ * dropped, see cleanEdge), so lighten draws no dark rim and no rim of the old wall colour travels with the piece;
+ * edge pixels that are clearly the piece stay, so thin legs and rockers aren't trimmed away.
  * Walls and floor are ordinary see-through layers cut from the empty room. Every outline comes from
  * segmentation of the photo itself (segment-photo), never from the 3D guide, which the AI photo doesn't match
  * pixel for pixel.
@@ -77,8 +78,9 @@ export function proPiece(photo: Rgba, plate: Rgba, mask: Float32Array, core: PxB
   }
   m = fillHoles(keep, w, area);
   if (wall) for (let y = area.y0; y < area.y1; y++) for (let x = area.x0; x < area.x1; x++) { const p = y * w + x; if (wall[p] >= 0.5) m[p] = 0; }
-  // a hard edge one pixel inside the outline: the photo's mixed edge pixel (part piece, part old wall) is left out
-  const alpha = morph(m, w, area, 1, false);
+  // a hard edge one pixel inside the outline: the photo's mixed edge pixel (part piece, part old wall) is left out,
+  // but an edge pixel that is clearly the piece stays, so thin legs, frames and rockers (2–3 px) survive
+  const alpha = cleanEdge(photo, plate, m, w, area);
   let inCore = 0, x0 = Infinity, y0 = Infinity, x1 = -1, y1 = -1;
   for (let y = area.y0; y < area.y1; y++) for (let x = area.x0; x < area.x1; x++) if (alpha[y * w + x] >= 0.5) {
     if (x >= core.x0 && x < core.x1 && y >= core.y0 && y < core.y1) inCore++;
@@ -130,6 +132,29 @@ export function proPiece(photo: Rgba, plate: Rgba, mask: Float32Array, core: PxB
   }
   const box = x1 < 0 ? core : { x0: Math.max(area.x0, x0 - 2 * r), y0: Math.max(area.y0, y0 - 2 * r), x1: Math.min(area.x1, x1 + 2 * r + 1), y1: Math.min(area.y1, y1 + 2 * r + 1) };
   return { alpha, shadow, colour, box, cover, clipped };
+}
+
+/**
+ * The piece without its mixed edge pixels. An edge pixel of the outline is kept only if it is about as far from the
+ * empty room (at that spot) as the piece's inside next to it is: then it is the piece, not a blend with the old
+ * background. A pixel with no inside next to it (a leg or rocker 1–2 px wide) is kept if it clearly isn't the room.
+ */
+function cleanEdge(photo: Rgba, plate: Rgba, m: Float32Array, w: number, area: PxBox): Float32Array {
+  const inner = morph(m, w, area, 1, false);
+  const out = new Float32Array(inner);
+  const far = (img: Rgba, q: number, p: number) => Math.max(Math.abs(img.data[q * 4] - plate.data[p * 4]), Math.abs(img.data[q * 4 + 1] - plate.data[p * 4 + 1]), Math.abs(img.data[q * 4 + 2] - plate.data[p * 4 + 2]));
+  for (let y = area.y0; y < area.y1; y++) for (let x = area.x0; x < area.x1; x++) {
+    const p = y * w + x;
+    if (m[p] < 0.5 || inner[p] >= 0.5) continue;
+    const d = far(photo, p, p);
+    let n = 0, din = 0;
+    for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+      const xx = x + dx, yy = y + dy;
+      if ((dx || dy) && xx >= area.x0 && xx < area.x1 && yy >= area.y0 && yy < area.y1 && inner[yy * w + xx] >= 0.5) { n++; din += far(photo, yy * w + xx, p); }
+    }
+    if (n ? d >= 20 && d >= 0.75 * (din / n) : d >= 30) out[p] = 1;
+  }
+  return out;
 }
 
 /** Fill the holes of a shape (a cushion the colour of the wall): whatever the outside can't reach is inside. */

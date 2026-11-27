@@ -30,6 +30,9 @@ The bundle is vendored. These changes are marked `Home Mockup patch` in the file
 4. **English by default** (was German); the DE/EN toggle is kept. Also: optional `thumbnails` per variation layer are used for the choice strip (full-canvas transparent layers make poor thumbnails).
 5. **A scene can set its own grade.** A manifest `enhancements: {brightness, contrast, saturation}` replaces the renderer's defaults (105 / 105 / 156, which over-colour scenes that are already graded). Prepared walls publish 100 / 100 / 100. The Tune sliders still work on top.
 6. **Pieces drawn at a box.** A variation layer with `box: {x, y, w, h}` (scene pixels) draws its shadow and colour images into that box instead of over the whole canvas; for product layers the box can sit on the material or the product, so each product keeps its own size. One prepared piece can then go anywhere on a wall, and its files stay small.
+7. **Each variation uses its own shadow.** A layer (or product material) with `shadows: [url, …]` draws variation *i* with `shadows[i]`, falling back to the shared `shadow`. `wallScenes/runner.ts` publishes one shadow per alternative (each has its own silhouette); without this every alternative was drawn over the main option's shadow, leaving a black copy of the old piece. A shadow that fails to load no longer drops the layer: the colour image is drawn on its own.
+
+The same changes (per-variation shadows, optional shadows) are in Generator PRO's `fix/per-variation-shadows` branch, so a rebuilt bundle keeps them.
 
 ## How layers are composited (Generator PRO's own method)
 
