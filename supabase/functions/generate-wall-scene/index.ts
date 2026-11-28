@@ -33,6 +33,8 @@ type Body = {
   wall?: string;
   /** base: the wall is seen from slightly above, with the floor in front of it. */
   floorView?: boolean;
+  /** How far the camera looks down (degrees) when the floor shows: 16 seating … 30 a dining set. */
+  viewDeg?: number;
   style?: string;
   palette?: { name: string; hex: string; use?: string }[];
   /** base: every piece on the wall, left to right, with where it is in the image (percent x, y, w, h). */
@@ -56,7 +58,7 @@ function basePrompt(b: Body) {
   const palette = (b.palette ?? []).map((p) => `${p.name} ${p.hex}${p.use ? ` (${p.use})` : ""}`).join("; ");
   const pieces = (b.pieces ?? []).map((p, i) => `${i + 1}. ${p.name}: ${p.detail} — at ${pct(p.box)}`).join("\n");
   return `Turn the FIRST image into a photorealistic interior photograph.
-The first image is a simple 3D guide of ${b.wall === "room" ? "the client's whole room, seen from its corner at eye height like a real-estate photograph: every wall, the floor, the rug and every piece in its place" : `one wall (wall ${b.wall ?? ""}) of the client's own room: ${b.floorView ? "the wall seen straight on from slightly above, so the floor in front of it shows with the rug and the legs of the seating" : "a straight-on elevation, exactly like an architect's wall drawing, with the wall filling the frame from floor to ceiling and corner to corner"}`}. It is exact about geometry: keep this view (no added perspective, no wider shot), every door and window, and the position, size and order of every piece of furniture exactly where they are in the guide. Do not add, remove, move or resize any piece. Only turn the simple shapes into the real, photographed pieces and finishes.
+The first image is a simple 3D guide of ${b.wall === "room" ? "the client's whole room, seen from its corner at eye height like a real-estate photograph: every wall, the floor, the rug and every piece in its place" : `one wall (wall ${b.wall ?? ""}) of the client's own room: ${b.floorView ? `the wall seen straight on from ${!b.viewDeg || b.viewDeg <= 18 ? "slightly above" : `above, looking down about ${Math.round(b.viewDeg)}°`}, so the floor in front of it shows with the rug and every piece standing on it whole (a table's top and every chair around it)` : "a straight-on elevation, exactly like an architect's wall drawing, with the wall filling the frame from floor to ceiling and corner to corner"}`}. It is exact about geometry: keep this view (no added perspective, no wider shot), every door and window, and the position, size and order of every piece of furniture exactly where they are in the guide. Do not add, remove, move or resize any piece. Only turn the simple shapes into the real, photographed pieces and finishes.
 ${b.styleImageUrl ? "The SECOND image is the client's chosen design. Take ONLY its colours, materials, textures, finishes, light and mood from it. Do NOT copy its furniture, its decor, its layout, its camera angle or its room: this picture shows only the one wall in the guide, straight on." : ""}
 Design direction: ${b.style ?? "the client's style"}.
 Colours (use these exact colours for what they are used for): ${palette || "neutral, warm"}.

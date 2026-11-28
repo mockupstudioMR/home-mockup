@@ -4464,5 +4464,8 @@
   "Walk back": "ارجع لورا",
   "Turn left": "لف شمال",
   "Turn right": "لف يمين",
-  "The 3D tour can't open here": "الجولة 3D مش هتفتح هنا"
+  "The 3D tour can't open here": "الجولة 3D مش هتفتح هنا",
+  "One floor for the whole room: changing it here changes it on every wall.": "أرضية واحدة للأوضة كلها: لو غيّرتها هنا هتتغير في كل الحيطان.",
+  "All dining chairs change together, on every wall.": "كل كراسي السفرة بتتغير مع بعض، في كل الحيطان.",
+  "· all walls": "· كل الحيطان"
 }

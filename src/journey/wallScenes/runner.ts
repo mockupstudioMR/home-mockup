@@ -44,7 +44,7 @@ export const PICTURES: Pic[] = [...WALLS, "room"];
 const ALIGN_LIMIT = 14; // mean change outside the item (0–255), after matching tones, above which an alternative moved the photo
 const PARALLEL = 4;
 /** Raised when the way pictures are made changes, so walls made the old way are made again. */
-const PICTURE_VERSION = 20; // 20: thin legs and rockers kept (cleanEdge)
+const PICTURE_VERSION = 21; // 20: thin legs and rockers kept (cleanEdge); 21: camera angle per layout box
 
 const previewImage = (s: JourneyState) => s.preview?.versions[s.preview.current]?.image;
 
@@ -121,6 +121,8 @@ type AiBody = {
   moodboardDescription?: string; styleText?: string; roomType?: string;
   /** The wall is seen from slightly above, with the floor in front of it. */
   floorView?: boolean;
+  /** How far the camera looks down (degrees) when the floor shows: 16 seating … 30 a dining set. */
+  viewDeg?: number;
   /** The picture's size ("1792x1008"), so the picture model draws at the canvas size. */
   size?: string;
   /** For a swap: a PNG the size of the picture, see-through only where the item may change. */
@@ -135,13 +137,16 @@ const pct = (b: PctBox) => `${Math.round(b[0])}% from the left, ${Math.round(b[1
 /** What makes the pictures read as photographs, not renders: shared by both functions' prompts. */
 const REAL = "It must look like a real photograph taken by an interior photographer with a full-frame camera: soft daylight from one consistent direction, gentle falloff across the wall, real fabric weave and wood grain, slight natural imperfections. Shadows only where light really makes them: soft contact shadows under and behind each piece, no dark halos, no floating shadows, no shadow rectangles or patches. Every piece complete and whole, never cut off by the frame or by another piece; nothing partly entering at the edges. A table with its chairs is one composed set: the whole table top and legs visible, each chair complete and turned to the table, evenly spaced, styled like a magazine interior shot. No CGI look, no plastic surfaces, no text, no watermark. Painted walls are smooth, plain, flat matt paint in one even colour: no texture, plaster, limewash or sponge effect, no brush strokes, no panel or stripe.";
 
+/** The camera angle in words: "slightly above" for seating, "above (about 30°)" for a dining set or a bed. */
+const viewWords = (deg?: number) => (!deg || deg <= 18 ? "slightly above" : `above, looking down about ${Math.round(deg)}°`);
+
 /** The same request through generate-design (the preview's function, always deployed), as a surgical edit. */
 async function viaPreviewFunction(b: AiBody): Promise<string> {
   const palette = (b.palette ?? []).map((p) => `${p.name} ${p.hex}${p.use ? ` for ${p.use.toLowerCase()}` : ""}`).join(", ");
   const change = b.mode === "plate"
     ? "Remove every piece of furniture and everything standing or lying in the room (sofas, chairs, tables, cabinets, shelves, lamps, plants, cushions, rugs, decor, things on the wall). Continue the bare wall, skirting and floor where they stood, with no trace or shadow. Keep the walls, door, windows, floor, camera, light and size exactly. Painted walls are plain flat matt paint in one even colour."
     : b.mode === "base"
-    ? `Render this exact ${b.wall === "room" ? "view of the whole room, from its corner at eye height," : b.floorView ? "view of the wall, straight on and from slightly above so the floor and rug in front of it show," : "straight-on wall elevation"} as a real, photorealistic interior photograph${b.wall === "room" ? "" : ` of wall ${b.wall ?? ""}`}. Turn every simple 3D shape into the real piece it stands for, with real materials and textures, in the ${b.style ?? "chosen"} style${b.styleText ? ` (${b.styleText})` : ""}. Colours: ${palette}. Pieces, left to right: ${(b.pieces ?? []).map((p) => `${p.name} (${p.detail}) at ${pct(p.box)}`).join("; ")}. Keep every piece, door and window exactly where it is and exactly its size; keep ${b.wall === "room" ? "the same camera and view of the room" : b.floorView ? "the same slightly-from-above view with the floor in front" : "the straight-on view with the wall filling the frame"}. ${(b.pieces ?? []).length ? `These ${(b.pieces ?? []).length} are the ONLY pieces: count them before you finish. Add no other furniture, lamps, plants, shelves, cabinets, art, rugs or objects, not even cut off at an edge of the picture.` : "This wall is kept clear: show only the bare wall with its windows and doors, the skirting and a strip of floor, with no furniture or decor at all."} Do not copy furniture or layout from any other picture of the room. ${REAL}`
+    ? `Render this exact ${b.wall === "room" ? "view of the whole room, from its corner at eye height," : b.floorView ? `view of the wall, straight on and from ${viewWords(b.viewDeg)} so the floor in front of it shows with the rug and every piece standing on it whole,` : "straight-on wall elevation"} as a real, photorealistic interior photograph${b.wall === "room" ? "" : ` of wall ${b.wall ?? ""}`}. Turn every simple 3D shape into the real piece it stands for, with real materials and textures, in the ${b.style ?? "chosen"} style${b.styleText ? ` (${b.styleText})` : ""}. Colours: ${palette}. Pieces, left to right: ${(b.pieces ?? []).map((p) => `${p.name} (${p.detail}) at ${pct(p.box)}`).join("; ")}. Keep every piece, door and window exactly where it is and exactly its size; keep ${b.wall === "room" ? "the same camera and view of the room" : b.floorView ? `the same view from ${viewWords(b.viewDeg)} with the floor in front` : "the straight-on view with the wall filling the frame"}. ${(b.pieces ?? []).length ? `These ${(b.pieces ?? []).length} are the ONLY pieces: count them before you finish. Add no other furniture, lamps, plants, shelves, cabinets, art, rugs or objects, not even cut off at an edge of the picture.` : "This wall is kept clear: show only the bare wall with its windows and doors, the skirting and a strip of floor, with no furniture or decor at all."} Do not copy furniture or layout from any other picture of the room. ${REAL}`
     : `Replace only the ${b.item!.current} (${pct(b.item!.box)}) with ${b.item!.target}. Same position, size and perspective; the whole new piece fits inside that area, complete, never cut off. Keep the photo's exact light, colours, brightness and grain everywhere else, with a soft natural contact shadow only where the new piece touches the floor or wall.`;
   const layer = b.mode === "base" ? undefined : b.item?.group === "walls" || b.item?.group === "floor" ? "architecture" : b.item?.group === "furniture" ? "furniture" : "decor";
   const { data, error } = await invokeAi<{ imageUrl?: string; error?: string }>("generate-design", {
@@ -190,16 +195,19 @@ async function inBatches<T>(jobs: (() => Promise<T>)[], n: number, onDone: () =>
 
 async function makeWall(s: JourneyState, m: ShowroomModel, wall: Pic, report: (p: Progress) => void, stopped: () => boolean): Promise<WallScene> {
   const key = wallKey(s, m, wall);
-  const { renderGuide, renderRoomGuide, floorDepthFor, wallViewExtent } = await import("../showroom3d/scene");
+  const { renderGuide, renderRoomGuide, floorDepthFor, pitchFor, wallViewExtent } = await import("../showroom3d/scene");
   report({ wall, step: wall === "room" ? "Drawing your whole room" : "Drawing your wall from its outline", done: 0, total: 1 });
   // the wall on its stored canvas preset, at one scale, so every picture and layer of it shares one size
   const rules = await loadRules();
   // a wall with seating is seen from slightly above, so the floor and the rug in front of it show (and swap);
   // the whole room is seen from its corner at eye height, on a 16:9 canvas
+  // each wall is seen at the angle its layout boxes need: straight on for pieces against it, from above (and
+  // with floor in front) for seating, a coffee table, a bed or a dining set, so every piece shows whole
   const floorM = wall === "room" ? 0 : floorDepthFor(m, wall);
-  const ext = wall === "room" ? { w: 16, h: 9 } : wallViewExtent(m.room, wall, floorM);
+  const pitch = wall === "room" ? 0 : pitchFor(m, wall);
+  const ext = wall === "room" ? { w: 16, h: 9 } : wallViewExtent(m.room, wall, floorM, pitch);
   const canvas = canvasFor(ext.w * 100, ext.h * 100, rules.presets);
-  const guide = wall === "room" ? renderRoomGuide(m, canvas.width, canvas.height) : renderGuide(m, wall, canvas.width, canvas.height, floorM);
+  const guide = wall === "room" ? renderRoomGuide(m, canvas.width, canvas.height) : renderGuide(m, wall, canvas.width, canvas.height, floorM, pitch);
   const comp = composeWall(m, wall as Wall, guide.boxes, canvas, rules.specs);
   const placed = new Map(comp.items.map((it) => [it.key, it]));
   const items = wallItems(s, m, wall).filter((it) => guide.boxes[it.id]);
@@ -224,7 +232,7 @@ async function makeWall(s: JourneyState, m: ShowroomModel, wall: Pic, report: (p
   if (!/^https?:/.test(guideUrl)) throw new Error("Your wall's drawing could not be saved. Try again in a moment.");
   const styleText = (s.preview?.read ?? []).filter((r) => r.key !== "lighting").map((r) => r.text).join(" ").slice(0, 600);
   const size = `${canvas.width}x${canvas.height}`;
-  const baseData = await ai({ mode: "base", size, floorView: floorM > 0, imageUrl: guideUrl, styleImageUrl: previewImage(s), wall, style: s.moodboard?.name, palette: m.palette, pieces, moodboardDescription: s.moodboard?.description, styleText, roomType: s.current ?? s.startRoom });
+  const baseData = await ai({ mode: "base", size, floorView: floorM > 0, viewDeg: Math.round((pitch * 180) / Math.PI), imageUrl: guideUrl, styleImageUrl: previewImage(s), wall, style: s.moodboard?.name, palette: m.palette, pieces, moodboardDescription: s.moodboard?.description, styleText, roomType: s.current ?? s.startRoom });
   if (stopped()) throw new Error("Stopped.");
   // the photo brought to the canvas size, so it lines up with the guide and every layer pixel for pixel
   const base = await pixels(baseData, canvas.width, canvas.height);

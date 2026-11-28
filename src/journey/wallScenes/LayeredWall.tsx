@@ -9,9 +9,14 @@
  * pictures are loaded (no half-drawn wall while they come in), and a picture that fails to load is left out
  * instead of breaking the wall. "Confirm options" flattens the same drawing into one final picture, which
  * then shows instead of the outline.
+ *
+ * Some items are one choice for the whole room: the floor (the same on every wall) and the dining chairs (all
+ * alike). Choosing one on any picture changes it on every picture, walls made later included, and the options
+ * say so (`linked` in the journey, matched by option name).
  */
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useJourney } from "../state";
+import { useJourney, type JourneyState } from "../state";
+import { LINK_NOTE, diningChairs, linkOf, setLinked, type Link } from "./linkedChoices";
 import { storeDesignImage } from "../services";
 import { saveConfirmed } from "./composition";
 import type { Pic, WallScene } from "./runner";
@@ -53,10 +58,29 @@ export function LayeredWall({ wall, scene }: { wall: Pic; scene: WallScene }) {
     return () => { live = false; };
   }, [scene.manifestUrl]);
 
-  const picks = s.showroom?.picks?.[wall] ?? {};
-  const pick = (name: string, i: number) => set((p) => ({
-    showroom: { ...(p.showroom ?? { edits: {} }), edits: p.showroom?.edits ?? {}, picks: { ...(p.showroom?.picks ?? {}), [wall]: { ...(p.showroom?.picks?.[wall] ?? {}), [name]: i } } },
-  }));
+  const chairs = useMemo(() => diningChairs(s), [s]);
+  const linked = s.showroom?.linked ?? {};
+  // this picture's choices, with the room-wide ones (floor, dining chairs) applied, walls made later included
+  const picks: Record<string, number> = { ...(s.showroom?.picks?.[wall] ?? {}) };
+  if (m) for (const [n, l] of Object.entries(m.layers)) {
+    const k = linkOf(n, chairs), c = k ? linked[k] : undefined;
+    if (!c || !l.variations.length) continue;
+    // by name; a picture without names (older ones) by position; an option this picture lacks: its main one
+    picks[n] = c.index === 0 ? 0 : l.variationNames ? Math.max(0, l.variationNames.indexOf(c.name)) : Math.min(c.index, l.variations.length - 1);
+  }
+  const pick = (name: string, i: number) => {
+    const k = linkOf(name, chairs);
+    if (k) return set((p) => setLinked(p, k, chairs, { name: m?.layers[name]?.variationNames?.[i] ?? "", index: i, from: wall }));
+    set((p) => ({
+      showroom: { ...(p.showroom ?? { edits: {} }), edits: p.showroom?.edits ?? {}, picks: { ...(p.showroom?.picks ?? {}), [wall]: { ...(p.showroom?.picks?.[wall] ?? {}), [name]: i } } },
+    }));
+  };
+  const backToPreview = () => set((p) => {
+    // the room-wide choices on this picture go back for the whole room too
+    let next: JourneyState = p;
+    for (const k of new Set(layers.map(([n]) => linkOf(n, chairs)).filter((x): x is Link => !!x))) next = { ...next, ...setLinked(next, k, chairs, null) } as JourneyState;
+    return { showroom: { ...(next.showroom ?? { edits: {} }), edits: next.showroom?.edits ?? {}, picks: { ...(next.showroom?.picks ?? {}), [wall]: {} } } };
+  });
   const layers = useMemo(() => (m ? Object.entries(m.layers).sort((a, b) => a[1].order - b[1].order) : []), [m]);
 
   // Fetch every variation once, so a swap shows at once.
@@ -93,20 +117,26 @@ export function LayeredWall({ wall, scene }: { wall: Pic; scene: WallScene }) {
         <div className="lw-tabs" role="group" aria-label="Pieces on this wall">
           {layers.map(([name, l]) => (
             <button key={name} type="button" className={`lw-tab${open === name ? " on" : ""}`} aria-pressed={open === name} onClick={() => setOpen(open === name ? null : name)}>
-              {l.title}{(picks[name] ?? 0) > 0 ? " ·" : ""}
+              {l.title}{(picks[name] ?? 0) > 0 ? " ·" : ""}{linkOf(name, chairs) ? <small className="lw-link" title={LINK_NOTE[linkOf(name, chairs)!]}> · all walls</small> : null}
             </button>
           ))}
         </div>
         <div className="lw-tools">
           <button type="button" className="lw-tab" aria-pressed={hide} onClick={() => setHide(!hide)}>{hide ? "Show dots" : "Hide dots"}</button>
           <ConfirmButton wall={wall} sceneUrl={scene.manifestUrl ?? ""} m={m} layers={shown} at={at} picks={picks} done={same} />
-          {changed > 0 && <button type="button" className="lw-tab" onClick={() => set((p) => ({ showroom: { ...(p.showroom ?? { edits: {} }), edits: p.showroom?.edits ?? {}, picks: { ...(p.showroom?.picks ?? {}), [wall]: {} } } }))}>Back to my preview</button>}
+          {changed > 0 && <button type="button" className="lw-tab" onClick={backToPreview}>Back to my preview</button>}
         </div>
       </div>
       {open && cur && !cur.variations.length && (
         <div className="lw-opts" role="note" aria-label={cur.title}>
           <p className="p"><b>{cur.title}</b>{cur.variationNames?.[0] ? ` · ${cur.variationNames[0]}` : ""}. {cur.note}</p>
         </div>
+      )}
+      {open && cur && cur.variations.length > 0 && linkOf(open, chairs) && (
+        <p className="lw-linknote small" role="note">
+          {LINK_NOTE[linkOf(open, chairs)!]}
+          {(() => { const c = linked[linkOf(open, chairs)!]; return c && c.from !== wall ? ` Chosen on ${c.from === "room" ? "the whole-room picture" : `wall ${c.from}`}.` : ""; })()}
+        </p>
       )}
       {open && cur && cur.variations.length > 0 && (
         <div className="lw-opts" role="group" aria-label={`${cur.title}: options`}>

@@ -865,25 +865,54 @@ export type Guide = {
 const FLOOR_PITCH = (16 * Math.PI) / 180;
 
 /**
- * How much floor to show in front of a wall: for a wall with seating or a rug, enough to take in the rug and
- * the seating's legs (at least 1.2 m, at most 60% of the room's depth); none for other walls.
+ * The camera angle each kind of layout box needs to be shown whole (degrees looked down from straight on), and
+ * how far into the room its floor view may reach (share of the room's depth). Pieces against the wall (shelves,
+ * consoles, wardrobes, lamps…) need none: straight on shows them whole. A wall is seen at the steepest angle and
+ * the deepest floor any of its boxes needs.
+ *   seating and rugs: the seat, its legs and the rug in front              16°
+ *   a coffee table: its top, so it doesn't hide the sofa's front            20°
+ *   a desk: its top and the chair at it                                     22°
+ *   a bed: the mattress and bedding, not just the headboard                 28°
+ *   a dining table with its chairs: the whole top and every chair,
+ *   the far ones above the table and the near ones in front of it           30°
+ */
+export const VIEW_FOR: Partial<Record<PieceModel["category"], { deg: number; reach: number }>> = {
+  sofa: { deg: 16, reach: 0.6 }, chair: { deg: 16, reach: 0.6 }, bench: { deg: 16, reach: 0.6 }, side: { deg: 16, reach: 0.6 }, rug: { deg: 16, reach: 0.6 },
+  table: { deg: 20, reach: 0.6 }, desk: { deg: 22, reach: 0.7 }, bed: { deg: 28, reach: 0.8 },
+  dining: { deg: 30, reach: 0.85 }, dchair: { deg: 30, reach: 0.85 },
+};
+
+/** The boxes on a wall that need a view from above. */
+const needsView = (m: ShowroomModel, wall: Wall) => m.pieces.filter((p) => seenOn(p, wall) && VIEW_FOR[p.category]);
+
+/**
+ * How much floor to show in front of a wall: enough to take in every box that needs a view from above (its far
+ * edge plus 40 cm; at least 1.2 m, at most what the deepest-reaching box allows of the room's depth); none for a
+ * wall with only pieces against it.
  */
 export function floorDepthFor(m: ShowroomModel, wall: Wall): number {
   const depth = wall === "A" || wall === "C" ? m.room.l : m.room.w;
-  const seat = m.pieces.filter((p) => seenOn(p, wall) && ["sofa", "chair", "bench", "rug", "table", "side", "bed"].includes(p.category));
+  const seat = needsView(m, wall);
   if (!seat.length) return 0;
   const far = (p: PieceModel) => ({ A: p.cz + p.d / 2, C: m.room.l - (p.cz - p.d / 2), D: p.cx + p.w / 2, B: m.room.w - (p.cx - p.w / 2) })[wall];
-  return Math.max(1.2, Math.min(depth * 0.6, Math.max(...seat.map(far)) + 0.4));
+  const reach = Math.max(...seat.map((p) => VIEW_FOR[p.category]!.reach));
+  return Math.max(1.2, Math.min(depth * reach, Math.max(...seat.map(far)) + 0.4));
+}
+
+/** The camera angle (radians looked down) a wall needs: the steepest its boxes need, or straight on. */
+export function pitchFor(m: ShowroomModel, wall: Wall): number {
+  const seat = needsView(m, wall);
+  return seat.length ? (Math.max(...seat.map((p) => VIEW_FOR[p.category]!.deg)) * Math.PI) / 180 : 0;
 }
 
 /** A wall seen from slightly above, so `floorM` metres of floor in front of it show: the camera and the extent it covers. */
-function floorCamera(room: ShowroomModel["room"], wall: Wall, floorM: number, aspect?: number) {
+function floorCamera(room: ShowroomModel["room"], wall: Wall, floorM: number, aspect?: number, pitch = FLOOR_PITCH) {
   const { w: W, l: L, h: H } = room, depth = wall === "A" || wall === "C" ? L : W;
   const n = { A: [0, 0, -1], C: [0, 0, 1], B: [1, 0, 0], D: [-1, 0, 0] }[wall];
   const T = new THREE.Vector3(...({ A: [W / 2, H / 2, 0], C: [W / 2, H / 2, L], B: [W, H / 2, L / 2], D: [0, H / 2, L / 2] }[wall] as [number, number, number]));
   const N = new THREE.Vector3(n[0], n[1], n[2]), dist = depth + 3;
   const cam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.01, dist + depth + 6);
-  cam.position.copy(T).addScaledVector(N, -dist).add(new THREE.Vector3(0, dist * Math.tan(FLOOR_PITCH), 0));
+  cam.position.copy(T).addScaledVector(N, -dist).add(new THREE.Vector3(0, dist * Math.tan(pitch), 0));
   cam.lookAt(T);
   cam.updateMatrixWorld();
   // the wall's corners and the floor `floorM` out in front of it, in the camera's view
@@ -911,13 +940,13 @@ function floorCamera(room: ShowroomModel["room"], wall: Wall, floorM: number, as
 }
 
 /** The size (metres) a wall's picture covers: its length × height, or with floor in front, the taller view. */
-export function wallViewExtent(room: ShowroomModel["room"], wall: Wall, floorM = 0) {
-  if (floorM > 0) return floorCamera(room, wall, floorM).extent;
+export function wallViewExtent(room: ShowroomModel["room"], wall: Wall, floorM = 0, pitch = FLOOR_PITCH) {
+  if (floorM > 0) return floorCamera(room, wall, floorM, undefined, pitch).extent;
   return { w: wall === "A" || wall === "C" ? room.w : room.l, h: room.h };
 }
 
-export function elevationCamera(room: ShowroomModel["room"], wall: Wall, aspect?: number, floorM = 0): THREE.OrthographicCamera {
-  if (floorM > 0) return floorCamera(room, wall, floorM, aspect).cam;
+export function elevationCamera(room: ShowroomModel["room"], wall: Wall, aspect?: number, floorM = 0, pitch = FLOOR_PITCH): THREE.OrthographicCamera {
+  if (floorM > 0) return floorCamera(room, wall, floorM, aspect, pitch).cam;
   const { w: W, l: L, h: H } = room, len = wall === "A" || wall === "C" ? W : L, depth = wall === "A" || wall === "C" ? L : W;
   // on a canvas of another shape, the whole wall still fits (at one scale), centred, with a little of the room around it
   let hw = len / 2, hh = H / 2;
@@ -1034,7 +1063,7 @@ export function keepInFrame(scene: THREE.Object3D, camera: THREE.OrthographicCam
  * wall's outline in step 5: the wall fills the frame edge to edge and floor to ceiling, with its doors and
  * windows and only the pieces the outline shows on it, at their real size and place. Needs WebGL.
  */
-export function renderGuide(m: ShowroomModel, wall: Wall, width = 1536, canvasHeight?: number, floorM = 0): Guide {
+export function renderGuide(m: ShowroomModel, wall: Wall, width = 1536, canvasHeight?: number, floorM = 0, pitch = FLOOR_PITCH): Guide {
   const len = wall === "A" || wall === "C" ? m.room.w : m.room.l, H = m.room.h;
   const height = canvasHeight ?? Math.max(256, Math.min(2048, Math.round((width * H) / len)));
   // only what the outline shows on this wall (rugs lie flat and can't be seen straight on)
@@ -1055,7 +1084,7 @@ export function renderGuide(m: ShowroomModel, wall: Wall, width = 1536, canvasHe
     const built = buildScene(onWall, false);
     const pm = new THREE.PMREMGenerator(renderer);
     try { built.scene.environment = pm.fromScene(built.envScene, 0.03).texture; } catch { /* no reflections */ }
-    const camera = elevationCamera(m.room, wall, canvasHeight ? width / height : undefined, floorM);
+    const camera = elevationCamera(m.room, wall, canvasHeight ? width / height : undefined, floorM, pitch);
     // seen from above, the other walls would stand in the way: only this wall is drawn
     if (floorM > 0) built.scene.traverse((o) => { if (o.userData.id === "walls" && o.userData.wall && o.userData.wall !== wall) o.visible = false; });
     keepInFrame(built.scene, camera, len / 2);

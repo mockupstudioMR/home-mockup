@@ -98,3 +98,50 @@ describe("layout boxes stay together", () => {
     expect(o.pieces.find((p) => p.label === "Coffee table")?.view).toBeUndefined();
   });
 });
+
+describe("each layout box gets a camera angle that shows it whole", () => {
+  // a dining set: a table with chairs on both sides, standing out from the right wall
+  const dining: LayoutItem = { label: "Dining table", kind: "dining table", x: 62, y: 40, w: 22, h: 20 };
+  const chairs: LayoutItem[] = [
+    { label: "Dining chair", kind: "dining chair", x: 64, y: 33, w: 7, h: 7 },
+    { label: "Dining chair", kind: "dining chair", x: 75, y: 33, w: 7, h: 7 },
+    { label: "Dining chair", kind: "dining chair", x: 64, y: 60, w: 7, h: 7 },
+    { label: "Dining chair", kind: "dining chair", x: 75, y: 60, w: 7, h: 7 },
+  ];
+  const withDining = { ...s, layouts: [{ id: "L", name: "L", zones: [], notes: [], items: [...items, dining, ...chairs] }] } as unknown as JourneyState;
+
+  it("looks down at seating gently, at a dining set more steeply, and straight on at a wall of cabinets", async () => {
+    const { pitchFor, VIEW_FOR } = await import("@/journey/showroom3d/scene");
+    const deg = (r: number) => Math.round((r * 180) / Math.PI);
+    const m = buildModel(s);
+    expect(deg(pitchFor(m, "A"))).toBe(20); // sofa and coffee table: the table's top shows
+    expect(pitchFor(m, "B")).toBe(0);
+    const md = buildModel(withDining);
+    const walls = (["A", "B", "C", "D"] as const).filter((w) => md.pieces.some((p) => p.category === "dchair" && seenOnWall(md, p.id, w)));
+    expect(walls.length).toBeGreaterThan(0);
+    for (const w of walls) expect(deg(pitchFor(md, w))).toBe(VIEW_FOR.dchair!.deg);
+  });
+
+  it("reaches far enough into the room for the far side of the dining set, and the camera really looks down", async () => {
+    const { floorDepthFor, pitchFor, elevationCamera } = await import("@/journey/showroom3d/scene");
+    const md = buildModel(withDining);
+    let checked = 0;
+    for (const w of ["A", "B", "C", "D"] as const) {
+      const set = md.pieces.filter((p) => (p.category === "dchair" || p.category === "dining") && seenOnWall(md, p.id, w));
+      if (!set.length) continue;
+      const far = Math.max(...set.map((p) => ({ A: p.cz + p.d / 2, C: md.room.l - (p.cz - p.d / 2), D: p.cx + p.w / 2, B: md.room.w - (p.cx - p.w / 2) })[w]));
+      const depth = w === "A" || w === "C" ? md.room.l : md.room.w;
+      expect(floorDepthFor(md, w)).toBeGreaterThanOrEqual(Math.min(far, depth * 0.85) - 1e-6);
+      const cam = elevationCamera(md.room, w, 16 / 9, floorDepthFor(md, w), pitchFor(md, w));
+      const dir = new (await import("three")).Vector3();
+      cam.getWorldDirection(dir);
+      expect((Math.asin(-dir.y) * 180) / Math.PI).toBeCloseTo(30, 0);
+      checked++;
+    }
+    expect(checked).toBeGreaterThan(0);
+  });
+});
+
+function seenOnWall(m: ReturnType<typeof buildModel>, id: string, w: "A" | "B" | "C" | "D") {
+  return wallItems({ ...s } as JourneyState, m, w).some((i) => i.id === id);
+}
