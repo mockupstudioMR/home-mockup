@@ -57,7 +57,7 @@
 .wt-stage canvas { width: 100%; height: 100%; display: block; touch-action: none; }
 .wt-pic { position: absolute; top: 12px; right: 12px; width: min(38%, 420px); margin: 0; padding: 6px; border-radius: 12px; background: hsl(var(--card)); box-shadow: 0 6px 24px hsl(var(--foreground) / .18); }
 .wt-pic img { width: 100%; display: block; border-radius: 8px; }
-.wt-pad { position: absolute; left: 12px; bottom: 40px; display: grid; grid-template-columns: repeat(3, 44px); gap: 6px; }
+.wt-pad { position: absolute; left: 12px; bottom: 56px; display: grid; grid-template-columns: repeat(3, 44px); gap: 6px; }
 .wt-pad button { height: 44px; border-radius: 10px; border: 1px solid hsl(var(--border)); background: hsl(var(--card) / .9); color: hsl(var(--foreground)); font-size: 18px; touch-action: none; user-select: none; }
 .wt-stops { display: flex; gap: 8px; overflow-x: auto; align-items: center; }
 .wt-stop { display: flex; align-items: center; gap: 8px; padding: 4px 10px 4px 4px; border-radius: 10px; border: 1px solid hsl(var(--border)); background: hsl(var(--card)); color: hsl(var(--foreground)); }

@@ -3,6 +3,7 @@
  * the journey) at eye height. Each of the four walls is a stop that shows that wall's picture beside the 3D view.
  */
 import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useJourney, type Wall } from "../state";
 import { buildModel, type Edits } from "./model";
 import { createShowroom, type Showroom } from "./scene";
@@ -32,6 +33,14 @@ export default function WalkTour({ onClose }: { onClose: () => void }) {
   const [failed, setFailed] = useState("");
   const [stop, setStop] = useState<Wall | null>(null);
 
+  // Shown above the whole page, in its own container on the body (so the page's buttons never cover it).
+  const [host, setHost] = useState<HTMLDivElement | null>(null);
+  useEffect(() => {
+    const el = document.createElement("div");
+    el.className = "mu";
+    document.body.appendChild(el); setHost(el);
+    return () => { el.remove(); };
+  }, []);
   useEffect(() => {
     if (!canvas.current) return;
     try {
@@ -40,7 +49,7 @@ export default function WalkTour({ onClose }: { onClose: () => void }) {
     } catch (e) { setFailed(e instanceof Error ? e.message : "The 3D view could not start."); }
     return () => { room.current?.dispose(); room.current = null; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [host]);
 
   // One stepper: keys and held on-screen buttons move the eye every frame.
   useEffect(() => {
@@ -73,7 +82,8 @@ export default function WalkTour({ onClose }: { onClose: () => void }) {
   const startOver = () => { setStop(null); room.current?.setView("walk"); };
   const size = `${Math.round(model.room.w * 100)} × ${Math.round(model.room.l * 100)} cm`;
 
-  return (
+  if (!host) return null;
+  return createPortal(
     <div className="wt" role="dialog" aria-modal="true" aria-label="3D walking tour of your room">
       <div className="wt-top">
         <div><b>Walk through your room</b><span className="small"> · {size} · from your floor plan and layout</span></div>
@@ -107,6 +117,7 @@ export default function WalkTour({ onClose }: { onClose: () => void }) {
           </button>
         ))}
       </div>
-    </div>
+    </div>,
+    host,
   );
 }
