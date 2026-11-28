@@ -1,0 +1,223 @@
+{
+ "background": "background.webp",
+ "imageSize": {
+  "width": 1920,
+  "height": 1080
+ },
+ "cameraKey": "wall-std-v1-L500",
+ "wall": "C",
+ "role": "Window",
+ "lengthCm": 375,
+ "enhancements": {
+  "brightness": 100,
+  "contrast": 100,
+  "saturation": 100
+ },
+ "layers": {
+  "wall": {
+   "title": "Wall colour",
+   "group": "walls",
+   "order": 10,
+   "visible": true,
+   "shadow": "/showroom-demo/walls/c/wall-shadow.webp",
+   "variations": [
+    "/showroom-demo/walls/c/wall-1.webp",
+    "/showroom-demo/walls/c/wall-2.webp",
+    "/showroom-demo/walls/c/wall-3.webp",
+    "/showroom-demo/walls/c/wall-4.webp"
+   ],
+   "thumbnails": [
+    "/showroom-demo/walls/c/wall-1-thumb.jpg",
+    "/showroom-demo/walls/c/wall-2-thumb.jpg",
+    "/showroom-demo/walls/c/wall-3-thumb.jpg",
+    "/showroom-demo/walls/c/wall-4-thumb.jpg"
+   ],
+   "variationNames": [
+    "Warm limewash",
+    "Sage",
+    "Terracotta",
+    "Mauve"
+   ],
+   "hotspot": {
+    "id": "wall",
+    "title": "Wall colour",
+    "visible": true,
+    "position": {
+     "x": 959,
+     "y": 155
+    }
+   }
+  },
+  "floor": {
+   "title": "Floor",
+   "group": "floor",
+   "order": 11,
+   "visible": true,
+   "shadow": "/showroom-demo/walls/c/floor-shadow.webp",
+   "variations": [
+    "/showroom-demo/walls/c/floor-1.webp",
+    "/showroom-demo/walls/c/floor-2.webp",
+    "/showroom-demo/walls/c/floor-3.webp"
+   ],
+   "thumbnails": [
+    "/showroom-demo/walls/c/floor-1-thumb.jpg",
+    "/showroom-demo/walls/c/floor-2-thumb.jpg",
+    "/showroom-demo/walls/c/floor-3-thumb.jpg"
+   ],
+   "variationNames": [
+    "Walnut",
+    "Oak",
+    "Pale oak"
+   ],
+   "hotspot": {
+    "id": "floor",
+    "title": "Floor",
+    "visible": true,
+    "position": {
+     "x": 576,
+     "y": 1010
+    }
+   }
+  },
+  "radiator": {
+   "title": "Radiator",
+   "group": "decor",
+   "order": 20,
+   "visible": true,
+   "shadow": "/showroom-demo/walls/c/radiator-shadow.webp",
+   "variations": [
+    "/showroom-demo/walls/c/radiator-1.webp"
+   ],
+   "thumbnails": [
+    "/showroom-demo/walls/c/radiator-thumb.jpg"
+   ],
+   "box": {
+    "x": 693,
+    "y": 700,
+    "w": 860,
+    "h": 380
+   },
+   "hotspot": {
+    "id": "radiator",
+    "title": "Radiator",
+    "visible": true,
+    "position": {
+     "x": 925,
+     "y": 773
+    }
+   }
+  },
+  "points": {
+   "title": "Socket",
+   "group": "lighting",
+   "order": 21,
+   "visible": true,
+   "shadow": "/showroom-demo/walls/c/points-shadow.webp",
+   "variations": [
+    "/showroom-demo/walls/c/points-1.webp"
+   ],
+   "thumbnails": [
+    "/showroom-demo/walls/c/points-thumb.jpg"
+   ],
+   "box": {
+    "x": 1442,
+    "y": 780,
+    "w": 111,
+    "h": 300
+   },
+   "hotspot": {
+    "id": "points",
+    "title": "Socket",
+    "visible": true,
+    "position": {
+     "x": 1465,
+     "y": 800
+    }
+   }
+  },
+  "curtains": {
+   "title": "Curtains",
+   "group": "decor",
+   "order": 22,
+   "visible": true,
+   "shadow": "/showroom-demo/walls/c/curtains-shadow.webp",
+   "variations": [
+    "/showroom-demo/walls/c/curtains-1.webp"
+   ],
+   "thumbnails": [
+    "/showroom-demo/walls/c/curtains-thumb.jpg"
+   ],
+   "box": {
+    "x": 540,
+    "y": 95,
+    "w": 1013,
+    "h": 985
+   },
+   "hotspot": {
+    "id": "curtains",
+    "title": "Curtains",
+    "visible": true,
+    "position": {
+     "x": 622,
+     "y": 440
+    }
+   }
+  },
+  "chair": {
+   "title": "Armchair",
+   "group": "furniture",
+   "order": 23,
+   "visible": true,
+   "shadow": "/showroom-demo/walls/c/chair-shadow.webp",
+   "variations": [
+    "/showroom-demo/walls/c/chair-1.webp"
+   ],
+   "thumbnails": [
+    "/showroom-demo/walls/c/chair-thumb.jpg"
+   ],
+   "box": {
+    "x": 264,
+    "y": 645,
+    "w": 1289,
+    "h": 435
+   },
+   "hotspot": {
+    "id": "chair",
+    "title": "Armchair",
+    "visible": true,
+    "position": {
+     "x": 490,
+     "y": 812
+    }
+   }
+  },
+  "side-table": {
+   "title": "Side table",
+   "group": "furniture",
+   "order": 24,
+   "visible": true,
+   "shadow": "/showroom-demo/walls/c/side-table-shadow.webp",
+   "variations": [
+    "/showroom-demo/walls/c/side-table-1.webp"
+   ],
+   "thumbnails": [
+    "/showroom-demo/walls/c/side-table-thumb.jpg"
+   ],
+   "box": {
+    "x": 1220,
+    "y": 684,
+    "w": 333,
+    "h": 396
+   },
+   "hotspot": {
+    "id": "side-table",
+    "title": "Side table",
+    "visible": true,
+    "position": {
+     "x": 1382,
+     "y": 814
+    }
+   }
+  }
+ }
+}

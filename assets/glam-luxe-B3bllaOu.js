@@ -1,0 +1,1 @@
+const s="/home-mockup/assets/classic-historical-Dwfa3TZK.png",e="/home-mockup/assets/modern-minimal-w8bIWeQL.png",m="/home-mockup/assets/rustic-nature-RkADRGEu.png",a="/home-mockup/assets/mediterranean-G2KR5r13.png",c="/home-mockup/assets/bohemian-eclectic-Fud_mJNo.png",o="/home-mockup/assets/glam-luxe-COfuJ9TU.png";export{a,c as b,s as c,o as g,e as m,m as r};

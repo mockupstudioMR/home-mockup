@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 50" preserveAspectRatio="none" role="img" aria-label="Dresser">
+<!-- Home Mockup furniture symbol: Dresser. Top view, back of the piece at the top, front at the bottom. 120 × 50 cm. -->
+<g stroke-linejoin="round" stroke-linecap="round">
+<rect x="1" y="1" width="118" height="48" rx="2" fill="#6A4836" stroke="#3B3350" stroke-width="1.2" vector-effect="non-scaling-stroke"/><rect x="1" y="42" width="118" height="7" fill="#4A2F22" stroke="#3B3350" stroke-width="1.2" vector-effect="non-scaling-stroke"/><line x1="40" y1="1" x2="40" y2="49" stroke="#4A2F22" stroke-width="0.9" vector-effect="non-scaling-stroke"/><line x1="80" y1="1" x2="80" y2="49" stroke="#4A2F22" stroke-width="0.9" vector-effect="non-scaling-stroke"/>
+</g>
+</svg>

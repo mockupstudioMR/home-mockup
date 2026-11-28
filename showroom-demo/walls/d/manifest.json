@@ -1,0 +1,228 @@
+{
+ "background": "background.webp",
+ "imageSize": {
+  "width": 1920,
+  "height": 1080
+ },
+ "cameraKey": "wall-std-v1-L500",
+ "wall": "D",
+ "role": "Entry",
+ "lengthCm": 490,
+ "enhancements": {
+  "brightness": 100,
+  "contrast": 100,
+  "saturation": 100
+ },
+ "layers": {
+  "wall": {
+   "title": "Wall colour",
+   "group": "walls",
+   "order": 10,
+   "visible": true,
+   "shadow": "/showroom-demo/walls/d/wall-shadow.webp",
+   "variations": [
+    "/showroom-demo/walls/d/wall-1.webp",
+    "/showroom-demo/walls/d/wall-2.webp",
+    "/showroom-demo/walls/d/wall-3.webp",
+    "/showroom-demo/walls/d/wall-4.webp"
+   ],
+   "thumbnails": [
+    "/showroom-demo/walls/d/wall-1-thumb.jpg",
+    "/showroom-demo/walls/d/wall-2-thumb.jpg",
+    "/showroom-demo/walls/d/wall-3-thumb.jpg",
+    "/showroom-demo/walls/d/wall-4-thumb.jpg"
+   ],
+   "variationNames": [
+    "Warm limewash",
+    "Sage",
+    "Terracotta",
+    "Mauve"
+   ],
+   "hotspot": {
+    "id": "wall",
+    "title": "Wall colour",
+    "visible": true,
+    "position": {
+     "x": 960,
+     "y": 155
+    }
+   }
+  },
+  "floor": {
+   "title": "Floor",
+   "group": "floor",
+   "order": 11,
+   "visible": true,
+   "shadow": "/showroom-demo/walls/d/floor-shadow.webp",
+   "variations": [
+    "/showroom-demo/walls/d/floor-1.webp",
+    "/showroom-demo/walls/d/floor-2.webp",
+    "/showroom-demo/walls/d/floor-3.webp"
+   ],
+   "thumbnails": [
+    "/showroom-demo/walls/d/floor-1-thumb.jpg",
+    "/showroom-demo/walls/d/floor-2-thumb.jpg",
+    "/showroom-demo/walls/d/floor-3-thumb.jpg"
+   ],
+   "variationNames": [
+    "Walnut",
+    "Oak",
+    "Pale oak"
+   ],
+   "hotspot": {
+    "id": "floor",
+    "title": "Floor",
+    "visible": true,
+    "position": {
+     "x": 576,
+     "y": 1010
+    }
+   }
+  },
+  "mirror": {
+   "title": "Mirror",
+   "group": "decor",
+   "order": 20,
+   "visible": true,
+   "shadow": "/showroom-demo/walls/d/mirror-shadow.webp",
+   "variations": [
+    "/showroom-demo/walls/d/mirror-1.webp"
+   ],
+   "thumbnails": [
+    "/showroom-demo/walls/d/mirror-thumb.jpg"
+   ],
+   "box": {
+    "x": 221,
+    "y": 76,
+    "w": 1186,
+    "h": 814
+   },
+   "hotspot": {
+    "id": "mirror",
+    "title": "Mirror",
+    "visible": true,
+    "position": {
+     "x": 1230,
+     "y": 320
+    }
+   }
+  },
+  "sconce": {
+   "title": "Wall light",
+   "group": "lighting",
+   "order": 21,
+   "visible": true,
+   "shadow": "/showroom-demo/walls/d/sconce-shadow.webp",
+   "variations": [
+    "/showroom-demo/walls/d/sconce-1.webp"
+   ],
+   "thumbnails": [
+    "/showroom-demo/walls/d/sconce-thumb.jpg"
+   ],
+   "box": {
+    "x": 221,
+    "y": 76,
+    "w": 1327,
+    "h": 814
+   },
+   "hotspot": {
+    "id": "sconce",
+    "title": "Wall light",
+    "visible": true,
+    "position": {
+     "x": 1500,
+     "y": 422
+    }
+   }
+  },
+  "points": {
+   "title": "Switch & socket",
+   "group": "lighting",
+   "order": 22,
+   "visible": true,
+   "shadow": "/showroom-demo/walls/d/points-shadow.webp",
+   "variations": [
+    "/showroom-demo/walls/d/points-1.webp"
+   ],
+   "thumbnails": [
+    "/showroom-demo/walls/d/points-thumb.jpg"
+   ],
+   "box": {
+    "x": 221,
+    "y": 76,
+    "w": 1248,
+    "h": 814
+   },
+   "hotspot": {
+    "id": "points",
+    "title": "Switch & socket",
+    "visible": true,
+    "position": {
+     "x": 825,
+     "y": 530
+    }
+   }
+  },
+  "cabinet": {
+   "title": "Cabinet",
+   "group": "product-layer",
+   "order": 23,
+   "visible": true,
+   "products": [
+    {
+     "id": "cabinet-inlaid",
+     "name": "Inlaid cabinet",
+     "poster": "/showroom-demo/walls/d/cabinet-inlaid-thumb.jpg",
+     "materials": [
+      {
+       "id": "as-shown",
+       "name": "As shown",
+       "poster": "/showroom-demo/walls/d/cabinet-inlaid-thumb.jpg",
+       "shadow": "/showroom-demo/walls/d/cabinet-inlaid-shadow.webp",
+       "variations": [
+        "/showroom-demo/walls/d/cabinet-inlaid-1.webp"
+       ],
+       "box": {
+        "x": 221,
+        "y": 76,
+        "w": 1301,
+        "h": 945
+       }
+      }
+     ]
+    },
+    {
+     "id": "sideboard-moss",
+     "name": "Moss sideboard",
+     "poster": "/showroom-demo/walls/d/sideboard-moss-thumb.jpg",
+     "materials": [
+      {
+       "id": "as-shown",
+       "name": "As shown",
+       "poster": "/showroom-demo/walls/d/sideboard-moss-thumb.jpg",
+       "shadow": "/showroom-demo/walls/d/sideboard-moss-shadow.webp",
+       "variations": [
+        "/showroom-demo/walls/d/sideboard-moss-1.webp"
+       ],
+       "box": {
+        "x": 221,
+        "y": 76,
+        "w": 1402,
+        "h": 948
+       }
+      }
+     ]
+    }
+   ],
+   "hotspot": {
+    "id": "cabinet",
+    "title": "Cabinet",
+    "visible": true,
+    "position": {
+     "x": 1246,
+     "y": 714
+    }
+   }
+  }
+ }
+}

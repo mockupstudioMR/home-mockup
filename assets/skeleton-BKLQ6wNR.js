@@ -1,0 +1,1 @@
+import{r as o,j as r}from"./ui-BHJBWm46.js";import{e as t}from"./index-BHVYf4K_.js";const m=o.forwardRef(({className:e,...s},a)=>r.jsx("div",{ref:a,className:t("animate-pulse rounded-md bg-muted",e),...s}));m.displayName="Skeleton";export{m as S};

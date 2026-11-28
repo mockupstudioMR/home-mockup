@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 200" preserveAspectRatio="none" role="img" aria-label="Double bed">
+<!-- Home Mockup furniture symbol: Double bed. Top view, back of the piece at the top, front at the bottom. 160 × 200 cm. -->
+<g stroke-linejoin="round" stroke-linecap="round">
+<rect x="1" y="1" width="158" height="198" rx="5" fill="#EDE6DC" stroke="#3B3350" stroke-width="1.2" vector-effect="non-scaling-stroke"/><rect x="1" y="1" width="158" height="14.0" rx="3" fill="#A99BBE" stroke="#3B3350" stroke-width="1.2" vector-effect="non-scaling-stroke"/><rect x="8.0" y="20.0" width="68.0" height="30.0" rx="6" fill="#F8F5F0" stroke="#3B3350" stroke-width="1.2" vector-effect="non-scaling-stroke"/><rect x="84.0" y="20.0" width="68.0" height="30.0" rx="6" fill="#F8F5F0" stroke="#3B3350" stroke-width="1.2" vector-effect="non-scaling-stroke"/><path d="M1 64.0 L159 64.0 L159 194 Q159 199 154 199 L6 199 Q1 199 1 194 Z" fill="#D9CFE0" stroke="#3B3350" stroke-width="1.2" vector-effect="non-scaling-stroke"/><path d="M1 64.0 L159 64.0 L159 80.0 L1 80.0 Z" fill="#C8BBD6" stroke="#3B3350" stroke-width="0.8" vector-effect="non-scaling-stroke"/>
+</g>
+</svg>

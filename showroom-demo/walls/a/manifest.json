@@ -1,0 +1,195 @@
+{
+ "background": "background.webp",
+ "imageSize": {
+  "width": 1920,
+  "height": 1080
+ },
+ "cameraKey": "wall-std-v1-L500",
+ "wall": "A",
+ "role": "Sofa",
+ "lengthCm": 375,
+ "enhancements": {
+  "brightness": 100,
+  "contrast": 100,
+  "saturation": 100
+ },
+ "layers": {
+  "wall": {
+   "title": "Wall colour",
+   "group": "walls",
+   "order": 10,
+   "visible": true,
+   "shadow": "/showroom-demo/walls/a/wall-shadow.webp",
+   "variations": [
+    "/showroom-demo/walls/a/wall-1.webp",
+    "/showroom-demo/walls/a/wall-2.webp",
+    "/showroom-demo/walls/a/wall-3.webp",
+    "/showroom-demo/walls/a/wall-4.webp"
+   ],
+   "thumbnails": [
+    "/showroom-demo/walls/a/wall-1-thumb.jpg",
+    "/showroom-demo/walls/a/wall-2-thumb.jpg",
+    "/showroom-demo/walls/a/wall-3-thumb.jpg",
+    "/showroom-demo/walls/a/wall-4-thumb.jpg"
+   ],
+   "variationNames": [
+    "Warm limewash",
+    "Sage",
+    "Terracotta",
+    "Mauve"
+   ],
+   "hotspot": {
+    "id": "wall",
+    "title": "Wall colour",
+    "visible": true,
+    "position": {
+     "x": 959,
+     "y": 155
+    }
+   }
+  },
+  "floor": {
+   "title": "Floor",
+   "group": "floor",
+   "order": 11,
+   "visible": true,
+   "shadow": "/showroom-demo/walls/a/floor-shadow.webp",
+   "variations": [
+    "/showroom-demo/walls/a/floor-1.webp",
+    "/showroom-demo/walls/a/floor-2.webp",
+    "/showroom-demo/walls/a/floor-3.webp"
+   ],
+   "thumbnails": [
+    "/showroom-demo/walls/a/floor-1-thumb.jpg",
+    "/showroom-demo/walls/a/floor-2-thumb.jpg",
+    "/showroom-demo/walls/a/floor-3-thumb.jpg"
+   ],
+   "variationNames": [
+    "Walnut",
+    "Oak",
+    "Pale oak"
+   ],
+   "hotspot": {
+    "id": "floor",
+    "title": "Floor",
+    "visible": true,
+    "position": {
+     "x": 576,
+     "y": 1010
+    }
+   }
+  },
+  "shelves": {
+   "title": "Built-in shelves",
+   "group": "furniture",
+   "order": 20,
+   "visible": true,
+   "shadow": "/showroom-demo/walls/a/shelves-shadow.webp",
+   "variations": [
+    "/showroom-demo/walls/a/shelves-1.webp"
+   ],
+   "thumbnails": [
+    "/showroom-demo/walls/a/shelves-thumb.jpg"
+   ],
+   "box": {
+    "x": 391,
+    "y": 161,
+    "w": 325,
+    "h": 766
+   },
+   "hotspot": {
+    "id": "shelves",
+    "title": "Built-in shelves",
+    "visible": true,
+    "position": {
+     "x": 553,
+     "y": 440
+    }
+   }
+  },
+  "art": {
+   "title": "Gallery pair",
+   "group": "decor",
+   "order": 21,
+   "visible": true,
+   "shadow": "/showroom-demo/walls/a/art-shadow.webp",
+   "variations": [
+    "/showroom-demo/walls/a/art-1.webp"
+   ],
+   "thumbnails": [
+    "/showroom-demo/walls/a/art-thumb.jpg"
+   ],
+   "box": {
+    "x": 903,
+    "y": 323,
+    "w": 377,
+    "h": 257
+   },
+   "hotspot": {
+    "id": "art",
+    "title": "Gallery pair",
+    "visible": true,
+    "position": {
+     "x": 1087,
+     "y": 440
+    }
+   }
+  },
+  "points": {
+   "title": "Sockets",
+   "group": "lighting",
+   "order": 22,
+   "visible": true,
+   "shadow": "/showroom-demo/walls/a/points-shadow.webp",
+   "variations": [
+    "/showroom-demo/walls/a/points-1.webp"
+   ],
+   "thumbnails": [
+    "/showroom-demo/walls/a/points-thumb.jpg"
+   ],
+   "box": {
+    "x": 674,
+    "y": 780,
+    "w": 838,
+    "h": 51
+   },
+   "hotspot": {
+    "id": "points",
+    "title": "Sockets",
+    "visible": true,
+    "position": {
+     "x": 697,
+     "y": 800
+    }
+   }
+  },
+  "sofa": {
+   "title": "Sofa",
+   "group": "furniture",
+   "order": 23,
+   "visible": true,
+   "shadow": "/showroom-demo/walls/a/sofa-shadow.webp",
+   "variations": [
+    "/showroom-demo/walls/a/sofa-1.webp"
+   ],
+   "thumbnails": [
+    "/showroom-demo/walls/a/sofa-thumb.jpg"
+   ],
+   "box": {
+    "x": 621,
+    "y": 586,
+    "w": 997,
+    "h": 472
+   },
+   "hotspot": {
+    "id": "sofa",
+    "title": "Sofa",
+    "visible": true,
+    "position": {
+     "x": 1105,
+     "y": 789
+    }
+   }
+  }
+ }
+}
