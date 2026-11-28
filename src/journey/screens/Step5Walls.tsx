@@ -64,6 +64,17 @@ const STATUS_TEXT: Record<WallStatus, string> = {
   ready: "Ready", making: "Making now", waiting: "Waiting", failed: "Couldn't be made", outdated: "Room changed · make again", stopped: "Stopped", none: "Not made yet",
 };
 
+/** Debug tools on: `?debug` in the address turns them on for this browser (kept across screens), `?debug=0` off. */
+function debugMode() {
+  try {
+    const q = new URLSearchParams(window.location.search).get("debug");
+    if (q !== null) localStorage.setItem("hm-debug", q === "0" ? "0" : "1");
+    return localStorage.getItem("hm-debug") === "1";
+  } catch {
+    return new URLSearchParams(window.location.search).has("debug");
+  }
+}
+
 /** The room's hyper-realistic pictures: one per wall, every piece swappable. Made for all walls up front. */
 function RoomPictures() {
   const { status, progress, running, start, stop, ready, scenes } = useRoomPictures(true);
@@ -71,8 +82,7 @@ function RoomPictures() {
   const again = all.filter((w) => status(w) !== "ready" && status(w) !== "making" && status(w) !== "waiting");
   // debugging: admins (or ?debug in the address) can download every layer of every made picture
   const { role } = useAuth();
-  const debug = role === "admin" || new URLSearchParams(window.location.search).has("debug");
-  const withLayers = all.filter((w) => scenes[w]?.manifestUrl);
+  const debug = role === "admin" || debugMode();
   const [packing, setPacking] = useState<{ done: number; total: number } | null>(null);
   const [packNote, setPackNote] = useState("");
   const downloadAll = async () => {
@@ -100,7 +110,7 @@ function RoomPictures() {
         ) : null}
       </div>
       {ready !== true && <p className="small" role="note">{ready}</p>}
-      {debug && withLayers.length > 0 && (
+      {debug && (
         <div className="wo-pics-debug">
           <button type="button" className="link-btn" onClick={downloadAll} disabled={!!packing}>
             {packing ? `Packing layers · ${packing.done} of ${packing.total || "…"}` : "Download all layers (debug)"}

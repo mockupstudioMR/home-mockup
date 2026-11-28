@@ -8,9 +8,36 @@
  *     1-<option>-shadow.webp      that option's own shadow (multiply), or shadow.webp when shared
  *     1-<option>-thumb.jpg        its thumbnail
  *   layers.txt                    the same, as a list: order, blend, options and which shadow each one uses
+ *   status.txt                    the picture's state (ready, failed, …), its error and when it was made
+ *   stored-files/<run>/           a picture without a manifest (failed or stopped): every file its run had
+ *                                 already saved (guide.jpg, background.jpg, …), to see how far it got
  *   MISSING.txt                   files that could not be fetched (only if any)
  */
+import { supabase } from "@/lib/looseDb";
 import type { Pic, WallScene } from "./runner";
+
+/** Files a run of one picture saved, newest run first: [path inside the run folder, URL]. */
+export type StoredFiles = (pic: Pic, scene: WallScene) => Promise<{ path: string; url: string }[]>;
+
+/** The person's own scene folders for this picture (`<user>/scenes/<key>-<wall>-<time>/`), the two newest runs. */
+export const storedFiles: StoredFiles = async (pic, scene) => {
+  const { data: u } = await supabase.auth.getUser();
+  const uid = u.user?.id;
+  if (!uid || !scene.key) return [];
+  const bucket = supabase.storage.from("design-images");
+  const prefix = `${scene.key}-${pic.toLowerCase()}-`;
+  const { data: dirs } = await bucket.list(`${uid}/scenes`, { search: prefix, limit: 100 });
+  const runs = ((dirs ?? []) as { name: string }[]).filter((d) => d.name.startsWith(prefix)).map((d) => d.name).sort().reverse().slice(0, 2);
+  const out: { path: string; url: string }[] = [];
+  for (const run of runs) {
+    const { data: files } = await bucket.list(`${uid}/scenes/${run}`, { limit: 1000 });
+    for (const f of (files ?? []) as { name: string; id?: string | null }[]) {
+      if (f.id === null) continue; // a sub-folder
+      out.push({ path: `${run}/${f.name}`, url: bucket.getPublicUrl(`${uid}/scenes/${run}/${f.name}`).data.publicUrl as string });
+    }
+  }
+  return out;
+};
 
 type Layer = {
   title?: string; order?: number; blend?: string; group?: string;
@@ -62,15 +89,34 @@ function filesOf(folder: string, m: Manifest, scene: WallScene) {
  * Fetches every layer of every picture that has a manifest and downloads them as one ZIP.
  * Returns how many files went in and which could not be fetched.
  */
-export async function downloadWallLayers(scenes: Partial<Record<Pic, WallScene>>, onProgress?: (done: number, total: number) => void) {
+export async function downloadWallLayers(scenes: Partial<Record<Pic, WallScene>>, onProgress?: (done: number, total: number) => void, stored: StoredFiles = storedFiles) {
   const { default: JSZip } = await import("jszip");
   const zip = new JSZip();
   const jobs: [string, string][] = [];
   const missing: Record<string, string[]> = {};
+  let pictures = 0;
   for (const pic of Object.keys(FOLDER) as Pic[]) {
     const scene = scenes[pic];
-    if (!scene?.manifestUrl) continue;
+    if (!scene) continue;
+    pictures++;
     const folder = FOLDER[pic];
+    zip.file(`${folder}/status.txt`, [
+      `${folder}: ${scene.status}`,
+      scene.error ? `error: ${scene.error}` : "",
+      scene.at ? `made: ${scene.at}` : "",
+      `key: ${scene.key}`,
+      scene.manifestUrl ? `manifest: ${scene.manifestUrl}` : "no manifest: the picture was not finished",
+      scene.skipped?.length ? `without alternatives: ${scene.skipped.join(", ")}` : "",
+    ].filter(Boolean).join("\n") + "\n");
+    if (!scene.manifestUrl) {
+      // not finished: whatever its run had saved so far
+      try {
+        for (const f of await stored(pic, scene)) jobs.push([`${folder}/stored-files/${f.path}`, f.url]);
+      } catch (e) {
+        (missing[folder] ??= []).push(`stored files  (${(e as Error).message})`);
+      }
+      continue;
+    }
     try {
       const res = await fetch(scene.manifestUrl);
       if (!res.ok) throw new Error(`${res.status}`);
@@ -83,7 +129,7 @@ export async function downloadWallLayers(scenes: Partial<Record<Pic, WallScene>>
       (missing[folder] ??= []).push(`manifest.json  ${scene.manifestUrl}  (${(e as Error).message})`);
     }
   }
-  if (!jobs.length && !Object.keys(missing).length) throw new Error("No wall pictures have been made yet.");
+  if (!pictures) throw new Error("No wall pictures have been made yet.");
 
   let done = 0, next = 0, added = 0;
   onProgress?.(0, jobs.length);
