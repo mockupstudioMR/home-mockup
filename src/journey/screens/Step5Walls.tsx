@@ -27,6 +27,8 @@ import { downloadWallLayers } from "../wallScenes/downloadLayers";
 import { useAuth } from "@/contexts/AuthContext";
 import "../walls.css";
 import { asset } from "@/lib/asset";
+import { lazy, Suspense } from "react";
+const WalkTour = lazy(() => import("../showroom3d/WalkTour"));
 
 const lc = (t: string) => t.charAt(0).toLowerCase() + t.slice(1);
 const metres = (cm: number) => `${(cm / 100).toFixed(2)} m`;
@@ -161,6 +163,7 @@ export function YourWalls() {
   const kept = s.keeping.length ? s.keeping.map((k) => lc(k.name)).join(", ") : s.nothingKept ? "nothing" : "not set";
   const fixedN = s.placements.filter((p) => p.wall).length;
   const shops = s.catalogPhotos.length ? "your shops" : "suggestions";
+  const [touring, setTouring] = useState(false);
 
   return (
     <Screen board="S5-Walls" step={5} right={roomName(curRoom(s))} wrapClass="wrap wide"
@@ -196,6 +199,14 @@ export function YourWalls() {
           </div>
         </div>
       </div>
+      <div className="wo-tour">
+        <div>
+          <b>3D walking tour</b>
+          <span className="small">Walk through your room in 3D, built from its sizes, your floor plan and layout, with each wall's picture at its stop.</span>
+        </div>
+        <button type="button" className="btn auto" onClick={() => setTouring(true)}>Start 3D walking tour</button>
+      </div>
+      {touring && <Suspense fallback={null}><WalkTour onClose={() => setTouring(false)} /></Suspense>}
       <RoomPictures />
       <div className="wo-before" aria-label="Carried over">
         <span>Carried over:</span>

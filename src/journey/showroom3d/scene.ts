@@ -9,7 +9,7 @@ import * as THREE from "three";
 import type { Wall } from "../state";
 import { seenOn, type Extra, type Opening, type PieceModel, type ShowroomModel } from "./model";
 
-export type View = "room" | "A" | "B" | "C" | "D" | "doll" | "plan";
+export type View = "room" | "A" | "B" | "C" | "D" | "doll" | "plan" | "walk";
 type G = THREE.Group;
 type Mat = THREE.Material;
 const PI = Math.PI;
@@ -706,13 +706,23 @@ export function viewFor(v: View, room: ShowroomModel["room"], aspect = 1.5) {
     case "D": return { p: [W - 0.3, 1.4, L / 2], t: [0, 1.28, L / 2], f: fit(L, W - 0.3), mode: "look" as const, hide: [] as Wall[] };
     case "doll": return { p: [W / 2 + big * 1.25, big * 1.25, L / 2 + big * 1.35], t: [W / 2, 0.7, L / 2], f: 34, mode: "orbit" as const, hide: ["B", "C"] as Wall[] };
     case "plan": return { p: [W / 2, big * 2 + 1.5, L / 2 + 0.01], t: [W / 2, 0, L / 2], f: 36, mode: "fixed" as const, hide: ["B", "C"] as Wall[] };
+    case "walk": return { p: [W / 2, 1.6, L - 0.5], t: [W / 2, 1.5, 0], f: 68, mode: "look" as const, hide: [] as Wall[] };
     default: return { p: [W - 0.6, 1.5, L - 0.4], t: [W * 0.38, 1.05, L * 0.2], f: 60, mode: "look" as const, hide: [] as Wall[] };
   }
 }
 
 /* ---------- the live showroom on a canvas ---------- */
 
-export type Showroom = { update: (m: ShowroomModel, eve: boolean) => void; setView: (v: View, instant?: boolean) => void; dispose: () => void };
+export type Showroom = {
+  update: (m: ShowroomModel, eve: boolean) => void; setView: (v: View, instant?: boolean) => void; dispose: () => void;
+  /** Walking tour: step forward/back and sideways (metres) and turn (radians), staying inside the room at eye height. */
+  walk: (forward: number, strafe: number, turn: number) => void;
+};
+
+/** Keeps a walking eye inside the room, a little off the walls. */
+export function clampInside(x: number, z: number, room: ShowroomModel["room"], margin = 0.3) {
+  return [Math.max(margin, Math.min(room.w - margin, x)), Math.max(margin, Math.min(room.l - margin, z))] as const;
+}
 
 export function createShowroom(canvas: HTMLCanvasElement, model: ShowroomModel, onSelect: (id: string) => void): Showroom {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, preserveDrawingBuffer: true });
@@ -809,11 +819,25 @@ export function createShowroom(canvas: HTMLCanvasElement, model: ShowroomModel, 
   canvas.addEventListener("pointerdown", down); canvas.addEventListener("pointermove", move);
   canvas.addEventListener("pointerup", up); canvas.addEventListener("pointercancel", up);
 
+  const walk = (forward: number, strafe: number, turn: number) => {
+    if (tween) return;
+    mode = "look";
+    const v = tgt.clone().sub(pos), len = Math.max(0.5, v.length());
+    let yaw = Math.atan2(v.x, v.z);
+    const pitch = Math.asin(Math.max(-1, Math.min(1, v.y / len)));
+    yaw += turn;
+    const fx = Math.sin(yaw), fz = Math.cos(yaw);
+    const [x, z] = clampInside(pos.x + fx * forward - fz * strafe, pos.z + fz * forward + fx * strafe, m.room);
+    pos.set(x, 1.6, z);
+    tgt.set(x + fx * Math.cos(pitch) * len, 1.6 + Math.sin(pitch) * len, z + fz * Math.cos(pitch) * len);
+    dirty = true;
+  };
+
   update(model, false);
   setView("room", true);
   raf = requestAnimationFrame(tick);
   return {
-    update, setView,
+    update, setView, walk,
     dispose: () => {
       alive = false; cancelAnimationFrame(raf);
       canvas.removeEventListener("pointerdown", down); canvas.removeEventListener("pointermove", move);

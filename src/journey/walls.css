@@ -152,3 +152,5 @@
 .mu .lw-confirm{background:var(--ink,#2B2422);color:#fff;border-color:transparent}
 .mu .lw-confirm.on{background:#E7F1EA;color:#2f6b45}
 .mu.b-S5-Walls .wo-pics-debug{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;margin-top:4px}
+.wo-tour { display: flex; justify-content: space-between; align-items: center; gap: 14px; flex-wrap: wrap; padding: 14px 16px; margin: 12px 0; border-radius: 14px; border: 1px solid hsl(var(--border)); background: hsl(var(--card)); }
+.wo-tour > div { display: flex; flex-direction: column; gap: 2px; }
